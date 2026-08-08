@@ -337,3 +337,16 @@ proprietary programs.  If your program is a subroutine library, you may
 consider it more useful to permit linking proprietary applications with the
 library.  If this is what you want to do, use the GNU Lesser General
 Public License instead of this License.
+
+---
+
+ADDITIONAL ATTRIBUTION
+======================
+
+This software is based on:
+- Thetis SDR by ramdor/Richard and contributors
+- Original repository: https://github.com/ramdor/Thetis
+
+Modifications and enhancements by Yurij-eu2av are Copyright (c) 2026.
+All modifications are released under the same GPL-2.0 license terms 
+as the original work.

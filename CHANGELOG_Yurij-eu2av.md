@@ -1,5 +1,16 @@
 # CHANGELOG — Yurij-eu2av (Thetis modifications)
 
+ВАЖНО: Это неофициальный форк Thetis SDR.
+Оригинальный проект: https://github.com/ramdor/Thetis
+Мейнтейнер форка: Yurij-eu2av
+Лицензия: GPL-2.0 (та же, что у оригинала)
+
+Все перечисленные ниже модификации являются улучшениями оригинального 
+ПО Thetis и выпущены под лицензией GPL-2.0. Этот форк НЕ связан и 
+НЕ одобрен командой разработчиков оригинального Thetis.
+
+---
+
 **Проект:** Thetis SDR (openHPSDR transceiver software)
 **Версия-база:** Thetis 2.10.x (VS2026 solution)
 **Дата:** 2026-07-09

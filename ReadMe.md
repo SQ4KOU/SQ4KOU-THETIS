@@ -1,3 +1,26 @@
+# ВАЖНО: Это НЕ официальный Thetis
+
+Этот репозиторий представляет собой **неофициальный, community fork** 
+программного обеспечения Thetis SDR, поддерживаемый Yurij-eu2av для 
+использования с оборудованием **Anvelina PRO3 / ANAN-7000DLE**.
+
+## Ключевая информация
+
+- **Оригинальный проект:** [Thetis SDR by ramdor/Richard](https://github.com/ramdor/Thetis)
+- **Этот форк:** Community enhancements для конкретного оборудования
+- **Статус:** Неофициальный — НЕ поддерживается командой оригинального Thetis
+- **Лицензия:** GPL-2.0 (та же, что и у оригинала)
+
+## Обратите внимание
+
+**НЕ сообщайте о проблемах с этим форком в оригинальный проект Thetis.**
+
+Этот форк включает значительные модификации (WDSP 2.0, 16-bit waterfall, 
+калибровка для конкретного оборудования), которых нет в официальных релизах 
+Thetis. Баг-репорты следует подавать в разделе Issues этого репозитория.
+
+---
+
 # CHANGELOG — Yurij-eu2av (Thetis modifications)
 
 **Project:** Thetis SDR (openHPSDR transceiver software)  
@@ -542,3 +565,24 @@ The fix was applied in Path A, where the actual readings are formed.
 ## Related Work (FPGA Side)
 
 These Thetis changes complement the work on the FPGA side (Anvelina PRO III / Orion MK2, firmware version 2.2.14), where display jitter was eliminated (crosstalk/ghosting in the ADC78H90 multiplexer via dummy-conversion). Full FPGA-side documentation is in `CHANGELOG_Yurij_eu2av.md` of the Verilog project repository.
+
+---
+
+## Благодарности
+
+Этот проект основан на отличной работе:
+
+- **ramdor (Richard)** и команды разработчиков Thetis — оригинальное ПО Thetis SDR
+- **openHPSDR community** — протокол HPSDR и референсные дизайны оборудования
+- **Авторы библиотеки WDSP** — движок цифровой обработки сигналов
+- **MW0LGE** и другие контрибьюторы Thetis — различные улучшения и исправления
+
+Все модификации Yurij-eu2av выпущены под той же лицензией GPL-2.0, что и 
+оригинальный проект. Этот форк существует для обеспечения расширенной 
+поддержки конкретных конфигураций оборудования и поддерживается независимо.
+
+## Лицензия
+
+Это программное обеспечение лицензировано под **GNU General Public License 
+v2.0 (GPL-2.0)**, той же лицензией, что и оригинальный проект Thetis. 
+См. файл [LICENSE](LICENSE) для подробностей.
