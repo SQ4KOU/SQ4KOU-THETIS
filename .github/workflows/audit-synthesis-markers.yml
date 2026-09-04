@@ -1,0 +1,81 @@
+name: Audit synthesis hardware-specific markers
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/audit-synthesis-markers.yml
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Fetch synthesis snapshot
+        shell: bash
+        run: git fetch --depth=1 origin synthesis-clean
+
+      - name: Generate hardware marker report
+        shell: python
+        run: |
+          import subprocess
+          from pathlib import Path
+
+          ref = 'FETCH_HEAD'
+          patterns = [
+              'ANVELINA', 'Anvelina', 'anvelina',
+              'ORIONMKII', 'ORIONMK2', 'Orion MK2', 'OrionMKII',
+              '7000DLE', 'ANAN-7000', 'ANAN7000',
+              'Feedback Level', 'feedback target', 'outlier_sigma',
+              'Detector Cal', 'detector calibration', 'voltage calibration',
+              'PA Volts', 'Supply 13.8'
+          ]
+
+          report = [
+              '# Synthesis hardware-specific marker audit', '',
+              'Snapshot: `synthesis-clean`', '',
+              'This report is diagnostic only. A match does not mean the code will be removed;',
+              'it identifies places requiring semantic review before the clean synthesis is accepted.', ''
+          ]
+
+          for pat in patterns:
+              p = subprocess.run(
+                  ['git','grep','-n','-I','-i','-F',pat,ref,'--','Project Files/Source/Console','Project Files/Source/wdsp'],
+                  text=True, capture_output=True, errors='replace'
+              )
+              lines = p.stdout.splitlines()
+              report += [f'## `{pat}` — {len(lines)} match(es)', '']
+              if lines:
+                  for line in lines[:200]:
+                      line = line.replace(ref + ':', '', 1)
+                      report.append(f'- `{line}`')
+                  if len(lines) > 200:
+                      report.append(f'- ... {len(lines)-200} more')
+              else:
+                  report.append('- none')
+              report.append('')
+
+          Path('audit').mkdir(exist_ok=True)
+          Path('audit/synthesis_hardware_markers.md').write_text('\n'.join(report), encoding='utf-8')
+
+      - name: Commit report
+        shell: bash
+        run: |
+          git config user.name "SQ4KOU synthesis automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add audit/synthesis_hardware_markers.md
+          if git diff --cached --quiet; then
+            echo "No report changes"
+          else
+            git commit -m "Audit hardware-specific markers in synthesis candidate"
+            git push origin HEAD:main
+          fi
