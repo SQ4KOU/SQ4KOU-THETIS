@@ -1,0 +1,112 @@
+name: Apply SQ4KOU V9.7.1 patch stack
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/apply-sq4kou-v971.yml
+
+permissions:
+  contents: write
+
+jobs:
+  apply-build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout control files
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          path: control
+
+      - name: Checkout clean SQ4KOU branch
+        uses: actions/checkout@v4
+        with:
+          ref: sq4kou
+          fetch-depth: 1
+          path: synthesis
+
+      - name: Reconstruct verified V9.7.1 patch pack
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $chunks = Get-ChildItem -LiteralPath 'control/.github/sq4kou-v971/chunks' -Filter 'part*.b64' | Sort-Object Name
+          if ($chunks.Count -ne 7) { throw "Expected 7 patch-pack chunks, got $($chunks.Count)" }
+          $b64 = ($chunks | ForEach-Object { [IO.File]::ReadAllText($_.FullName) }) -join ''
+          $zip = [Convert]::FromBase64String($b64)
+          [IO.File]::WriteAllBytes('control/sq4kou-v971.zip', $zip)
+          $sha = (Get-FileHash -LiteralPath 'control/sq4kou-v971.zip' -Algorithm SHA256).Hash.ToLowerInvariant()
+          Write-Host "PATCH_PACK_SHA256=$sha"
+          if ($sha -ne '91b2356f9e5096630bfa7dd74df2972c6c50aaca325162cb84c1174b8dc6e946') {
+            throw "Patch pack SHA256 mismatch"
+          }
+          Expand-Archive -LiteralPath 'control/sq4kou-v971.zip' -DestinationPath 'control/patchpack' -Force
+          $pack = Get-ChildItem -LiteralPath 'control/patchpack' -Directory | Select-Object -First 1
+          if ($null -eq $pack) { throw 'Patch pack root not found' }
+          "PACK_ROOT=$($pack.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Verify clean base SHA before patching
+        shell: pwsh
+        working-directory: synthesis
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $sha = (git rev-parse HEAD).Trim()
+          Write-Host "SQ4KOU_BASE_SHA=$sha"
+          if ($sha -ne 'ed4e2b977303f39a6733807237e61f25b14879d6') {
+            throw "sq4kou no longer starts from the accepted clean synthesis SHA"
+          }
+
+      - name: Apply all SQ4KOU patches and build Release x64 + installer
+        id: patchbuild
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$env:PACK_ROOT/BUILD_SQ4KOU_THETIS.ps1" -SourceRoot "$PWD/synthesis"
+          $code = $LASTEXITCODE
+          Set-Location synthesis
+          git status --short | Out-File -FilePath ../control/patch-status.txt -Encoding utf8
+          git diff --binary | Out-File -FilePath ../control/patch-diff.patch -Encoding utf8
+          Set-Location ..
+          if ($code -ne 0) { throw "SQ4KOU patch/build gate failed with exit code $code" }
+
+      - name: Commit accepted SQ4KOU integration
+        if: success()
+        shell: bash
+        working-directory: synthesis
+        run: |
+          set -euo pipefail
+          git config user.name "SQ4KOU synthesis automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git diff --cached --stat
+          if git diff --cached --quiet; then
+            echo "No source changes to commit."
+          else
+            git commit -m "Apply SQ4KOU V9.7.1 patches to clean synthesis"
+            git push origin HEAD:sq4kou
+          fi
+          echo "SQ4KOU_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+
+      - name: Upload patch/build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sq4kou-v971-integration-diagnostics
+          path: |
+            control/patch-status.txt
+            control/patch-diff.patch
+            ${{ env.PACK_ROOT }}/ONECLICK_BUILD.log
+            ${{ env.PACK_ROOT }}/REPORTS/**
+          if-no-files-found: warn
+
+      - name: Upload SQ4KOU installer output
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sq4kou-v971-x64-installer
+          path: ${{ env.PACK_ROOT }}/OUTPUT_INSTALLER/**
+          if-no-files-found: error
