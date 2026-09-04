@@ -1,0 +1,53 @@
+name: Inspect current N1MM UI anchors
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/inspect-n1mm-ui.yml
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: synthesis-clean
+          fetch-depth: 1
+      - name: Print semantic anchors
+        shell: python
+        run: |
+          from pathlib import Path
+
+          targets = [
+              ('Project Files/Source/Console/setup.cs', [
+                  'InitializeComponent();',
+                  'private void chkWaterfall_smear_CheckedChanged',
+                  'Setup_Load',
+                  'public Setup(',
+              ]),
+              ('Project Files/Source/Console/setup.designer.cs', [
+                  'this.groupBoxTS16.Controls.Add',
+                  'this.groupBoxTS16.Text',
+                  'private CheckBoxTS chkWaterfall_smear',
+                  'this.btnCFCConfig = new System.Windows.Forms.ButtonTS();',
+              ]),
+          ]
+
+          for fn, needles in targets:
+              text = Path(fn).read_text(encoding='utf-8-sig', errors='replace')
+              lines = text.splitlines()
+              print('\n###', fn)
+              for needle in needles:
+                  print('\n---', needle, '---')
+                  hits = [i for i,l in enumerate(lines) if needle in l]
+                  print('hits:', hits)
+                  for i in hits[:5]:
+                      a=max(0,i-8); b=min(len(lines),i+14)
+                      for n in range(a,b):
+                          print(f'{n+1:06d}: {lines[n]}')
