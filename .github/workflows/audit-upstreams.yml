@@ -1,0 +1,130 @@
+name: Audit upstream trees
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/audit-upstreams.yml
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository with imported histories
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch imported reference branches
+        shell: bash
+        run: |
+          git fetch origin base/ramdor-20260904 base/eu2av-20260904
+
+      - name: Generate tree comparison report
+        shell: python
+        run: |
+          import subprocess
+          from collections import Counter
+          from pathlib import Path
+
+          RAM = 'origin/base/ramdor-20260904'
+          EU = 'origin/base/eu2av-20260904'
+
+          def tree(ref):
+              out = subprocess.check_output(['git','ls-tree','-r','--full-tree',ref], text=True, errors='replace')
+              d = {}
+              for line in out.splitlines():
+                  meta, path = line.split('\t',1)
+                  mode, typ, sha = meta.split()
+                  d[path] = (mode, typ, sha)
+              return d
+
+          ram = tree(RAM)
+          eu = tree(EU)
+          paths = sorted(set(ram) | set(eu))
+          same, modified, ram_only, eu_only = [], [], [], []
+          for p in paths:
+              if p not in eu:
+                  ram_only.append(p)
+              elif p not in ram:
+                  eu_only.append(p)
+              elif ram[p] == eu[p]:
+                  same.append(p)
+              else:
+                  modified.append(p)
+
+          def area(p):
+              if p.startswith('Project Files/Source/Console/'):
+                  return 'Console'
+              if p.startswith('Project Files/Source/wdsp/'):
+                  return 'WDSP'
+              if p.startswith('Project Files/Source/Thetis-Installer/'):
+                  return 'Installer'
+              if p.startswith('Project Files/Source/'):
+                  return 'Other Source'
+              if p.startswith('Project Files/'):
+                  return 'Project Files other'
+              if p.startswith('Skins'):
+                  return 'Skins'
+              if p.startswith('Documentation/'):
+                  return 'Documentation'
+              return 'Root/other'
+
+          area_counts = Counter()
+          for label, seq in [('modified',modified),('ramdor-only',ram_only),('eu2av-only',eu_only)]:
+              for p in seq:
+                  area_counts[(area(p),label)] += 1
+
+          report = []
+          report += ['# Ramdor vs EU2AV tree audit','',
+                     '- Ramdor: `base/ramdor-20260904` @ `852bf0ef0b4f3886a13fc2846489aee16f361872`',
+                     '- EU2AV: `base/eu2av-20260904` @ `567a7ecd88bfb2ca41316dab9258fff0efeae7bf`','',
+                     '## Summary','',
+                     f'- Files identical by Git object: **{len(same)}**',
+                     f'- Same path, different content/mode: **{len(modified)}**',
+                     f'- Ramdor-only paths: **{len(ram_only)}**',
+                     f'- EU2AV-only paths: **{len(eu_only)}**','',
+                     '## By area','',
+                     '| Area | Modified | Ramdor only | EU2AV only |',
+                     '|---|---:|---:|---:|']
+          areas = sorted({a for a,_ in area_counts})
+          for a in areas:
+              report.append(f"| {a} | {area_counts[(a,'modified')]} | {area_counts[(a,'ramdor-only')]} | {area_counts[(a,'eu2av-only')]} |")
+
+          def section(title, seq, limit=None):
+              report.extend(['', f'## {title}', ''])
+              shown = seq if limit is None else seq[:limit]
+              report.extend([f'- `{p}`' for p in shown])
+              if limit is not None and len(seq) > limit:
+                  report.append(f'- ... and {len(seq)-limit} more')
+
+          section('EU2AV-only source paths', [p for p in eu_only if p.startswith('Project Files/Source/')])
+          section('Ramdor-only source paths', [p for p in ram_only if p.startswith('Project Files/Source/')])
+          section('Modified source paths', [p for p in modified if p.startswith('Project Files/Source/')])
+          section('EU2AV-only non-source paths', [p for p in eu_only if not p.startswith('Project Files/Source/')])
+          section('Ramdor-only non-source paths', [p for p in ram_only if not p.startswith('Project Files/Source/')])
+
+          outdir = Path('audit')
+          outdir.mkdir(exist_ok=True)
+          (outdir/'upstream_tree_diff.md').write_text('\n'.join(report)+'\n', encoding='utf-8')
+          (outdir/'modified_paths.txt').write_text('\n'.join(modified)+'\n', encoding='utf-8')
+          (outdir/'ramdor_only_paths.txt').write_text('\n'.join(ram_only)+'\n', encoding='utf-8')
+          (outdir/'eu2av_only_paths.txt').write_text('\n'.join(eu_only)+'\n', encoding='utf-8')
+
+      - name: Commit audit report to main
+        shell: bash
+        run: |
+          git config user.name "SQ4KOU synthesis automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add audit/
+          if git diff --cached --quiet; then
+            echo "Audit unchanged"
+          else
+            git commit -m "Add Ramdor vs EU2AV tree audit"
+            git push origin HEAD:main
+          fi
