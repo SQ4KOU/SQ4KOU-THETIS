@@ -1,0 +1,151 @@
+name: Stage 1 clean synthesis and x64 build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/stage1-clean-synthesis.yml
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    name: Prepare neutral synthesis candidate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout control repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Prepare synthesis-clean from pinned EU2AV snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "SQ4KOU synthesis automation"
+          git config user.email "actions@users.noreply.github.com"
+          git fetch origin base/eu2av-20260904 base/ramdor-20260904
+          git checkout -B synthesis-clean origin/base/eu2av-20260904
+
+          # Remove obvious editor/working backup artifacts only.
+          find "Project Files/Source/Console" -type f \
+            \( -name "*.dpi_backup_*" -o -name "*.detcal_backup_*" -o -name "*.volts_backup_*" -o -name "*.wfq_backup_*" \) \
+            -print -delete
+
+          # Neutralize fork branding while preserving attribution/changelogs.
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('Project Files/Source/Console/titlebar.cs')
+          s = p.read_text(encoding='utf-8-sig')
+          s = s.replace('public const string BUILD_NAME = "EU2AV";', 'public const string BUILD_NAME = "";')
+          s = s.replace('        public const string EXTENDED_NAME = "extended version-eu2av";\n', '')
+          s = s.replace('            if (EXTENDED_NAME != "") s += " / " + EXTENDED_NAME;\n', '')
+          p.write_text(s, encoding='utf-8-sig')
+          PY
+
+          # Neutral project README. Source attribution is retained in upstream changelogs.
+          cat > ReadMe.md <<'EOF'
+          # SQ4KOU-THETIS clean synthesis
+
+          This branch is the clean synthesis candidate combining the current pinned
+          source snapshots of `ramdor/Thetis` and `eu2av/OpenHPSDR-Thetis-Enhanced`.
+
+          ## Stage 1 policy
+
+          - no SQ4KOU functional patches;
+          - no SQ4KOU hardware adaptations;
+          - preserve upstream functionality unless an audit proves it is hardware-specific,
+            conflicting, obsolete, or less reliable than the alternative implementation;
+          - preserve upstream attribution and licensing;
+          - x64 buildability is a mandatory gate before further integration work.
+
+          ## Pinned references
+
+          - ramdor/Thetis: `852bf0ef0b4f3886a13fc2846489aee16f361872`
+          - eu2av/OpenHPSDR-Thetis-Enhanced: `567a7ecd88bfb2ca41316dab9258fff0efeae7bf`
+
+          The EU2AV tree is used as the initial technical snapshot because the tree audit
+          shows that it contains every active Ramdor source path plus additional source
+          files. The synthesis audit then decides, feature by feature, which implementation
+          is retained.
+          EOF
+
+          mkdir -p .sq4kou
+          cat > .sq4kou/SYNTHESIS_BASE.md <<'EOF'
+          # Clean synthesis provenance
+
+          Created: 2026-09-04
+
+          Ramdor reference:
+          - branch: base/ramdor-20260904
+          - commit: 852bf0ef0b4f3886a13fc2846489aee16f361872
+
+          EU2AV reference:
+          - branch: base/eu2av-20260904
+          - commit: 567a7ecd88bfb2ca41316dab9258fff0efeae7bf
+
+          Initial candidate strategy:
+          - technical tree starts from the EU2AV pinned snapshot;
+          - EU2AV branding and editor backup artifacts are removed;
+          - upstream copyright, license and contributor attribution are preserved;
+          - no SQ4KOU functional patches are permitted in Stage 1;
+          - feature-by-feature semantic audit follows after the first clean x64 build.
+          EOF
+
+          git add -A
+          git commit -m "Stage 1: create neutral Ramdor + EU2AV synthesis candidate"
+          git push --force origin synthesis-clean
+
+      - name: Record candidate SHA
+        shell: bash
+        run: |
+          echo "SYNTHESIS_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          git rev-parse HEAD
+
+  build-x64:
+    name: Build synthesis x64 Release
+    needs: prepare
+    runs-on: windows-latest
+    steps:
+      - name: Checkout synthesis candidate
+        uses: actions/checkout@v4
+        with:
+          ref: synthesis-clean
+          fetch-depth: 0
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Restore NuGet packages
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          nuget restore "Project Files/Source/Thetis_VS2026.sln" -NonInteractive
+
+      - name: Build full x64 Release solution
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path build-logs | Out-Null
+          msbuild "Project Files/Source/Thetis_VS2026.sln" /m /t:Build /p:Configuration=Release /p:Platform=x64 /v:minimal /fl /flp:"logfile=build-logs/msbuild-x64-release.log;verbosity=normal" /bl:build-logs/msbuild-x64-release.binlog
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage1-x64-build-logs
+          path: build-logs/
+          if-no-files-found: warn
+
+      - name: Upload Thetis output
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stage1-thetis-x64-release
+          path: |
+            Project Files/Source/Console/bin/x64/Release/**
+            Project Files/Source/Console/bin/Release/**
+          if-no-files-found: warn
