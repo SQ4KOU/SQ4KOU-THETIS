@@ -59,6 +59,24 @@ jobs:
             throw "sq4kou no longer starts from the accepted clean synthesis SHA"
           }
 
+      - name: Adapt BUILD_NAME declaration for original patch 05
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $path = 'synthesis/Project Files/Source/Console/titlebar.cs'
+          $text = [IO.File]::ReadAllText($path)
+          $pattern = 'public\s+static\s+readonly\s+string\s+BUILD_NAME\s*=\s*""\s*;'
+          $matches = [regex]::Matches($text, $pattern)
+          if ($matches.Count -ne 1) {
+            throw "BUILD_NAME synthesis compatibility anchor count=$($matches.Count), expected 1"
+          }
+          $text = [regex]::Replace($text, $pattern, 'public const string BUILD_NAME = "";', 1)
+          [IO.File]::WriteAllText($path, $text, [Text.UTF8Encoding]::new($false))
+          if (-not ([IO.File]::ReadAllText($path).Contains('public const string BUILD_NAME = "";'))) {
+            throw 'BUILD_NAME compatibility adaptation postcheck failed'
+          }
+          Write-Host 'BUILD_NAME_COMPAT_ANCHOR=PASS'
+
       - name: Apply all SQ4KOU patches and build Release x64 + installer
         id: patchbuild
         shell: pwsh
