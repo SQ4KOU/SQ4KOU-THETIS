@@ -1,0 +1,81 @@
+name: SQ4KOU DB runtime self-test
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/db-runtime-selftest.yml
+
+permissions:
+  contents: read
+
+jobs:
+  db-selftest:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout SQ4KOU branch
+        uses: actions/checkout@v4
+        with:
+          ref: sq4kou
+          fetch-depth: 1
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Restore NuGet packages
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          nuget restore "Project Files/Source/Thetis_VS2026.sln" -NonInteractive
+
+      - name: Build x64 Release
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          msbuild "Project Files/Source/Thetis_VS2026.sln" /m /t:Build /p:Configuration=Release /p:Platform=x64 /v:minimal
+
+      - name: Validate a fresh database through the built Thetis DB class
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $release = (Resolve-Path "Project Files/bin/x64/Release").Path
+          [Environment]::CurrentDirectory = $release
+          $handler = [ResolveEventHandler]{
+            param($sender,$args)
+            $name = (New-Object Reflection.AssemblyName($args.Name)).Name + '.dll'
+            $candidate = Join-Path $release $name
+            if (Test-Path -LiteralPath $candidate) { return [Reflection.Assembly]::LoadFrom($candidate) }
+            return $null
+          }
+          [AppDomain]::CurrentDomain.add_AssemblyResolve($handler)
+
+          $asm = [Reflection.Assembly]::LoadFrom((Join-Path $release 'Thetis.exe'))
+          $db = $asm.GetType('Thetis.DB', $true)
+          $flags = [Reflection.BindingFlags]'Public,Static'
+          $fileProp = $db.GetProperty('FileName', $flags)
+          $verNumProp = $db.GetProperty('VersionNumber', $flags)
+          $verStrProp = $db.GetProperty('VersionString', $flags)
+          $init = $db.GetMethod('Init', $flags)
+          $validate = $db.GetMethod('ValidateCurrentDatabase', $flags)
+          $exit = $db.GetMethod('Exit', $flags)
+
+          $dir = Join-Path $env:RUNNER_TEMP 'sq4kou-db-selftest'
+          New-Item -ItemType Directory -Force -Path $dir | Out-Null
+          $dbfile = Join-Path $dir 'database.xml'
+          if (Test-Path $dbfile) { Remove-Item $dbfile -Force }
+
+          $fileProp.SetValue($null, $dbfile, $null)
+          $verNumProp.SetValue($null, '2.10.3.15', $null)
+          $verStrProp.SetValue($null, '2.10.3.15 SQ4KOU SELFTEST', $null)
+          $initOk = [bool]$init.Invoke($null, @())
+          Write-Host "DB.Init(fresh)=$initOk"
+          if (-not $initOk) { throw 'Fresh DB.Init failed.' }
+
+          $args = [object[]]@('')
+          $valid = [bool]$validate.Invoke($null, $args)
+          Write-Host "ValidateCurrentDatabase(fresh)=$valid"
+          Write-Host "Problems=$($args[0])"
+          $exit.Invoke($null, @()) | Out-Null
+          if (-not $valid) { throw "Fresh database fails current validator: $($args[0])" }
