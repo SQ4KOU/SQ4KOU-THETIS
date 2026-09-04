@@ -50,9 +50,20 @@ jobs:
           Expand-Archive -LiteralPath $zip -DestinationPath $root -Force
           $pack = Get-ChildItem -LiteralPath $root -Directory | Select-Object -First 1
           if (-not $pack) { throw 'Patch package root directory not found after extraction.' }
-          if (-not (Test-Path -LiteralPath (Join-Path $pack.FullName 'BUILD_SQ4KOU_THETIS.ps1'))) {
-            throw 'BUILD_SQ4KOU_THETIS.ps1 not found in reconstructed package.'
-          }
+          $builder = Join-Path $pack.FullName 'BUILD_SQ4KOU_THETIS.ps1'
+          if (-not (Test-Path -LiteralPath $builder)) { throw 'BUILD_SQ4KOU_THETIS.ps1 not found in reconstructed package.' }
+
+          # Clean synthesis compatibility adapter: synthesis-clean deliberately uses
+          # static readonly BUILD_NAME=""; while V9.7.1 expected the older const form.
+          # Extend only the anchor; the patch still writes const BUILD_NAME="SQ4KOU".
+          $builderText = [IO.File]::ReadAllText($builder)
+          $old = '$pattern = ''public\s+const\s+string\s+BUILD_NAME\s*=\s*"(?:\\.|[^"\\])*"\s*;'''
+          $new = '$pattern = ''public\s+(?:const|static\s+readonly)\s+string\s+BUILD_NAME\s*=\s*"(?:\\.|[^"\\])*"\s*;'''
+          if (-not $builderText.Contains($old)) { throw 'BUILD_NAME adapter anchor not found in V9.7.1 builder.' }
+          $builderText = $builderText.Replace($old,$new)
+          [IO.File]::WriteAllText($builder,$builderText,(New-Object Text.UTF8Encoding($false)))
+          Write-Host 'Applied synthesis compatibility adapter: BUILD_NAME const|static readonly.'
+
           "PACK_ROOT=$($pack.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
           $selection = Join-Path $env:RUNNER_TEMP 'sq4kou-selection.json'
