@@ -1,0 +1,70 @@
+name: Integrate Ramdor N1MM CW shift
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/integrate-ramdor-n1mm.yml
+
+permissions:
+  contents: write
+
+jobs:
+  integrate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository with histories
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Apply only the Ramdor N1MM functional delta
+        shell: bash
+        env:
+          RAMDOR_N1MM: 8071b543e2565b959cd60512eacda154d0873ad2
+        run: |
+          set -euo pipefail
+          git config user.name "SQ4KOU synthesis automation"
+          git config user.email "actions@users.noreply.github.com"
+          git fetch origin synthesis-clean base/ramdor-20260904
+          git checkout -B synthesis-clean origin/synthesis-clean
+
+          git diff "${RAMDOR_N1MM}^" "${RAMDOR_N1MM}" -- \
+            "Project Files/Source/Console/N1MM.cs" \
+            "Project Files/Source/Console/setup.cs" \
+            "Project Files/Source/Console/setup.designer.cs" \
+            > /tmp/ramdor-n1mm-functional.patch
+
+          test -s /tmp/ramdor-n1mm-functional.patch
+          git apply --3way --index /tmp/ramdor-n1mm-functional.patch
+          git diff --cached --check
+
+          # Remove neutral-build dead-code warning introduced during Stage 1 branding cleanup.
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('Project Files/Source/Console/titlebar.cs')
+          s = p.read_text(encoding='utf-8-sig')
+          s = s.replace('        public const string BUILD_NAME = "";\n', '')
+          s = s.replace('            if (BUILD_NAME != "") s += " " + BUILD_NAME;\n\n', '')
+          p.write_text(s, encoding='utf-8-sig')
+          PY
+          git add "Project Files/Source/Console/titlebar.cs"
+
+          cat >> .sq4kou/SYNTHESIS_BASE.md <<'EOF'
+
+          Integrated Ramdor delta:
+          - `8071b543e2565b959cd60512eacda154d0873ad2` — N1MM CW spectrum shift option only.
+          - Applied files: N1MM.cs, setup.cs, setup.designer.cs.
+          - Deliberately excluded package upgrades, app.config changes, test cleanup, branding and release-note edits from that commit.
+          EOF
+          git add .sq4kou/SYNTHESIS_BASE.md
+
+          git diff --cached --check
+          git commit -m "Integrate Ramdor N1MM CW shift into clean synthesis"
+          git push origin synthesis-clean
+
+      - name: Show resulting commit
+        shell: bash
+        run: git rev-parse HEAD
