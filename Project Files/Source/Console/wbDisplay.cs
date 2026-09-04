@@ -114,6 +114,7 @@ namespace Thetis
             this.MouseMove += new System.Windows.Forms.MouseEventHandler(this.PanDisplay_MouseMove);
             this.MouseDown += new System.Windows.Forms.MouseEventHandler(this.PanDisplay_MouseDown);
             this.MouseUp += new System.Windows.Forms.MouseEventHandler(this.PanDisplay_MouseUp);
+            this.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.PanDisplay_MouseDoubleClick); // SQ4KOU_WB_PAN_ZOOM_V1
         }
 
         #region Properties
@@ -3542,6 +3543,87 @@ namespace Thetis
         private Point mousePos;
         private Point mouseDownPos;
         private Point rulerMouseDownPos;
+        // SQ4KOU_WB_PAN_ZOOM_V1
+        // UI/analyzer-only navigation. FPGA, ARM, EP4 and EP6 remain unchanged.
+        private bool sq4kou_wb_pan_drag = false;
+        private int sq4kou_wb_pan_last_x = 0;
+        private const double SQ4KOU_WB_ZOOM_STEP = 0.05;
+        private const double SQ4KOU_WB_ZOOM_LIMIT = 100.0;
+        private const double SQ4KOU_WB_MAX_HZ = 30000000.0;
+
+        private static double SQ4KOU_Clamp01(double v)
+        {
+            if (v < 0.0) return 0.0;
+            if (v > 1.0) return 1.0;
+            return v;
+        }
+
+        private bool SQ4KOU_WideBandNavArea(Point p)
+        {
+            if (this.DBMScalePanRect.Contains(p)) return false;
+            return this.PanRect.Contains(p) || this.FreqScalePanRect.Contains(p);
+        }
+
+        private int SQ4KOU_WideBandDisplayBins()
+        {
+            if (fft_size <= 0 || sample_rate <= 0) return 1;
+            double bin_width = (double)sample_rate / (double)fft_size;
+            return Math.Min(fft_size / 2, Math.Max(1, (int)Math.Floor(SQ4KOU_WB_MAX_HZ / bin_width)));
+        }
+
+        private int SQ4KOU_WideBandWidthBins(double zoom)
+        {
+            int display_bins = SQ4KOU_WideBandDisplayBins();
+            double z = SQ4KOU_Clamp01(zoom);
+            double zoom_slider = Math.Log10(9.0 * z + 1.0);
+            return Math.Max(1, (int)(display_bins * (1.0 - (1.0 - 1.0 / SQ4KOU_WB_ZOOM_LIMIT) * zoom_slider)));
+        }
+
+        private void SQ4KOU_SetWideBandView(double zoom, double pan)
+        {
+            z_slider = SQ4KOU_Clamp01(zoom);
+            p_slider = SQ4KOU_Clamp01(pan);
+            initWideband();
+        }
+
+        private void SQ4KOU_ResetWideBandView() { SQ4KOU_SetWideBandView(0.0, 0.5); }
+
+        private void SQ4KOU_WideBandWheelZoom(int mouseX, int delta)
+        {
+            if (!init || delta == 0 || this.PanRect.Width <= 1) return;
+            double old_zoom = z_slider;
+            int notches = Math.Max(1, Math.Abs(delta) / 120);
+            double new_zoom = SQ4KOU_Clamp01(old_zoom + Math.Sign(delta) * SQ4KOU_WB_ZOOM_STEP * notches);
+            if (Math.Abs(new_zoom - old_zoom) < 1.0e-12) return;
+
+            double x = SQ4KOU_Clamp01((mouseX - this.PanRect.Left) / (double)Math.Max(1, this.PanRect.Width));
+            double old_span = Math.Max(1.0, (double)high_freq - (double)low_freq);
+            double anchor_hz = (double)low_freq + x * old_span;
+            double bin_width = (double)sample_rate / (double)fft_size;
+            int display_bins = SQ4KOU_WideBandDisplayBins();
+            int width_bins = SQ4KOU_WideBandWidthBins(new_zoom);
+            double new_span_hz = width_bins * bin_width;
+            double max_low_hz = (display_bins - width_bins) * bin_width;
+            double desired_low_hz = anchor_hz - x * new_span_hz;
+            double new_pan = (max_low_hz <= 0.0) ? 0.5 : desired_low_hz / max_low_hz;
+            SQ4KOU_SetWideBandView(new_zoom, new_pan);
+        }
+
+        private void SQ4KOU_WideBandPanDrag(int mouseX)
+        {
+            int dx = mouseX - sq4kou_wb_pan_last_x;
+            if (Math.Abs(dx) < 2 || this.PanRect.Width <= 1) return;
+            sq4kou_wb_pan_last_x = mouseX;
+            double view_span_hz = Math.Max(1.0, (double)high_freq - (double)low_freq);
+            double bin_width = (double)sample_rate / (double)fft_size;
+            int display_bins = SQ4KOU_WideBandDisplayBins();
+            int width_bins = SQ4KOU_WideBandWidthBins(z_slider);
+            double max_low_hz = (display_bins - width_bins) * bin_width;
+            if (max_low_hz <= 0.0) { if (p_slider != 0.5) SQ4KOU_SetWideBandView(z_slider, 0.5); return; }
+            double delta_low_hz = -(dx / (double)this.PanRect.Width) * view_span_hz;
+            double current_low_hz = p_slider * max_low_hz;
+            SQ4KOU_SetWideBandView(z_slider, (current_low_hz + delta_low_hz) / max_low_hz);
+        }
 
         private void PanDisplay_MouseMove(object sender, MouseEventArgs e)
         {
@@ -3549,7 +3631,11 @@ namespace Thetis
             pos = new Size(e.X, e.Y);
             mousePos = new Point(pos);
 
-            if (e.Button != MouseButtons.Left &&
+                        if (sq4kou_wb_pan_drag && e.Button == MouseButtons.Left)
+            {
+                SQ4KOU_WideBandPanDrag(e.X);
+                return;
+            }if (e.Button != MouseButtons.Left &&
                 e.Button != MouseButtons.Right &&
                 e.Button != MouseButtons.Middle)
                 getRegion(mousePos);
@@ -3724,7 +3810,12 @@ namespace Thetis
             mousePos = pos;
             mouseDownPos = mousePos;
 
-            getRegion(mousePos);
+                        if (e.Button == MouseButtons.Left && sq4kou_wb_pan_drag)
+            {
+                sq4kou_wb_pan_drag = false;
+                this.Cursor = Cursors.Default;
+                return;
+            }getRegion(mousePos);
 
             if (e.Button == MouseButtons.Left)
             {
@@ -3842,6 +3933,14 @@ namespace Thetis
 
         //}
 
+        private void PanDisplay_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Left && SQ4KOU_WideBandNavArea(e.Location))
+            {
+                SQ4KOU_ResetWideBandView();
+                this.Cursor = Cursors.Default;
+            }
+        }
         private void PanDisplay_MouseEnter(object sender, EventArgs e)
         {
             if (!this.Focused)
@@ -3862,6 +3961,11 @@ namespace Thetis
             //}
 
             if (e.Delta == 0) return;
+            if (SQ4KOU_WideBandNavArea(e.Location))
+            {
+                SQ4KOU_WideBandWheelZoom(e.X, e.Delta);
+                return;
+            }
 
             //int num_steps = (e.Delta > 0 ? 1 : -1);	// 1 per click
             ////int numberToMove = e.Delta / 120;	// 1 per click
@@ -4017,7 +4121,13 @@ namespace Thetis
             mousePos = pos;
             mouseDownPos = mousePos;
 
-            getRegion(mousePos);
+                        if (e.Button == MouseButtons.Left && SQ4KOU_WideBandNavArea(e.Location))
+            {
+                sq4kou_wb_pan_drag = true;
+                sq4kou_wb_pan_last_x = e.X;
+                this.Cursor = Cursors.SizeWE;
+                return;
+            }getRegion(mousePos);
 
             switch (e.Button)
             {
@@ -4575,7 +4685,7 @@ namespace Thetis
             get { return z_slider; }
             set
             {
-                z_slider = value;
+                z_slider = SQ4KOU_Clamp01(value);
                 initWideband();
             }
         }
@@ -4586,7 +4696,7 @@ namespace Thetis
             get { return p_slider; }
             set
             {
-                p_slider = value;
+                p_slider = SQ4KOU_Clamp01(value);
                 initWideband();
             }
         }
@@ -4637,8 +4747,11 @@ namespace Thetis
             // the number of useable bins
             int bins = fft_size / 2 - 2 * clip;
 
-            // the amount of useable bandwidth we get is:
-            double bw = bins * bin_width;
+            // SQ4KOU_WIDEBAND_30MHZ: make 0..30 MHz the base WideBand span.
+            // Keep the native zoom/pan behaviour, but constrain it to this useful range.
+            const int SQ4KOU_WIDEBAND_MAX_HZ = 30000000;
+            int display_bins = Math.Min(bins,
+                Math.Max(1, (int)Math.Floor((double)SQ4KOU_WIDEBAND_MAX_HZ / bin_width)));
 
             // apply log function to zoom slider value
             double zoom_slider = Math.Log10(9.0 * z_slider + 1.0);
@@ -4646,17 +4759,14 @@ namespace Thetis
             // limits how much you can zoom in; higher value means you zoom more
             const double zoom_limit = 100.0;
 
-            // width = number of bins to use AFTER zooming
-            int width = (int)(bins * (1.0 - (1.0 - 1.0 / zoom_limit) * zoom_slider));
-
-            // FSCLIPL is 0 if pan_slider is 0; it's bins-width if pan_slider is 1
-            // FSCLIPH is bins-width if pan_slider is 0; it's 0 if pan_slider is 1
-            span_clip_l = (int)Math.Floor(p_slider * (bins - width));
+            // width = number of 0..30 MHz bins to use AFTER zooming
+            int width = Math.Max(1, (int)(display_bins * (1.0 - (1.0 - 1.0 / zoom_limit) * zoom_slider)));
+            // Pan only inside 0..30 MHz. High-side clipping also discards bins above 30 MHz.
+            span_clip_l = (int)Math.Floor(p_slider * (display_bins - width));
             span_clip_h = bins - width - span_clip_l;
-
-            // the low and high frequencies that are being displayed:
-            low_freq = sample_rate / 4 - (int)(0.5 * bw - (double)span_clip_l * bin_width);
-            high_freq = sample_rate / 4 + (int)(0.5 * bw - (double)span_clip_h * bin_width);
+            // The displayed ruler must describe exactly the bins passed to SetAnalyzer.
+            low_freq = (int)Math.Round((clip + span_clip_l) * bin_width);
+            high_freq = (int)Math.Round((clip + span_clip_l + width) * bin_width);
 
             SpecHPSDRDLL.SetAnalyzer(
                 wbid,                       // id of this analyzer
@@ -4680,6 +4790,7 @@ namespace Thetis
                 2 * fft_size                // maximum write-ahead
                 );
 
+            if (handle.IsAllocated) handle.Free(); // SQ4KOU_WB_PAN_ZOOM_V1: SetAnalyzer copied flip[]
             SpecHPSDRDLL.SetDisplayAverageMode(wbid, 0, avm);
             SpecHPSDRDLL.SetDisplayAvBackmult(wbid, 0, avb);
         }

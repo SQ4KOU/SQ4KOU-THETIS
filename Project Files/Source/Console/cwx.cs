@@ -275,6 +275,21 @@ namespace Thetis
         #region radio interface and fifo functions
 
         private bool setptt_memory = false;
+        private bool cwx_mox_latched = false;
+
+        private void set_cwx_mox_latch(bool state)
+        {
+            // SQ4KOU: CWX MOX latch only for HPSDR Protocol 2.
+            if (NetworkIO.CurrentRadioProtocol != RadioProtocol.ETH) return;
+            if (cwx_mox_latched == state) return;
+
+            if (state)
+                console.CurrentPTTMode = PTTMode.SPACE;
+
+            console.MOX = state;
+            cwx_mox_latched = state;
+        }
+
         private void setptt(bool state)
         {
             if (setptt_memory != state)
@@ -288,6 +303,9 @@ namespace Thetis
                 ptt = state;
                 if (state) pttLed.BackColor = System.Drawing.Color.Red;
                 else pttLed.BackColor = System.Drawing.Color.Black;
+
+                if (state)
+                    set_cwx_mox_latch(true);
 
                 setptt_memory = state;
             }
@@ -312,7 +330,8 @@ namespace Thetis
             clear_fifo();
             clear_fifo2();
             setkey(false); //[2.10.3]MW0LGE swap
-            setptt(false);
+            setptt(false);
+            set_cwx_mox_latch(false);
             ttx = 0; pause = 0; newptt = 0;
             keying = false;
             NetworkIO.SendHighPriority(1);

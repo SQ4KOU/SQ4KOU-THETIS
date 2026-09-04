@@ -325,7 +325,16 @@ namespace Thetis
                             //}
                         }
 
-                        int rowIndex = grid.Rows.Add(false, radio.DeviceType.ToString(), radio.IpAddress.ToString(), port.ToString(), radio.IsCustom ? "Custom" : radio.MacAddress, protocol, version);
+                        // SQ4KOU_RADIOID_REDPITAYA_MODEL_AWARE
+                        // Red Pitaya P1 can legitimately report Hermes/OrionMKII on wire.
+                        // Preserve DeviceType internally; correct only user-visible identity.
+                        string deviceName = radio.DeviceType.ToString();
+                        if (HardwareSpecific.Model == HPSDRModel.REDPITAYA &&
+                            (radio.DeviceType == HPSDRHW.Hermes || radio.DeviceType == HPSDRHW.OrionMKII))
+                        {
+                            deviceName = "RedPitaya";
+                        }
+                        int rowIndex = grid.Rows.Add(false, deviceName, radio.IpAddress.ToString(), port.ToString(), radio.IsCustom ? "Custom" : radio.MacAddress, protocol, version);
                         DataGridViewRow row = grid.Rows[rowIndex];
 
                         RowRef rr = new RowRef();

@@ -1,4 +1,4 @@
-//=================================================================
+﻿//=================================================================
 // database.cs
 //=================================================================
 // Thetis is a C# implementation of a Software Defined Radio.
@@ -82,6 +82,363 @@ namespace Thetis
 
         #endregion
 
+        // SQ4KOU_DB_RELIABILITY_P0_P2
+        // P0: atomic commit + last-known-good + recovery
+        // P1: schema/data validation + safe migration hooks
+        // P2: schema version + debounced checkpoints + Database.log
+        public const int CurrentDatabaseSchemaVersion = 1;
+        public static int LoadedDatabaseSchemaVersion { get; private set; } = CurrentDatabaseSchemaVersion;
+
+        private const int CHECKPOINT_DEBOUNCE_MS = 5000;
+        private const int CHECKPOINT_RETRY_BACKOFF_MS = 30000;
+        private static System.Windows.Forms.Timer _checkpointTimer;
+        private static DateTime _lastDirtyUtc = DateTime.MinValue;
+        private static DateTime _checkpointBackoffUntilUtc = DateTime.MinValue;
+        private static bool _dirty = false;
+        private static bool _writeInProgress = false;
+        private static bool _suspendDirtyTracking = false;
+        private static bool _checkpointingEnabled = true;
+
+        private static string LastGoodFileName(string filename)
+        {
+            string dir = Path.GetDirectoryName(filename);
+            if (string.IsNullOrEmpty(dir)) dir = ".";
+            string name = Path.GetFileNameWithoutExtension(filename);
+            string ext = Path.GetExtension(filename);
+            return Path.Combine(dir, name + ".lastgood" + ext);
+        }
+
+        public static void LogDatabaseEvent(string stage, string message, Exception ex = null)
+        {
+            try
+            {
+                string line = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff") + " [" + stage + "] " + message;
+                if (ex != null) line += " | " + ex.GetType().FullName + ": " + ex.Message;
+                Debug.Print(line);
+                if (!string.IsNullOrEmpty(_file_name))
+                {
+                    string dir = Path.GetDirectoryName(_file_name);
+                    if (!string.IsNullOrEmpty(dir))
+                        File.AppendAllText(Path.Combine(dir, "Database.log"), line + Environment.NewLine);
+                }
+            }
+            catch { }
+        }
+
+        private static void RequireColumn(DataSet data, List<string> problems, string tableName, string columnName, Type expectedType)
+        {
+            if (!data.Tables.Contains(tableName)) return;
+            DataTable table = data.Tables[tableName];
+            if (!table.Columns.Contains(columnName))
+                problems.Add(tableName + "." + columnName + " is missing.");
+            else if (table.Columns[columnName].DataType != expectedType)
+                problems.Add(tableName + "." + columnName + " has invalid type " + table.Columns[columnName].DataType.FullName + "; expected " + expectedType.FullName + ".");
+        }
+
+        private static string ValidateDataSet(DataSet data, bool requireCurrentSchema)
+        {
+            List<string> problems = new List<string>();
+            if (data == null)
+            {
+                problems.Add("DataSet is null.");
+                return string.Join(Environment.NewLine, problems.ToArray());
+            }
+            if (data.HasErrors) problems.Add("DataSet.HasErrors=true.");
+            if (data.DataSetName != "Data") problems.Add("Unexpected DataSetName: " + data.DataSetName);
+            if (data.Tables.Count == 0) problems.Add("Database contains no tables.");
+
+            foreach (DataTable table in data.Tables)
+            {
+                if (table.HasErrors) problems.Add("Table has errors: " + table.TableName);
+                foreach (DataRow row in table.Rows)
+                {
+                    if (row.HasErrors) problems.Add("Row has errors in table: " + table.TableName);
+                }
+            }
+
+            if (!requireCurrentSchema)
+                return string.Join(Environment.NewLine, problems.ToArray());
+
+            string[] requiredTables = new string[] {
+                "State", "BandText", "Memory", "GroupList", "TXProfile", "TXProfileDef",
+                "BandStack2Entries", "BandStack2Filters", "BandStack2FilterFrequencies",
+                "BandStack2FilterModes", "BandStack2FilterSubModes", "BandStack2FilterBands",
+                "BandStack2HiddenEntries"
+            };
+            foreach (string tableName in requiredTables)
+            {
+                if (!data.Tables.Contains(tableName))
+                    problems.Add("Missing required table: " + tableName);
+            }
+
+            RequireColumn(data, problems, "BandText", "Low", typeof(double));
+            RequireColumn(data, problems, "BandText", "High", typeof(double));
+            RequireColumn(data, problems, "BandText", "Name", typeof(string));
+            RequireColumn(data, problems, "BandText", "TX", typeof(bool));
+
+            RequireColumn(data, problems, "Memory", "GroupID", typeof(int));
+            RequireColumn(data, problems, "Memory", "Freq", typeof(double));
+            RequireColumn(data, problems, "Memory", "ModeID", typeof(int));
+            RequireColumn(data, problems, "Memory", "FilterID", typeof(int));
+            RequireColumn(data, problems, "Memory", "Callsign", typeof(string));
+            RequireColumn(data, problems, "Memory", "Comments", typeof(string));
+            RequireColumn(data, problems, "Memory", "Scan", typeof(bool));
+            RequireColumn(data, problems, "Memory", "Squelch", typeof(int));
+            RequireColumn(data, problems, "Memory", "StepSizeID", typeof(int));
+            RequireColumn(data, problems, "Memory", "AGCID", typeof(int));
+            RequireColumn(data, problems, "Memory", "Gain", typeof(string));
+            RequireColumn(data, problems, "Memory", "FilterLow", typeof(int));
+            RequireColumn(data, problems, "Memory", "FilterHigh", typeof(int));
+            RequireColumn(data, problems, "Memory", "CreateDate", typeof(string));
+
+            RequireColumn(data, problems, "GroupList", "GroupID", typeof(int));
+            RequireColumn(data, problems, "GroupList", "GroupName", typeof(string));
+
+            RequireColumn(data, problems, "BandStack2HiddenEntries", "FilterGUID", typeof(string));
+            RequireColumn(data, problems, "BandStack2HiddenEntries", "EntryGUID", typeof(int));
+            RequireColumn(data, problems, "BandStack2FilterBands", "FilterGUID", typeof(string));
+            RequireColumn(data, problems, "BandStack2FilterBands", "Band", typeof(int));
+            RequireColumn(data, problems, "BandStack2FilterModes", "FilterGUID", typeof(string));
+            RequireColumn(data, problems, "BandStack2FilterModes", "Mode", typeof(int));
+            RequireColumn(data, problems, "BandStack2FilterSubModes", "FilterGUID", typeof(string));
+            RequireColumn(data, problems, "BandStack2FilterSubModes", "SubMode", typeof(int));
+            RequireColumn(data, problems, "BandStack2FilterFrequencies", "FilterGUID", typeof(string));
+            RequireColumn(data, problems, "BandStack2FilterFrequencies", "Low", typeof(double));
+            RequireColumn(data, problems, "BandStack2FilterFrequencies", "High", typeof(double));
+            RequireColumn(data, problems, "BandStack2FilterFrequencies", "LowOnly", typeof(bool));
+            RequireColumn(data, problems, "BandStack2FilterFrequencies", "Band", typeof(int));
+            RequireColumn(data, problems, "BandStack2FilterFrequencies", "BandType", typeof(int));
+            RequireColumn(data, problems, "BandStack2FilterFrequencies", "Region", typeof(int));
+
+            string[] entryStringColumns = new string[] { "GUID", "Description" };
+            foreach (string c in entryStringColumns) RequireColumn(data, problems, "BandStack2Entries", c, typeof(string));
+            string[] entryIntColumns = new string[] { "Band", "Mode", "SubMode", "Filter", "ZoomSlider", "FilterLow", "FilterHigh" };
+            foreach (string c in entryIntColumns) RequireColumn(data, problems, "BandStack2Entries", c, typeof(int));
+            string[] entryDoubleColumns = new string[] { "Frequency", "CentreFrequency", "ZoomFactor", "PowerLevel", "AGCLevel" };
+            foreach (string c in entryDoubleColumns) RequireColumn(data, problems, "BandStack2Entries", c, typeof(double));
+            RequireColumn(data, problems, "BandStack2Entries", "Locked", typeof(bool));
+            RequireColumn(data, problems, "BandStack2Entries", "CTUNEnabled", typeof(bool));
+
+            string[] filterStringColumns = new string[] { "GUID", "FilterName", "FilterDescription", "SpecificReturnGUID", "CurrentSelectedGUID", "LastVisitedGUID", "LastVisitedDescription" };
+            foreach (string c in filterStringColumns) RequireColumn(data, problems, "BandStack2Filters", c, typeof(string));
+            string[] filterBoolColumns = new string[] { "FilterOnFrequencies", "FilterOnBands", "FilterOnModes", "FilterOnSubModes", "UserDefined", "LastVisitedLocked", "LastVisitedCTUNEnabled" };
+            foreach (string c in filterBoolColumns) RequireColumn(data, problems, "BandStack2Filters", c, typeof(bool));
+            string[] filterIntColumns = new string[] { "FilterReturnMode", "CurrentSelectedIndex", "LastVisitedBand", "LastVisitedMode", "LastVisitedSubMode", "LastVisitedFilter", "LastVisitedZoomSlider" };
+            foreach (string c in filterIntColumns) RequireColumn(data, problems, "BandStack2Filters", c, typeof(int));
+            string[] filterDoubleColumns = new string[] { "LastVisitedFrequency", "LastVisitedCentreFrequency", "LastVisitedZoomFactor" };
+            foreach (string c in filterDoubleColumns) RequireColumn(data, problems, "BandStack2Filters", c, typeof(double));
+
+            if (data.Tables.Contains("BandStack2Entries") && data.Tables["BandStack2Entries"].Columns.Contains("GUID"))
+            {
+                HashSet<string> guids = new HashSet<string>();
+                foreach (DataRow row in data.Tables["BandStack2Entries"].Rows)
+                {
+                    if (row.RowState == DataRowState.Deleted) continue;
+                    string guid = Convert.ToString(row["GUID"]);
+                    if (string.IsNullOrEmpty(guid)) problems.Add("BandStack2Entries contains an empty GUID.");
+                    else if (!guids.Add(guid)) problems.Add("Duplicate BandStack2Entries GUID: " + guid);
+                }
+            }
+
+            if (data.Tables.Contains("BandStack2Filters") && data.Tables["BandStack2Filters"].Columns.Contains("GUID"))
+            {
+                HashSet<string> guids = new HashSet<string>();
+                foreach (DataRow row in data.Tables["BandStack2Filters"].Rows)
+                {
+                    if (row.RowState == DataRowState.Deleted) continue;
+                    string guid = Convert.ToString(row["GUID"]);
+                    if (string.IsNullOrEmpty(guid)) problems.Add("BandStack2Filters contains an empty GUID.");
+                    else if (!guids.Add(guid)) problems.Add("Duplicate BandStack2Filters GUID: " + guid);
+                }
+            }
+
+            if (data.Tables.Contains("State"))
+            {
+                DataTable state = data.Tables["State"];
+                if (!state.Columns.Contains("Key") || state.Columns["Key"].DataType != typeof(string))
+                    problems.Add("State.Key is missing or has invalid type.");
+                if (!state.Columns.Contains("Value") || state.Columns["Value"].DataType != typeof(string))
+                    problems.Add("State.Value is missing or has invalid type.");
+
+                if (state.Columns.Contains("Key"))
+                {
+                    HashSet<string> keys = new HashSet<string>();
+                    foreach (DataRow row in state.Rows)
+                    {
+                        if (row.RowState == DataRowState.Deleted) continue;
+                        string key = Convert.ToString(row["Key"]);
+                        if (!keys.Add(key)) problems.Add("Duplicate State key: " + key);
+                    }
+                }
+
+                int schema = 0;
+                bool foundSchema = false;
+                if (state.Columns.Contains("Key") && state.Columns.Contains("Value"))
+                {
+                    foreach (DataRow row in state.Rows)
+                    {
+                        if (row.RowState == DataRowState.Deleted) continue;
+                        if (Convert.ToString(row["Key"]) == "DatabaseSchemaVersion")
+                        {
+                            foundSchema = int.TryParse(Convert.ToString(row["Value"]), out schema);
+                            break;
+                        }
+                    }
+                }
+                if (!foundSchema) problems.Add("DatabaseSchemaVersion is missing or invalid.");
+                else if (schema != CurrentDatabaseSchemaVersion)
+                    problems.Add("DatabaseSchemaVersion=" + schema + ", expected " + CurrentDatabaseSchemaVersion + ".");
+            }
+
+            if (data.Tables.Contains("TXProfile") && data.Tables.Contains("TXProfileDef"))
+            {
+                DataTable tx = data.Tables["TXProfile"];
+                DataTable def = data.Tables["TXProfileDef"];
+                if (!tx.Columns.Contains("Name")) problems.Add("TXProfile.Name is missing.");
+                if (!def.Columns.Contains("Name")) problems.Add("TXProfileDef.Name is missing.");
+
+                foreach (DataColumn col in def.Columns)
+                {
+                    if (!tx.Columns.Contains(col.ColumnName))
+                        problems.Add("TXProfile missing column: " + col.ColumnName);
+                    else if (tx.Columns[col.ColumnName].DataType != col.DataType)
+                        problems.Add("TXProfile column type mismatch: " + col.ColumnName);
+                }
+                foreach (DataColumn col in tx.Columns)
+                {
+                    if (!def.Columns.Contains(col.ColumnName))
+                        problems.Add("TXProfileDef missing column: " + col.ColumnName);
+                }
+
+                if (def.Columns.Contains("Name"))
+                {
+                    DataRow[] defaults = def.Select("Name = 'Default'");
+                    if (defaults.Length != 1)
+                        problems.Add("TXProfileDef must contain exactly one Default row; found " + defaults.Length + ".");
+                }
+            }
+
+            return string.Join(Environment.NewLine, problems.ToArray());
+        }
+
+        private static bool TryReadDatabaseFile(string filename, out DataSet loaded, out string problem)
+        {
+            loaded = null;
+            problem = "";
+            try
+            {
+                DataSet candidate = new DataSet();
+                candidate.ReadXml(filename);
+                problem = ValidateDataSet(candidate, false);
+                if (!string.IsNullOrEmpty(problem)) return false;
+                loaded = candidate;
+                return true;
+            }
+            catch (Exception ex)
+            {
+                problem = ex.GetType().Name + ": " + ex.Message;
+                return false;
+            }
+        }
+
+        public static bool ValidateDatabaseFile(string filename, bool requireCurrentSchema, out string problems)
+        {
+            problems = "";
+            try
+            {
+                DataSet candidate = new DataSet();
+                candidate.ReadXml(filename);
+                problems = ValidateDataSet(candidate, requireCurrentSchema);
+                return string.IsNullOrEmpty(problems);
+            }
+            catch (Exception ex)
+            {
+                problems = ex.GetType().Name + ": " + ex.Message;
+                return false;
+            }
+        }
+
+        public static bool ValidateCurrentDatabase(out string problems)
+        {
+            problems = ValidateDataSet(ds, true);
+            return string.IsNullOrEmpty(problems);
+        }
+
+        private static void AttachDirtyTrackingToTable(DataTable table)
+        {
+            if (table == null) return;
+            table.ColumnChanged -= Table_ColumnChanged;
+            table.ColumnChanged += Table_ColumnChanged;
+            table.RowChanged -= Table_RowChanged;
+            table.RowChanged += Table_RowChanged;
+            table.RowDeleted -= Table_RowDeleted;
+            table.RowDeleted += Table_RowDeleted;
+        }
+
+        private static void AttachDirtyTracking()
+        {
+            if (ds == null) return;
+            foreach (DataTable table in ds.Tables)
+                AttachDirtyTrackingToTable(table);
+        }
+
+        private static void Table_ColumnChanged(object sender, DataColumnChangeEventArgs e) { MarkDirty(); }
+        private static void Table_RowChanged(object sender, DataRowChangeEventArgs e) { MarkDirty(); }
+        private static void Table_RowDeleted(object sender, DataRowChangeEventArgs e) { MarkDirty(); }
+
+        private static void MarkDirty()
+        {
+            if (_suspendDirtyTracking || !_checkpointingEnabled || _writeInProgress) return;
+            _dirty = true;
+            _lastDirtyUtc = DateTime.UtcNow;
+        }
+
+        private static void StartCheckpointTimer()
+        {
+            StopCheckpointTimer();
+            if (!_checkpointingEnabled || ds == null) return;
+            _checkpointTimer = new System.Windows.Forms.Timer();
+            _checkpointTimer.Interval = 1000;
+            _checkpointTimer.Tick += CheckpointTimer_Tick;
+            _checkpointTimer.Start();
+        }
+
+        private static void StopCheckpointTimer()
+        {
+            if (_checkpointTimer != null)
+            {
+                _checkpointTimer.Stop();
+                _checkpointTimer.Tick -= CheckpointTimer_Tick;
+                _checkpointTimer.Dispose();
+                _checkpointTimer = null;
+            }
+        }
+
+        private static void CheckpointTimer_Tick(object sender, EventArgs e)
+        {
+            if (!_checkpointingEnabled || !_dirty || _writeInProgress || ds == null) return;
+            DateTime now = DateTime.UtcNow;
+            if (now < _checkpointBackoffUntilUtc) return;
+            if ((now - _lastDirtyUtc).TotalMilliseconds < CHECKPOINT_DEBOUNCE_MS) return;
+
+            LogDatabaseEvent("CHECKPOINT", "Debounced checkpoint requested.");
+            if (WriteDB(_file_name, ds))
+            {
+                _dirty = false;
+                _checkpointBackoffUntilUtc = DateTime.MinValue;
+            }
+            else
+            {
+                _checkpointBackoffUntilUtc = now.AddMilliseconds(CHECKPOINT_RETRY_BACKOFF_MS);
+            }
+        }
+
+        public static void SetCheckpointingEnabled(bool enabled)
+        {
+            _checkpointingEnabled = enabled;
+            if (enabled) StartCheckpointTimer();
+            else StopCheckpointTimer();
+        }
         #region Private Member Functions
         // ======================================================
         // Private Member Functions
@@ -241,8 +598,6 @@ namespace Thetis
                 AddTXProfileTable("TXProfileDef", true);
 
             VerifyTXProfileColumns();
-
-            WriteDB();
         }
 
         // Yurij-eu2av - 2026-07-08: ensure any newly-added TXProfile columns exist
@@ -837,6 +1192,7 @@ namespace Thetis
             ds.Tables[name].Columns.Add("Value", typeof(string));
 
             checkForPrimaryKeys(name); //MW0LGE
+            AttachDirtyTrackingToTable(ds.Tables[name]);
         }
 
         private static void AddBandTextTable()
@@ -9583,27 +9939,43 @@ namespace Thetis
 
         public static bool Init()
         {
+            StopCheckpointTimer();
             _merged = false;
-            ds = new DataSet("Data");
-            
-            if (File.Exists(_file_name))
-            {
-                try
-                {
-                    ds.ReadXml(_file_name);
-                }
-                catch
-                {
-                    return false;
-                }
-            }                
+            _dirty = false;
+            _checkpointBackoffUntilUtc = DateTime.MinValue;
+            _suspendDirtyTracking = true;
 
-            VerifyTables();
-
-            CheckBandTextValid();                       
-
-            //as a minimum add the version info to a new fresh db
+            bool fileExisted = File.Exists(_file_name);
+            bool recovered = false;
             bool changed = false;
+            ds = new DataSet("Data");
+
+            if (fileExisted)
+            {
+                if (!TryReadDatabaseFile(_file_name, out DataSet loaded, out string loadProblem))
+                {
+                    LogDatabaseEvent("LOAD_FAIL", _file_name + " | " + loadProblem);
+                    string lastGood = LastGoodFileName(_file_name);
+                    string recoveryProblem = "last-good file not found";
+                    if (!File.Exists(lastGood) || !TryReadDatabaseFile(lastGood, out loaded, out recoveryProblem))
+                    {
+                        LogDatabaseEvent("RECOVERY_FAIL", lastGood + " | " + recoveryProblem);
+                        _suspendDirtyTracking = false;
+                        return false;
+                    }
+                    recovered = true;
+                    LogDatabaseEvent("RECOVERY", "Recovered from " + lastGood);
+                }
+                ds = loaded;
+            }
+
+            int tableCountBeforeVerify = ds.Tables.Count;
+            int bandTextRowsBeforeVerify = ds.Tables.Contains("BandText") ? ds.Tables["BandText"].Rows.Count : -1;
+            VerifyTables();
+            CheckBandTextValid();
+            if (ds.Tables.Count != tableCountBeforeVerify) changed = true;
+            if (bandTextRowsBeforeVerify >= 0 && ds.Tables.Contains("BandText") &&
+                ds.Tables["BandText"].Rows.Count != bandTextRowsBeforeVerify) changed = true;
             Dictionary<string, string> d = GetVarsDictionary("State");
             if (!d.ContainsKey("Version"))
             {
@@ -9626,9 +9998,56 @@ namespace Thetis
                 VersionNumber = ConvertFromDBVal<string>(d["VersionNumber"]);
             }
 
-            if(changed)
+            if (!d.ContainsKey("DatabaseSchemaVersion"))
+            {
+                // Existing databases predate explicit schema versioning. Mark them as legacy (0)
+                // so DBMan performs a candidate migration even when the app version string matches.
+                LoadedDatabaseSchemaVersion = fileExisted ? 0 : CurrentDatabaseSchemaVersion;
+                d.Add("DatabaseSchemaVersion", LoadedDatabaseSchemaVersion.ToString());
+                changed = true;
+            }
+            else if (!int.TryParse(d["DatabaseSchemaVersion"], out int schemaVersion))
+            {
+                LogDatabaseEvent("VALIDATE_FAIL", "Invalid DatabaseSchemaVersion value.");
+                _suspendDirtyTracking = false;
+                return false;
+            }
+            else
+            {
+                LoadedDatabaseSchemaVersion = schemaVersion;
+                if (schemaVersion > CurrentDatabaseSchemaVersion)
+                {
+                    LogDatabaseEvent("VALIDATE_FAIL", "Database schema is newer than this Thetis build: " + schemaVersion);
+                    _suspendDirtyTracking = false;
+                    return false;
+                }
+            }
+
+            if (changed)
                 SaveVarsDictionary("State", ref d, true);
 
+            string validationProblems = ValidateDataSet(ds, false);
+            if (!string.IsNullOrEmpty(validationProblems))
+            {
+                LogDatabaseEvent("VALIDATE_FAIL", validationProblems);
+                _suspendDirtyTracking = false;
+                return false;
+            }
+
+            if (!fileExisted || recovered || changed)
+            {
+                if (!WriteDB(_file_name, ds))
+                {
+                    _suspendDirtyTracking = false;
+                    return false;
+                }
+            }
+
+            _suspendDirtyTracking = false;
+            AttachDirtyTracking();
+            StartCheckpointTimer();
+            _dirty = false;
+            LogDatabaseEvent("LOAD_OK", _file_name + (recovered ? " (recovered)" : ""));
             return true;
         }
 
@@ -9658,26 +10077,92 @@ namespace Thetis
         //-W2PA Write specific dataset to a file 
         public static bool WriteDB(string fn, DataSet dsIN)
         {
+            if (string.IsNullOrEmpty(fn) || dsIN == null) return false;
+            if (_writeInProgress) return false;
+
+            string tempFile = fn + ".tmp";
+            string lastGoodFile = LastGoodFileName(fn);
+            _writeInProgress = true;
+            bool previousSuspendDirtyTracking = _suspendDirtyTracking;
+            _suspendDirtyTracking = true;
             try
             {
-                dsIN.WriteXml(fn, XmlWriteMode.WriteSchema);
+                string dir = Path.GetDirectoryName(fn);
+                if (!string.IsNullOrEmpty(dir) && !Directory.Exists(dir))
+                    Directory.CreateDirectory(dir);
+
+                bool requireCurrentSchema = Object.ReferenceEquals(dsIN, ds) && LoadedDatabaseSchemaVersion >= CurrentDatabaseSchemaVersion;
+                string preWriteProblems = ValidateDataSet(dsIN, requireCurrentSchema);
+                if (!string.IsNullOrEmpty(preWriteProblems))
+                    throw new InvalidDataException("Database pre-write validation failed: " + preWriteProblems);
+
+                LogDatabaseEvent("WRITE_TEMP", tempFile);
+                using (FileStream fs = new FileStream(tempFile, FileMode.Create, FileAccess.Write, FileShare.None, 65536, FileOptions.WriteThrough))
+                {
+                    dsIN.WriteXml(fs, XmlWriteMode.WriteSchema);
+                    fs.Flush(true);
+                }
+
+                if (!ValidateDatabaseFile(tempFile, requireCurrentSchema, out string tempProblems))
+                    throw new InvalidDataException("Temporary database validation failed: " + tempProblems);
+                LogDatabaseEvent("VERIFY_TEMP", "OK");
+
+                bool previousWasValid = false;
+                if (File.Exists(fn))
+                {
+                    if (ValidateDatabaseFile(fn, false, out string oldProblems))
+                    {
+                        File.Copy(fn, lastGoodFile, true);
+                        previousWasValid = true;
+                        LogDatabaseEvent("LASTGOOD", "Saved previous valid database to " + lastGoodFile);
+                    }
+                    else
+                    {
+                        LogDatabaseEvent("LASTGOOD_SKIP", "Current target is invalid; preserving existing last-good. " + oldProblems);
+                    }
+                }
+
+                if (File.Exists(fn))
+                    File.Replace(tempFile, fn, null);
+                else
+                    File.Move(tempFile, fn);
+                LogDatabaseEvent("COMMIT", fn);
+
+                if (!previousWasValid && !File.Exists(lastGoodFile))
+                {
+                    File.Copy(fn, lastGoodFile, true);
+                    LogDatabaseEvent("LASTGOOD", "Created initial last-good copy.");
+                }
+
                 DBMan.DBWritten();
+                _dirty = false;
+                _checkpointBackoffUntilUtc = DateTime.MinValue;
+                LogDatabaseEvent("WRITE_OK", fn);
+                return true;
             }
             catch (Exception ex)
             {
+                LogDatabaseEvent("WRITE_FAIL", fn, ex);
+                try { if (File.Exists(tempFile)) File.Delete(tempFile); } catch { }
                 MessageBox.Show("A database write to file operation failed.  " +
                     "The exception error was:\n\n" + ex.Message,
                     "ERROR: Database Write Error",
                     MessageBoxButtons.OK, MessageBoxIcon.Error, MessageBoxDefaultButton.Button1, Common.MB_TOPMOST);
                 return false;
             }
-            return true;
+            finally
+            {
+                _suspendDirtyTracking = previousSuspendDirtyTracking;
+                _writeInProgress = false;
+            }
         }
 
         public static void Exit()
         {
-            WriteDB();
+            StopCheckpointTimer();
+            if (ds != null) WriteDB();
             ds = null;
+            _dirty = false;
         }
 
         public static bool BandText(double freq, out string outStr)
@@ -11048,6 +11533,11 @@ namespace Thetis
                                 row["Value"] = VersionNumber;
                                 tempMergedTable.ImportRow(row);
                             }
+                            else if (thisKey == "DatabaseSchemaVersion")
+                            {
+                                row["Value"] = CurrentDatabaseSchemaVersion.ToString();
+                                tempMergedTable.ImportRow(row);
+                            }
                             else if (thisKey == "Version")
                             {
                                 row["Value"] = VersionString;
@@ -11347,34 +11837,7 @@ namespace Thetis
         //-W2PA Basic validity checks of imported DataSet xml file
         private static string ValidateImportedDatabase(DataSet oldDB)
         {
-            string problems = "";
-
-            //Basic kinds of non-validity:
-            if (oldDB.HasErrors 
-                || oldDB.DataSetName != "Data"
-                || !oldDB.IsInitialized
-                || oldDB.Tables.Count == 0
-                )
-            {
-                // For debugging:
-                problems = problems
-                    + "Invalid database read. \n\n"
-                    + "DataSet characteristics:"
-                    + "\nHasErrors=" + oldDB.HasErrors
-                    + "\nDataSetName=" + oldDB.DataSetName
-                    + "\nIsInitialized=" + oldDB.IsInitialized
-                    + "\nNamespace=" + oldDB.Namespace
-                    + "\nNumTables=" + oldDB.Tables.Count
-                    + "\n";
-
-                foreach (DataTable table in oldDB.Tables)
-                {
-                    problems = problems
-                        + "\nTable: " + table.TableName;
-                }
-            }
-
-            return problems;
+            return ValidateDataSet(oldDB, false);
         }
 
         //-W2PA Expand an old TxProfile table into a newer one with more colunms. Fill in missing ones with default values.
@@ -11390,7 +11853,8 @@ namespace Thetis
          
             foreach (DataRow OldRow in oldTable.Rows)
             {
-                DataRow newRow = DefaultRow;
+                DataRow newRow = expandedTable.NewRow();
+                newRow.ItemArray = (object[])DefaultRow.ItemArray.Clone();
                 foreach (DataColumn col in oldTable.Columns) // Overwrite the subset of columns that were in the old table
                 {
                     if ((ds.Tables["TXProfile"].Columns).Contains(col.ColumnName))  // Don't import a row having a colummn that's no longer used

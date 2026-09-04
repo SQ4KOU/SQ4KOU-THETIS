@@ -1328,6 +1328,16 @@ namespace Thetis
             if (m_disconnected) return;
             sendDiguOffset(newValue);
         }
+        public void RXAntennaSelectedChanged(int antenna, Band band)
+        {
+            if (m_disconnected) return;
+            sendRXAntennaSelected(antenna, band);
+        }
+        public void TXAntennaSelectedChanged(int antenna, Band band)
+        {
+            if (m_disconnected) return;
+            sendTXAntennaSelected(antenna, band);
+        }
 		public void TXFrequencyChanged(long new_frequency, Band new_band, bool rx2_enabled, bool tx_vfob)
 		{
             if (m_disconnected) return;
@@ -2311,6 +2321,145 @@ namespace Thetis
             string s = "agc_gain:" + rx.ToString() + "," + gain.ToString() + ";";
             sendTextFrame(s);
         }
+        private void sendRXAntennaSelected(int antenna, Band band)
+        {
+            // SQ4KOU TCI Stage 1. RX1 selected/preconfigured antenna only.
+            // Physical/effective relay confirmation belongs to a later stage.
+            if (antenna < 0 || antenna > 3) return;
+            string s = $"sq4kou_rx_antenna_selected_ex:{antenna},{band.ToString()};";
+            sendTextFrame(s.ToLower());
+        }
+        // SQ4KOU TCI Stage 2 hardware snapshot, schema v1:
+        // version,seq,valid,rx_only,trx_ant,tx_ant,rx_out,tx,oc,
+        // tx_step_att,adc1_att,drive,cmd05_tatt_0p5db,pa_enabled,lna6.
+        // cmd05_tatt reproduces the legacy RP CMD05 mapping from the FINAL
+        // 8-bit HPSDR drive byte: trunc(-40*log10(drive/255)), clamp 0..63.
+        // SQ4KOU TCI Stage 3 - CMD07 / GPS-PPS-NCO heartbeat.
+        // Reuses the Stage-2 250 ms timer but emits independently at ~1 Hz.
+        // ONLINE describes freshness of RP->Thetis CMD07 UDP, not WebSocket state.
+        private int m_sq4kouCmd07HeartbeatSeq = 0;
+        private long m_sq4kouCmd07LastSendTicks = 0;
+
+        private void sendSQ4KOUCmd07(bool force)
+        {
+            if (m_disconnected) return;
+
+            long nowTicks = DateTime.UtcNow.Ticks;
+            if (!force && m_sq4kouCmd07LastSendTicks != 0)
+            {
+                long elapsedMs = (nowTicks - m_sq4kouCmd07LastSendTicks) / TimeSpan.TicksPerMillisecond;
+                if (elapsedMs < 900) return;
+            }
+            m_sq4kouCmd07LastSendTicks = nowTicks;
+
+            unchecked
+            {
+                m_sq4kouCmd07HeartbeatSeq++;
+                if (m_sq4kouCmd07HeartbeatSeq <= 0) m_sq4kouCmd07HeartbeatSeq = 1;
+            }
+
+            GpsSyncTelemetry.Start();
+            bool online;
+            GpsSyncSnapshot s = GpsSyncTelemetry.GetPreferredSnapshot(out online);
+
+            int rxAgeMs = -1;
+            if (s != null)
+            {
+                double age = (DateTime.UtcNow - s.ReceivedUtc).TotalMilliseconds;
+                if (age < 0.0) age = 0.0;
+                if (age > Int32.MaxValue) rxAgeMs = Int32.MaxValue;
+                else rxAgeMs = (int)age;
+            }
+
+            int pktSeq = 0, gpsState = 0, flags = 0, corr = 0, acq = 0;
+            uint ppsSeq = 0, ppsCount = 0, clockHz = 0;
+            int errHz = 0, errPpb = 0, ppsAgeMs = 0, diag = 0;
+            if (s != null)
+            {
+                pktSeq = s.Sequence;
+                gpsState = s.State;
+                flags = s.Flags;
+                corr = s.CorrectionMask;
+                acq = s.AcquisitionCount;
+                ppsSeq = s.PpsSequence;
+                ppsCount = s.PpsCountRaw;
+                clockHz = s.ClockUsedHz;
+                errHz = s.ClockErrorHz;
+                errPpb = s.ClockErrorPpb;
+                ppsAgeMs = s.PpsAgeMs;
+                diag = s.DiagFlags;
+            }
+
+            string frame = String.Format(System.Globalization.CultureInfo.InvariantCulture,
+                "sq4kou_cmd07_ex:1,{0},{1},{2},{3},{4},{5},{6},{7},{8},{9},{10},{11},{12},{13},{14};",
+                m_sq4kouCmd07HeartbeatSeq, online ? 1 : 0, rxAgeMs,
+                pktSeq, gpsState, flags, corr, acq, ppsSeq, ppsCount, clockHz,
+                errHz, errPpb, ppsAgeMs, diag);
+            sendTextFrame(frame.ToLowerInvariant());
+        }
+        private int m_sq4kouLastHwSeq = -1;
+
+        private static int sq4kouCmd05TattFromDrive(int drive)
+        {
+            if (drive <= 0) return 63;
+            if (drive >= 255) return 0;
+            double value = -40.0 * Math.Log10((double)drive / 255.0);
+            int raw = (int)value;
+            if (raw < 0) raw = 0;
+            if (raw > 63) raw = 63;
+            return raw;
+        }
+
+        private void sendSQ4KOUHardwareState(bool force)
+        {
+            if (m_disconnected) return;
+
+            int seq, valid, rxOnly, trxAnt, txAnt, rxOut, tx, oc;
+            int txStepAtt, adc1Att, drive, paDisable, alexHpf;
+            int ok;
+            try
+            {
+                ok = NetworkIO.GetSQ4KOUHardwareState(
+                    out seq, out valid,
+                    out rxOnly, out trxAnt, out txAnt, out rxOut, out tx,
+                    out oc, out txStepAtt, out adc1Att,
+                    out drive, out paDisable, out alexHpf);
+            }
+            catch (EntryPointNotFoundException)
+            {
+                // Safety: never destabilise Thetis if an old ChannelMaster.dll is loaded.
+                return;
+            }
+            catch (DllNotFoundException)
+            {
+                return;
+            }
+            if (ok == 0) return;
+            if (!force && seq == m_sq4kouLastHwSeq) return;
+            m_sq4kouLastHwSeq = seq;
+
+            int cmd05Tatt = sq4kouCmd05TattFromDrive(drive);
+            int paEnabled = paDisable == 0 ? 1 : 0;
+            int lna6 = (alexHpf & 0x40) != 0 ? 1 : 0;
+            string s = $"sq4kou_radio_hw_ex:1,{seq},{valid},{rxOnly},{trxAnt},{txAnt},{rxOut},{tx},{oc},{txStepAtt},{adc1Att},{drive},{cmd05Tatt},{paEnabled},{lna6};";
+            sendTextFrame(s.ToLower());
+        }
+
+        private void SQ4KOUHardwareTimer(object state)
+        {
+            if (m_disconnected || m_stopClient || !m_bWebSocket) return;
+            sendSQ4KOUHardwareState(false);
+            // SQ4KOU Stage 3: independent ~1 Hz CMD07 application heartbeat.
+            sendSQ4KOUCmd07(false);
+        }
+        private void sendTXAntennaSelected(int antenna, Band band)
+        {
+            // SQ4KOU TCI Stage 1. Selected/preconfigured antenna only.
+            // It deliberately does not claim physical/effective relay confirmation.
+            if (antenna < 0 || antenna > 3) return;
+            string s = $"sq4kou_tx_antenna_selected_ex:{antenna},{band.ToString()};";
+            sendTextFrame(s.ToLower());
+        }
 		private void sendTXFrequencyChanged(long new_frequency, Band new_band, bool rx2_enabled, bool tx_vfob)
 		{
             string s = $"tx_frequency:{new_frequency};";
@@ -2505,6 +2654,27 @@ namespace Thetis
                 sendTXFrequencyChanged((long)(consoleThreadSafe.TXFreq * 1e6), consoleThreadSafe.TXBand, consoleThreadSafe.RX2Enabled, consoleThreadSafe.VFOBTX);
             }
 
+            // Publish selected TX antenna on client initialisation without assuming
+            // a Console variable exists in this socket-listener scope.
+            if (m_server != null)
+            {
+                int selectedAntenna;
+                Band selectedBand;
+                if (m_server.TryGetTXAntennaSelected(out selectedAntenna, out selectedBand))
+                    sendTXAntennaSelected(selectedAntenna, selectedBand);
+            }
+            // Publish selected RX1 antenna on client initialisation.
+            if (m_server != null)
+            {
+                int selectedRxAntenna;
+                Band selectedRxBand;
+                if (m_server.TryGetRXAntennaSelected(out selectedRxAntenna, out selectedRxBand))
+                    sendRXAntennaSelected(selectedRxAntenna, selectedRxBand);
+            }
+            // SQ4KOU Stage 2: initial effective hardware snapshot.
+            sendSQ4KOUHardwareState(true);
+            // SQ4KOU Stage 3: initial CMD07/heartbeat frame for this TCI client.
+            sendSQ4KOUCmd07(true);
             sendMode(0);
 			sendMode(1);
 
@@ -2797,6 +2967,10 @@ namespace Thetis
 
 		private void SocketListenerThreadStart()
 		{
+            // SQ4KOU Stage 2: poll native shadow cheaply; a TCI frame is emitted
+            // only when native seq changed. 250 ms coalesces bursts to final state.
+            System.Threading.Timer sq4kouHwTimer = new System.Threading.Timer(new System.Threading.TimerCallback(SQ4KOUHardwareTimer),
+                null, 250, 250);
 			System.Threading.Timer t = new System.Threading.Timer(new TimerCallback(PingFrameTimer),
 				null, 1000 * 20, 1000 * 20); // per websock spec ping frames are every 20 seconds.
 											 // Ideally we should receive something
@@ -2904,6 +3078,11 @@ namespace Thetis
 
             m_markedForDeletion = true;
 
+            if (sq4kouHwTimer != null)
+            {
+                sq4kouHwTimer.Change(Timeout.Infinite, Timeout.Infinite);
+                sq4kouHwTimer.Dispose();
+            }
             t.Change(Timeout.Infinite, Timeout.Infinite);
 			t = null;
 
@@ -6755,6 +6934,8 @@ namespace Thetis
                     console.RITValueChangedHandlers += OnRITValueChanged;
                     console.XITValueChangedHandlers += OnXITValueChanged;
 					console.TXFrequncyChangedHandlers += OnTXFrequencyChanged;
+                    console.ThreadSafeTCIAccessor.AntennaTXChangedHandlers += OnAntennaTXChanged;
+                    console.ThreadSafeTCIAccessor.AntennaRXChangedHandlers += OnAntennaRXChanged;
                     console.MeterReadingsChangedHandlers += OnMeterReadingsChanged;
                     console.NRChangedHandlers += OnNrChanged;
                     console.NBChangedHandlers += OnNbChanged;
@@ -6868,6 +7049,8 @@ namespace Thetis
                     console.RITValueChangedHandlers -= OnRITValueChanged;
                     console.XITValueChangedHandlers -= OnXITValueChanged;
                     console.TXFrequncyChangedHandlers -= OnTXFrequencyChanged;
+                    console.ThreadSafeTCIAccessor.AntennaTXChangedHandlers -= OnAntennaTXChanged;
+                    console.ThreadSafeTCIAccessor.AntennaRXChangedHandlers -= OnAntennaRXChanged;
                     console.MeterReadingsChangedHandlers -= OnMeterReadingsChanged;
                     console.NRChangedHandlers -= OnNrChanged;
                     console.NBChangedHandlers -= OnNbChanged;
@@ -7935,6 +8118,57 @@ namespace Thetis
                 }
             }
         }
+        // SQ4KOU TCI Stage 1: server-owned access to current TX-band antenna.
+        // Socket listener asks the server instead of depending on listener-internal
+        // Console field names/scopes.
+        // SQ4KOU TCI Stage 1: server-owned access to current RX1-band antenna.
+        public bool TryGetRXAntennaSelected(out int antenna, out Band band)
+        {
+            band = console.ThreadSafeTCIAccessor.RX1Band;
+            antenna = Alex.getAlex().getRxAnt(band);
+            return antenna >= 0 && antenna <= 3;
+        }
+        public bool TryGetTXAntennaSelected(out int antenna, out Band band)
+        {
+            band = console.ThreadSafeTCIAccessor.TXBand;
+            antenna = Alex.getAlex().getTxAnt(band);
+            return antenna >= 0 && antenna <= 3;
+        }
+        private void OnAntennaRXChanged(Band band, int antenna, bool old_state, bool new_state)
+        {
+            // As for TX, publish the state read back from Alex rather than trusting
+            // a GUI button index. RX telemetry refers to RX1/current RX1 band.
+            if (!new_state) return;
+            Band activeBand = console.ThreadSafeTCIAccessor.RX1Band;
+            if (band != activeBand) return;
+            int selected = Alex.getAlex().getRxAnt(activeBand);
+
+            lock (m_objLocker)
+            {
+                foreach (TCPIPtciSocketListener socketListener in m_socketListenersList)
+                {
+                    socketListener.RXAntennaSelectedChanged(selected, activeBand);
+                }
+            }
+        }
+        private void OnAntennaTXChanged(Band band, int antenna, bool old_state, bool new_state)
+        {
+            // The setup notification uses a zero-based button index. Do not publish it.
+            // Read back Alex.TxAnt so the TCI value is the same 1..3 selection used
+            // later by Alex.UpdateAlexAntSelection(). Only the current TX band matters.
+            if (!new_state) return;
+            Band activeBand = console.ThreadSafeTCIAccessor.TXBand;
+            if (band != activeBand) return;
+            int selected = Alex.getAlex().getTxAnt(activeBand);
+
+            lock (m_objLocker)
+            {
+                foreach (TCPIPtciSocketListener socketListener in m_socketListenersList)
+                {
+                    socketListener.TXAntennaSelectedChanged(selected, activeBand);
+                }
+            }
+        }
 		private void OnTXFrequencyChanged(double old_frequency, double new_frequency, Band old_band, Band new_band, bool rx2_enabled, bool tx_vfob, double centre_freq)
 		{
             TCPIPtciSocketListener.VFOData vfod = new TCPIPtciSocketListener.VFOData()
@@ -7963,6 +8197,8 @@ namespace Thetis
                 foreach (TCPIPtciSocketListener socketListener in m_socketListenersList)
                 {
                     socketListener.TXFrequencyChange(vfod);
+                    // A TX band/VFO/SPLIT change can select another antenna while still in RX.
+                    socketListener.TXAntennaSelectedChanged(Alex.getAlex().getTxAnt(new_band), new_band);
                 }
             }
         }

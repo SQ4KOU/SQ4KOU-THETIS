@@ -1,4 +1,4 @@
-﻿//=================================================================
+//=================================================================
 // titlebar.cs
 //=================================================================
 // PowerSDR is a C# implementation of a Software Defined Radio.
@@ -50,7 +50,7 @@ namespace Thetis
 {
     class TitleBar
     {
-        public static readonly string BUILD_NAME = "";
+        public const string BUILD_NAME = "SQ4KOU";
 
         public static string GetString(bool bWithFirmware = true)
         {

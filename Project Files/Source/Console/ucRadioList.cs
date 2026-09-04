@@ -1293,6 +1293,14 @@ if (!DoesRadioExist(item.Key))
             }
 
             string model = safe(item.RadioModel);
+            // SQ4KOU_RADIOID_REDPITAYA_MODEL_AWARE
+            // Display-only: keep item.RadioModel parseable as HPSDRHW on reconnect.
+            if (HardwareSpecific.Model == HPSDRModel.REDPITAYA &&
+                (string.Equals(model, HPSDRHW.Hermes.ToString(), StringComparison.OrdinalIgnoreCase) ||
+                 string.Equals(model, HPSDRHW.OrionMKII.ToString(), StringComparison.OrdinalIgnoreCase)))
+            {
+                model = "RedPitaya";
+            }
             string ip = safe(item.RadioIp);
             string mac = item.RadioIsCustom ? "Custom" : safe(item.RadioMac);
 

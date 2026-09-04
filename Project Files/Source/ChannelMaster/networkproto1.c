@@ -68,9 +68,21 @@ int SendStartToMetis(void) {
 	return 0;
 }
 
+/* Update Metis run bits without restarting the Protocol-1 DDC/audio path. */
+int SendRunToMetis(void) {
+	struct outdgram { unsigned char packetbuf[64]; } outpacket;
+	if (listenSock == INVALID_SOCKET) return -1;
+	memset(outpacket.packetbuf, 0, sizeof(outpacket));
+	outpacket.packetbuf[0] = 0xef;
+	outpacket.packetbuf[1] = 0xfe;
+	outpacket.packetbuf[2] = 0x04;
+	/* TX -> IN2 OFF: EP4/WideBand is never requested while keyed. */
+	outpacket.packetbuf[3] = 0x01 | ((!XmitBit && (prn->wb_enable & 0x01)) ? 0x02 : 0x00);
+	return sendPacket(listenSock, (char*)&outpacket, sizeof(outpacket), prn->base_outbound_port);
+}
+
 PORT
-int SendStopToMetis() {
-	int starting_seq;
+int SendStopToMetis() {	int starting_seq;
 	struct outdgram {
 		unsigned char packetbuf[64];
 	} outpacket;
@@ -178,7 +190,52 @@ int MetisReadDirect(unsigned char* bufp) {
 			seqbytep[1] = inpacket.readbuf[6];
 			seqbytep[0] = inpacket.readbuf[7];
 
-			if (endpoint == 6) {
+			if (endpoint == 4) {
+				/* P1 WB logical ADC0 is physical RP IN2/ADC-B. */
+				int wb_spp = 512;
+				int wb_ppf = 32;
+				int ii, jj;
+				double* wb_buff = prn->adc[0].wb_buff;
+
+				for (ii = 0, jj = 8; ii < wb_spp; ++ii, jj += 2)
+					wb_buff[ii] = const_1_div_2147483648_ *
+						(double)(inpacket.readbuf[jj] << 24 | inpacket.readbuf[jj + 1] << 16);
+
+				/* Same framing state machine as current P2 WideBand. */
+				switch (prn->adc[0].wb_state)
+				{
+				case 0:
+					prn->adc[0].wb_seqnum = 0;
+					if (seqnum == 0)
+					{
+						prn->adc[0].wb_state = 1;
+						Spectrum(prn->wb_base_dispid, 0, 0, wb_buff, wb_buff);
+						prn->adc[0].wb_seqnum++;
+					}
+					break;
+
+				case 1:
+					if (seqnum == prn->adc[0].wb_seqnum)
+					{
+						Spectrum(prn->wb_base_dispid, 0, 0, wb_buff, wb_buff);
+						if (prn->adc[0].wb_seqnum == wb_ppf - 1)
+						prn->adc[0].wb_state = 0;
+					}
+					else
+					{
+						memset(wb_buff, 0, wb_spp * sizeof(double));
+						for (jj = prn->adc[0].wb_seqnum; jj < wb_ppf; jj++)
+						Spectrum(prn->wb_base_dispid, 0, 0, wb_buff, wb_buff);
+						prn->adc[0].wb_state = 0;
+					}
+					prn->adc[0].wb_seqnum++;
+					break;
+				}
+
+				LeaveCriticalSection(&prn->rcvpktp1);
+				return 4;
+			}
+			else if (endpoint == 6) {
 				if ((inpacket.readbuf[8] == 0x7f) && (inpacket.readbuf[9] == 0x7f) && (inpacket.readbuf[10] == 0x7f)) {
 					HaveSync = 1;
 				}
@@ -311,7 +368,7 @@ void MetisReadThreadMainLoop(void)
 					break;
 				}
 
-				MetisReadDirect(FPGAReadBufp);
+				if (MetisReadDirect(FPGAReadBufp) != 1024) continue;
 
 				{
 					int frame, cb, isamp;

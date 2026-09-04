@@ -20642,8 +20642,8 @@ namespace Thetis
                     radDDC4ADC2.Enabled = true;
                     radDDC5ADC2.Enabled = true;
                     radDDC6ADC2.Enabled = true;
-                    chkAutoATTRx1.Enabled = false; //DH1KLM, not possible for Red Pitaya since ADC overflow pin not implement in Hard and Firmware
-                    chkAutoATTRx2.Enabled = false; //DH1KLM, not possible for Red Pitaya since ADC overflow pin not implement in Hard and Firmware
+                    chkAutoATTRx1.Enabled = true;  //SQ4KOU: RP FPGA/ARM now reports ADC0 overload via HPSDR P1 C0=0x20 C1 bit0
+                    chkAutoATTRx2.Enabled = true;  //SQ4KOU: RP FPGA/ARM now reports ADC1 overload via HPSDR P1 C0=0x20 C2 bit0
                     setupAttRXControls(1);
                     setupAttRXControls(2);
                     break;
