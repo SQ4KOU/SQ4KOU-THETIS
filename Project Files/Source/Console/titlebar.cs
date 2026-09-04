@@ -50,6 +50,8 @@ namespace Thetis
 {
     class TitleBar
     {
+        public static readonly string BUILD_NAME = "";
+
         public static string GetString(bool bWithFirmware = true)
         {
             string sRevision = "." + Common.GetRevision();
@@ -63,6 +65,7 @@ namespace Thetis
             s += " v" + version + sBits;
             s += " (" + VersionInfo.BuildDate + ")<FW>";  //[2.10.2.2]MW0LGE use the auto generated class from pre build event for the BuildDate
 
+            if (BUILD_NAME != "") s += " " + BUILD_NAME;
 
             if (!bWithFirmware) s = s.Replace("<FW>", "");
 
