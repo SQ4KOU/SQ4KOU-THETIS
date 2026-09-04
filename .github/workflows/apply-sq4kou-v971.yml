@@ -107,8 +107,26 @@ jobs:
           rm -rf DB_RELIABILITY_P0_P2_BACKUP_* DB_RELIABILITY_P0_P2_PATCH_*.log
           git config user.name "SQ4KOU synthesis automation"
           git config user.email "actions@users.noreply.github.com"
-          git add -A
-          git diff --cached --check
+          git add -- \
+            "Project Files/Source/ChannelMaster/netInterface.c" \
+            "Project Files/Source/ChannelMaster/networkproto1.c" \
+            "Project Files/Source/Console/HPSDR/Alex.cs" \
+            "Project Files/Source/Console/HPSDR/NetworkIOImports.cs" \
+            "Project Files/Source/Console/TCIServer.cs" \
+            "Project Files/Source/Console/VersionInfo.cs" \
+            "Project Files/Source/Console/clsDBMan.cs" \
+            "Project Files/Source/Console/clsDiscoveredRadioPicker.cs" \
+            "Project Files/Source/Console/cmaster.cs" \
+            "Project Files/Source/Console/console.cs" \
+            "Project Files/Source/Console/cwx.cs" \
+            "Project Files/Source/Console/database.cs" \
+            "Project Files/Source/Console/setup.cs" \
+            "Project Files/Source/Console/titlebar.cs" \
+            "Project Files/Source/Console/ucRadioList.cs" \
+            "Project Files/Source/Console/wbDisplay.cs" \
+            "Project Files/Source/Console/Directory.Build.targets" \
+            "Project Files/Source/Console/GpsSyncTelemetry.cs" \
+            "Project Files/Source/Console/ucInfoBar.GpsSync.cs"
           git diff --cached --stat
           if git diff --cached --quiet; then
             echo "No source changes to commit."
