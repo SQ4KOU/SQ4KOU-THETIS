@@ -7,6 +7,7 @@ on:
       - main
     paths:
       - .github/workflows/apply-sq4kou-v971.yml
+      - .github/scripts/adapt_sq4kou_v971_db_for_synthesis.ps1
 
 permissions:
   contents: write
@@ -77,6 +78,13 @@ jobs:
           }
           Write-Host 'BUILD_NAME_COMPAT_ANCHOR=PASS'
 
+      - name: Adapt DB P0-P2 anchor for EU2AV synthesis
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File "control/.github/scripts/adapt_sq4kou_v971_db_for_synthesis.ps1" -PackRoot "$env:PACK_ROOT"
+          if ($LASTEXITCODE -ne 0) { throw "DB compatibility shim failed with exit code $LASTEXITCODE" }
+
       - name: Apply all SQ4KOU patches and build Release x64 + installer
         id: patchbuild
         shell: pwsh
@@ -96,6 +104,7 @@ jobs:
         working-directory: synthesis
         run: |
           set -euo pipefail
+          rm -rf DB_RELIABILITY_P0_P2_BACKUP_* DB_RELIABILITY_P0_P2_PATCH_*.log
           git config user.name "SQ4KOU synthesis automation"
           git config user.email "actions@users.noreply.github.com"
           git add -A
