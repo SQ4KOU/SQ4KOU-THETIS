@@ -1,0 +1,120 @@
+name: Integrate SQ4KOU V9.7.1 patch stack
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/integrate-sq4kou-v971.yml
+
+permissions:
+  contents: write
+
+jobs:
+  integrate-and-build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout control files
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          path: control
+
+      - name: Checkout clean-derived SQ4KOU branch
+        uses: actions/checkout@v4
+        with:
+          ref: sq4kou
+          fetch-depth: 1
+          path: synthesis
+
+      - name: Reconstruct and verify V9.7.1 patch package
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $chunkDir = Join-Path $env:GITHUB_WORKSPACE 'control/.github/sq4kou-v971/chunks'
+          $parts = @(Get-ChildItem -LiteralPath $chunkDir -Filter 'part*.b64' | Sort-Object Name)
+          if ($parts.Count -ne 7) { throw "Expected 7 patch-pack chunks, found $($parts.Count)" }
+          $b64 = [string]::Concat(@($parts | ForEach-Object { Get-Content -LiteralPath $_.FullName -Raw }))
+          $zip = Join-Path $env:RUNNER_TEMP 'SQ4KOU_THETIS_V9_7_1.zip'
+          [IO.File]::WriteAllBytes($zip, [Convert]::FromBase64String($b64))
+          $sha = (Get-FileHash -LiteralPath $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          Write-Host "Patch package SHA256=$sha"
+          if ($sha -ne '91b2356f9e5096630bfa7dd74df2972c6c50aaca325162cb84c1174b8dc6e946') {
+            throw "Patch package SHA256 mismatch: $sha"
+          }
+          $root = Join-Path $env:RUNNER_TEMP 'sq4kou-v971'
+          if (Test-Path -LiteralPath $root) { Remove-Item -LiteralPath $root -Recurse -Force }
+          New-Item -ItemType Directory -Force -Path $root | Out-Null
+          Expand-Archive -LiteralPath $zip -DestinationPath $root -Force
+          $pack = Get-ChildItem -LiteralPath $root -Directory | Select-Object -First 1
+          if (-not $pack) { throw 'Patch package root directory not found after extraction.' }
+          if (-not (Test-Path -LiteralPath (Join-Path $pack.FullName 'BUILD_SQ4KOU_THETIS.ps1'))) {
+            throw 'BUILD_SQ4KOU_THETIS.ps1 not found in reconstructed package.'
+          }
+          "PACK_ROOT=$($pack.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+          $selection = Join-Path $env:RUNNER_TEMP 'sq4kou-selection.json'
+          $cfg = [ordered]@{
+            format_version = 1
+            selected_patches = @(1,2,3,4,5,6,7,8,9,10,11,12,13)
+            build_name = 'SQ4KOU'
+          }
+          $json = $cfg | ConvertTo-Json -Depth 4
+          [IO.File]::WriteAllText($selection, $json, (New-Object Text.UTF8Encoding($false)))
+          "SELECTION_FILE=$selection" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Apply all 13 SQ4KOU patches and execute original full build gate
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $builder = Join-Path $env:PACK_ROOT 'BUILD_SQ4KOU_THETIS.ps1'
+          $source = Join-Path $env:GITHUB_WORKSPACE 'synthesis/Project Files/Source'
+          & $builder -SourceRoot $source -SelectionFile $env:SELECTION_FILE
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Collect integration reports and outputs
+        if: always()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+          $stage = Join-Path $env:GITHUB_WORKSPACE 'artifact-stage'
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          foreach ($name in @('ONECLICK_BUILD.log','STATIC_VERIFICATION.txt','INTEGRATION_VERIFICATION.txt')) {
+            $p = Join-Path $env:PACK_ROOT $name
+            if (Test-Path -LiteralPath $p) { Copy-Item -LiteralPath $p -Destination $stage -Force }
+          }
+          foreach ($name in @('REPORTS','OUTPUT_INSTALLER')) {
+            $p = Join-Path $env:PACK_ROOT $name
+            if (Test-Path -LiteralPath $p) { Copy-Item -LiteralPath $p -Destination (Join-Path $stage $name) -Recurse -Force }
+          }
+          $release = Join-Path $env:GITHUB_WORKSPACE 'synthesis/Project Files/bin/x64/Release'
+          if (Test-Path -LiteralPath $release) { Copy-Item -LiteralPath $release -Destination (Join-Path $stage 'RELEASE_X64') -Recurse -Force }
+
+      - name: Commit integrated sources to sq4kou branch
+        if: success()
+        working-directory: synthesis
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "SQ4KOU synthesis automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A
+          git diff --cached --check
+          git status --short
+          if git diff --cached --quiet; then
+            echo "No source changes to commit."
+          else
+            git commit -m "Integrate SQ4KOU V9.7.1 patch stack"
+            git push origin HEAD:sq4kou
+          fi
+          echo "SQ4KOU_SHA=$(git rev-parse HEAD)"
+
+      - name: Upload SQ4KOU integration report and binaries
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sq4kou-v971-integration
+          path: artifact-stage/
+          if-no-files-found: warn
