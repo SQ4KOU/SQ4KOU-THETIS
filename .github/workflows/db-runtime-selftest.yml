@@ -36,7 +36,7 @@ jobs:
           $ErrorActionPreference = 'Stop'
           msbuild "Project Files/Source/Thetis_VS2026.sln" /m /t:Build /p:Configuration=Release /p:Platform=x64 /v:minimal
 
-      - name: Validate a fresh database through the built Thetis DB class
+      - name: Validate fresh and legacy database migrations through built Thetis DB
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -53,13 +53,15 @@ jobs:
 
           $asm = [Reflection.Assembly]::LoadFrom((Join-Path $release 'Thetis.exe'))
           $db = $asm.GetType('Thetis.DB', $true)
-          $flags = [Reflection.BindingFlags]'Public,Static'
-          $fileProp = $db.GetProperty('FileName', $flags)
-          $verNumProp = $db.GetProperty('VersionNumber', $flags)
-          $verStrProp = $db.GetProperty('VersionString', $flags)
-          $init = $db.GetMethod('Init', $flags)
-          $validate = $db.GetMethod('ValidateCurrentDatabase', $flags)
-          $exit = $db.GetMethod('Exit', $flags)
+          $pub = [Reflection.BindingFlags]'Public,Static'
+          $fileProp = $db.GetProperty('FileName', $pub)
+          $verNumProp = $db.GetProperty('VersionNumber', $pub)
+          $verStrProp = $db.GetProperty('VersionString', $pub)
+          $dsField = $db.GetField('ds', $pub)
+          $init = $db.GetMethod('Init', $pub)
+          $validate = $db.GetMethod('ValidateCurrentDatabase', $pub)
+          $import = $db.GetMethod('ImportAndMergeDatabase', $pub)
+          $exit = $db.GetMethod('Exit', $pub)
 
           $dir = Join-Path $env:RUNNER_TEMP 'sq4kou-db-selftest'
           New-Item -ItemType Directory -Force -Path $dir | Out-Null
@@ -73,11 +75,52 @@ jobs:
           Write-Host "DB.Init(fresh)=$initOk"
           if (-not $initOk) { throw 'Fresh DB.Init failed.' }
 
-          $args = [object[]]@('')
-          $valid = [bool]$validate.Invoke($null, $args)
+          $argsV = [object[]]@('')
+          $valid = [bool]$validate.Invoke($null, $argsV)
           Write-Host "ValidateCurrentDatabase(fresh)=$valid"
-          Write-Host "Problems=$($args[0])"
-          $exit.Invoke($null, @()) | Out-Null
-          if (-not $valid) { throw "Fresh database fails current validator: $($args[0])" }
+          Write-Host "Problems=$($argsV[0])"
+          if (-not $valid) { throw "Fresh database fails current validator: $($argsV[0])" }
 
-# trigger: 2026-09-04-db-runtime-1
+          $fresh = ([System.Data.DataSet]$dsField.GetValue($null)).Copy()
+
+          function Test-Merge([System.Data.DataSet]$old, [string]$name) {
+            $oldFile = Join-Path $dir ($name + '.xml')
+            $old.WriteXml($oldFile, [System.Data.XmlWriteMode]::WriteSchema)
+            $dsField.SetValue($null, $fresh.Copy())
+            $a = [object[]]@($oldFile, '', $true)
+            $mergeOk = [bool]$import.Invoke($null, $a)
+            Write-Host "$name Merge=$mergeOk"
+            Write-Host "$name ImportLog=$($a[1])"
+            if (-not $mergeOk) { throw "$name ImportAndMergeDatabase failed." }
+            $v = [object[]]@('')
+            $ok = [bool]$validate.Invoke($null, $v)
+            Write-Host "$name Validate=$ok"
+            Write-Host "$name Problems=$($v[0])"
+            if (-not $ok) { throw "$name merged database rejected: $($v[0])" }
+          }
+
+          # Case 1: database from before EU2AV Phase Rotator and before SQ4KOU schema marker.
+          $old1 = $fresh.Copy()
+          foreach ($tn in @('TXProfile','TXProfileDef')) {
+            if ($old1.Tables[$tn].Columns.Contains('CFCPhaseRotatorAuto')) {
+              $old1.Tables[$tn].Columns.Remove('CFCPhaseRotatorAuto')
+            }
+          }
+          $srows = $old1.Tables['State'].Select("Key = 'DatabaseSchemaVersion'")
+          foreach ($r in $srows) { $old1.Tables['State'].Rows.Remove($r) }
+          Test-Merge $old1 'legacy-no-new-column'
+
+          # Case 2: old DB already opened once by the new code: column exists but old rows are DBNull,
+          # and the schema marker is still legacy 0.
+          $old2 = $fresh.Copy()
+          if ($old2.Tables['TXProfile'].Columns.Contains('CFCPhaseRotatorAuto')) {
+            foreach ($r in $old2.Tables['TXProfile'].Rows) { $r['CFCPhaseRotatorAuto'] = [DBNull]::Value }
+          }
+          $schemaRows = $old2.Tables['State'].Select("Key = 'DatabaseSchemaVersion'")
+          if ($schemaRows.Length -gt 0) { $schemaRows[0]['Value'] = '0' }
+          Test-Merge $old2 'legacy-null-phase-rotator'
+
+          $dsField.SetValue($null, $fresh.Copy())
+          $exit.Invoke($null, @()) | Out-Null
+
+# trigger: 2026-09-04-db-runtime-2
