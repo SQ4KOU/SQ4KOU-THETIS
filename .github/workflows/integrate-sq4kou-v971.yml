@@ -61,8 +61,10 @@ jobs:
           $new = '$pattern = ''public\s+(?:const|static\s+readonly)\s+string\s+BUILD_NAME\s*=\s*"(?:\\.|[^"\\])*"\s*;'''
           if (-not $builderText.Contains($old)) { throw 'BUILD_NAME adapter anchor not found in V9.7.1 builder.' }
           $builderText = $builderText.Replace($old,$new)
-          [IO.File]::WriteAllText($builder,$builderText,(New-Object Text.UTF8Encoding($false)))
-          Write-Host 'Applied synthesis compatibility adapter: BUILD_NAME const|static readonly.'
+          # Windows PowerShell 5.1 requires BOM for this script because it contains
+          # non-ASCII Polish diagnostics. Preserve UTF-8 with BOM after adaptation.
+          [IO.File]::WriteAllText($builder,$builderText,(New-Object Text.UTF8Encoding($true)))
+          Write-Host 'Applied synthesis compatibility adapter: BUILD_NAME const|static readonly (UTF-8 BOM preserved).'
 
           "PACK_ROOT=$($pack.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
