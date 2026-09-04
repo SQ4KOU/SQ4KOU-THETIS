@@ -45,12 +45,18 @@ jobs:
           path: build-logs/
           if-no-files-found: warn
 
-      - name: Upload release output
+      - name: Upload x64 release output
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: synthesis-thetis-x64-release
-          path: |
-            Project Files/Source/Console/bin/x64/Release/**
-            Project Files/Source/Console/bin/Release/**
-          if-no-files-found: warn
+          path: Project Files/bin/x64/Release/**
+          if-no-files-found: error
+
+      - name: Upload MSI installer
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: synthesis-thetis-x64-installer
+          path: Project Files/bin/Installers/Thetis.msi
+          if-no-files-found: error
