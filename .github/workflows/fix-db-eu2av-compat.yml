@@ -3,9 +3,11 @@ name: Fix SQ4KOU EU2AV DB compatibility
 on:
   workflow_dispatch:
   push:
-    branches: [ main ]
+    branches:
+      - main
     paths:
       - .github/workflows/fix-db-eu2av-compat.yml
+      - .github/scripts/fix_db_eu2av_compat.py
 
 permissions:
   contents: write
@@ -14,83 +16,44 @@ jobs:
   fix-test-build:
     runs-on: windows-latest
     steps:
+      - name: Checkout control files
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          path: control
+
       - name: Checkout sq4kou
         uses: actions/checkout@v4
         with:
           ref: sq4kou
           fetch-depth: 1
+          path: synthesis
 
       - name: Patch legacy CFCPhaseRotatorAuto migration
+        working-directory: synthesis
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $p = 'Project Files/Source/Console/database.cs'
-          $text = [IO.File]::ReadAllText($p)
-          $old = @'
-        private static void VerifyTXProfileColumns()
-        {
-            foreach (string tableName in new[] { "TXProfile", "TXProfileDef" })
-            {
-                if (!ds.Tables.Contains(tableName)) continue;
-                DataTable t = ds.Tables[tableName];
-                if (!t.Columns.Contains("CFCPhaseRotatorAuto"))
-                    t.Columns.Add("CFCPhaseRotatorAuto", typeof(bool));
-            }
-        }
-'@
-          $new = @'
-        private static void VerifyTXProfileColumns()
-        {
-            // EU2AV introduced CFCPhaseRotatorAuto after many existing databases were created.
-            // Adding a bool DataColumn to a populated DataTable leaves existing rows as DBNull.
-            // IsDatabaseCompatible() correctly rejects DBNull values, but that would force a full
-            // database migration for a setting whose defined legacy/default value is simply false.
-            // Normalize this one additive field in-place; all other compatibility checks stay strict.
-            foreach (string tableName in new[] { "TXProfile", "TXProfileDef" })
-            {
-                if (!ds.Tables.Contains(tableName)) continue;
-                DataTable t = ds.Tables[tableName];
-                DataColumn c;
-                if (!t.Columns.Contains("CFCPhaseRotatorAuto"))
-                {
-                    c = t.Columns.Add("CFCPhaseRotatorAuto", typeof(bool));
-                    c.DefaultValue = false;
-                }
-                else
-                {
-                    c = t.Columns["CFCPhaseRotatorAuto"];
-                    if (c.DataType == typeof(bool)) c.DefaultValue = false;
-                }
-
-                if (c.DataType == typeof(bool))
-                {
-                    foreach (DataRow row in t.Rows)
-                    {
-                        if (row.RowState == DataRowState.Deleted) continue;
-                        if (row.IsNull(c)) row[c] = false;
-                    }
-                }
-            }
-        }
-'@
-          if (-not $text.Contains($old)) { throw 'VerifyTXProfileColumns anchor not found or already modified.' }
-          $text = $text.Replace($old,$new)
-          [IO.File]::WriteAllText($p,$text,(New-Object Text.UTF8Encoding($true)))
+          python ../control/.github/scripts/fix_db_eu2av_compat.py
           git diff --check
-          git diff -- $p
+          git diff -- 'Project Files/Source/Console/database.cs'
 
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v2
 
       - name: Restore NuGet
+        working-directory: synthesis
         shell: pwsh
         run: nuget restore "Project Files/Source/Thetis_VS2026.sln" -NonInteractive
 
       - name: Build Release x64 and MSI
+        working-directory: synthesis
         shell: pwsh
         run: msbuild "Project Files/Source/Thetis_VS2026.sln" /m /t:Build /p:Configuration=Release /p:Platform=x64 /v:minimal
 
       - name: Runtime DB compatibility test
+        working-directory: synthesis
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -151,16 +114,12 @@ jobs:
             $exit.Invoke($null,[object[]]@()) | Out-Null
           }
 
-          # Exact upgrade shape from the previous SQ4KOU DB reliability baseline:
-          # schema marker already current, but EU2AV's new phase-rotator column did not exist yet.
           $legacy1 = $fresh.Copy()
           foreach ($tn in @('TXProfile','TXProfileDef')) {
             if ($legacy1.Tables[$tn].Columns.Contains('CFCPhaseRotatorAuto')) { $legacy1.Tables[$tn].Columns.Remove('CFCPhaseRotatorAuto') }
           }
           Assert-LoadedCompatible $legacy1 'legacy-missing-column'
 
-          # Also cover a DB already touched by the old EU2AV helper, where the column exists
-          # but populated rows contain DBNull.
           $legacy2 = $fresh.Copy()
           foreach ($tn in @('TXProfile','TXProfileDef')) {
             foreach ($r in $legacy2.Tables[$tn].Rows) { $r['CFCPhaseRotatorAuto'] = [DBNull]::Value }
@@ -168,6 +127,7 @@ jobs:
           Assert-LoadedCompatible $legacy2 'legacy-null-values'
 
       - name: Commit fix to sq4kou
+        working-directory: synthesis
         shell: bash
         run: |
           set -euo pipefail
@@ -177,7 +137,6 @@ jobs:
           git diff --cached --check
           git commit -m "Fix EU2AV legacy TXProfile database migration"
           git push origin HEAD:sq4kou
-          echo "FIX_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
 
       - name: Stage installer
         shell: pwsh
@@ -185,12 +144,11 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $stage = Join-Path $env:RUNNER_TEMP 'installer-stage'
           New-Item -ItemType Directory -Force -Path $stage | Out-Null
-          $msi = Get-ChildItem 'Project Files/bin/Installers' -Filter '*.msi' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          $msi = Get-ChildItem 'synthesis/Project Files/bin/Installers' -Filter '*.msi' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
           if (-not $msi) { throw 'MSI not found' }
           Copy-Item $msi.FullName (Join-Path $stage 'Thetis-2.10.3.15-SQ4KOU-DBFIX-x64.msi')
-          $exe = 'Project Files/bin/x64/Release/Thetis.exe'
-          Copy-Item $exe (Join-Path $stage 'Thetis-2.10.3.15-SQ4KOU-DBFIX-x64.exe')
-          Get-FileHash (Join-Path $stage '*') -Algorithm SHA256 | Format-Table -AutoSize
+          Copy-Item 'synthesis/Project Files/bin/x64/Release/Thetis.exe' (Join-Path $stage 'Thetis-2.10.3.15-SQ4KOU-DBFIX-x64.exe')
+          Get-ChildItem $stage | Get-FileHash -Algorithm SHA256 | Format-Table -AutoSize
 
       - name: Upload fixed installer
         uses: actions/upload-artifact@v4
