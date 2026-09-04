@@ -47,8 +47,12 @@ jobs:
                   .sq4kou/SYNTHESIS_BASE.md
           git diff --cached --check
           git diff --cached --stat
-          git commit -m "Integrate Ramdor N1MM CW shift into clean synthesis"
-          git push origin HEAD:synthesis-clean
+          if git diff --cached --quiet; then
+            echo "Synthesis already contains the selected Ramdor N1MM delta."
+          else
+            git commit -m "Integrate Ramdor N1MM CW shift into clean synthesis"
+            git push origin HEAD:synthesis-clean
+          fi
           git rev-parse HEAD
 
   build-x64:
@@ -77,6 +81,21 @@ jobs:
           New-Item -ItemType Directory -Force -Path build-logs | Out-Null
           msbuild "Project Files/Source/Thetis_VS2026.sln" /m /t:Build /p:Configuration=Release /p:Platform=x64 /v:minimal /fl /flp:"logfile=build-logs/msbuild-x64-release.log;verbosity=normal" /bl:build-logs/msbuild-x64-release.binlog
 
+      - name: Stage MSI installer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $msi = "Project Files/bin/Installers/Thetis.msi"
+          if (-not (Test-Path -LiteralPath $msi)) {
+            Write-Host "MSI files found under Project Files/bin:"
+            Get-ChildItem -LiteralPath "Project Files/bin" -Recurse -Filter *.msi -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_.FullName }
+            throw "Expected installer not found: $msi"
+          }
+          New-Item -ItemType Directory -Force -Path "artifact-stage/installer" | Out-Null
+          Copy-Item -LiteralPath $msi -Destination "artifact-stage/installer/Thetis.msi" -Force
+          $item = Get-Item -LiteralPath "artifact-stage/installer/Thetis.msi"
+          Write-Host ("Staged MSI: {0} bytes" -f $item.Length)
+
       - name: Upload build logs
         if: always()
         uses: actions/upload-artifact@v4
@@ -98,5 +117,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: synthesis-n1mm-x64-installer
-          path: Project Files/bin/Installers/Thetis.msi
+          path: artifact-stage/installer/Thetis.msi
           if-no-files-found: error
