@@ -79,3 +79,5 @@ jobs:
           Write-Host "Problems=$($args[0])"
           $exit.Invoke($null, @()) | Out-Null
           if (-not $valid) { throw "Fresh database fails current validator: $($args[0])" }
+
+# trigger: 2026-09-04-db-runtime-1
