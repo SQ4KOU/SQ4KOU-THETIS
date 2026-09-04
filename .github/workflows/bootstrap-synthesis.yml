@@ -82,3 +82,5 @@ jobs:
           echo "Imported pinned upstream references and initialized synthesis-clean."
           echo "Ramdor: 852bf0ef0b4f3886a13fc2846489aee16f361872"
           echo "EU2AV:   567a7ecd88bfb2ca41316dab9258fff0efeae7bf"
+
+# bootstrap-trigger: 2026-09-04
