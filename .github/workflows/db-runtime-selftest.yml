@@ -71,11 +71,11 @@ jobs:
           $fileProp.SetValue($null, $dbfile, $null)
           $verNumProp.SetValue($null, '2.10.3.15', $null)
           $verStrProp.SetValue($null, '2.10.3.15 SQ4KOU SELFTEST', $null)
-          $initOk = [bool]$init.Invoke($null, @())
+          $initOk = [bool]$init.Invoke($null, [object[]]@())
           Write-Host "DB.Init(fresh)=$initOk"
           if (-not $initOk) { throw 'Fresh DB.Init failed.' }
 
-          $argsV = [object[]]@('')
+          $argsV = [object[]]@([string]'')
           $valid = [bool]$validate.Invoke($null, $argsV)
           Write-Host "ValidateCurrentDatabase(fresh)=$valid"
           Write-Host "Problems=$($argsV[0])"
@@ -84,22 +84,24 @@ jobs:
           $fresh = ([System.Data.DataSet]$dsField.GetValue($null)).Copy()
 
           function Test-Merge([System.Data.DataSet]$old, [string]$name) {
-            $oldFile = Join-Path $dir ($name + '.xml')
+            $oldFile = [string](Join-Path $dir ($name + '.xml'))
             $old.WriteXml($oldFile, [System.Data.XmlWriteMode]::WriteSchema)
             $dsField.SetValue($null, $fresh.Copy())
-            $a = [object[]]@($oldFile, '', $true)
+            $a = New-Object 'System.Object[]' 3
+            $a[0] = [string]$oldFile
+            $a[1] = $null
+            $a[2] = [bool]$true
             $mergeOk = [bool]$import.Invoke($null, $a)
             Write-Host "$name Merge=$mergeOk"
             Write-Host "$name ImportLog=$($a[1])"
             if (-not $mergeOk) { throw "$name ImportAndMergeDatabase failed." }
-            $v = [object[]]@('')
+            $v = [object[]]@([string]'')
             $ok = [bool]$validate.Invoke($null, $v)
             Write-Host "$name Validate=$ok"
             Write-Host "$name Problems=$($v[0])"
             if (-not $ok) { throw "$name merged database rejected: $($v[0])" }
           }
 
-          # Case 1: database from before EU2AV Phase Rotator and before SQ4KOU schema marker.
           $old1 = $fresh.Copy()
           foreach ($tn in @('TXProfile','TXProfileDef')) {
             if ($old1.Tables[$tn].Columns.Contains('CFCPhaseRotatorAuto')) {
@@ -110,8 +112,6 @@ jobs:
           foreach ($r in $srows) { $old1.Tables['State'].Rows.Remove($r) }
           Test-Merge $old1 'legacy-no-new-column'
 
-          # Case 2: old DB already opened once by the new code: column exists but old rows are DBNull,
-          # and the schema marker is still legacy 0.
           $old2 = $fresh.Copy()
           if ($old2.Tables['TXProfile'].Columns.Contains('CFCPhaseRotatorAuto')) {
             foreach ($r in $old2.Tables['TXProfile'].Rows) { $r['CFCPhaseRotatorAuto'] = [DBNull]::Value }
@@ -121,6 +121,6 @@ jobs:
           Test-Merge $old2 'legacy-null-phase-rotator'
 
           $dsField.SetValue($null, $fresh.Copy())
-          $exit.Invoke($null, @()) | Out-Null
+          $exit.Invoke($null, [object[]]@()) | Out-Null
 
-# trigger: 2026-09-04-db-runtime-2
+# trigger: 2026-09-04-db-runtime-3
