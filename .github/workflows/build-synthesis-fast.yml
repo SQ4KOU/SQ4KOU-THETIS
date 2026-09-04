@@ -1,0 +1,56 @@
+name: Fast synthesis x64 build
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/build-synthesis-fast.yml
+
+permissions:
+  contents: read
+
+jobs:
+  build-x64:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout synthesis snapshot only
+        uses: actions/checkout@v4
+        with:
+          ref: synthesis-clean
+          fetch-depth: 1
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Restore NuGet packages
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          nuget restore "Project Files/Source/Thetis_VS2026.sln" -NonInteractive
+
+      - name: Build x64 Release
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path build-logs | Out-Null
+          msbuild "Project Files/Source/Thetis_VS2026.sln" /m /t:Build /p:Configuration=Release /p:Platform=x64 /v:minimal /fl /flp:"logfile=build-logs/msbuild-x64-release.log;verbosity=normal" /bl:build-logs/msbuild-x64-release.binlog
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: synthesis-x64-build-logs
+          path: build-logs/
+          if-no-files-found: warn
+
+      - name: Upload release output
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: synthesis-thetis-x64-release
+          path: |
+            Project Files/Source/Console/bin/x64/Release/**
+            Project Files/Source/Console/bin/Release/**
+          if-no-files-found: warn
