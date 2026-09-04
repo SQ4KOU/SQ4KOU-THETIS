@@ -85,16 +85,18 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $msi = "Project Files/bin/Installers/Thetis.msi"
-          if (-not (Test-Path -LiteralPath $msi)) {
-            Write-Host "MSI files found under Project Files/bin:"
-            Get-ChildItem -LiteralPath "Project Files/bin" -Recurse -Filter *.msi -ErrorAction SilentlyContinue | ForEach-Object { Write-Host $_.FullName }
-            throw "Expected installer not found: $msi"
+          $installerDir = "Project Files/bin/Installers"
+          $msis = @(Get-ChildItem -LiteralPath $installerDir -Filter "*.msi" -File)
+          if ($msis.Count -ne 1) {
+            Write-Host "MSI candidates in ${installerDir}:"
+            $msis | ForEach-Object { Write-Host $_.FullName }
+            throw "Expected exactly one MSI installer, found $($msis.Count)."
           }
           New-Item -ItemType Directory -Force -Path "artifact-stage/installer" | Out-Null
-          Copy-Item -LiteralPath $msi -Destination "artifact-stage/installer/Thetis.msi" -Force
-          $item = Get-Item -LiteralPath "artifact-stage/installer/Thetis.msi"
-          Write-Host ("Staged MSI: {0} bytes" -f $item.Length)
+          $dest = Join-Path "artifact-stage/installer" $msis[0].Name
+          Copy-Item -LiteralPath $msis[0].FullName -Destination $dest -Force
+          $item = Get-Item -LiteralPath $dest
+          Write-Host ("Staged MSI: {0} ({1} bytes)" -f $item.Name, $item.Length)
 
       - name: Upload build logs
         if: always()
@@ -117,5 +119,5 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: synthesis-n1mm-x64-installer
-          path: artifact-stage/installer/Thetis.msi
+          path: artifact-stage/installer/*.msi
           if-no-files-found: error
