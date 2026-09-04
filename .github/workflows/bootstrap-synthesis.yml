@@ -1,0 +1,84 @@
+name: Bootstrap clean synthesis
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/bootstrap-synthesis.yml
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout control branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        shell: bash
+        run: |
+          git config user.name "SQ4KOU synthesis automation"
+          git config user.email "actions@users.noreply.github.com"
+
+      - name: Import pinned Ramdor upstream
+        shell: bash
+        env:
+          RAMDOR_SHA: 852bf0ef0b4f3886a13fc2846489aee16f361872
+        run: |
+          git remote add ramdor https://github.com/ramdor/Thetis.git
+          git fetch --no-tags ramdor "$RAMDOR_SHA"
+          test "$(git rev-parse FETCH_HEAD)" = "$RAMDOR_SHA"
+          git branch -f base/ramdor-20260904 "$RAMDOR_SHA"
+          git push --force origin refs/heads/base/ramdor-20260904:refs/heads/base/ramdor-20260904
+
+      - name: Import pinned EU2AV upstream
+        shell: bash
+        env:
+          EU2AV_SHA: 567a7ecd88bfb2ca41316dab9258fff0efeae7bf
+        run: |
+          git remote add eu2av https://github.com/eu2av/OpenHPSDR-Thetis-Enhanced.git
+          git fetch --no-tags eu2av "$EU2AV_SHA"
+          test "$(git rev-parse FETCH_HEAD)" = "$EU2AV_SHA"
+          git branch -f base/eu2av-20260904 "$EU2AV_SHA"
+          git push --force origin refs/heads/base/eu2av-20260904:refs/heads/base/eu2av-20260904
+
+      - name: Create clean synthesis branch from Ramdor
+        shell: bash
+        env:
+          RAMDOR_SHA: 852bf0ef0b4f3886a13fc2846489aee16f361872
+          EU2AV_SHA: 567a7ecd88bfb2ca41316dab9258fff0efeae7bf
+        run: |
+          git checkout -B synthesis-clean "$RAMDOR_SHA"
+          mkdir -p .sq4kou
+          cat > .sq4kou/SYNTHESIS_BASE.md <<EOF
+          # Clean synthesis baseline
+
+          Created: 2026-09-04
+
+          Structural base:
+          - ramdor/Thetis master @ $RAMDOR_SHA
+
+          Reference enhancement source:
+          - eu2av/OpenHPSDR-Thetis-Enhanced main @ $EU2AV_SHA
+
+          Policy:
+          - No SQ4KOU functional patches in this stage.
+          - Integrate only upstream functionality selected during the clean synthesis audit.
+          - Preserve buildability after each integration batch.
+          EOF
+          git add .sq4kou/SYNTHESIS_BASE.md
+          git commit -m "Initialize clean Ramdor + EU2AV synthesis baseline"
+          git push --force origin synthesis-clean
+
+      - name: Summary
+        shell: bash
+        run: |
+          echo "Imported pinned upstream references and initialized synthesis-clean."
+          echo "Ramdor: 852bf0ef0b4f3886a13fc2846489aee16f361872"
+          echo "EU2AV:   567a7ecd88bfb2ca41316dab9258fff0efeae7bf"
