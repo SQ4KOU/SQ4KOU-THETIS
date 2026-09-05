@@ -1,0 +1,90 @@
+name: SQ4KOU MSI Test Build
+
+on:
+  push:
+    branches: [sq4kou]
+    paths:
+      - '.github/workflows/sq4kou-msi-test.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-msi:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout sq4kou
+        uses: actions/checkout@v4
+        with:
+          ref: sq4kou
+          fetch-depth: 1
+
+      - name: Locate Visual Studio / MSBuild
+        id: msbuild
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          if (!(Test-Path $vswhere)) { throw "vswhere.exe not found" }
+          & $vswhere -all -products * -format table
+          $msbuild = & $vswhere -latest -prerelease -products * -requires Microsoft.Component.MSBuild -find 'MSBuild\**\Bin\MSBuild.exe' | Select-Object -First 1
+          if (!$msbuild) { throw "MSBuild not found" }
+          "path=$msbuild" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "MSBuild: $msbuild"
+
+      - name: Verify v145 toolset
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $vs = & $vswhere -latest -prerelease -products * -property installationPath
+          if (!$vs) { throw "Visual Studio installation not found" }
+          $hits = Get-ChildItem -Path $vs -Recurse -Filter Microsoft.Cpp.v145*.props -ErrorAction SilentlyContinue | Select-Object -First 5
+          if (!$hits) {
+            Write-Host "v145 props not found by filename scan; MSBuild will perform authoritative validation."
+          } else {
+            $hits | ForEach-Object { Write-Host $_.FullName }
+          }
+
+      - name: Install WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          choco install wixtoolset --no-progress -y
+          $wixTargets = "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets"
+          if (!(Test-Path $wixTargets)) {
+            $wixTargets = Get-ChildItem "${env:ProgramFiles(x86)}" -Recurse -Filter Wix.targets -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match 'WiX.*v3' } | Select-Object -First 1 -ExpandProperty FullName
+          }
+          if (!$wixTargets) { throw "WiX 3.x targets not found after installation" }
+          Write-Host "WiX targets: $wixTargets"
+
+      - name: Build Thetis Release x64 and MSI
+        shell: pwsh
+        run: |
+          $msbuild = '${{ steps.msbuild.outputs.path }}'
+          $sln = 'Project Files\Source\Thetis_VS2026.sln'
+          & $msbuild $sln /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /v:minimal /fl /flp:"logfile=SQ4KOU_MSI_BUILD.log;verbosity=normal"
+          if ($LASTEXITCODE -ne 0) { throw "MSBuild failed with exit code $LASTEXITCODE" }
+
+      - name: Validate MSI output
+        shell: pwsh
+        run: |
+          $dir = 'Project Files\bin\Installers'
+          if (!(Test-Path $dir)) { throw "Installer output directory not found: $dir" }
+          $msi = Get-ChildItem $dir -Filter '*.msi' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (!$msi) { throw "No MSI produced" }
+          $dst = Join-Path $dir 'SQ4KOU_THETIS_CW_TEST_x64.msi'
+          Copy-Item $msi.FullName $dst -Force
+          $hash = (Get-FileHash $dst -Algorithm SHA256).Hash
+          Write-Host "MSI: $dst"
+          Write-Host "SHA256: $hash"
+          "MSI=$dst`nSHA256=$hash`nSOURCE_COMMIT=${{ github.sha }}" | Set-Content 'SQ4KOU_MSI_BUILD_INFO.txt'
+
+      - name: Upload MSI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU_THETIS_CW_TEST_MSI
+          path: |
+            Project Files/bin/Installers/SQ4KOU_THETIS_CW_TEST_x64.msi
+            SQ4KOU_MSI_BUILD.log
+            SQ4KOU_MSI_BUILD_INFO.txt
+          if-no-files-found: error
+          retention-days: 7
