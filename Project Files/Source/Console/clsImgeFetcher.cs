@@ -191,7 +191,9 @@ namespace Thetis
             if (_reset_events.TryGetValue(id, out ManualResetEvent reset_event))
             {
                 reset_event.Set();  // Signal the thread to stop
-                cleanupResources(id);  // Clean up resources
+                // SQ4KOU_WEBIMAGE_RACE_FIX_V2: do not clean up from the caller thread.
+                // fetch_images still owns the ImageStore until its finally block executes;
+                // disposing/clearing it here races the WebImage UI and the active fetcher.
             }
             Debug.Print("!!!!!!! STOPFETCHING COMPLETE");
         }
@@ -688,8 +690,9 @@ namespace Thetis
                 {
                     if (_images.Count >= _image_limit)
                     {
-                        Image old_image = _images.Dequeue();
-                        old_image.Dispose();
+                        // SQ4KOU_WEBIMAGE_RACE_FIX_V2: remove store ownership only.
+                        // A UI consumer may still be painting this exact Image instance.
+                        _images.Dequeue();
                         full = true;
                     }
                     _images.Enqueue(image);
@@ -711,8 +714,9 @@ namespace Thetis
                 {
                     while (_images.Count > 0)
                     {
-                        Image old_image = _images.Dequeue();
-                        old_image.Dispose();
+                        // SQ4KOU_WEBIMAGE_RACE_FIX_V2: detach from the store only.
+                        // Do not invalidate an Image that can still be referenced by the UI.
+                        _images.Dequeue();
                     }
                 }
             }
