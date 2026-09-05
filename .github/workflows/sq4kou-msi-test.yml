@@ -26,7 +26,6 @@ jobs:
         run: |
           $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
           if (!(Test-Path $vswhere)) { throw "vswhere.exe not found" }
-          & $vswhere -all -products * -format table
           $msbuild = & $vswhere -latest -prerelease -products * -requires Microsoft.Component.MSBuild -find 'MSBuild\**\Bin\MSBuild.exe' | Select-Object -First 1
           if (!$msbuild) { throw "MSBuild not found" }
           "path=$msbuild" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
