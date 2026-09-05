@@ -55,7 +55,7 @@ jobs:
             '"8-bit", "16-bit Float"',
             'comboColorPalette.DropDownWidth = 125',
             'comboRX2ColorPalette.DropDownWidth = 125',
-            'comboTXColorPalette.DropDownWidth = 125',
+            'comboColorPalette_tx.DropDownWidth = 125',
             'WaterfallEnhancer.SetQuality',
             'WaterfallEnhancer.SetDither',
             'WaterfallEnhancer.SetGamma',
