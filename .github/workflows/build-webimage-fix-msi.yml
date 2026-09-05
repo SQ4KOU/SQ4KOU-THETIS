@@ -1,4 +1,4 @@
-name: SQ4KOU WebImage fix x64 MSI
+name: SQ4KOU WebImage race fix x64 MSI
 
 on:
   push:
@@ -8,24 +8,89 @@ on:
       - .github/workflows/build-webimage-fix-msi.yml
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
-  build-msi:
+  patch-build-msi:
     runs-on: windows-latest
     steps:
       - name: Checkout exact SQ4KOU branch
         uses: actions/checkout@v4
         with:
           ref: sq4kou
-          fetch-depth: 1
+          fetch-depth: 0
+          persist-credentials: true
 
-      - name: Verify source commit
+      - name: Verify source baseline
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
           $expected = 'f23a19d6c6952bda214f5cb75db3bd4fdca39edb'
           $actual = (git rev-parse HEAD).Trim()
-          Write-Host "Source commit: $actual"
+          Write-Host "Source baseline: $actual"
           if ($actual -ne $expected) { throw "Unexpected sq4kou HEAD: $actual" }
-          $actual | Set-Content SQ4KOU_SOURCE_COMMIT.txt
+
+      - name: Apply WebImage race fix
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $p = 'Project Files/Source/Console/clsImgeFetcher.cs'
+          $text = [IO.File]::ReadAllText($p)
+          $nl = if ($text.Contains("`r`n")) { "`r`n" } else { "`n" }
+
+          function Replace-Once([string]$src, [string]$old, [string]$new, [string]$label) {
+            $count = ([regex]::Matches($src, [regex]::Escape($old))).Count
+            if ($count -ne 1) { throw "$label anchor count=$count, expected 1" }
+            return $src.Replace($old, $new)
+          }
+
+          # StopFetching must only signal. The fetch thread owns its local ImageStore and
+          # performs cleanup from its finally block after fetch_images has really ended.
+          $oldStop = '                cleanupResources(id);  // Clean up resources'
+          $newStop = @(
+            '                // SQ4KOU_WEBIMAGE_RACE_FIX_V2: do not clean up from the caller thread.',
+            '                // fetch_images still owns the ImageStore until its finally block executes;',
+            '                // disposing/clearing it here races the WebImage UI and the active fetcher.'
+          ) -join $nl
+          $text = Replace-Once $text $oldStop $newStop 'StopFetching cleanup'
+
+          # LatestImages returns the actual Image objects. They can still be painted by GDI+
+          # after the fetcher removes them from its bounded queue. Never Dispose those objects
+          # from the producer thread; once no UI/store reference remains, normal finalization
+          # releases the native GDI+ resource without a use-after-dispose race.
+          $oldAdd = @(
+            '                        Image old_image = _images.Dequeue();',
+            '                        old_image.Dispose();',
+            '                        full = true;'
+          ) -join $nl
+          $newAdd = @(
+            '                        // SQ4KOU_WEBIMAGE_RACE_FIX_V2: remove store ownership only.',
+            '                        // A UI consumer may still be painting this exact Image instance.',
+            '                        _images.Dequeue();',
+            '                        full = true;'
+          ) -join $nl
+          $text = Replace-Once $text $oldAdd $newAdd 'ImageStore.AddImage disposal'
+
+          $oldClear = @(
+            '                        Image old_image = _images.Dequeue();',
+            '                        old_image.Dispose();'
+          ) -join $nl
+          $newClear = @(
+            '                        // SQ4KOU_WEBIMAGE_RACE_FIX_V2: detach from the store only.',
+            '                        // Do not invalidate an Image that can still be referenced by the UI.',
+            '                        _images.Dequeue();'
+          ) -join $nl
+          $text = Replace-Once $text $oldClear $newClear 'ImageStore.ClearImages disposal'
+
+          [IO.File]::WriteAllText($p, $text, [Text.UTF8Encoding]::new($true))
+
+          $check = [IO.File]::ReadAllText($p)
+          $markers = ([regex]::Matches($check, 'SQ4KOU_WEBIMAGE_RACE_FIX_V2')).Count
+          if ($markers -ne 3) { throw "Expected 3 WebImage race-fix markers, found $markers" }
+          if ($check.Contains('cleanupResources(id);  // Clean up resources')) { throw 'Immediate StopFetching cleanup still present' }
+          if ($check.Contains('old_image.Dispose();')) { throw 'Producer-side Image.Dispose still present in ImageStore' }
+          Write-Host 'WebImage race fix applied and source invariants verified.'
 
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v2
@@ -41,22 +106,41 @@ jobs:
           New-Item -ItemType Directory -Force -Path build-logs | Out-Null
           msbuild 'Project Files/Source/Thetis_VS2026.sln' /m /t:Build /p:Configuration=Release /p:Platform=x64 /v:minimal /fl /flp:'logfile=build-logs/msbuild-x64-release.log;verbosity=normal' /bl:build-logs/msbuild-x64-release.binlog
 
+      - name: Commit validated source fix to sq4kou
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git config user.name 'SQ4KOU WebImage Fix Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -- 'Project Files/Source/Console/clsImgeFetcher.cs'
+          git diff --cached --check
+          if ((git diff --cached --name-only).Count -ne 1) { throw 'Expected exactly one staged source file' }
+          git commit -m 'Fix WebImage producer/UI image lifetime race'
+          git push origin HEAD:sq4kou
+          $final = (git rev-parse HEAD).Trim()
+          $final | Set-Content SQ4KOU_SOURCE_COMMIT.txt
+          Write-Host "Validated source commit: $final"
+
+      - name: Collect final MSI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
           $msi = Get-ChildItem -LiteralPath 'Project Files/bin/Installers' -File -Filter '*.msi' |
             Sort-Object LastWriteTimeUtc -Descending |
             Select-Object -First 1
           if ($null -eq $msi) { throw 'No MSI found after successful build' }
 
           New-Item -ItemType Directory -Force -Path build-artifacts | Out-Null
-          $out = 'build-artifacts/SQ4KOU_THETIS_WEBIMAGE_FREEZE_FIX_X64.msi'
+          $out = 'build-artifacts/SQ4KOU_THETIS_WEBIMAGE_RACE_FIX_V2_X64.msi'
           Copy-Item -LiteralPath $msi.FullName -Destination $out -Force
-          (Get-FileHash -LiteralPath $out -Algorithm SHA256).Hash | Set-Content 'build-artifacts/SQ4KOU_THETIS_WEBIMAGE_FREEZE_FIX_X64.msi.sha256'
+          (Get-FileHash -LiteralPath $out -Algorithm SHA256).Hash | Set-Content 'build-artifacts/SQ4KOU_THETIS_WEBIMAGE_RACE_FIX_V2_X64.msi.sha256'
           Copy-Item SQ4KOU_SOURCE_COMMIT.txt build-artifacts/SQ4KOU_SOURCE_COMMIT.txt -Force
 
       - name: Upload logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: sq4kou-webimage-fix-build-logs
+          name: sq4kou-webimage-race-fix-v2-build-logs
           path: build-logs/
           if-no-files-found: warn
 
@@ -64,6 +148,28 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: SQ4KOU_THETIS_WEBIMAGE_FREEZE_FIX_X64_MSI
+          name: SQ4KOU_THETIS_WEBIMAGE_RACE_FIX_V2_X64_MSI
           path: build-artifacts/
           if-no-files-found: error
+
+      - name: Publish GitHub Release
+        if: success()
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $sha = (Get-Content SQ4KOU_SOURCE_COMMIT.txt -Raw).Trim()
+          $tag = "webimage-race-fix-v2-$env:GITHUB_RUN_NUMBER"
+          $title = 'SQ4KOU Thetis WebImage Race Fix V2 x64'
+          $notes = @"
+          WebImage freeze fix V2.
+
+          Scope is limited to Project Files/Source/Console/clsImgeFetcher.cs:
+          - StopFetching only signals the worker; cleanup is owned by fetch_images finally.
+          - ImageStore no longer disposes Image objects from the producer thread while the UI can still paint them.
+          - Previous detached-stream image loading fix is retained.
+
+          Validated source commit: $sha
+          "@
+          gh release create $tag 'build-artifacts/SQ4KOU_THETIS_WEBIMAGE_RACE_FIX_V2_X64.msi' 'build-artifacts/SQ4KOU_THETIS_WEBIMAGE_RACE_FIX_V2_X64.msi.sha256' 'build-artifacts/SQ4KOU_SOURCE_COMMIT.txt' --repo "$env:GITHUB_REPOSITORY" --target $sha --title $title --notes $notes
