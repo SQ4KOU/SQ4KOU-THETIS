@@ -215,6 +215,18 @@ namespace Thetis
             get { return _version; }
             set { _version = value; }
         }
+
+        // Image.FromStream keeps a dependency on the source stream for parts of the
+        // image lifetime.  Every image stored by ImageFetcher must therefore be an
+        // independent bitmap before the temporary MemoryStream is disposed.
+        private static Image LoadDetachedImage(Stream stream, bool useEmbeddedColorManagement = false, bool validateImageData = false)
+        {
+            using (Image decoded = Image.FromStream(stream, useEmbeddedColorManagement, validateImageData))
+            {
+                return new Bitmap(decoded);
+            }
+        }
+
         private void fetch_images(string url, ImageStore store, ManualResetEvent reset_event, Guid id, bool file)
         {
             try
@@ -284,7 +296,7 @@ namespace Thetis
                                                     byte[] imageData = webClient.DownloadData(imageUrl);
                                                     using (MemoryStream imageStream = new MemoryStream(imageData))
                                                     {
-                                                        Image image = Image.FromStream(imageStream);
+                                                        Image image = LoadDetachedImage(imageStream);
                                                         bool full = store.AddImage(image);
                                                         imagesAdded = true;
                                                         if (full) break;
@@ -348,7 +360,7 @@ namespace Thetis
                                                     {
                                                         try
                                                         {
-                                                            Image image = Image.FromStream(ms);
+                                                            Image image = LoadDetachedImage(ms);
                                                             store.AddImage(image);
                                                             imagesAdded = true;
                                                             StateChanged?.Invoke(this, new StateEventArgs(id, State.OK));
@@ -394,7 +406,7 @@ namespace Thetis
                                         {
                                             try
                                             {
-                                                Image image = Image.FromStream(ms);
+                                                Image image = LoadDetachedImage(ms);
                                                 store.AddImage(image);
                                                 imagesAdded = true;
                                                 StateChanged?.Invoke(this, new StateEventArgs(id, State.OK));
@@ -520,7 +532,7 @@ namespace Thetis
                         {
                             using (MemoryStream imageStream = new MemoryStream(imageData))
                             {
-                                Image image = Image.FromStream(imageStream, true, true);
+                                Image image = LoadDetachedImage(imageStream, true, true);
                                 bool full = store.AddImage(image);
                                 imagesAdded = true;
                                 StateChanged?.Invoke(this, new StateEventArgs(id, State.OK));
@@ -574,7 +586,7 @@ namespace Thetis
                         {
                             bitmap.Save(imageStream, System.Drawing.Imaging.ImageFormat.Png);
                             imageStream.Position = 0;
-                            Image image = Image.FromStream(imageStream);
+                            Image image = LoadDetachedImage(imageStream);
                             store.AddImage(image);
                             imagesAdded = true;
                             StateChanged?.Invoke(this, new StateEventArgs(id, State.OK));
