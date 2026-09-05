@@ -1,0 +1,195 @@
+name: SQ4KOU runtime dependency fix x64 MSI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/runtime-deps-fix-msi.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix-build-validate:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout SQ4KOU source
+        uses: actions/checkout@v4
+        with:
+          ref: sq4kou
+          fetch-depth: 2
+          persist-credentials: true
+
+      - name: Align 10.0.7 runtime family to Ramdor 10.0.8
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $files = @(
+            'Project Files/Source/Console/packages.config',
+            'Project Files/Source/Console/Thetis.csproj',
+            'Project Files/Source/Console/app.config'
+          )
+          foreach ($p in $files) {
+            $text = [IO.File]::ReadAllText($p)
+            $before = $text
+            $text = $text.Replace('10.0.0.7','10.0.0.8').Replace('10.0.7','10.0.8')
+            if ($text -eq $before) { throw "No 10.0.7 anchors changed in $p" }
+            [IO.File]::WriteAllText($p, $text, (New-Object Text.UTF8Encoding($true)))
+          }
+
+          $pkg = [IO.File]::ReadAllText('Project Files/Source/Console/packages.config')
+          $proj = [IO.File]::ReadAllText('Project Files/Source/Console/Thetis.csproj')
+          $cfg = [IO.File]::ReadAllText('Project Files/Source/Console/app.config')
+          if ($pkg -notmatch 'System.Collections.Immutable" version="10\.0\.8"') { throw 'packages.config Immutable 10.0.8 check failed' }
+          if ($proj -notmatch 'System.Collections.Immutable, Version=10\.0\.0\.8') { throw 'csproj Immutable assembly 10.0.0.8 check failed' }
+          if ($proj -notmatch 'System.Collections.Immutable\.10\.0\.8') { throw 'csproj Immutable package 10.0.8 path check failed' }
+          if ($cfg -notmatch 'System.Collections.Immutable') { throw 'app.config Immutable redirect missing' }
+          if ($cfg -notmatch 'oldVersion="0\.0\.0\.0-10\.0\.0\.8" newVersion="10\.0\.0\.8"') { throw 'app.config 10.0.0.8 redirect check failed' }
+
+          $changed = @(git diff --name-only)
+          $expected = @(
+            'Project Files/Source/Console/Thetis.csproj',
+            'Project Files/Source/Console/app.config',
+            'Project Files/Source/Console/packages.config'
+          )
+          if ($changed.Count -ne 3) { throw "Expected exactly 3 changed files, got $($changed.Count): $($changed -join ', ')" }
+          foreach ($p in $expected) { if ($changed -notcontains $p) { throw "Unexpected diff set; missing $p" } }
+          git diff --check
+          git diff --stat
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Restore packages
+        shell: pwsh
+        run: nuget restore 'Project Files/Source/Thetis_VS2026.sln' -NonInteractive
+
+      - name: Build Release x64 and MSI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path validation | Out-Null
+          msbuild 'Project Files/Source/Thetis_VS2026.sln' /m /t:Build /p:Configuration=Release /p:Platform=x64 /v:minimal /fl /flp:'logfile=validation/msbuild.log;verbosity=normal'
+
+      - name: Validate built runtime and MeterScriptEngine
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $bin = (Resolve-Path 'Project Files/bin/x64/Release').Path
+          $immutable = Join-Path $bin 'System.Collections.Immutable.dll'
+          $config = Join-Path $bin 'Thetis.exe.config'
+          if (-not (Test-Path $immutable)) { throw 'Built System.Collections.Immutable.dll missing' }
+          if (-not (Test-Path $config)) { throw 'Built Thetis.exe.config missing' }
+          $iv = [Reflection.AssemblyName]::GetAssemblyName($immutable).Version.ToString()
+          if ($iv -ne '10.0.0.8') { throw "Built Immutable version is $iv, expected 10.0.0.8" }
+          $ct = [IO.File]::ReadAllText($config)
+          if ($ct -notmatch 'System.Collections.Immutable') { throw 'Built config lacks Immutable redirect' }
+          if ($ct -notmatch 'oldVersion="0\.0\.0\.0-10\.0\.0\.8" newVersion="10\.0\.0\.8"') { throw 'Built config Immutable redirect is not 10.0.0.8' }
+
+          $smoke = @'
+          using System;
+          using System.Threading;
+          using Thetis;
+          public static class MeterSmoke
+          {
+              public static int Main()
+              {
+                  try
+                  {
+                      MeterScriptEngine.Start(() => null, 100, 1);
+                      Thread.Sleep(300);
+                      MeterScriptEngine.Stop();
+                      Console.WriteLine("METER_SCRIPT_ENGINE_SMOKE=PASS");
+                      return 0;
+                  }
+                  catch (Exception ex)
+                  {
+                      Console.Error.WriteLine(ex.ToString());
+                      return 10;
+                  }
+              }
+          }
+          '@
+          $src = Join-Path $bin 'MeterSmoke.cs'
+          $exe = Join-Path $bin 'MeterSmoke.exe'
+          [IO.File]::WriteAllText($src, $smoke)
+          $csc = Join-Path $env:WINDIR 'Microsoft.NET\Framework64\v4.0.30319\csc.exe'
+          & $csc /nologo /target:exe /out:$exe /reference:(Join-Path $bin 'Thetis.exe') $src
+          if ($LASTEXITCODE -ne 0) { throw "Meter smoke compile failed: $LASTEXITCODE" }
+          Copy-Item $config ($exe + '.config') -Force
+          Push-Location $bin
+          try {
+            $out = & .\MeterSmoke.exe 2>&1
+            $code = $LASTEXITCODE
+          } finally { Pop-Location }
+          $out | Tee-Object -FilePath 'validation/meter-smoke-built.txt'
+          if ($code -ne 0 -or (($out -join "`n") -notmatch 'METER_SCRIPT_ENGINE_SMOKE=PASS')) { throw "Built MeterScriptEngine smoke failed, exit=$code" }
+          "BUILT_IMMUTABLE_VERSION=$iv" | Set-Content 'validation/runtime.txt'
+          "BUILT_CONFIG_SHA256=$((Get-FileHash $config -Algorithm SHA256).Hash)" | Add-Content 'validation/runtime.txt'
+          "BUILT_IMMUTABLE_SHA256=$((Get-FileHash $immutable -Algorithm SHA256).Hash)" | Add-Content 'validation/runtime.txt'
+
+      - name: Validate final MSI payload
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $msi = Get-ChildItem -LiteralPath 'Project Files/bin/Installers' -File -Filter '*.msi' | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
+          if ($null -eq $msi) { throw 'Final MSI missing' }
+          $admin = Join-Path $PWD 'validation/admin'
+          New-Item -ItemType Directory -Force -Path $admin | Out-Null
+          $p = Start-Process msiexec.exe -ArgumentList @('/a', ('"' + $msi.FullName + '"'), '/qn', ('TARGETDIR="' + $admin + '"')) -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "MSI administrative extraction failed: $($p.ExitCode)" }
+          $imm = Get-ChildItem -Path $admin -Recurse -File -Filter 'System.Collections.Immutable.dll' | Select-Object -First 1
+          $cfg = Get-ChildItem -Path $admin -Recurse -File -Filter 'Thetis.exe.config' | Select-Object -First 1
+          $thetis = Get-ChildItem -Path $admin -Recurse -File -Filter 'Thetis.exe' | Select-Object -First 1
+          if ($null -eq $imm -or $null -eq $cfg -or $null -eq $thetis) { throw 'MSI payload lacks Thetis.exe/config/Immutable' }
+          $iv = [Reflection.AssemblyName]::GetAssemblyName($imm.FullName).Version.ToString()
+          if ($iv -ne '10.0.0.8') { throw "MSI Immutable version is $iv" }
+          $ct = [IO.File]::ReadAllText($cfg.FullName)
+          if ($ct -notmatch 'oldVersion="0\.0\.0\.0-10\.0\.0\.8" newVersion="10\.0\.0\.8"') { throw 'MSI config redirect invalid' }
+
+          $appDir = $thetis.Directory.FullName
+          Copy-Item 'Project Files/bin/x64/Release/MeterSmoke.exe' (Join-Path $appDir 'MeterSmoke.exe') -Force
+          Copy-Item $cfg.FullName (Join-Path $appDir 'MeterSmoke.exe.config') -Force
+          Push-Location $appDir
+          try {
+            $out = & .\MeterSmoke.exe 2>&1
+            $code = $LASTEXITCODE
+          } finally { Pop-Location }
+          $out | Tee-Object -FilePath 'validation/meter-smoke-msi-payload.txt'
+          if ($code -ne 0 -or (($out -join "`n") -notmatch 'METER_SCRIPT_ENGINE_SMOKE=PASS')) { throw "MSI payload MeterScriptEngine smoke failed, exit=$code" }
+
+          New-Item -ItemType Directory -Force -Path artifact | Out-Null
+          $dest = 'artifact/SQ4KOU_THETIS_RUNTIME_DEPS_FIX_X64.msi'
+          Copy-Item $msi.FullName $dest -Force
+          (Get-FileHash $dest -Algorithm SHA256).Hash | Set-Content ($dest + '.sha256')
+          "MSI_IMMUTABLE_VERSION=$iv" | Add-Content 'validation/runtime.txt'
+          "MSI_CONFIG_SHA256=$((Get-FileHash $cfg.FullName -Algorithm SHA256).Hash)" | Add-Content 'validation/runtime.txt'
+
+      - name: Commit validated dependency alignment
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git config user.name 'SQ4KOU Build Bot'
+          git config user.email 'actions@github.com'
+          git add -- 'Project Files/Source/Console/packages.config' 'Project Files/Source/Console/Thetis.csproj' 'Project Files/Source/Console/app.config'
+          git commit -m 'Align runtime dependencies with Ramdor 10.0.8'
+          git push origin HEAD:sq4kou
+          git rev-parse HEAD | Tee-Object -FilePath artifact/SOURCE_COMMIT.txt
+
+      - name: Upload validation
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sq4kou-runtime-deps-validation
+          path: validation/
+          if-no-files-found: warn
+
+      - name: Upload validated MSI
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU_THETIS_RUNTIME_DEPS_FIX_X64_MSI
+          path: artifact/
+          if-no-files-found: error
