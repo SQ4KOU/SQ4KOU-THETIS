@@ -15,7 +15,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: sq4kou
-          fetch-depth: 0
+          fetch-depth: 1
+          filter: blob:none
+          sparse-checkout-cone-mode: false
+          sparse-checkout: |
+            /Project Files/Source/Console/console.cs
+            /.github/workflows/sq4kou-cw-fix.yml
       - name: Remove CW PTT regression
         shell: python
         run: |
@@ -32,11 +37,11 @@ jobs:
           else:
               data = data.replace(old_lf, b'_current_ptt_mode != PTTMode.CAT)', 1)
           p.write_bytes(data)
-      - name: Verify only intended source change
+      - name: Verify targeted diff
         shell: bash
         run: |
-          git diff --check
-          git diff --exit-code -- . ':!.github/workflows/sq4kou-cw-fix.yml' >/dev/null && exit 1 || true
+          git diff --check -- 'Project Files/Source/Console/console.cs'
+          test "$(git diff --numstat -- 'Project Files/Source/Console/console.cs' | awk '{print $1+$2}')" = "2"
           git diff -- 'Project Files/Source/Console/console.cs'
       - name: Commit fix
         shell: bash
