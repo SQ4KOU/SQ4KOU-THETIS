@@ -1,4 +1,4 @@
-//=================================================================
+﻿//=================================================================
 // display.cs
 //=================================================================
 // Thetis is a C# implementation of a Software Defined Radio.
@@ -8162,7 +8162,7 @@ namespace Thetis
                 // Compensate alpha for linear-space blending. pow(a, 2.2) maps
                 // 0.26 → ~0.057 (too aggressive); pow(a, ~1.6) maps 0.26 → ~0.10,
                 // matching the observed 26→10 correction. Use 1.6.
-                a = (float)Math.Pow(a, 1.6);
+                // SQ4KOU_WF16_RENDER_FIX: alpha is coverage, not gamma-encoded; preserve it unchanged.
             }
             return new Color4(r, g, b, a);
         }
@@ -8947,30 +8947,21 @@ namespace Thetis
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void drawLineDX2D(SharpDX.Direct2D1.Brush b, float x1, float y1, float x2, float y2, float strokeWidth = 1f)
         {
-            // Yurij-eu2av - 2026-07-04: scale stroke for float surface (see sw()).
-            if (WaterfallPixelWriter.PixelSize == 8) strokeWidth *= 0.45f;
+            // SQ4KOU_WF16_RENDER_FIX: keep nominal stroke width at every colour depth.
             _d2dRenderTarget.DrawLine(new SharpDX.Vector2(x1, y1), new SharpDX.Vector2(x2, y2), b, strokeWidth);
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void drawLineDX2D(SharpDX.Direct2D1.Brush b, float x1, float y1, float x2, float y2, StrokeStyle strokeStyle, float strokeWidth = 1f)
         {
-            // Yurij-eu2av - 2026-07-04: on 16-bit float surfaces Direct2D operates in
-            // linear/scRGB space, where antialiased stroke coverage is computed
-            // differently and renders visibly thicker than on 8-bit sRGB. Scale the
-            // stroke width down (0.45, tuned empirically) so the on-screen thickness
-            // matches the 8-bit path. Single chokepoint for all grid/spectrum lines.
-            if (WaterfallPixelWriter.PixelSize == 8) strokeWidth *= 0.45f;
+            // SQ4KOU_WF16_RENDER_FIX: keep nominal stroke width at every colour depth.
             _d2dRenderTarget.DrawLine(new SharpDX.Vector2(x1, y1), new SharpDX.Vector2(x2, y2), b, strokeWidth, strokeStyle);
         }
 
-        // Yurij-eu2av - 2026-07-04: scale a stroke width for the active depth.
-        // Callers that invoke _d2dRenderTarget.DrawLine directly (spectrum,
-        // waveform, data line) use this on their width argument. 0.45 was tuned
-        // empirically: pure 0.5 (2x) left lines ~8-10% too thick vs 8-bit.
+        // SQ4KOU_WF16_RENDER_FIX: pixel precision must not change screen-space geometry.
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static float sw(float width)
         {
-            return WaterfallPixelWriter.PixelSize == 8 ? width * 0.45f : width;
+            return width;
         }
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void drawFillRectangleDX2D(SharpDX.Direct2D1.Brush b, float x, float y, float w, float h)
