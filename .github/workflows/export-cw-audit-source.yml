@@ -1,0 +1,36 @@
+name: Export CW Audit Source
+
+on:
+  push:
+    branches: [sq4kou]
+
+permissions:
+  contents: read
+
+jobs:
+  export-source:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact sq4kou HEAD
+        uses: actions/checkout@v4
+        with:
+          ref: sq4kou
+          fetch-depth: 1
+
+      - name: Record source identity
+        shell: bash
+        run: |
+          git rev-parse HEAD > CW_AUDIT_HEAD.txt
+          printf 'Branch: sq4kou\nHEAD: ' > CW_AUDIT_INFO.txt
+          git rev-parse HEAD >> CW_AUDIT_INFO.txt
+
+      - name: Upload complete source tree
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-CW-AUDIT-SOURCE
+          path: |
+            Project Files/Source
+            CW_AUDIT_HEAD.txt
+            CW_AUDIT_INFO.txt
+          if-no-files-found: error
+          compression-level: 6
