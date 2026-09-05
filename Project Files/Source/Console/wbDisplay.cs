@@ -103,7 +103,12 @@ namespace Thetis
         //private float[] waterfall_data;
 
         private Task draw_display_task;					// draws the main display 
-        private Bitmap wbDisplay_buffer;
+        private Bitmap wbDisplay_buffer;                 // render/back buffer
+        private Bitmap wbPresent_buffer;                 // bitmap currently presented by PictureBox
+        private Bitmap wbSpare_buffer;                   // free bitmap for next completed frame
+        private Bitmap wbQueued_buffer;                  // completed frame waiting in BeginInvoke
+        private int wbPresentPending = 0;                // at most one queued UI presentation
+        private int wbBufferGeneration = 0;              // invalidates queued frames after resize/reinit
         public bool pauseDisplayThread = false;
         #endregion
 
@@ -3416,11 +3421,39 @@ namespace Thetis
 
         public void UpdateGraphicsBuffer()
         {
-            int w, h;
-            w = Math.Max(1, this.Width);
-            h = Math.Max(1, this.Height);
+            int w = Math.Max(1, this.Width);
+            int h = Math.Max(1, this.Height);
 
-            wbDisplay_buffer = new Bitmap(w, h); 
+            Bitmap newRender = new Bitmap(w, h);
+            Bitmap newPresent = new Bitmap(w, h);
+            Bitmap newSpare = new Bitmap(w, h);
+            Bitmap oldRender;
+            Bitmap oldPresent;
+            Bitmap oldSpare;
+            Bitmap oldQueued;
+
+            lock (m_objBufferLock)
+            {
+                oldRender = wbDisplay_buffer;
+                oldPresent = wbPresent_buffer;
+                oldSpare = wbSpare_buffer;
+                oldQueued = wbQueued_buffer;
+
+                wbDisplay_buffer = newRender;
+                wbPresent_buffer = newPresent;
+                wbSpare_buffer = newSpare;
+                wbQueued_buffer = null;
+                wbBufferGeneration++;
+
+                if (Object.ReferenceEquals(this.Image, oldPresent) ||
+                    Object.ReferenceEquals(this.Image, oldQueued))
+                    this.Image = null;
+            }
+
+            if (oldRender != null) oldRender.Dispose();
+            if (oldPresent != null && !Object.ReferenceEquals(oldPresent, oldRender)) oldPresent.Dispose();
+            if (oldSpare != null && !Object.ReferenceEquals(oldSpare, oldRender) && !Object.ReferenceEquals(oldSpare, oldPresent)) oldSpare.Dispose();
+            if (oldQueued != null && !Object.ReferenceEquals(oldQueued, oldRender) && !Object.ReferenceEquals(oldQueued, oldPresent) && !Object.ReferenceEquals(oldQueued, oldSpare)) oldQueued.Dispose();
         }
 
         private CancellationTokenSource cancelTokenSource;
@@ -3471,21 +3504,107 @@ namespace Thetis
 
                     if (!pauseDisplayThread)
                     {
-                        bool frameDrawn;
-                        using (Graphics grSrc = Graphics.FromImage(wbDisplay_buffer))
+                        // SQ4KOU_WB_UI_NONBLOCK_V2:
+                        // Never wait for the WinForms thread. If one WB frame is already
+                        // queued for presentation, drop this display frame immediately.
+                        if (Interlocked.CompareExchange(ref wbPresentPending, 1, 0) != 0)
                         {
-                            grSrc.Clear(Color.Transparent);
-                            frameDrawn = DrawWideBand(grSrc, rx);
+                            this.DataReady = false;
+                            continue;
                         }
 
-                        // GDI+ drawing is fully closed before the bitmap is presented by WinForms.
-                        if (frameDrawn && !token.IsCancellationRequested && !this.IsDisposed && this.IsHandleCreated)
+                        bool frameDrawn = false;
+                        Bitmap readyBuffer = null;
+                        int generation = 0;
+
+                        try
                         {
-                            this.Invoke(new Action(() =>
+                            lock (m_objBufferLock)
                             {
-                                this.Image = wbDisplay_buffer;
-                                this.Refresh();
-                            }));
+                                if (wbDisplay_buffer != null && wbSpare_buffer != null)
+                                {
+                                    generation = wbBufferGeneration;
+                                    using (Graphics grSrc = Graphics.FromImage(wbDisplay_buffer))
+                                    {
+                                        grSrc.Clear(Color.Transparent);
+                                        frameDrawn = DrawWideBand(grSrc, rx);
+                                    }
+
+                                    if (frameDrawn && generation == wbBufferGeneration)
+                                    {
+                                        readyBuffer = wbDisplay_buffer;
+                                        wbDisplay_buffer = wbSpare_buffer;
+                                        wbSpare_buffer = null;
+                                        wbQueued_buffer = readyBuffer;
+                                    }
+                                }
+                                else
+                                {
+                                    this.DataReady = false;
+                                }
+                            }
+
+                            if (!frameDrawn || readyBuffer == null || token.IsCancellationRequested ||
+                                this.IsDisposed || !this.IsHandleCreated)
+                            {
+                                Interlocked.Exchange(ref wbPresentPending, 0);
+                                continue;
+                            }
+
+                            try
+                            {
+                                this.BeginInvoke(new Action(() =>
+                                {
+                                    try
+                                    {
+                                        bool invalidate = false;
+                                        lock (m_objBufferLock)
+                                        {
+                                            if (!this.IsDisposed && generation == wbBufferGeneration &&
+                                                Object.ReferenceEquals(wbQueued_buffer, readyBuffer))
+                                            {
+                                                Bitmap oldPresent = wbPresent_buffer;
+                                                wbPresent_buffer = readyBuffer;
+                                                wbQueued_buffer = null;
+                                                wbSpare_buffer = oldPresent;
+                                                this.Image = wbPresent_buffer;
+                                                invalidate = true;
+                                            }
+                                        }
+
+                                        if (invalidate) this.Invalidate();
+                                    }
+                                    finally
+                                    {
+                                        Interlocked.Exchange(ref wbPresentPending, 0);
+                                    }
+                                }));
+                            }
+                            catch (InvalidOperationException)
+                            {
+                                lock (m_objBufferLock)
+                                {
+                                    if (Object.ReferenceEquals(wbQueued_buffer, readyBuffer))
+                                    {
+                                        wbQueued_buffer = null;
+                                        if (wbSpare_buffer == null) wbSpare_buffer = readyBuffer;
+                                    }
+                                }
+                                Interlocked.Exchange(ref wbPresentPending, 0);
+                            }
+                        }
+                        catch
+                        {
+                            lock (m_objBufferLock)
+                            {
+                                if (readyBuffer != null && Object.ReferenceEquals(wbQueued_buffer, readyBuffer))
+                                {
+                                    wbQueued_buffer = null;
+                                    if (wbSpare_buffer == null) wbSpare_buffer = readyBuffer;
+                                }
+                            }
+                            Interlocked.Exchange(ref wbPresentPending, 0);
+                            throw;
                         }
                     }
 
