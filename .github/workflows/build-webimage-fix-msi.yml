@@ -1,4 +1,4 @@
-name: SQ4KOU WebImage network stall fix V3 x64 MSI
+name: SQ4KOU 16-bit Waterfall render fix x64 MSI
 
 on:
   push:
@@ -26,16 +26,16 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $expected = '197326df13824f46682111a1c9755e9884586645'
+          $expected = '8707b1c5d4771ca458ec05238b38514c9b495dd3'
           $actual = (git rev-parse HEAD).Trim()
           Write-Host "Source baseline: $actual"
           if ($actual -ne $expected) { throw "Unexpected sq4kou HEAD: $actual" }
 
-      - name: Apply WebImage network stall fix V3
+      - name: Apply 16-bit render correction
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $p = 'Project Files/Source/Console/clsImgeFetcher.cs'
+          $p = 'Project Files/Source/Console/display.cs'
           $text = [IO.File]::ReadAllText($p)
           $nl = if ($text.Contains("`r`n")) { "`r`n" } else { "`n" }
 
@@ -45,110 +45,73 @@ jobs:
             return $src.Replace($old, $new)
           }
 
-          # A stalled WebImage worker must never keep the application alive during shutdown.
-          $oldThread = '            Thread thread = new Thread(() => fetch_images(url, store, reset_event, id, file));'
-          $newThread = @(
-            '            Thread thread = new Thread(() => fetch_images(url, store, reset_event, id, file));',
-            '            // SQ4KOU_WEBIMAGE_STALL_FIX_V3: WebImage is auxiliary and must not block process shutdown.',
-            '            thread.IsBackground = true;'
-          ) -join $nl
-          $text = Replace-Once $text $oldThread $newThread 'background fetch thread'
+          # 16-bit float needs linear RGB, but alpha is coverage and must remain unchanged.
+          $oldAlpha = '                a = (float)Math.Pow(a, 1.6);'
+          $newAlpha = '                // SQ4KOU_WF16_RENDER_FIX: alpha is coverage, not gamma-encoded; preserve it unchanged.'
+          $text = Replace-Once $text $oldAlpha $newAlpha '16-bit alpha compensation'
 
-          # HttpWebRequest.Timeout only covers establishing/getting the response. Reads from
-          # ReadToEnd/CopyTo/stream.Read use ReadWriteTimeout and otherwise can block for minutes.
-          $oldMainTimeout = '                            request.Timeout = 2000;'
-          $newMainTimeout = @(
-            '                            request.Timeout = 2000;',
-            '                            // SQ4KOU_WEBIMAGE_STALL_FIX_V3: bound response-body stalls too.',
-            '                            request.ReadWriteTimeout = 5000;'
+          # Do not shrink logical Direct2D stroke geometry merely because the render target
+          # uses 16-bit float pixels. Sub-pixel 0.45x strokes become visually translucent.
+          $oldLine1 = @(
+            '            // Yurij-eu2av - 2026-07-04: scale stroke for float surface (see sw()).',
+            '            if (WaterfallPixelWriter.PixelSize == 8) strokeWidth *= 0.45f;'
           ) -join $nl
-          $text = Replace-Once $text $oldMainTimeout $newMainTimeout 'main WebImage read timeout'
+          $newLine1 = '            // SQ4KOU_WF16_RENDER_FIX: keep nominal stroke width at every colour depth.'
+          $text = Replace-Once $text $oldLine1 $newLine1 'drawLineDX2D basic stroke scaling'
 
-          # WebClient.DownloadData has no timeout control here. Use the same bounded request
-          # path as the main WebImage request so an embedded HTML image cannot hang the worker.
-          $oldHtml = @(
-            '                                                using (WebClient webClient = new WebClient())',
-            '                                                {',
-            '                                                    byte[] imageData = webClient.DownloadData(imageUrl);',
-            '                                                    using (MemoryStream imageStream = new MemoryStream(imageData))',
-            '                                                    {',
-            '                                                        Image image = LoadDetachedImage(imageStream);',
-            '                                                        bool full = store.AddImage(image);',
-            '                                                        imagesAdded = true;',
-            '                                                        if (full) break;',
-            '                                                        StateChanged?.Invoke(this, new StateEventArgs(id, State.OK));',
-            '                                                    }',
-            '                                                }'
+          $oldLine2 = @(
+            '            // Yurij-eu2av - 2026-07-04: on 16-bit float surfaces Direct2D operates in',
+            '            // linear/scRGB space, where antialiased stroke coverage is computed',
+            '            // differently and renders visibly thicker than on 8-bit sRGB. Scale the',
+            '            // stroke width down (0.45, tuned empirically) so the on-screen thickness',
+            '            // matches the 8-bit path. Single chokepoint for all grid/spectrum lines.',
+            '            if (WaterfallPixelWriter.PixelSize == 8) strokeWidth *= 0.45f;'
           ) -join $nl
-          $newHtml = @(
-            '                                                // SQ4KOU_WEBIMAGE_STALL_FIX_V3: bounded HTML image download.',
-            '                                                HttpWebRequest imageRequest = (HttpWebRequest)WebRequest.Create(imageUrl);',
-            '                                                imageRequest.UserAgent = "Thetis v" + _version;',
-            '                                                imageRequest.Timeout = 2000;',
-            '                                                imageRequest.ReadWriteTimeout = 5000;',
-            '                                                imageRequest.CachePolicy = new HttpRequestCachePolicy(HttpRequestCacheLevel.NoCacheNoStore);',
-            '                                                using (HttpWebResponse imageResponse = (HttpWebResponse)imageRequest.GetResponse())',
-            '                                                using (Stream imageResponseStream = imageResponse.GetResponseStream())',
-            '                                                using (MemoryStream imageStream = new MemoryStream())',
-            '                                                {',
-            '                                                    imageResponseStream.CopyTo(imageStream);',
-            '                                                    imageStream.Position = 0;',
-            '                                                    Image image = LoadDetachedImage(imageStream);',
-            '                                                    bool full = store.AddImage(image);',
-            '                                                    imagesAdded = true;',
-            '                                                    if (full) break;',
-            '                                                    StateChanged?.Invoke(this, new StateEventArgs(id, State.OK));',
-            '                                                }'
-          ) -join $nl
-          $text = Replace-Once $text $oldHtml $newHtml 'HTML WebClient download'
+          $newLine2 = '            // SQ4KOU_WF16_RENDER_FIX: keep nominal stroke width at every colour depth.'
+          $text = Replace-Once $text $oldLine2 $newLine2 'drawLineDX2D styled stroke scaling'
 
-          # UpdateBypassCache signals the same event as StopFetching. The old wake code looked
-          # only at timeout, so changing bypass-cache with an unchanged interval terminated the
-          # fetch loop. Distinguish a genuine stop (configuration unchanged) from either update.
-          $oldWake = @(
-            '                        bool timout_exists = _timeouts.TryGetValue(id, out _);  // check we have not removed these',
-            '                        bool bypass_exists = _bypass_cache.TryGetValue(id, out _);',
-            '',
-            '                        //check if _timeout is the same, if so break. It will be different if we have signaled',
-            '                        //due to timeout change',
-            '                        if (!timout_exists || !bypass_exists || _timeouts[id] == timeout)',
-            '                            break;  // Exit the loop if signaled to stop, or items have been removed',
-            '                        else',
-            '                        {',
-            '                            timeout = _timeouts[id];',
-            '                            bypass_cache = _bypass_cache[id];',
-            '                            reset_event.Reset();',
-            '                        }'
+          $oldSw = @(
+            '        // Yurij-eu2av - 2026-07-04: scale a stroke width for the active depth.',
+            '        // Callers that invoke _d2dRenderTarget.DrawLine directly (spectrum,',
+            '        // waveform, data line) use this on their width argument. 0.45 was tuned',
+            '        // empirically: pure 0.5 (2x) left lines ~8-10% too thick vs 8-bit.',
+            '        [MethodImpl(MethodImplOptions.AggressiveInlining)]',
+            '        private static float sw(float width)',
+            '        {',
+            '            return WaterfallPixelWriter.PixelSize == 8 ? width * 0.45f : width;',
+            '        }'
           ) -join $nl
-          $newWake = @(
-            '                        // SQ4KOU_WEBIMAGE_STALL_FIX_V3: distinguish StopFetching from settings updates.',
-            '                        bool timeout_exists = _timeouts.TryGetValue(id, out int new_timeout);',
-            '                        bool bypass_exists = _bypass_cache.TryGetValue(id, out bool new_bypass_cache);',
-            '',
-            '                        if (!timeout_exists || !bypass_exists)',
-            '                            break;',
-            '',
-            '                        // StopFetching only sets the event, so unchanged configuration means stop.',
-            '                        if (new_timeout == timeout && new_bypass_cache == bypass_cache)',
-            '                            break;',
-            '',
-            '                        timeout = new_timeout;',
-            '                        bypass_cache = new_bypass_cache;',
-            '                        reset_event.Reset();'
+          $newSw = @(
+            '        // SQ4KOU_WF16_RENDER_FIX: pixel precision must not change screen-space geometry.',
+            '        [MethodImpl(MethodImplOptions.AggressiveInlining)]',
+            '        private static float sw(float width)',
+            '        {',
+            '            return width;',
+            '        }'
           ) -join $nl
-          $text = Replace-Once $text $oldWake $newWake 'WebImage signal wake logic'
+          $text = Replace-Once $text $oldSw $newSw 'spectrum direct stroke scaling'
 
           [IO.File]::WriteAllText($p, $text, [Text.UTF8Encoding]::new($true))
 
           $check = [IO.File]::ReadAllText($p)
-          $markers = ([regex]::Matches($check, 'SQ4KOU_WEBIMAGE_STALL_FIX_V3')).Count
-          if ($markers -ne 4) { throw "Expected 4 V3 markers, found $markers" }
-          if (([regex]::Matches($check, 'ReadWriteTimeout = 5000;')).Count -ne 2) { throw 'Expected two bounded WebImage body-read timeouts' }
-          if ($check.Contains('WebClient webClient')) { throw 'Unbounded WebClient download still present' }
-          if ($check.Contains('_timeouts[id] == timeout')) { throw 'Old bypass-cache-breaking wake test still present' }
-          if (!$check.Contains('thread.IsBackground = true;')) { throw 'WebImage worker is not a background thread' }
-          if (([regex]::Matches($check, 'SQ4KOU_WEBIMAGE_RACE_FIX_V2')).Count -ne 3) { throw 'V2 image-lifetime fixes were not preserved' }
-          Write-Host 'WebImage V3 network-stall fix applied and invariants verified.'
+          if ($check.Contains('a = (float)Math.Pow(a, 1.6);')) { throw '16-bit alpha power compensation still present' }
+          if ($check.Contains('strokeWidth *= 0.45f;')) { throw '16-bit drawLine stroke scaling still present' }
+          if ($check.Contains('width * 0.45f')) { throw '16-bit sw() stroke scaling still present' }
+          if (([regex]::Matches($check, 'SQ4KOU_WF16_RENDER_FIX')).Count -ne 4) { throw 'Expected four WF16 fix markers' }
+          if (!$check.Contains('r = WaterfallPixelWriter.SrgbToLinear(r);')) { throw '16-bit linear RGB conversion was unexpectedly removed' }
+          if (!$check.Contains('WaterfallPixelWriter.EncodeRow(rowF, row, W);')) { throw 'Waterfall 16-bit pixel encoder path was unexpectedly changed' }
+          Write-Host '16-bit render correction applied; Waterfall encoder preserved.'
+
+      - name: Verify only display.cs changed
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $changed = @(git diff --name-only)
+          if ($changed.Count -ne 1 -or $changed[0] -ne 'Project Files/Source/Console/display.cs') {
+            throw "Expected exactly display.cs changed, got: $($changed -join ', ')"
+          }
+          git diff --check
+          git diff -- 'Project Files/Source/Console/display.cs'
 
       - name: Add MSBuild to PATH
         uses: microsoft/setup-msbuild@v2
@@ -168,13 +131,13 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          git config user.name 'SQ4KOU WebImage Fix Bot'
+          git config user.name 'SQ4KOU Render Fix Bot'
           git config user.email 'actions@users.noreply.github.com'
-          git add -- 'Project Files/Source/Console/clsImgeFetcher.cs'
+          git add -- 'Project Files/Source/Console/display.cs'
           git diff --cached --check
           $staged = @(git diff --cached --name-only)
-          if ($staged.Count -ne 1 -or $staged[0] -ne 'Project Files/Source/Console/clsImgeFetcher.cs') { throw "Expected exactly clsImgeFetcher.cs staged, got: $($staged -join ', ')" }
-          git commit -m 'Fix WebImage blocking reads and bypass-cache stop'
+          if ($staged.Count -ne 1 -or $staged[0] -ne 'Project Files/Source/Console/display.cs') { throw "Expected exactly display.cs staged, got: $($staged -join ', ')" }
+          git commit -m 'Fix 16-bit waterfall spectrum rendering'
           git push origin HEAD:sq4kou
           $final = (git rev-parse HEAD).Trim()
           $final | Set-Content SQ4KOU_SOURCE_COMMIT.txt
@@ -190,16 +153,16 @@ jobs:
           if ($null -eq $msi) { throw 'No MSI found after successful build' }
 
           New-Item -ItemType Directory -Force -Path build-artifacts | Out-Null
-          $out = 'build-artifacts/SQ4KOU_THETIS_WEBIMAGE_STALL_FIX_V3_X64.msi'
+          $out = 'build-artifacts/SQ4KOU_THETIS_WATERFALL16_RENDER_FIX_X64.msi'
           Copy-Item -LiteralPath $msi.FullName -Destination $out -Force
-          (Get-FileHash -LiteralPath $out -Algorithm SHA256).Hash | Set-Content 'build-artifacts/SQ4KOU_THETIS_WEBIMAGE_STALL_FIX_V3_X64.msi.sha256'
+          (Get-FileHash -LiteralPath $out -Algorithm SHA256).Hash | Set-Content 'build-artifacts/SQ4KOU_THETIS_WATERFALL16_RENDER_FIX_X64.msi.sha256'
           Copy-Item SQ4KOU_SOURCE_COMMIT.txt build-artifacts/SQ4KOU_SOURCE_COMMIT.txt -Force
 
       - name: Upload logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: sq4kou-webimage-stall-fix-v3-build-logs
+          name: sq4kou-waterfall16-render-fix-build-logs
           path: build-logs/
           if-no-files-found: warn
 
@@ -207,7 +170,7 @@ jobs:
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: SQ4KOU_THETIS_WEBIMAGE_STALL_FIX_V3_X64_MSI
+          name: SQ4KOU_THETIS_WATERFALL16_RENDER_FIX_X64_MSI
           path: build-artifacts/
           if-no-files-found: error
 
@@ -219,19 +182,17 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $sha = (Get-Content SQ4KOU_SOURCE_COMMIT.txt -Raw).Trim()
-          $tag = "webimage-stall-fix-v3-$env:GITHUB_RUN_NUMBER"
-          $title = 'SQ4KOU Thetis WebImage Stall Fix V3 x64'
+          $tag = "waterfall16-render-fix-$env:GITHUB_RUN_NUMBER"
+          $title = 'SQ4KOU Thetis Waterfall 16-bit Render Fix x64'
           $notes = @"
-          WebImage freeze/stall fix V3.
+          Waterfall 16-bit render correction.
 
-          Scope remains limited to Project Files/Source/Console/clsImgeFetcher.cs:
-          - response-body reads now have a finite 5 s ReadWriteTimeout;
-          - HTML embedded-image WebClient download replaced by a bounded HttpWebRequest;
-          - bypass-cache updates no longer terminate the fetch loop when interval is unchanged;
-          - WebImage worker is background-only and cannot hold the process open;
-          - V1 detached-image and V2 image-lifetime race fixes are retained.
+          Scope: Project Files/Source/Console/display.cs only.
+          - preserves linear RGB conversion for R16G16B16A16_FLOAT;
+          - preserves alpha as coverage instead of applying alpha^1.6;
+          - removes the 0.45x stroke-width reduction used only in 16-bit mode;
+          - leaves WaterfallPixelWriter and the 16-bit Waterfall pixel encoder unchanged.
 
-          WideBand is untouched.
           Validated source commit: $sha
           "@
-          gh release create $tag 'build-artifacts/SQ4KOU_THETIS_WEBIMAGE_STALL_FIX_V3_X64.msi' 'build-artifacts/SQ4KOU_THETIS_WEBIMAGE_STALL_FIX_V3_X64.msi.sha256' 'build-artifacts/SQ4KOU_SOURCE_COMMIT.txt' --repo "$env:GITHUB_REPOSITORY" --target $sha --title $title --notes $notes
+          gh release create $tag 'build-artifacts/SQ4KOU_THETIS_WATERFALL16_RENDER_FIX_X64.msi' 'build-artifacts/SQ4KOU_THETIS_WATERFALL16_RENDER_FIX_X64.msi.sha256' 'build-artifacts/SQ4KOU_SOURCE_COMMIT.txt' --repo "$env:GITHUB_REPOSITORY" --target $sha --title $title --notes $notes
