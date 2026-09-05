@@ -1,0 +1,108 @@
+name: SQ4KOU P1 CW Run-State Fix
+
+on:
+  push:
+    branches: [sq4kou]
+    paths:
+      - '.github/workflows/sq4kou-cw-p1-runfix.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-build-msi:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout sq4kou
+        uses: actions/checkout@v4
+        with:
+          ref: sq4kou
+          fetch-depth: 0
+
+      - name: Apply minimal P1 CW run-state fix
+        shell: pwsh
+        run: |
+          $path = 'Project Files\Source\ChannelMaster\netInterface.c'
+          $text = Get-Content -Raw -LiteralPath $path
+          $needle = 'if (RadioProtocol == USB && listenSock != INVALID_SOCKET) SendRunToMetis();'
+          $count = ([regex]::Matches($text, [regex]::Escape($needle))).Count
+          if ($count -ne 1) { throw "Expected exactly one PTT SendRunToMetis call, found $count" }
+          $pattern = '(?m)^\s*/\* SQ4KOU TX -> IN2 OFF: update P1 run bits on every PTT edge\. \*/\r?\n\s*if \(RadioProtocol == USB && listenSock != INVALID_SOCKET\) SendRunToMetis\(\);\r?\n'
+          $new = [regex]::Replace($text, $pattern, '', 1)
+          if ($new -eq $text) { throw 'Target PTT run-bit block was not removed' }
+          if ($new.Contains($needle)) { throw 'PTT SendRunToMetis call still present after patch' }
+          [System.IO.File]::WriteAllText((Resolve-Path $path), $new, (New-Object System.Text.UTF8Encoding($false)))
+          git diff --check
+          git diff -- 'Project Files/Source/ChannelMaster/netInterface.c'
+
+      - name: Commit source fix
+        shell: pwsh
+        run: |
+          git config user.name 'SQ4KOU Build Bot'
+          git config user.email 'actions@github.com'
+          git add -- 'Project Files/Source/ChannelMaster/netInterface.c'
+          git commit -m 'Decouple P1 Metis run state from PTT edges'
+          git push origin HEAD:sq4kou
+          $sha = git rev-parse HEAD
+          "SOURCE_FIX_SHA=$sha" | Out-File -FilePath $env:GITHUB_ENV -Append
+          Write-Host "SOURCE_FIX_SHA=$sha"
+
+      - name: Locate Visual Studio / MSBuild
+        id: msbuild
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          if (!(Test-Path $vswhere)) { throw 'vswhere.exe not found' }
+          $msbuild = & $vswhere -latest -prerelease -products * -requires Microsoft.Component.MSBuild -find 'MSBuild\**\Bin\MSBuild.exe' | Select-Object -First 1
+          if (!$msbuild) { throw 'MSBuild not found' }
+          "path=$msbuild" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+          Write-Host "MSBuild: $msbuild"
+
+      - name: Install build prerequisites
+        shell: pwsh
+        run: |
+          choco install wixtoolset nuget.commandline --no-progress -y
+          $wixTargets = "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets"
+          if (!(Test-Path $wixTargets)) { throw "WiX 3.x targets not found: $wixTargets" }
+
+      - name: Restore NuGet packages
+        shell: pwsh
+        run: |
+          $sln = 'Project Files\Source\Thetis_VS2026.sln'
+          $packages = 'Project Files\Source\packages'
+          nuget restore $sln -PackagesDirectory $packages -NonInteractive -Verbosity normal
+          if ($LASTEXITCODE -ne 0) { throw "NuGet restore failed with exit code $LASTEXITCODE" }
+
+      - name: Build Thetis Release x64 and MSI
+        shell: pwsh
+        run: |
+          $msbuild = '${{ steps.msbuild.outputs.path }}'
+          $sln = 'Project Files\Source\Thetis_VS2026.sln'
+          & $msbuild $sln /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /v:minimal /fl /flp:"logfile=SQ4KOU_CW_P1_RUNFIX_BUILD.log;verbosity=normal"
+          if ($LASTEXITCODE -ne 0) { throw "MSBuild failed with exit code $LASTEXITCODE" }
+
+      - name: Validate MSI output
+        shell: pwsh
+        run: |
+          $dir = 'Project Files\bin\Installers'
+          $msi = Get-ChildItem $dir -Filter '*.msi' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (!$msi) { throw 'No MSI produced' }
+          $dst = Join-Path $dir 'SQ4KOU_THETIS_CW_P1_RUNFIX_x64.msi'
+          Copy-Item $msi.FullName $dst -Force
+          $hash = (Get-FileHash $dst -Algorithm SHA256).Hash
+          $size = (Get-Item $dst).Length
+          "MSI=$dst`nSIZE=$size`nSHA256=$hash`nSOURCE_FIX_SHA=$env:SOURCE_FIX_SHA`nCW_FIX_COMMIT=6b8ae885172b99a7c7a5da7551b6717250ccc85b" | Set-Content 'SQ4KOU_CW_P1_RUNFIX_BUILD_INFO.txt'
+          Write-Host "SIZE=$size"
+          Write-Host "SHA256=$hash"
+
+      - name: Upload MSI artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU_THETIS_CW_P1_RUNFIX_MSI
+          path: |
+            Project Files/bin/Installers/SQ4KOU_THETIS_CW_P1_RUNFIX_x64.msi
+            SQ4KOU_CW_P1_RUNFIX_BUILD.log
+            SQ4KOU_CW_P1_RUNFIX_BUILD_INFO.txt
+          if-no-files-found: error
+          retention-days: 7
