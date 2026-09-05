@@ -1,4 +1,4 @@
-//=================================================================
+﻿//=================================================================
 // pandisplay.cs
 //=================================================================
 // PowerSDR is a C# implementation of a Software Defined Radio.
@@ -1128,7 +1128,8 @@ namespace Thetis
             int W = panRect.Width;
             int H = panRect.Height;
             g.FillRectangle(Brushes.Black, freqScalePanRect);
-            g.DrawRectangle(new Pen(Color.AntiqueWhite, 2), freqScalePanRect);
+            using (Pen borderPen = new Pen(Color.AntiqueWhite, 2))
+                g.DrawRectangle(borderPen, freqScalePanRect);
 
             // draw background
             // g.FillRectangle(display_background_brush, 0, bottom ? H : 0, W, H);
@@ -2127,22 +2128,20 @@ namespace Thetis
                 // Trace.WriteLine(ex);
             }
 
-            points = null;
+            // Reuse the point buffer across frames; avoid continuous allocation/GC pressure.
 
             // draw long cursor
             try
             {
                 if (current_click_tune_mode != ClickTuneMode.Off)
                 {
-                    Pen p;
-                    if (current_click_tune_mode == ClickTuneMode.VFOA)
-                        p = new Pen(grid_text_color);
-                    else p = new Pen(Color.Red);
-
-                    if (display_cursor_y <= H)
+                    using (Pen p = new Pen(current_click_tune_mode == ClickTuneMode.VFOA ? grid_text_color : Color.Red))
                     {
-                        g.DrawLine(p, display_cursor_x, 0, display_cursor_x, H);
-                        g.DrawLine(p, 0, display_cursor_y, W, display_cursor_y);
+                        if (display_cursor_y <= H)
+                        {
+                            g.DrawLine(p, display_cursor_x, 0, display_cursor_x, H);
+                            g.DrawLine(p, 0, display_cursor_y, W, display_cursor_y);
+                        }
                     }
                 }
             }
@@ -3427,11 +3426,12 @@ namespace Thetis
         private CancellationTokenSource cancelTokenSource;
         public void Cancel_Display()
         {
-            if (cancelTokenSource != null)
+            CancellationTokenSource cts = cancelTokenSource;
+            cancelTokenSource = null;
+            if (cts != null)
             {
-                cancelTokenSource.Cancel();
-                cancelTokenSource.Dispose();
-                cancelTokenSource = null;
+                cts.Cancel();
+                cts.Dispose();
             }
 
            // Halted = true;
@@ -3453,15 +3453,18 @@ namespace Thetis
             //}
 
             if (cancelTokenSource != null) Cancel_Display();
-            cancelTokenSource = new CancellationTokenSource();
+            var cts = new CancellationTokenSource();
+            cancelTokenSource = cts;
+            CancellationToken token = cts.Token;
             UpdateGraphicsBuffer();
 
             draw_display_task = Task.Factory.StartNew(() =>
             {
-                while (cancelTokenSource != null && !cancelTokenSource.IsCancellationRequested)
+                while (!token.IsCancellationRequested)
                 {
 
                     RunDisplay(rx); // get pixels
+                    if (token.IsCancellationRequested) break;
 
                     // SQ4KOU_WB_UI_FLOW_V1: render/present only a fresh WDSP frame.
                     if (!this.DataReady) continue;
@@ -3476,7 +3479,7 @@ namespace Thetis
                         }
 
                         // GDI+ drawing is fully closed before the bitmap is presented by WinForms.
-                        if (frameDrawn)
+                        if (frameDrawn && !token.IsCancellationRequested && !this.IsDisposed && this.IsHandleCreated)
                         {
                             this.Invoke(new Action(() =>
                             {
@@ -3488,7 +3491,7 @@ namespace Thetis
 
                 }
 
-            }, cancelTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+            }, token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
 
         }
 
