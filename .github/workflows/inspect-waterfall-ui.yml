@@ -16,12 +16,10 @@ jobs:
         shell: pwsh
         run: |
           $setup = 'Project Files/Source/Console/setup.cs'
-          $designer = 'Project Files/Source/Console/setup.designer.cs'
-          Write-Host '=== setup.cs constructor / InitializeComponent ==='
-          Select-String -Path $setup -Pattern 'InitializeComponent|public Setup\(|Setup\(' -Context 8,20 | ForEach-Object { $_.ToString() }
-          Write-Host '=== existing WaterfallEnhancer references ==='
-          Select-String -Path $setup -Pattern 'WaterfallEnhancer|ColorDepth|QualityLevel|comboColorDepth|combo.*Quality' -Context 3,5 | ForEach-Object { $_.ToString() }
-          Write-Host '=== likely Display General control names ==='
-          Select-String -Path $designer -Pattern 'Text = "Waterfall"|Text = "Display"|Waterfall AGC|Palette:|combo.*Color|grp.*Water|rad.*Water|tab.*Display|tp.*Display|pnl.*Display' -Context 2,4 | Select-Object -First 250 | ForEach-Object { $_.ToString() }
-          Write-Host '=== all combo names near Palette ==='
-          Select-String -Path $designer -Pattern 'Palette|ColorScheme|combo.*Scheme|combo.*Palette' -Context 3,6 | Select-Object -First 150 | ForEach-Object { $_.ToString() }
+          $lines = Get-Content $setup
+          Write-Host '=== constructor setup 440-475 ==='
+          for($i=439; $i -lt [Math]::Min(475,$lines.Count); $i++){ '{0}: {1}' -f ($i+1),$lines[$i] }
+          Write-Host '=== waterfall UI creator 36080-36190 ==='
+          for($i=36079; $i -lt [Math]::Min(36190,$lines.Count); $i++){ '{0}: {1}' -f ($i+1),$lines[$i] }
+          Write-Host '=== creator names/calls ==='
+          Select-String -Path $setup -Pattern 'Create.*Waterfall|Init.*Waterfall|Waterfall.*Controls|comboPaletteRes = new|chkWFDither = new|tbWFGamma = new' -Context 2,3 | ForEach-Object { $_.ToString() }
