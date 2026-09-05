@@ -1,0 +1,123 @@
+name: Finish SQ4KOU waterfall UI
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/finish-waterfall-ui.yml
+      - .github/scripts/fix_waterfall_ui.py
+
+permissions:
+  contents: write
+
+jobs:
+  patch-build-publish:
+    runs-on: windows-2025-vs2026
+    steps:
+      - name: Checkout control files
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          path: control
+
+      - name: Checkout working SQ4KOU branch
+        uses: actions/checkout@v4
+        with:
+          ref: sq4kou
+          fetch-depth: 1
+          path: synthesis
+
+      - name: Complete waterfall controls
+        working-directory: synthesis
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python ../control/.github/scripts/fix_waterfall_ui.py .
+          git diff --check
+          $changed = @(git diff --name-only)
+          if ($changed.Count -ne 1 -or $changed[0] -ne 'Project Files/Source/Console/setup.cs') {
+            throw "Unexpected changed files: $($changed -join ', ')"
+          }
+          git diff -- 'Project Files/Source/Console/setup.cs'
+
+      - name: Static waterfall UI gate
+        working-directory: synthesis
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $p = 'Project Files/Source/Console/setup.cs'
+          $required = @(
+            'grp.Text = "Waterfall Quality";',
+            '"Classic", "Vivid", "Sharp", "Ultra"',
+            '"8-bit", "16-bit Float"',
+            'comboColorPalette.DropDownWidth = 125',
+            'comboRX2ColorPalette.DropDownWidth = 125',
+            'comboTXColorPalette.DropDownWidth = 125',
+            'WaterfallEnhancer.SetQuality',
+            'WaterfallEnhancer.SetDither',
+            'WaterfallEnhancer.SetGamma',
+            'WaterfallEnhancer.SetColorDepth',
+            'Display.RebuildForColorDepth',
+            'SyncWaterfallEnhancerFromControls()'
+          )
+          $text = Get-Content $p -Raw
+          foreach($m in $required) { if(-not $text.Contains($m)) { throw "Missing waterfall marker: $m" } }
+          Write-Host 'Waterfall UI/backend static gate PASS'
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Restore NuGet
+        working-directory: synthesis
+        shell: pwsh
+        run: nuget restore "Project Files/Source/Thetis_VS2026.sln" -NonInteractive
+
+      - name: Build full Release x64 and MSI
+        working-directory: synthesis
+        shell: pwsh
+        run: msbuild "Project Files/Source/Thetis_VS2026.sln" /m /t:Build /p:Configuration=Release /p:Platform=x64 /v:minimal
+
+      - name: Verify outputs
+        working-directory: synthesis
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if (-not (Test-Path 'Project Files/bin/x64/Release/Thetis.exe')) { throw 'Thetis.exe not found' }
+          $msi = Get-ChildItem 'Project Files/bin/Installers' -Filter '*.msi' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $msi) { throw 'MSI not found' }
+          Write-Host "EXE PASS: Project Files/bin/x64/Release/Thetis.exe"
+          Write-Host "MSI PASS: $($msi.FullName)"
+
+      - name: Commit verified waterfall UI to sq4kou
+        working-directory: synthesis
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "SQ4KOU synthesis automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add 'Project Files/Source/Console/setup.cs'
+          git diff --cached --check
+          git commit -m "Complete EU2AV waterfall quality UI"
+          git push origin HEAD:sq4kou
+
+      - name: Stage test installer
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $stage = Join-Path $env:RUNNER_TEMP 'waterfall-installer-stage'
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          $msi = Get-ChildItem 'synthesis/Project Files/bin/Installers' -Filter '*.msi' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $msi) { throw 'MSI not found' }
+          Copy-Item $msi.FullName (Join-Path $stage 'Thetis-2.10.3.15-SQ4KOU-WATERFALL-FULL-x64.msi')
+          Copy-Item 'synthesis/Project Files/bin/x64/Release/Thetis.exe' (Join-Path $stage 'Thetis-2.10.3.15-SQ4KOU-WATERFALL-FULL-x64.exe')
+          Get-ChildItem $stage | Get-FileHash -Algorithm SHA256 | Format-Table -AutoSize
+
+      - name: Upload test installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: sq4kou-waterfall-full-x64-installer
+          path: ${{ runner.temp }}/waterfall-installer-stage/*
+          if-no-files-found: error
