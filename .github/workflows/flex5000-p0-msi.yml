@@ -1,0 +1,50 @@
+name: FLEX5000 P0 MSI
+
+on:
+  push:
+    branches:
+      - flex5000-wdsp-native
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-flex5000-msi:
+    name: Build FLEX5000 x86 MSI
+    runs-on: windows-2025-vs2026
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build FLEX5000 MSI
+        shell: pwsh
+        run: ./tools/flex5000/Build-Flex5000MSI.ps1
+
+      - name: Upload MSI
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Thetis-FLEX5000-P0-SQ4KOU-x86-MSI
+          path: |
+            artifacts/flex5000/*.msi
+            artifacts/flex5000/*.sha256
+            artifacts/flex5000/FLEX5000_BUILD_MANIFEST.txt
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Thetis-FLEX5000-P0-build-logs
+          path: artifacts/flex5000/logs/**
+          if-no-files-found: warn
+          retention-days: 14
