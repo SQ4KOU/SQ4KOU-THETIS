@@ -1,0 +1,164 @@
+name: SQ4KOU WideBand UI fix x64 MSI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/wideband-ui-fix-build.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout SQ4KOU synthesis branch
+        uses: actions/checkout@v4
+        with:
+          ref: sq4kou
+          fetch-depth: 1
+          persist-credentials: true
+
+      - name: Patch WideBand UI flow
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $path = 'Project Files/Source/Console/wbDisplay.cs'
+          $text = [IO.File]::ReadAllText($path)
+
+          if ($text.Contains('SQ4KOU_WB_UI_FLOW_V1')) {
+            Write-Host 'WideBand UI patch already present.'
+          }
+          else {
+            $oldRender = @'
+                    RunDisplay(rx); // get pixels
+
+                    if (!pauseDisplayThread)
+                    {
+                        using (Graphics grSrc = Graphics.FromImage(wbDisplay_buffer))
+                        {
+                            grSrc.Clear(Color.Transparent);
+                            if (DrawWideBand(grSrc, rx))
+                            {
+                                this.Invoke(new Action(() =>
+                                    {
+                                        this.Image = wbDisplay_buffer;
+                                        this.Refresh();
+                                    }));
+                            }
+                        }
+                    }
+'@
+            $newRender = @'
+                    RunDisplay(rx); // get pixels
+
+                    // SQ4KOU_WB_UI_FLOW_V1: render/present only a fresh WDSP frame.
+                    if (!this.DataReady) continue;
+
+                    if (!pauseDisplayThread)
+                    {
+                        bool frameDrawn;
+                        using (Graphics grSrc = Graphics.FromImage(wbDisplay_buffer))
+                        {
+                            grSrc.Clear(Color.Transparent);
+                            frameDrawn = DrawWideBand(grSrc, rx);
+                        }
+
+                        // GDI+ drawing is fully closed before the bitmap is presented by WinForms.
+                        if (frameDrawn)
+                        {
+                            this.Invoke(new Action(() =>
+                            {
+                                this.Image = wbDisplay_buffer;
+                                this.Refresh();
+                            }));
+                        }
+                    }
+'@
+
+            $oldPixels = @'
+                    fixed (float* ptr = &new_display_data[0])
+                        SpecHPSDRDLL.GetPixels(rx, 0, ptr, ref flag);
+
+                    this.DataReady = true;
+'@
+            $newPixels = @'
+                    fixed (float* ptr = &new_display_data[0])
+                        SpecHPSDRDLL.GetPixels(rx, 0, ptr, ref flag);
+
+                    // WDSP flag==1 means a new pixel frame was actually returned.
+                    if (flag != 0)
+                        this.DataReady = true;
+'@
+
+            $renderCount = ([regex]::Matches($text, [regex]::Escape($oldRender))).Count
+            $pixelCount = ([regex]::Matches($text, [regex]::Escape($oldPixels))).Count
+            if ($renderCount -ne 1) { throw "Render anchor count=$renderCount, expected 1" }
+            if ($pixelCount -ne 1) { throw "GetPixels anchor count=$pixelCount, expected 1" }
+
+            $text = $text.Replace($oldRender, $newRender)
+            $text = $text.Replace($oldPixels, $newPixels)
+            [IO.File]::WriteAllText($path, $text, (New-Object Text.UTF8Encoding($true)))
+          }
+
+          $check = [IO.File]::ReadAllText($path)
+          if (-not $check.Contains('SQ4KOU_WB_UI_FLOW_V1')) { throw 'Patch marker missing' }
+          if (-not $check.Contains('if (flag != 0)')) { throw 'GetPixels flag gate missing' }
+          if ($check.IndexOf('frameDrawn = DrawWideBand(grSrc, rx);') -lt 0) { throw 'frameDrawn gate missing' }
+          if ($check.IndexOf('frameDrawn = DrawWideBand(grSrc, rx);') -gt $check.IndexOf('this.Invoke(new Action(() =>', $check.IndexOf('SQ4KOU_WB_UI_FLOW_V1'))) { throw 'Invoke ordering check failed' }
+          git diff --check
+          git diff -- 'Project Files/Source/Console/wbDisplay.cs'
+
+      - name: Commit patch to sq4kou
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          if ((git status --porcelain -- 'Project Files/Source/Console/wbDisplay.cs').Length -gt 0) {
+            git config user.name 'SQ4KOU Build Bot'
+            git config user.email 'actions@github.com'
+            git add -- 'Project Files/Source/Console/wbDisplay.cs'
+            git commit -m 'Fix WideBand UI frame gating and GDI presentation'
+            git push origin HEAD:sq4kou
+          }
+          git rev-parse HEAD | Tee-Object -FilePath WB_UI_FIX_COMMIT.txt
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Restore NuGet packages
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          nuget restore 'Project Files/Source/Thetis_VS2026.sln' -NonInteractive
+
+      - name: Build x64 Release and MSI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path build-logs | Out-Null
+          msbuild 'Project Files/Source/Thetis_VS2026.sln' /m /t:Build /p:Configuration=Release /p:Platform=x64 /v:minimal /fl /flp:'logfile=build-logs/msbuild-x64-release.log;verbosity=normal' /bl:build-logs/msbuild-x64-release.binlog
+          $msi = 'Project Files/bin/Installers/Thetis.msi'
+          if (-not (Test-Path $msi)) { throw "MSI not found: $msi" }
+          New-Item -ItemType Directory -Force -Path build-artifacts | Out-Null
+          Copy-Item $msi 'build-artifacts/SQ4KOU_THETIS_WIDEBAND_UI_FIX_X64.msi' -Force
+          (Get-FileHash 'build-artifacts/SQ4KOU_THETIS_WIDEBAND_UI_FIX_X64.msi' -Algorithm SHA256).Hash | Set-Content 'build-artifacts/SQ4KOU_THETIS_WIDEBAND_UI_FIX_X64.msi.sha256'
+          Copy-Item WB_UI_FIX_COMMIT.txt build-artifacts/WB_UI_FIX_COMMIT.txt -Force
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sq4kou-wideband-ui-fix-build-logs
+          path: build-logs/
+          if-no-files-found: warn
+
+      - name: Upload MSI
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU_THETIS_WIDEBAND_UI_FIX_X64_MSI
+          path: build-artifacts/
+          if-no-files-found: error
