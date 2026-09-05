@@ -1,0 +1,192 @@
+name: SQ4KOU P1 Software CWX IQ Test
+
+on:
+  push:
+    branches: [sq4kou]
+    paths:
+      - '.github/workflows/sq4kou-p1-software-cwx-test.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-build:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout sq4kou
+        uses: actions/checkout@v4
+        with:
+          ref: sq4kou
+          fetch-depth: 0
+
+      - name: Apply P1 software CWX IQ path
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+
+          # Console: add a Protocol-1-only software CWX generator using the existing WDSP TX post generator.
+          p = Path(r'Project Files/Source/Console/console.cs')
+          s = p.read_text(encoding='utf-8-sig')
+          anchor = '        private bool _startdiversity = false;'
+          if s.count(anchor) != 1:
+              raise SystemExit(f'console.cs anchor count={s.count(anchor)}')
+          block = r'''        // SQ4KOU P1 CWX: Red Pitaya Protocol 1 does not consume the native
+        // Hermes firmware-keyer DOT/DASH/CWX encoding as an RF key.  For CWX only,
+        // send a normal keyed CW tone through WDSP so P1 receives ordinary TX IQ.
+        private bool _sq4kou_p1_software_cwx_active = false;
+        public bool SQ4KOUP1SoftwareCWXActive { get { return _sq4kou_p1_software_cwx_active; } }
+
+        public bool SQ4KOUStartP1SoftwareCWX()
+        {
+            if (NetworkIO.CurrentRadioProtocol != RadioProtocol.USB) return false;
+            if (RX1DSPMode != DSPMode.CWL && RX1DSPMode != DSPMode.CWU) return false;
+            if (_sq4kou_p1_software_cwx_active) return true;
+
+            // Disable the native firmware-keyer encoding before MOX so the normal
+            // P1 IQ stream remains active and the existing CW pitch TX offset is used.
+            CWFWKeyer = false;
+
+            radio.GetDSPTX(0).TXPostGenRun = 0;
+            radio.GetDSPTX(0).TXPostGenMode = 0; // single tone
+            radio.GetDSPTX(0).TXPostGenToneFreq = RX1DSPMode == DSPMode.CWL ? -cw_pitch : +cw_pitch;
+            radio.GetDSPTX(0).TXPostGenToneMag = MAX_TONE_MAG;
+            _sq4kou_p1_software_cwx_active = true;
+            return true;
+        }
+
+        public void SQ4KOUSetP1SoftwareCWXKey(bool keyDown)
+        {
+            if (!_sq4kou_p1_software_cwx_active) return;
+
+            if (keyDown)
+            {
+                // Native firmware-keyer CW normally leaves the WDSP TX channel off.
+                // Software CWX needs it running so the post-generator reaches P1 IQ.
+                WDSP.SetChannelState(WDSP.id(1, 0), 1, 0);
+                radio.GetDSPTX(0).TXPostGenRun = 1;
+            }
+            else
+            {
+                radio.GetDSPTX(0).TXPostGenRun = 0;
+            }
+        }
+
+        public void SQ4KOUStopP1SoftwareCWX()
+        {
+            if (!_sq4kou_p1_software_cwx_active) return;
+
+            radio.GetDSPTX(0).TXPostGenRun = 0;
+            _sq4kou_p1_software_cwx_active = false;
+
+            // Return ordinary paddle/keyer operation to the native state after CWX.
+            CWFWKeyer = true;
+        }
+
+'''
+          s = s.replace(anchor, block + anchor, 1)
+          p.write_text(s, encoding='utf-8-sig')
+
+          # CWX: for Protocol 1 latch MOX, use software IQ keying; leave Protocol 2 path unchanged.
+          p = Path(r'Project Files/Source/Console/cwx.cs')
+          s = p.read_text(encoding='utf-8-sig')
+          old = '''        private void set_cwx_mox_latch(bool state)\n        {\n            // SQ4KOU: CWX MOX latch only for HPSDR Protocol 2.\n            if (NetworkIO.CurrentRadioProtocol != RadioProtocol.ETH) return;\n            if (cwx_mox_latched == state) return;\n\n            if (state)\n                console.CurrentPTTMode = PTTMode.SPACE;\n\n            console.MOX = state;\n            cwx_mox_latched = state;\n        }'''
+          new = '''        private void set_cwx_mox_latch(bool state)\n        {\n            RadioProtocol protocol = NetworkIO.CurrentRadioProtocol;\n            bool p1 = protocol == RadioProtocol.USB;\n            bool p2 = protocol == RadioProtocol.ETH;\n            if (!p1 && !p2) return;\n            if (cwx_mox_latched == state) return;\n\n            if (state)\n            {\n                console.CurrentPTTMode = PTTMode.SPACE;\n                if (p1 && !console.SQ4KOUStartP1SoftwareCWX()) return;\n                console.MOX = true;\n            }\n            else\n            {\n                if (p1) console.SQ4KOUSetP1SoftwareCWXKey(false);\n                console.MOX = false;\n                if (p1) console.SQ4KOUStopP1SoftwareCWX();\n            }\n\n            cwx_mox_latched = state;\n        }'''
+          if s.count(old) != 1:
+              raise SystemExit(f'cwx.cs latch block count={s.count(old)}')
+          s = s.replace(old, new, 1)
+
+          old = '''                if (state)\n                    set_cwx_mox_latch(true);\n\n                setptt_memory = state;'''
+          new = '''                if (state)\n                    set_cwx_mox_latch(true);\n                else if (NetworkIO.CurrentRadioProtocol == RadioProtocol.USB)\n                    set_cwx_mox_latch(false);\n\n                setptt_memory = state;'''
+          if s.count(old) != 1:
+              raise SystemExit(f'cwx.cs setptt anchor count={s.count(old)}')
+          s = s.replace(old, new, 1)
+
+          old = '                NetworkIO.SetCWX(Convert.ToInt32(state));'
+          new = '''                if (NetworkIO.CurrentRadioProtocol == RadioProtocol.USB && console.SQ4KOUP1SoftwareCWXActive)\n                    console.SQ4KOUSetP1SoftwareCWXKey(state);\n                else\n                    NetworkIO.SetCWX(Convert.ToInt32(state));'''
+          if s.count(old) != 1:
+              raise SystemExit(f'cwx.cs SetCWX count={s.count(old)}')
+          s = s.replace(old, new, 1)
+          p.write_text(s, encoding='utf-8-sig')
+          '@ | Set-Content -Encoding UTF8 .\apply_p1_cwx.py
+          python .\apply_p1_cwx.py
+          Remove-Item .\apply_p1_cwx.py
+
+          git diff --check
+          git diff -- 'Project Files/Source/Console/console.cs' 'Project Files/Source/Console/cwx.cs'
+
+          $console = Get-Content -Raw 'Project Files\Source\Console\console.cs'
+          $cwx = Get-Content -Raw 'Project Files\Source\Console\cwx.cs'
+          if (!$console.Contains('SQ4KOUStartP1SoftwareCWX')) { throw 'Software CWX console path missing' }
+          if (!$cwx.Contains('console.SQ4KOUSetP1SoftwareCWXKey(state)')) { throw 'Software CWX key path missing' }
+
+      - name: Commit source test
+        shell: pwsh
+        run: |
+          git config user.name 'SQ4KOU Build Bot'
+          git config user.email 'actions@github.com'
+          git rm -- '.github/workflows/sq4kou-p1-software-cwx-test.yml'
+          git add -- 'Project Files/Source/Console/console.cs' 'Project Files/Source/Console/cwx.cs'
+          git commit -m 'Route P1 CWX through normal WDSP IQ'
+          git push origin HEAD:sq4kou
+          $sha = git rev-parse HEAD
+          "SOURCE_SHA=$sha" | Out-File -FilePath $env:GITHUB_ENV -Append
+          Write-Host "SOURCE_SHA=$sha"
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Enable long paths
+        shell: pwsh
+        run: git config --global core.longpaths true
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) { choco install wixtoolset -y --no-progress }
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $targets) { throw 'WiX 3.x Wix.targets not found' }
+          "WIX_TARGETS=$($targets.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore NuGet packages
+        shell: pwsh
+        run: nuget restore "Project Files\Source\Thetis_VS2026.sln" -NonInteractive
+
+      - name: Build Release x64 and MSI
+        shell: pwsh
+        run: |
+          msbuild "Project Files\Source\Thetis_VS2026.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal /fl /flp:"logfile=SQ4KOU_P1_SOFTWARE_CWX_BUILD.log;verbosity=normal"
+          if ($LASTEXITCODE -ne 0) { throw "MSBuild failed: $LASTEXITCODE" }
+
+      - name: Verify and stage MSI
+        shell: pwsh
+        run: |
+          $dir = 'Project Files\bin\Installers'
+          $msi = Get-ChildItem $dir -Filter '*.msi' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (!$msi) { throw 'No MSI produced' }
+          if ($msi.Length -lt 1MB) { throw "MSI too small: $($msi.Length)" }
+          $dst = Join-Path $dir 'SQ4KOU_THETIS_P1_SOFTWARE_CWX_x64.msi'
+          Copy-Item $msi.FullName $dst -Force
+          $hash = (Get-FileHash $dst -Algorithm SHA256).Hash
+          $size = (Get-Item $dst).Length
+          "SOURCE_SHA=$env:SOURCE_SHA`nMSI=$dst`nSIZE=$size`nSHA256=$hash`nPATH=P1 CWX -> MOX + WDSP TXPostGen -> normal P1 IQ`nFW_KEYER=disabled only while P1 CWX is active" | Set-Content 'SQ4KOU_P1_SOFTWARE_CWX_BUILD_INFO.txt'
+          Write-Host "MSI=$dst"
+          Write-Host "SIZE=$size"
+          Write-Host "SHA256=$hash"
+
+      - name: Upload P1 software CWX test
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU_THETIS_P1_SOFTWARE_CWX_MSI
+          path: |
+            Project Files/bin/Installers/SQ4KOU_THETIS_P1_SOFTWARE_CWX_x64.msi
+            SQ4KOU_P1_SOFTWARE_CWX_BUILD_INFO.txt
+            SQ4KOU_P1_SOFTWARE_CWX_BUILD.log
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
