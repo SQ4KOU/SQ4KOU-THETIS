@@ -1,0 +1,119 @@
+name: Diagnose Thetis runtime dependencies
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/dependency-diagnose.yml
+  workflow_dispatch:
+
+jobs:
+  diagnose:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout SQ4KOU source
+        uses: actions/checkout@v4
+        with:
+          ref: sq4kou
+          fetch-depth: 1
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Restore packages
+        shell: pwsh
+        run: nuget restore 'Project Files/Source/Thetis_VS2026.sln' -NonInteractive
+
+      - name: Build Release x64
+        shell: pwsh
+        run: msbuild 'Project Files/Source/Thetis_VS2026.sln' /m /t:Build /p:Configuration=Release /p:Platform=x64 /v:minimal
+
+      - name: Inspect assemblies and MSI payload
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $bin = (Resolve-Path 'Project Files/bin/x64/Release').Path
+          New-Item -ItemType Directory -Force -Path diagnostics | Out-Null
+          $report = [System.Collections.Generic.List[string]]::new()
+          $report.Add("SOURCE_COMMIT=$(git rev-parse HEAD)")
+          $report.Add("BIN=$bin")
+          $report.Add('')
+          $report.Add('=== KEY ASSEMBLY IDENTITIES ===')
+          $names = @(
+            'Thetis.exe',
+            'Microsoft.CodeAnalysis.dll',
+            'Microsoft.CodeAnalysis.CSharp.dll',
+            'Microsoft.CodeAnalysis.Scripting.dll',
+            'Microsoft.CodeAnalysis.CSharp.Scripting.dll',
+            'System.Collections.Immutable.dll',
+            'System.Reflection.Metadata.dll',
+            'System.Runtime.CompilerServices.Unsafe.dll',
+            'System.Memory.dll',
+            'System.Buffers.dll',
+            'Microsoft.Bcl.AsyncInterfaces.dll'
+          )
+          foreach ($name in $names) {
+            $p = Join-Path $bin $name
+            if (Test-Path $p) {
+              $an = [Reflection.AssemblyName]::GetAssemblyName($p)
+              $report.Add("$name | Version=$($an.Version) | PKT=$([BitConverter]::ToString($an.GetPublicKeyToken()).Replace('-','').ToLowerInvariant()) | SHA256=$((Get-FileHash $p -Algorithm SHA256).Hash)")
+            } else {
+              $report.Add("MISSING: $name")
+            }
+          }
+          $report.Add('')
+          $report.Add('=== REFERENCES: Microsoft.CodeAnalysis*.dll / Immutable ===')
+          foreach ($name in @('Microsoft.CodeAnalysis.dll','Microsoft.CodeAnalysis.CSharp.dll','Microsoft.CodeAnalysis.Scripting.dll','Microsoft.CodeAnalysis.CSharp.Scripting.dll','System.Collections.Immutable.dll','System.Reflection.Metadata.dll')) {
+            $p = Join-Path $bin $name
+            if (Test-Path $p) {
+              $report.Add("-- $name --")
+              $a = [Reflection.Assembly]::ReflectionOnlyLoadFrom($p)
+              foreach ($r in ($a.GetReferencedAssemblies() | Sort-Object Name)) {
+                $report.Add("REF $($r.FullName)")
+              }
+            }
+          }
+          $report.Add('')
+          $cfg = Join-Path $bin 'Thetis.exe.config'
+          $report.Add('=== BUILT CONFIG ===')
+          if (Test-Path $cfg) {
+            $report.AddRange([string[]](Get-Content $cfg))
+          } else {
+            $report.Add('MISSING Thetis.exe.config')
+          }
+          $report.Add('')
+          $msi = Get-ChildItem -LiteralPath 'Project Files/bin/Installers' -File -Filter '*.msi' | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
+          if ($null -eq $msi) { throw 'MSI not found' }
+          $report.Add("MSI=$($msi.FullName)")
+          $report.Add("MSI_SHA256=$((Get-FileHash $msi.FullName -Algorithm SHA256).Hash)")
+
+          $admin = Join-Path $PWD 'diagnostics/admin'
+          New-Item -ItemType Directory -Force -Path $admin | Out-Null
+          $proc = Start-Process msiexec.exe -ArgumentList @('/a', ('"' + $msi.FullName + '"'), '/qn', ('TARGETDIR="' + $admin + '"')) -Wait -PassThru
+          $report.Add("MSI_ADMIN_EXIT=$($proc.ExitCode)")
+          $installedImmutable = Get-ChildItem -Path $admin -Recurse -File -Filter 'System.Collections.Immutable.dll' | Select-Object -First 1
+          $installedConfig = Get-ChildItem -Path $admin -Recurse -File -Filter 'Thetis.exe.config' | Select-Object -First 1
+          $report.Add('')
+          $report.Add('=== ADMIN-EXTRACTED PAYLOAD ===')
+          if ($null -ne $installedImmutable) {
+            $an = [Reflection.AssemblyName]::GetAssemblyName($installedImmutable.FullName)
+            $report.Add("IMMUTABLE_PATH=$($installedImmutable.FullName)")
+            $report.Add("IMMUTABLE_VERSION=$($an.Version)")
+            $report.Add("IMMUTABLE_SHA256=$((Get-FileHash $installedImmutable.FullName -Algorithm SHA256).Hash)")
+          } else { $report.Add('MISSING System.Collections.Immutable.dll in MSI payload') }
+          if ($null -ne $installedConfig) {
+            $report.Add("CONFIG_PATH=$($installedConfig.FullName)")
+            $report.Add("CONFIG_SHA256=$((Get-FileHash $installedConfig.FullName -Algorithm SHA256).Hash)")
+            $report.AddRange([string[]](Get-Content $installedConfig.FullName))
+          } else { $report.Add('MISSING Thetis.exe.config in MSI payload') }
+
+          $report | Set-Content 'diagnostics/DEPENDENCY_REPORT.txt'
+          Get-Content 'diagnostics/DEPENDENCY_REPORT.txt'
+
+      - name: Upload diagnostics
+        uses: actions/upload-artifact@v4
+        with:
+          name: sq4kou-dependency-diagnostics
+          path: diagnostics/DEPENDENCY_REPORT.txt
+          if-no-files-found: error
