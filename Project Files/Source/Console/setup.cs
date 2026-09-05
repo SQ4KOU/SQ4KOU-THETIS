@@ -36089,33 +36089,47 @@ namespace Thetis
         private void InitWaterfallQualityControls()
         {
             if (comboPaletteRes != null) return; // already built
-            GroupBox grp = grpDisplayDriverEngine;
-            if (grp == null) return;
 
-            // Palette Resolution
-            int y = chkDpiAwareness.Location.Y + chkDpiAwareness.Height + 8;
+            // EU2AV supplied the complete WaterfallEnhancer backend, but the original
+            // programmatic controls were appended to the narrow DirectX group and could
+            // be clipped below its visible area. Put the complete control set in the
+            // unused Display/General area between Multimeter and Spectral Warning LEDs.
+            Control parent = grpDisplayDriverEngine.Parent;
+            if (parent == null) return;
+
+            GroupBoxTS grp = new GroupBoxTS();
+            grp.Name = "grpWaterfallQuality";
+            grp.Text = "Waterfall Quality";
+            grp.Location = new System.Drawing.Point(
+                grpSpectralWarningLeds.Location.X,
+                grpDisplayMultimeter.Location.Y);
+            grp.Size = new System.Drawing.Size(
+                grpSpectralWarningLeds.Width,
+                grpDisplayMultimeter.Height);
+            parent.Controls.Add(grp);
+            grp.BringToFront();
+
+            int y = 21;
+
             lblPaletteRes = new LabelTS();
             lblPaletteRes.Text = "Quality:";
             lblPaletteRes.Location = new System.Drawing.Point(8, y + 3);
-            lblPaletteRes.Size = new System.Drawing.Size(50, 16);
+            lblPaletteRes.Size = new System.Drawing.Size(52, 16);
             grp.Controls.Add(lblPaletteRes);
-            lblPaletteRes.BringToFront();
 
             comboPaletteRes = new ComboBoxTS();
             comboPaletteRes.Name = "comboPaletteRes";
             comboPaletteRes.DropDownStyle = ComboBoxStyle.DropDownList;
-            // Yurij-eu2av - 2026-07-04: Quality levels now drive visible saturation
-            // + contrast + dither in the float pipeline. Works for ALL schemes.
             comboPaletteRes.Items.AddRange(new object[] { "Classic", "Vivid", "Sharp", "Ultra" });
-            comboPaletteRes.Location = new System.Drawing.Point(60, y);
-            comboPaletteRes.Size = new System.Drawing.Size(80, 21);
-            comboPaletteRes.SelectedIndex = 0; // Classic = default
+            comboPaletteRes.Location = new System.Drawing.Point(62, y);
+            comboPaletteRes.Size = new System.Drawing.Size(94, 21);
+            comboPaletteRes.SelectedIndex = 0;
             comboPaletteRes.SelectedIndexChanged += new EventHandler(comboPaletteRes_SelectedIndexChanged);
+            toolTip1.SetToolTip(comboPaletteRes,
+                "Waterfall post-processing: Classic, Vivid, Sharp or Ultra.");
             grp.Controls.Add(comboPaletteRes);
-            comboPaletteRes.BringToFront();
 
-            // Dither
-            int y2 = y + 24;
+            int y2 = y + 27;
             chkWFDither = new CheckBoxTS();
             chkWFDither.Name = "chkWFDither";
             chkWFDither.Text = "Dither";
@@ -36123,60 +36137,61 @@ namespace Thetis
             chkWFDither.Location = new System.Drawing.Point(8, y2);
             chkWFDither.Checked = false;
             chkWFDither.CheckedChanged += new EventHandler(chkWFDither_CheckedChanged);
+            toolTip1.SetToolTip(chkWFDither,
+                "Adds dithering to reduce visible colour banding (Ultra enables it automatically).");
             grp.Controls.Add(chkWFDither);
-            chkWFDither.BringToFront();
 
-            // Gamma
-            int y3 = y2 + 24;
+            int y3 = y2 + 25;
             lblWFGamma = new LabelTS();
             lblWFGamma.Text = "Gamma:";
             lblWFGamma.Location = new System.Drawing.Point(8, y3 + 3);
-            lblWFGamma.Size = new System.Drawing.Size(50, 16);
+            lblWFGamma.Size = new System.Drawing.Size(48, 16);
             grp.Controls.Add(lblWFGamma);
-            lblWFGamma.BringToFront();
 
             tbWFGamma = new TrackBarTS();
             tbWFGamma.Name = "tbWFGamma";
-            tbWFGamma.Minimum = 50;     // 0.5
-            tbWFGamma.Maximum = 200;    // 2.0
-            tbWFGamma.Value = 100;      // 1.0
+            tbWFGamma.Minimum = 50;
+            tbWFGamma.Maximum = 200;
+            tbWFGamma.Value = 100;
             tbWFGamma.TickFrequency = 25;
-            tbWFGamma.Location = new System.Drawing.Point(60, y3 - 2);
-            tbWFGamma.Size = new System.Drawing.Size(60, 28);
+            tbWFGamma.Location = new System.Drawing.Point(55, y3 - 2);
+            tbWFGamma.Size = new System.Drawing.Size(73, 28);
             tbWFGamma.Scroll += new EventHandler(tbWFGamma_Scroll);
+            toolTip1.SetToolTip(tbWFGamma,
+                "Waterfall gamma curve, 0.50 to 2.00. 1.00 is neutral.");
             grp.Controls.Add(tbWFGamma);
-            tbWFGamma.BringToFront();
 
             lblWFGammaVal = new LabelTS();
             lblWFGammaVal.Text = "1.00";
-            lblWFGammaVal.Location = new System.Drawing.Point(122, y3 + 3);
-            lblWFGammaVal.Size = new System.Drawing.Size(24, 16);
+            lblWFGammaVal.Location = new System.Drawing.Point(130, y3 + 3);
+            lblWFGammaVal.Size = new System.Drawing.Size(32, 16);
             grp.Controls.Add(lblWFGammaVal);
-            lblWFGammaVal.BringToFront();
 
-            // Yurij-eu2av - 2026-07-04: Color Depth selector (8/16-bit).
-            // 8-bit = classic (256 levels), 16-bit = float (65536 levels).
-            // 10-bit (R10G10B10A2) is NOT offered: Direct2D does not reliably
-            // support it as a bitmap surface across GPU drivers, even though
-            // D3D11 does. 16-bit half-float is strictly better and supported.
             int y4 = y3 + 32;
             lblColorDepth = new LabelTS();
             lblColorDepth.Text = "Depth:";
             lblColorDepth.Location = new System.Drawing.Point(8, y4 + 3);
-            lblColorDepth.Size = new System.Drawing.Size(50, 16);
+            lblColorDepth.Size = new System.Drawing.Size(52, 16);
             grp.Controls.Add(lblColorDepth);
-            lblColorDepth.BringToFront();
 
             comboColorDepth = new ComboBoxTS();
             comboColorDepth.Name = "comboColorDepth";
             comboColorDepth.DropDownStyle = ComboBoxStyle.DropDownList;
             comboColorDepth.Items.AddRange(new object[] { "8-bit", "16-bit Float" });
-            comboColorDepth.Location = new System.Drawing.Point(60, y4);
-            comboColorDepth.Size = new System.Drawing.Size(86, 21);
-            comboColorDepth.SelectedIndex = 0; // 8-bit = default (classic)
+            comboColorDepth.Location = new System.Drawing.Point(62, y4);
+            comboColorDepth.Size = new System.Drawing.Size(94, 21);
+            comboColorDepth.SelectedIndex = 0;
             comboColorDepth.SelectedIndexChanged += new EventHandler(comboColorDepth_SelectedIndexChanged);
+            toolTip1.SetToolTip(comboColorDepth,
+                "Waterfall render surface: classic 8-bit or 16-bit floating point. Change is live.");
             grp.Controls.Add(comboColorDepth);
-            comboColorDepth.BringToFront();
+
+            // The RX1/RX2/TX palette combos are intentionally compact in the legacy
+            // layout. Widen the drop-down itself so the new Console 256 / Thermal 256 /
+            // DeepBlue 256 names are always readable without disturbing adjacent controls.
+            if (comboColorPalette != null) comboColorPalette.DropDownWidth = 125;
+            if (comboRX2ColorPalette != null) comboRX2ColorPalette.DropDownWidth = 125;
+            if (comboColorPalette_tx != null) comboColorPalette_tx.DropDownWidth = 125;
         }
 
         private void comboPaletteRes_SelectedIndexChanged(object sender, EventArgs e)
