@@ -1,0 +1,58 @@
+name: Targeted Setup UI audit
+
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/audit-ui-targeted.yml]
+
+jobs:
+  audit:
+    runs-on: windows-2025-vs2026
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: sq4kou
+          fetch-depth: 1
+      - name: Fast static UI audit
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          @'
+          from pathlib import Path
+          import re
+          p=Path(r'Project Files/Source/Console')
+          D=(p/'setup.designer.cs').read_text(encoding='utf-8-sig',errors='replace')
+          S=(p/'setup.cs').read_text(encoding='utf-8-sig',errors='replace')
+          loc={m.group(1):(int(m.group(2)),int(m.group(3))) for m in re.finditer(r'this\.(\w+)\.Location\s*=\s*new System\.Drawing\.Point\((-?\d+),\s*(-?\d+)\);',D)}
+          size={m.group(1):(int(m.group(2)),int(m.group(3))) for m in re.finditer(r'this\.(\w+)\.Size\s*=\s*new System\.Drawing\.Size\((\d+),\s*(\d+)\);',D)}
+          cap={m.group(1):m.group(2) for m in re.finditer(r'this\.(\w+)\.Text\s*=\s*"([^"]*)";',D)}
+          par={}
+          for m in re.finditer(r'this\.(\w+)\.Controls\.Add\(this\.(\w+)\);',D): par[m.group(2)]=m.group(1)
+          print('=== CLIPPING >=4 px ===')
+          for c,q in sorted(par.items()):
+            if c in loc and c in size and q in size:
+              x,y=loc[c]; w,h=size[c]; pw,ph=size[q]
+              ov=max(max(0,-x),max(0,-y),max(0,x+w-pw),max(0,y+h-ph))
+              if ov>=4: print(c,'parent=',q,'loc=',loc[c],'size=',size[c],'parentSize=',size[q],'overflow=',ov,'text=',cap.get(c,''))
+          print('=== VISIBLE FALSE ===')
+          for m in re.finditer(r'this\.(\w+)\.Visible\s*=\s*false\s*;',D):
+            c=m.group(1); print(c,'parent=',par.get(c,'?'),'text=',cap.get(c,''),'runtime_true=',bool(re.search(r'\b'+re.escape(c)+r'\.Visible\s*=\s*true',S)))
+          print('=== ENABLED FALSE ===')
+          for m in re.finditer(r'this\.(\w+)\.Enabled\s*=\s*false\s*;',D):
+            c=m.group(1); print(c,'parent=',par.get(c,'?'),'text=',cap.get(c,''),'runtime_true=',bool(re.search(r'\b'+re.escape(c)+r'\.Enabled\s*=\s*true',S)))
+          print('=== PROGRAMMATIC UI INIT METHODS / CALLS ===')
+          for name in ['CreateDpiAwarenessCheckBox','InitWaterfallQualityControls','InitPhaseRotatorControls','InitDetCalTab','initVoltsAmpsCalibration','InitN1mmCWShiftOption']:
+            defs=[S.count('\n',0,m.start())+1 for m in re.finditer(r'\b'+re.escape(name)+r'\s*\(',S)]
+            print(name,defs)
+          print('=== PROGRAMMATIC CONTROLS ===')
+          for m in re.finditer(r'(\w+)\s*=\s*new\s+(CheckBoxTS|ComboBoxTS|TrackBarTS|GroupBoxTS|LabelTS|ButtonTS|NumericUpDownTS)\s*\(\s*\)',S):
+            line=S.count('\n',0,m.start())+1; print(line,m.group(1),m.group(2))
+          print('=== DISPLAY GENERAL GROUPS ===')
+          for c in ['grpDisplayRefreshRates','grpDisplayPhase','grpDisplayScopeMode','grpDisplayMultimeter','grpDisplay8000DLE','groupBoxTS11','groupBoxTS13','grpSpectralWarningLeds','grpDisplayDriverEngine']:
+            print(c,'loc=',loc.get(c),'size=',size.get(c),'parent=',par.get(c),'text=',cap.get(c,''))
+          '@ | Set-Content -Encoding UTF8 audit_fast.py
+          python audit_fast.py | Tee-Object -FilePath audit-fast.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: targeted-setup-ui-audit
+          path: audit-fast.txt
