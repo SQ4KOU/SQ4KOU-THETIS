@@ -51,7 +51,7 @@ jobs:
                             }
                         }
                     }
-'@
+          '@
             $newRender = @'
                     RunDisplay(rx); // get pixels
 
@@ -77,14 +77,14 @@ jobs:
                             }));
                         }
                     }
-'@
+          '@
 
             $oldPixels = @'
                     fixed (float* ptr = &new_display_data[0])
                         SpecHPSDRDLL.GetPixels(rx, 0, ptr, ref flag);
 
                     this.DataReady = true;
-'@
+          '@
             $newPixels = @'
                     fixed (float* ptr = &new_display_data[0])
                         SpecHPSDRDLL.GetPixels(rx, 0, ptr, ref flag);
@@ -92,7 +92,7 @@ jobs:
                     // WDSP flag==1 means a new pixel frame was actually returned.
                     if (flag != 0)
                         this.DataReady = true;
-'@
+          '@
 
             $renderCount = ([regex]::Matches($text, [regex]::Escape($oldRender))).Count
             $pixelCount = ([regex]::Matches($text, [regex]::Escape($oldPixels))).Count
@@ -108,7 +108,10 @@ jobs:
           if (-not $check.Contains('SQ4KOU_WB_UI_FLOW_V1')) { throw 'Patch marker missing' }
           if (-not $check.Contains('if (flag != 0)')) { throw 'GetPixels flag gate missing' }
           if ($check.IndexOf('frameDrawn = DrawWideBand(grSrc, rx);') -lt 0) { throw 'frameDrawn gate missing' }
-          if ($check.IndexOf('frameDrawn = DrawWideBand(grSrc, rx);') -gt $check.IndexOf('this.Invoke(new Action(() =>', $check.IndexOf('SQ4KOU_WB_UI_FLOW_V1'))) { throw 'Invoke ordering check failed' }
+          $markerIndex = $check.IndexOf('SQ4KOU_WB_UI_FLOW_V1')
+          $drawIndex = $check.IndexOf('frameDrawn = DrawWideBand(grSrc, rx);', $markerIndex)
+          $invokeIndex = $check.IndexOf('this.Invoke(new Action(() =>', $markerIndex)
+          if ($drawIndex -lt 0 -or $invokeIndex -lt 0 -or $drawIndex -gt $invokeIndex) { throw 'Invoke ordering check failed' }
           git diff --check
           git diff -- 'Project Files/Source/Console/wbDisplay.cs'
 
