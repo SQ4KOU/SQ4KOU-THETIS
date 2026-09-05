@@ -1,0 +1,60 @@
+name: Audit Setup UI visibility
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/audit-ui-visibility.yml
+      - .github/scripts/audit_ui_visibility.py
+
+permissions:
+  contents: write
+
+jobs:
+  audit:
+    runs-on: windows-2025-vs2026
+    steps:
+      - name: Checkout control branch
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+          path: control
+
+      - name: Checkout SQ4KOU working branch
+        uses: actions/checkout@v4
+        with:
+          ref: sq4kou
+          fetch-depth: 1
+          path: synthesis
+
+      - name: Run visibility audit
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          python control/.github/scripts/audit_ui_visibility.py synthesis control/audit/ui_visibility_audit.md
+          if (-not (Test-Path control/audit/ui_visibility_audit.md)) { throw 'Audit report not created' }
+          Get-Content control/audit/ui_visibility_audit.md -TotalCount 220
+
+      - name: Commit audit report
+        working-directory: control
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "SQ4KOU audit automation"
+          git config user.email "actions@users.noreply.github.com"
+          git add audit/ui_visibility_audit.md
+          if git diff --cached --quiet; then
+            echo "Report unchanged"
+          else
+            git commit -m "Audit Setup UI visibility on sq4kou"
+            git push origin HEAD:main
+          fi
+
+      - name: Upload report
+        uses: actions/upload-artifact@v4
+        with:
+          name: setup-ui-visibility-audit
+          path: control/audit/ui_visibility_audit.md
+          if-no-files-found: error
