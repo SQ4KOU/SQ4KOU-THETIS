@@ -101,12 +101,12 @@ jobs:
                       MeterScriptEngine.Start(() => null, 100, 1);
                       Thread.Sleep(300);
                       MeterScriptEngine.Stop();
-                      Console.WriteLine("METER_SCRIPT_ENGINE_SMOKE=PASS");
+                      System.Console.WriteLine("METER_SCRIPT_ENGINE_SMOKE=PASS");
                       return 0;
                   }
                   catch (Exception ex)
                   {
-                      Console.Error.WriteLine(ex.ToString());
+                      System.Console.Error.WriteLine(ex.ToString());
                       return 10;
                   }
               }
