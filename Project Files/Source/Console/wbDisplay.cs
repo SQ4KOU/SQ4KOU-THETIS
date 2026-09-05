@@ -3463,19 +3463,26 @@ namespace Thetis
 
                     RunDisplay(rx); // get pixels
 
+                    // SQ4KOU_WB_UI_FLOW_V1: render/present only a fresh WDSP frame.
+                    if (!this.DataReady) continue;
+
                     if (!pauseDisplayThread)
                     {
+                        bool frameDrawn;
                         using (Graphics grSrc = Graphics.FromImage(wbDisplay_buffer))
                         {
                             grSrc.Clear(Color.Transparent);
-                            if (DrawWideBand(grSrc, rx))
+                            frameDrawn = DrawWideBand(grSrc, rx);
+                        }
+
+                        // GDI+ drawing is fully closed before the bitmap is presented by WinForms.
+                        if (frameDrawn)
+                        {
+                            this.Invoke(new Action(() =>
                             {
-                                this.Invoke(new Action(() =>
-                                    {
-                                        this.Image = wbDisplay_buffer;
-                                        this.Refresh();
-                                    }));
-                            }
+                                this.Image = wbDisplay_buffer;
+                                this.Refresh();
+                            }));
                         }
                     }
 
@@ -3501,7 +3508,9 @@ namespace Thetis
                     fixed (float* ptr = &new_display_data[0])
                         SpecHPSDRDLL.GetPixels(rx, 0, ptr, ref flag);
 
-                    this.DataReady = true;
+                    // WDSP flag==1 means a new pixel frame was actually returned.
+                    if (flag != 0)
+                        this.DataReady = true;
                 }
 
             //Thread.Sleep(70);
