@@ -31,29 +31,32 @@ jobs:
           "path=$msbuild" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
           Write-Host "MSBuild: $msbuild"
 
-      - name: Verify v145 toolset
+      - name: Install build prerequisites
         shell: pwsh
         run: |
-          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-          $vs = & $vswhere -latest -prerelease -products * -property installationPath
-          if (!$vs) { throw "Visual Studio installation not found" }
-          $hits = Get-ChildItem -Path $vs -Recurse -Filter Microsoft.Cpp.v145*.props -ErrorAction SilentlyContinue | Select-Object -First 5
-          if (!$hits) {
-            Write-Host "v145 props not found by filename scan; MSBuild will perform authoritative validation."
-          } else {
-            $hits | ForEach-Object { Write-Host $_.FullName }
-          }
-
-      - name: Install WiX Toolset 3.x
-        shell: pwsh
-        run: |
-          choco install wixtoolset --no-progress -y
+          choco install wixtoolset nuget.commandline --no-progress -y
           $wixTargets = "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets"
-          if (!(Test-Path $wixTargets)) {
-            $wixTargets = Get-ChildItem "${env:ProgramFiles(x86)}" -Recurse -Filter Wix.targets -ErrorAction SilentlyContinue | Where-Object { $_.FullName -match 'WiX.*v3' } | Select-Object -First 1 -ExpandProperty FullName
-          }
-          if (!$wixTargets) { throw "WiX 3.x targets not found after installation" }
+          if (!(Test-Path $wixTargets)) { throw "WiX 3.x targets not found: $wixTargets" }
           Write-Host "WiX targets: $wixTargets"
+          nuget help | Select-Object -First 2
+
+      - name: Restore NuGet packages
+        shell: pwsh
+        run: |
+          $sln = 'Project Files\Source\Thetis_VS2026.sln'
+          $packages = 'Project Files\Source\packages'
+          nuget restore $sln -PackagesDirectory $packages -NonInteractive -Verbosity normal
+          if ($LASTEXITCODE -ne 0) { throw "NuGet restore failed with exit code $LASTEXITCODE" }
+          $required = @(
+            'System.Resources.Extensions.10.0.8\lib\net462\System.Resources.Extensions.dll',
+            'Discord.Net.Commands.3.18.0\lib\net461\Discord.Net.Commands.dll',
+            'NAudio.2.3.0\lib\net472\NAudio.dll'
+          )
+          foreach ($rel in $required) {
+            $p = Join-Path $packages $rel
+            if (!(Test-Path $p)) { throw "Required restored package file missing: $p" }
+            Write-Host "RESTORED: $p"
+          }
 
       - name: Build Thetis Release x64 and MSI
         shell: pwsh
@@ -71,11 +74,13 @@ jobs:
           $msi = Get-ChildItem $dir -Filter '*.msi' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
           if (!$msi) { throw "No MSI produced" }
           $dst = Join-Path $dir 'SQ4KOU_THETIS_CW_TEST_x64.msi'
-          Copy-Item $msi.FullName $dst -Force
+          if ($msi.FullName -ne (Resolve-Path $dst -ErrorAction SilentlyContinue)) { Copy-Item $msi.FullName $dst -Force }
           $hash = (Get-FileHash $dst -Algorithm SHA256).Hash
+          $size = (Get-Item $dst).Length
           Write-Host "MSI: $dst"
+          Write-Host "SIZE: $size"
           Write-Host "SHA256: $hash"
-          "MSI=$dst`nSHA256=$hash`nSOURCE_COMMIT=${{ github.sha }}" | Set-Content 'SQ4KOU_MSI_BUILD_INFO.txt'
+          "MSI=$dst`nSIZE=$size`nSHA256=$hash`nSOURCE_COMMIT=${{ github.sha }}`nCW_FIX_COMMIT=6b8ae885172b99a7c7a5da7551b6717250ccc85b" | Set-Content 'SQ4KOU_MSI_BUILD_INFO.txt'
 
       - name: Upload MSI artifact
         uses: actions/upload-artifact@v4
