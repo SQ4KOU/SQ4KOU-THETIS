@@ -30,6 +30,56 @@ int PreviousTXBit = 0;							// used to detect TX/RX change
 unsigned int MetisOutBoundSeqNum;
 PRO prop;
 
+/* SQ4KOU_P1_WB_ASYNC_V1
+ * Protocol-1 EP4 receive path must not call WDSP Spectrum().
+ * Assemble one complete 16384-sample WideBand frame here and hand it
+ * to one background worker. If the worker is still busy, drop only
+ * the next WideBand frame; EP6/DDC RX always keeps priority.
+ */
+#define SQ4KOU_P1_WB_SPP 512
+#define SQ4KOU_P1_WB_PPF 32
+#define SQ4KOU_P1_WB_PACKET_BYTES (SQ4KOU_P1_WB_SPP * 2)
+#define SQ4KOU_P1_WB_FRAME_BYTES (SQ4KOU_P1_WB_PACKET_BYTES * SQ4KOU_P1_WB_PPF)
+
+typedef struct _SQ4KOU_P1_WB_JOB
+{
+    volatile LONG busy;
+    unsigned char raw[SQ4KOU_P1_WB_FRAME_BYTES];
+} SQ4KOU_P1_WB_JOB;
+
+static unsigned char sq4kou_p1_wb_collect[SQ4KOU_P1_WB_FRAME_BYTES];
+static SQ4KOU_P1_WB_JOB sq4kou_p1_wb_job = { 0 };
+
+static DWORD WINAPI SQ4KOU_P1_WBWorker(LPVOID param)
+{
+    SQ4KOU_P1_WB_JOB* job = (SQ4KOU_P1_WB_JOB*)param;
+    double wb_buff[SQ4KOU_P1_WB_SPP];
+    int packet, ii, jj;
+
+    for (packet = 0; packet < SQ4KOU_P1_WB_PPF; packet++)
+    {
+        const unsigned char* src = job->raw + packet * SQ4KOU_P1_WB_PACKET_BYTES;
+        for (ii = 0, jj = 0; ii < SQ4KOU_P1_WB_SPP; ++ii, jj += 2)
+            wb_buff[ii] = const_1_div_2147483648_ *
+                (double)(src[jj] << 24 | src[jj + 1] << 16);
+        Spectrum(prn->wb_base_dispid, 0, 0, wb_buff, wb_buff);
+    }
+
+    InterlockedExchange(&job->busy, 0);
+    return 0;
+}
+
+static void SQ4KOU_P1_WBSubmitFrame(void)
+{
+    SQ4KOU_P1_WB_JOB* job = &sq4kou_p1_wb_job;
+    if (InterlockedCompareExchange(&job->busy, 1, 0) != 0) return;
+
+    memcpy(job->raw, sq4kou_p1_wb_collect, SQ4KOU_P1_WB_FRAME_BYTES);
+    if (!QueueUserWorkItem(SQ4KOU_P1_WBWorker, job, WT_EXECUTEDEFAULT))
+        InterlockedExchange(&job->busy, 0);
+}
+
+
 int SendStartToMetis(void) {
 	int i;
 	int starting_seq;
@@ -192,47 +242,42 @@ int MetisReadDirect(unsigned char* bufp) {
 
 			if (endpoint == 4) {
 				/* P1 WB logical ADC0 is physical RP IN2/ADC-B. */
-				int wb_spp = 512;
-				int wb_ppf = 32;
-				int ii, jj;
-				double* wb_buff = prn->adc[0].wb_buff;
+				/* SQ4KOU_P1_WB_ASYNC_V1: receive/copy only. */
+				int submit_frame = 0;
 
-				for (ii = 0, jj = 8; ii < wb_spp; ++ii, jj += 2)
-					wb_buff[ii] = const_1_div_2147483648_ *
-						(double)(inpacket.readbuf[jj] << 24 | inpacket.readbuf[jj + 1] << 16);
-
-				/* Same framing state machine as current P2 WideBand. */
-				switch (prn->adc[0].wb_state)
+				if (seqnum == 0)
 				{
-				case 0:
+					prn->adc[0].wb_state = 1;
 					prn->adc[0].wb_seqnum = 0;
-					if (seqnum == 0)
-					{
-						prn->adc[0].wb_state = 1;
-						Spectrum(prn->wb_base_dispid, 0, 0, wb_buff, wb_buff);
-						prn->adc[0].wb_seqnum++;
-					}
-					break;
+				}
 
-				case 1:
-					if (seqnum == prn->adc[0].wb_seqnum)
+				if (prn->adc[0].wb_state == 1 &&
+					seqnum < SQ4KOU_P1_WB_PPF &&
+					seqnum == (unsigned int)prn->adc[0].wb_seqnum)
+				{
+					memcpy(sq4kou_p1_wb_collect + seqnum * SQ4KOU_P1_WB_PACKET_BYTES,
+						inpacket.readbuf + 8, SQ4KOU_P1_WB_PACKET_BYTES);
+
+					if (prn->adc[0].wb_seqnum == SQ4KOU_P1_WB_PPF - 1)
 					{
-						Spectrum(prn->wb_base_dispid, 0, 0, wb_buff, wb_buff);
-						if (prn->adc[0].wb_seqnum == wb_ppf - 1)
 						prn->adc[0].wb_state = 0;
+						prn->adc[0].wb_seqnum = 0;
+						submit_frame = 1;
 					}
 					else
 					{
-						memset(wb_buff, 0, wb_spp * sizeof(double));
-						for (jj = prn->adc[0].wb_seqnum; jj < wb_ppf; jj++)
-						Spectrum(prn->wb_base_dispid, 0, 0, wb_buff, wb_buff);
-						prn->adc[0].wb_state = 0;
+						prn->adc[0].wb_seqnum++;
 					}
-					prn->adc[0].wb_seqnum++;
-					break;
+				}
+				else
+				{
+					/* Lost/out-of-order EP4: discard this WB frame only. */
+					prn->adc[0].wb_state = 0;
+					prn->adc[0].wb_seqnum = 0;
 				}
 
 				LeaveCriticalSection(&prn->rcvpktp1);
+				if (submit_frame) SQ4KOU_P1_WBSubmitFrame();
 				return 4;
 			}
 			else if (endpoint == 6) {
