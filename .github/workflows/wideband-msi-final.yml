@@ -1,0 +1,65 @@
+name: SQ4KOU WideBand final x64 MSI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/wideband-msi-final.yml
+  workflow_dispatch:
+
+jobs:
+  build-msi:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout exact SQ4KOU branch
+        uses: actions/checkout@v4
+        with:
+          ref: sq4kou
+          fetch-depth: 1
+
+      - name: Record source commit
+        shell: pwsh
+        run: git rev-parse HEAD | Tee-Object -FilePath SQ4KOU_SOURCE_COMMIT.txt
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Restore packages
+        shell: pwsh
+        run: nuget restore 'Project Files/Source/Thetis_VS2026.sln' -NonInteractive
+
+      - name: Build Release x64 MSI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path build-logs | Out-Null
+          msbuild 'Project Files/Source/Thetis_VS2026.sln' /m /t:Build /p:Configuration=Release /p:Platform=x64 /v:minimal /fl /flp:'logfile=build-logs/msbuild-x64-release.log;verbosity=normal' /bl:build-logs/msbuild-x64-release.binlog
+
+          $msi = Get-ChildItem -LiteralPath 'Project Files' -Recurse -File -Filter 'Thetis.msi' |
+            Sort-Object LastWriteTimeUtc -Descending |
+            Select-Object -First 1
+          if ($null -eq $msi) { throw 'Thetis.msi not found anywhere under Project Files after successful build' }
+          Write-Host "MSI found: $($msi.FullName)"
+
+          New-Item -ItemType Directory -Force -Path build-artifacts | Out-Null
+          $out = 'build-artifacts/SQ4KOU_THETIS_WIDEBAND_UI_FIX_X64.msi'
+          Copy-Item -LiteralPath $msi.FullName -Destination $out -Force
+          (Get-FileHash -LiteralPath $out -Algorithm SHA256).Hash | Set-Content 'build-artifacts/SQ4KOU_THETIS_WIDEBAND_UI_FIX_X64.msi.sha256'
+          Copy-Item SQ4KOU_SOURCE_COMMIT.txt build-artifacts/SQ4KOU_SOURCE_COMMIT.txt -Force
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sq4kou-wideband-final-build-logs
+          path: build-logs/
+          if-no-files-found: warn
+
+      - name: Upload final MSI
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU_THETIS_WIDEBAND_UI_FIX_X64_MSI
+          path: build-artifacts/
+          if-no-files-found: error
