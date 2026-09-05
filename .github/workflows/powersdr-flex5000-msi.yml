@@ -1,1 +1,81 @@
-# noop
+name: PowerSDR FLEX-5000 MSI
+
+on:
+  push:
+    branches: [powersdr-flex5000-thetis-ui]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-powersdr-msi:
+    runs-on: windows-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout build harness
+        uses: actions/checkout@v4
+        with:
+          ref: powersdr-flex5000-thetis-ui
+          fetch-depth: 1
+          filter: blob:none
+
+      - name: Enable long paths
+        shell: pwsh
+        run: git config --global core.longpaths true
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $heat = Get-Command heat.exe -ErrorAction SilentlyContinue
+          if (-not $heat) {
+            choco install wixtoolset -y --no-progress
+            $heat = Get-ChildItem 'C:\Program Files (x86)\WiX Toolset v3*\bin\heat.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
+          }
+          if (-not $heat) { throw 'WiX heat.exe not found' }
+          $wixDir = if ($heat.PSIsContainer) { $heat.FullName } elseif ($heat.Source) { Split-Path $heat.Source } else { $heat.Directory.FullName }
+          "WIXBIN=$wixDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "WIXBIN=$wixDir"
+
+      - name: Build PowerSDR and MSI
+        shell: pwsh
+        run: |
+          & .\tools\powersdr\Build-PowerSDR-MSI.ps1 -WixBin "$env:WIXBIN"
+
+      - name: Verify product identity
+        shell: pwsh
+        run: |
+          $manifest = Get-Content .\artifacts\powersdr\POWERSDR_BUILD_MANIFEST.txt -Raw
+          if ($manifest -notmatch '(?m)^PRODUCT=PowerSDR$') { throw 'Product identity is not PowerSDR' }
+          if ($manifest -notmatch '(?m)^EXE=PowerSDR.exe$') { throw 'Executable identity is not PowerSDR.exe' }
+          if ($manifest -match 'Thetis\.exe') { throw 'Thetis executable leaked into PowerSDR product' }
+          $msi = Get-ChildItem .\artifacts\powersdr\PowerSDR*.msi | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
+          if (-not $msi) { throw 'PowerSDR MSI missing' }
+          if ($msi.Length -lt 1MB) { throw "MSI unexpectedly small: $($msi.Length)" }
+          Write-Host "READY=$($msi.FullName)"
+
+      - name: Upload PowerSDR MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: PowerSDR-FLEX5000-SQ4KOU-x86-MSI
+          path: |
+            artifacts/powersdr/*.msi
+            artifacts/powersdr/*.sha256
+            artifacts/powersdr/POWERSDR_BUILD_MANIFEST.txt
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PowerSDR-FLEX5000-build-logs
+          path: artifacts/powersdr/logs/**
+          if-no-files-found: ignore
