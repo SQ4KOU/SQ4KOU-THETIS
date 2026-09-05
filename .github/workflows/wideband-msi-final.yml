@@ -36,10 +36,10 @@ jobs:
           New-Item -ItemType Directory -Force -Path build-logs | Out-Null
           msbuild 'Project Files/Source/Thetis_VS2026.sln' /m /t:Build /p:Configuration=Release /p:Platform=x64 /v:minimal /fl /flp:'logfile=build-logs/msbuild-x64-release.log;verbosity=normal' /bl:build-logs/msbuild-x64-release.binlog
 
-          $msi = Get-ChildItem -LiteralPath 'Project Files' -Recurse -File -Filter 'Thetis.msi' |
+          $msi = Get-ChildItem -LiteralPath 'Project Files/bin/Installers' -File -Filter '*.msi' |
             Sort-Object LastWriteTimeUtc -Descending |
             Select-Object -First 1
-          if ($null -eq $msi) { throw 'Thetis.msi not found anywhere under Project Files after successful build' }
+          if ($null -eq $msi) { throw 'No MSI found in Project Files/bin/Installers after successful build' }
           Write-Host "MSI found: $($msi.FullName)"
 
           New-Item -ItemType Directory -Force -Path build-artifacts | Out-Null
