@@ -1,0 +1,81 @@
+name: Build Thetis MSI
+
+on:
+  push:
+    branches: [sq4kou]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-msi:
+    runs-on: windows-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout sq4kou
+        uses: actions/checkout@v4
+        with:
+          ref: sq4kou
+          fetch-depth: 1
+          filter: blob:none
+
+      - name: Enable long paths
+        shell: pwsh
+        run: git config --global core.longpaths true
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Show Visual Studio toolchain
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          & $vswhere -all -products * -format json
+          msbuild -version
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) {
+            choco install wixtoolset -y --no-progress
+          }
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) {
+            $targets = Get-ChildItem "C:\Program Files (x86)\WiX Toolset*\Wix.targets" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          }
+          if (-not $targets) { throw "WiX 3.x Wix.targets not found" }
+          "WIX_TARGETS=$($targets.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "Using WiX targets: $($targets.FullName)"
+
+      - name: Restore NuGet packages
+        shell: pwsh
+        run: |
+          nuget restore "Project Files\Source\Thetis_VS2026.sln" -NonInteractive
+
+      - name: Build Release x64 and MSI
+        shell: pwsh
+        run: |
+          msbuild "Project Files\Source\Thetis_VS2026.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal
+
+      - name: Verify MSI
+        shell: pwsh
+        run: |
+          $msi = Get-ChildItem "Project Files\bin\Installers\*.msi" -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $msi) { throw "MSI was not produced" }
+          if ($msi.Length -lt 1MB) { throw "MSI is unexpectedly small: $($msi.Length) bytes" }
+          Write-Host "MSI: $($msi.FullName) ($([math]::Round($msi.Length/1MB,2)) MB)"
+          "MSI_PATH=$($msi.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Upload MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-MSI
+          path: Project Files/bin/Installers/*.msi
+          if-no-files-found: error
+          compression-level: 0
