@@ -1,0 +1,225 @@
+name: SQ4KOU WideBand UI lifetime fix x64 MSI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/wideband-ui-lifetime-fix-msi.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-build-validate:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout SQ4KOU synthesis branch
+        uses: actions/checkout@v4
+        with:
+          ref: sq4kou
+          fetch-depth: 2
+          persist-credentials: true
+
+      - name: Apply minimal WideBand UI lifetime fix
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $p = 'Project Files/Source/Console/wbDisplay.cs'
+          $text = [IO.File]::ReadAllText($p)
+          $nl = if ($text.Contains("`r`n")) { "`r`n" } else { "`n" }
+
+          function Replace-Once([string]$src, [string[]]$oldLines, [string[]]$newLines, [string]$label) {
+            $old = $oldLines -join $script:nl
+            $new = $newLines -join $script:nl
+            $count = ([regex]::Matches($src, [regex]::Escape($old))).Count
+            if ($count -ne 1) { throw "$label anchor count=$count, expected 1" }
+            return $src.Replace($old, $new)
+          }
+
+          $text = Replace-Once $text @(
+            '        public void Cancel_Display()',
+            '        {',
+            '            if (cancelTokenSource != null)',
+            '            {',
+            '                cancelTokenSource.Cancel();',
+            '                cancelTokenSource.Dispose();',
+            '                cancelTokenSource = null;',
+            '            }'
+          ) @(
+            '        public void Cancel_Display()',
+            '        {',
+            '            CancellationTokenSource cts = cancelTokenSource;',
+            '            cancelTokenSource = null;',
+            '            if (cts != null)',
+            '            {',
+            '                cts.Cancel();',
+            '                cts.Dispose();',
+            '            }'
+          ) 'Cancel_Display ownership'
+
+          $text = Replace-Once $text @(
+            '            if (cancelTokenSource != null) Cancel_Display();',
+            '            cancelTokenSource = new CancellationTokenSource();',
+            '            UpdateGraphicsBuffer();'
+          ) @(
+            '            if (cancelTokenSource != null) Cancel_Display();',
+            '            var cts = new CancellationTokenSource();',
+            '            cancelTokenSource = cts;',
+            '            CancellationToken token = cts.Token;',
+            '            UpdateGraphicsBuffer();'
+          ) 'StartDisplay local token setup'
+
+          $text = Replace-Once $text @(
+            '                while (cancelTokenSource != null && !cancelTokenSource.IsCancellationRequested)'
+          ) @(
+            '                while (!token.IsCancellationRequested)'
+          ) 'worker loop token'
+
+          $text = Replace-Once $text @(
+            '                    RunDisplay(rx); // get pixels',
+            '',
+            '                    // SQ4KOU_WB_UI_FLOW_V1: render/present only a fresh WDSP frame.'
+          ) @(
+            '                    RunDisplay(rx); // get pixels',
+            '                    if (token.IsCancellationRequested) break;',
+            '',
+            '                    // SQ4KOU_WB_UI_FLOW_V1: render/present only a fresh WDSP frame.'
+          ) 'post-RunDisplay cancellation'
+
+          $text = Replace-Once $text @(
+            '                        if (frameDrawn)'
+          ) @(
+            '                        if (frameDrawn && !token.IsCancellationRequested && !this.IsDisposed && this.IsHandleCreated)'
+          ) 'presentation guard'
+
+          $text = Replace-Once $text @(
+            '            }, cancelTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);'
+          ) @(
+            '            }, token, TaskCreationOptions.LongRunning, TaskScheduler.Default);'
+          ) 'task token'
+
+          $text = Replace-Once $text @(
+            '            g.DrawRectangle(new Pen(Color.AntiqueWhite, 2), freqScalePanRect);'
+          ) @(
+            '            using (Pen borderPen = new Pen(Color.AntiqueWhite, 2))',
+            '                g.DrawRectangle(borderPen, freqScalePanRect);'
+          ) 'per-frame grid Pen'
+
+          $text = Replace-Once $text @(
+            '            points = null;'
+          ) @(
+            '            // Reuse the point buffer across frames; avoid continuous allocation/GC pressure.'
+          ) 'point-buffer reuse'
+
+          $text = Replace-Once $text @(
+            '                if (current_click_tune_mode != ClickTuneMode.Off)',
+            '                {',
+            '                    Pen p;',
+            '                    if (current_click_tune_mode == ClickTuneMode.VFOA)',
+            '                        p = new Pen(grid_text_color);',
+            '                    else p = new Pen(Color.Red);',
+            '',
+            '                    if (display_cursor_y <= H)',
+            '                    {',
+            '                        g.DrawLine(p, display_cursor_x, 0, display_cursor_x, H);',
+            '                        g.DrawLine(p, 0, display_cursor_y, W, display_cursor_y);',
+            '                    }',
+            '                }'
+          ) @(
+            '                if (current_click_tune_mode != ClickTuneMode.Off)',
+            '                {',
+            '                    using (Pen p = new Pen(current_click_tune_mode == ClickTuneMode.VFOA ? grid_text_color : Color.Red))',
+            '                    {',
+            '                        if (display_cursor_y <= H)',
+            '                        {',
+            '                            g.DrawLine(p, display_cursor_x, 0, display_cursor_x, H);',
+            '                            g.DrawLine(p, 0, display_cursor_y, W, display_cursor_y);',
+            '                        }',
+            '                    }',
+            '                }'
+          ) 'cursor Pen lifetime'
+
+          [IO.File]::WriteAllText($p, $text, (New-Object Text.UTF8Encoding($true)))
+
+          $check = [IO.File]::ReadAllText($p)
+          if ($check.Contains('while (cancelTokenSource != null && !cancelTokenSource.IsCancellationRequested)')) { throw 'Shared CTS worker loop still present' }
+          if (-not $check.Contains('while (!token.IsCancellationRequested)')) { throw 'Local token worker loop missing' }
+          if (-not $check.Contains('}, token, TaskCreationOptions.LongRunning, TaskScheduler.Default);')) { throw 'Task does not own local token' }
+          if ($check.Contains('g.DrawRectangle(new Pen(Color.AntiqueWhite, 2), freqScalePanRect);')) { throw 'Per-frame border Pen leak remains' }
+          if ($check.Contains('            points = null;')) { throw 'Point buffer is still discarded every frame' }
+          if ($check.Contains('                    Pen p;')) { throw 'Cursor Pen leak remains' }
+
+          $changed = @(git diff --name-only)
+          if ($changed.Count -ne 1 -or $changed[0] -ne 'Project Files/Source/Console/wbDisplay.cs') {
+            throw "Unexpected diff set: $($changed -join ', ')"
+          }
+          git diff --check
+          git diff --stat
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Restore packages
+        shell: pwsh
+        run: nuget restore 'Project Files/Source/Thetis_VS2026.sln' -NonInteractive
+
+      - name: Build Release x64 and MSI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path validation | Out-Null
+          msbuild 'Project Files/Source/Thetis_VS2026.sln' /m /t:Build /p:Configuration=Release /p:Platform=x64 /v:minimal /fl /flp:'logfile=validation/msbuild.log;verbosity=normal'
+
+      - name: Validate installer and preserved runtime fix
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $msi = Get-ChildItem -LiteralPath 'Project Files/bin/Installers' -File -Filter '*.msi' | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
+          if ($null -eq $msi) { throw 'Final MSI missing' }
+
+          $bin = (Resolve-Path 'Project Files/bin/x64/Release').Path
+          $immutable = Join-Path $bin 'System.Collections.Immutable.dll'
+          $config = Join-Path $bin 'Thetis.exe.config'
+          if (-not (Test-Path $immutable) -or -not (Test-Path $config)) { throw 'Runtime dependency payload missing' }
+          $iv = [Reflection.AssemblyName]::GetAssemblyName($immutable).Version.ToString()
+          if ($iv -ne '10.0.0.8') { throw "Immutable regression: $iv" }
+          $ct = [IO.File]::ReadAllText($config)
+          if ($ct -notmatch 'oldVersion="0\.0\.0\.0-10\.0\.0\.8" newVersion="10\.0\.0\.8"') { throw 'Immutable binding redirect regression' }
+
+          New-Item -ItemType Directory -Force -Path artifact | Out-Null
+          $dest = 'artifact/SQ4KOU_THETIS_WIDEBAND_UI_LIFETIME_FIX_X64.msi'
+          Copy-Item $msi.FullName $dest -Force
+          $sha = (Get-FileHash $dest -Algorithm SHA256).Hash.ToLowerInvariant()
+          $sha | Set-Content ($dest + '.sha256')
+          "MSI=$($msi.Name)" | Set-Content validation/result.txt
+          "SHA256=$sha" | Add-Content validation/result.txt
+          "IMMUTABLE_VERSION=$iv" | Add-Content validation/result.txt
+
+      - name: Commit validated source fix
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git config user.name 'SQ4KOU Build Bot'
+          git config user.email 'actions@github.com'
+          git add -- 'Project Files/Source/Console/wbDisplay.cs'
+          git commit -m 'Fix WideBand UI worker and GDI lifetimes'
+          git push origin HEAD:sq4kou
+          git rev-parse HEAD | Tee-Object -FilePath artifact/SOURCE_COMMIT.txt
+
+      - name: Upload validation
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sq4kou-wideband-ui-lifetime-validation
+          path: validation/
+          if-no-files-found: warn
+
+      - name: Upload MSI
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU_THETIS_WIDEBAND_UI_LIFETIME_FIX_X64_MSI
+          path: artifact/
+          if-no-files-found: error
