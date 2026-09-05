@@ -1,0 +1,47 @@
+name: Trace hidden Setup settings
+
+on:
+  push:
+    branches: [main]
+    paths: [.github/workflows/audit-hidden-settings-references.yml]
+
+jobs:
+  trace:
+    runs-on: windows-2025-vs2026
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: sq4kou
+          fetch-depth: 1
+      - name: Trace candidate hidden settings
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $files = Get-ChildItem 'Project Files/Source/Console' -Filter '*.cs' -File
+          $patterns = @(
+            'chkNetworkWDT',
+            'chkAccurateFrameTiming',
+            'chkAudioCorrectIQ',
+            'chkVAC2DirectIQCal',
+            'chkAlexAntCtrl',
+            'udRX2OptMaxFilterShift|comboRX2OptFilterWidthMode|udRX2OptMaxFilterWidth|checkBoxTS2',
+            'radP1DDC[0-6]ADC2',
+            'radDDC[0-6]ADC2',
+            'chkHERCULES',
+            'grpLEDMirror',
+            'chkConsoleDarkModeTitleBar|clrbtnGenBackground|lblGenBackground',
+            'btnSkinExport',
+            'btnWaterfallToClipboard',
+            'grpKBCW',
+            'groupBoxTS10',
+            'grpTestAudioBalance',
+            'grpDiagInfo',
+            'udPSTargetFeedbackLevel|udPSOutlierSigma|chkPSOutlierEnable',
+            'lblAutoAttHoldRX2|chkAutoAttUndoRX1|nudAutoAttHoldRX2|nudAutoAttHoldRX1|lblAutoAttHoldRX1|chkAutoAttUndoRX2',
+            'chkForceATTwhenOutPowerChanges_decreased|chkUndoAutoATTTx',
+            'lblWarningRegionExtended|picWarningRegionExtended'
+          )
+          foreach($pat in $patterns) {
+            Write-Host "`n================ $pat ================"
+            Select-String -Path $files.FullName -Pattern $pat -Context 2,3 | ForEach-Object { $_.ToString() }
+          }
