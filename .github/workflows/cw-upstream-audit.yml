@@ -1,0 +1,64 @@
+name: CW Ramdor EU2AV Audit
+
+on:
+  push:
+    branches: [sq4kou]
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Ramdor pinned source
+        uses: actions/checkout@v4
+        with:
+          ref: base/ramdor-20260904
+          path: ramdor
+          fetch-depth: 1
+
+      - name: Checkout EU2AV pinned source
+        uses: actions/checkout@v4
+        with:
+          ref: base/eu2av-20260904
+          path: eu2av
+          fetch-depth: 1
+
+      - name: Build CW-focused diffs
+        shell: bash
+        run: |
+          set -e
+          mkdir -p audit
+          printf 'Ramdor: ' > audit/REFS.txt
+          git -C ramdor rev-parse HEAD >> audit/REFS.txt
+          printf 'EU2AV: ' >> audit/REFS.txt
+          git -C eu2av rev-parse HEAD >> audit/REFS.txt
+
+          files=(
+            'Project Files/Source/ChannelMaster/networkproto1.c'
+            'Project Files/Source/ChannelMaster/netInterface.c'
+            'Project Files/Source/Console/console.cs'
+            'Project Files/Source/Console/cwx.cs'
+            'Project Files/Source/Console/cwkeyer.cs'
+            'Project Files/Source/Console/setup.cs'
+            'Project Files/Source/Console/HPSDR/NetworkIO.cs'
+            'Project Files/Source/Console/HPSDR/NetworkIOImports.cs'
+          )
+          : > audit/ALL_CW_DIFFS.patch
+          for f in "${files[@]}"; do
+            safe=$(echo "$f" | tr '/ ' '__')
+            diff -u --strip-trailing-cr "ramdor/$f" "eu2av/$f" > "audit/${safe}.diff" || true
+            printf '\n===== %s =====\n' "$f" >> audit/ALL_CW_DIFFS.patch
+            cat "audit/${safe}.diff" >> audit/ALL_CW_DIFFS.patch
+          done
+
+          grep -RniE 'CWFWKeyer|cw_fw_keyer|EnableCWKeyer|SetCWDot|SetCWDash|SetCWX|PTTMode.CW|cw_enable|drive_level|XmitBit|SetPttOut|break_in|keyer' ramdor/'Project Files/Source'/Console ramdor/'Project Files/Source'/ChannelMaster > audit/RAMDOR_CW_HITS.txt || true
+          grep -RniE 'CWFWKeyer|cw_fw_keyer|EnableCWKeyer|SetCWDot|SetCWDash|SetCWX|PTTMode.CW|cw_enable|drive_level|XmitBit|SetPttOut|break_in|keyer' eu2av/'Project Files/Source'/Console eu2av/'Project Files/Source'/ChannelMaster > audit/EU2AV_CW_HITS.txt || true
+
+      - name: Upload audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: CW-RAMDOR-EU2AV-AUDIT
+          path: audit
+          if-no-files-found: error
