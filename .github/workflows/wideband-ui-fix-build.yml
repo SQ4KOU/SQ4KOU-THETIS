@@ -64,7 +64,7 @@ jobs:
             )
             for ($j = 0; $j -lt $expected.Count; $j++) {
               if (($usingIdx + $j) -ge $lines.Count -or $lines[$usingIdx + $j].Trim() -ne $expected[$j]) {
-                throw "Graphics block mismatch at offset $j: '$($lines[$usingIdx + $j].Trim())'"
+                throw "Graphics block mismatch at offset ${j}: '$($lines[$usingIdx + $j].Trim())'"
               }
             }
 
