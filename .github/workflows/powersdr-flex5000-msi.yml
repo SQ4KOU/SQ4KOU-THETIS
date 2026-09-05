@@ -31,18 +31,28 @@ jobs:
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
-      - name: Ensure WiX Toolset 3.x
+      - name: Ensure build tools
         shell: pwsh
         run: |
           $heat = Get-Command heat.exe -ErrorAction SilentlyContinue
           if (-not $heat) {
             choco install wixtoolset -y --no-progress
+            if ($LASTEXITCODE -ne 0) { throw "WiX install failed rc=$LASTEXITCODE" }
             $heat = Get-ChildItem 'C:\Program Files (x86)\WiX Toolset v3*\bin\heat.exe' -ErrorAction SilentlyContinue | Select-Object -First 1
           }
           if (-not $heat) { throw 'WiX heat.exe not found' }
           $wixDir = if ($heat.PSIsContainer) { $heat.FullName } elseif ($heat.Source) { Split-Path $heat.Source } else { $heat.Directory.FullName }
           "WIXBIN=$wixDir" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+          if (-not (Get-Command innoextract.exe -ErrorAction SilentlyContinue) -and -not (Get-Command innoextract -ErrorAction SilentlyContinue)) {
+            choco install innoextract -y --no-progress
+            if ($LASTEXITCODE -ne 0) { throw "innoextract install failed rc=$LASTEXITCODE" }
+          }
+          $inno = Get-Command innoextract.exe -ErrorAction SilentlyContinue
+          if (-not $inno) { $inno = Get-Command innoextract -ErrorAction SilentlyContinue }
+          if (-not $inno) { throw 'innoextract not found after installation' }
           Write-Host "WIXBIN=$wixDir"
+          Write-Host "INNOEXTRACT=$($inno.Source)"
 
       - name: Build PowerSDR and MSI
         shell: pwsh
