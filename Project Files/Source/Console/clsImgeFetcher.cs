@@ -108,6 +108,8 @@ namespace Thetis
             ImageStore store = new ImageStore(image_limit);
             ManualResetEvent reset_event = new ManualResetEvent(false);
             Thread thread = new Thread(() => fetch_images(url, store, reset_event, id, file));
+            // SQ4KOU_WEBIMAGE_STALL_FIX_V3: WebImage is auxiliary and must not block process shutdown.
+            thread.IsBackground = true;
 
             if (_image_stores.TryAdd(id, store) &&
                 _threads.TryAdd(id, thread) &&
@@ -259,6 +261,8 @@ namespace Thetis
                             request.UserAgent = "Thetis v" + _version;                            
 
                             request.Timeout = 2000;
+                            // SQ4KOU_WEBIMAGE_STALL_FIX_V3: bound response-body stalls too.
+                            request.ReadWriteTimeout = 5000;
                             request.CachePolicy = new HttpRequestCachePolicy(HttpRequestCacheLevel.NoCacheNoStore);
 
                             //request.PreAuthenticate = true;
@@ -293,17 +297,23 @@ namespace Thetis
                                         {
                                             try
                                             {
-                                                using (WebClient webClient = new WebClient())
+                                                // SQ4KOU_WEBIMAGE_STALL_FIX_V3: bounded HTML image download.
+                                                HttpWebRequest imageRequest = (HttpWebRequest)WebRequest.Create(imageUrl);
+                                                imageRequest.UserAgent = "Thetis v" + _version;
+                                                imageRequest.Timeout = 2000;
+                                                imageRequest.ReadWriteTimeout = 5000;
+                                                imageRequest.CachePolicy = new HttpRequestCachePolicy(HttpRequestCacheLevel.NoCacheNoStore);
+                                                using (HttpWebResponse imageResponse = (HttpWebResponse)imageRequest.GetResponse())
+                                                using (Stream imageResponseStream = imageResponse.GetResponseStream())
+                                                using (MemoryStream imageStream = new MemoryStream())
                                                 {
-                                                    byte[] imageData = webClient.DownloadData(imageUrl);
-                                                    using (MemoryStream imageStream = new MemoryStream(imageData))
-                                                    {
-                                                        Image image = LoadDetachedImage(imageStream);
-                                                        bool full = store.AddImage(image);
-                                                        imagesAdded = true;
-                                                        if (full) break;
-                                                        StateChanged?.Invoke(this, new StateEventArgs(id, State.OK));
-                                                    }
+                                                    imageResponseStream.CopyTo(imageStream);
+                                                    imageStream.Position = 0;
+                                                    Image image = LoadDetachedImage(imageStream);
+                                                    bool full = store.AddImage(image);
+                                                    imagesAdded = true;
+                                                    if (full) break;
+                                                    StateChanged?.Invoke(this, new StateEventArgs(id, State.OK));
                                                 }
                                             }
                                             catch
@@ -446,19 +456,20 @@ namespace Thetis
                     StateChanged?.Invoke(this, new StateEventArgs(id, State.WAITING));
                     if (reset_event.WaitOne(timeout * 1000)) // Convert seconds to milliseconds
                     {
-                        bool timout_exists = _timeouts.TryGetValue(id, out _);  // check we have not removed these
-                        bool bypass_exists = _bypass_cache.TryGetValue(id, out _);
+                        // SQ4KOU_WEBIMAGE_STALL_FIX_V3: distinguish StopFetching from settings updates.
+                        bool timeout_exists = _timeouts.TryGetValue(id, out int new_timeout);
+                        bool bypass_exists = _bypass_cache.TryGetValue(id, out bool new_bypass_cache);
 
-                        //check if _timeout is the same, if so break. It will be different if we have signaled
-                        //due to timeout change
-                        if (!timout_exists || !bypass_exists || _timeouts[id] == timeout)
-                            break;  // Exit the loop if signaled to stop, or items have been removed
-                        else
-                        {
-                            timeout = _timeouts[id];
-                            bypass_cache = _bypass_cache[id];
-                            reset_event.Reset();
-                        }
+                        if (!timeout_exists || !bypass_exists)
+                            break;
+
+                        // StopFetching only sets the event, so unchanged configuration means stop.
+                        if (new_timeout == timeout && new_bypass_cache == bypass_cache)
+                            break;
+
+                        timeout = new_timeout;
+                        bypass_cache = new_bypass_cache;
+                        reset_event.Reset();
                     }
                 }
             }
