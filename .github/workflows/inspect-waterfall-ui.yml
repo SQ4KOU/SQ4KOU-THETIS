@@ -1,0 +1,27 @@
+name: Inspect waterfall UI
+
+on:
+  push:
+    paths:
+      - '.github/workflows/inspect-waterfall-ui.yml'
+
+jobs:
+  inspect:
+    runs-on: windows-2025-vs2026
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: sq4kou
+      - name: Inspect setup sources
+        shell: pwsh
+        run: |
+          $setup = 'Project Files/Source/Console/setup.cs'
+          $designer = 'Project Files/Source/Console/setup.designer.cs'
+          Write-Host '=== setup.cs constructor / InitializeComponent ==='
+          Select-String -Path $setup -Pattern 'InitializeComponent|public Setup\(|Setup\(' -Context 8,20 | ForEach-Object { $_.ToString() }
+          Write-Host '=== existing WaterfallEnhancer references ==='
+          Select-String -Path $setup -Pattern 'WaterfallEnhancer|ColorDepth|QualityLevel|comboColorDepth|combo.*Quality' -Context 3,5 | ForEach-Object { $_.ToString() }
+          Write-Host '=== likely Display General control names ==='
+          Select-String -Path $designer -Pattern 'Text = "Waterfall"|Text = "Display"|Waterfall AGC|Palette:|combo.*Color|grp.*Water|rad.*Water|tab.*Display|tp.*Display|pnl.*Display' -Context 2,4 | Select-Object -First 250 | ForEach-Object { $_.ToString() }
+          Write-Host '=== all combo names near Palette ==='
+          Select-String -Path $designer -Pattern 'Palette|ColorScheme|combo.*Scheme|combo.*Palette' -Context 3,6 | Select-Object -First 150 | ForEach-Object { $_.ToString() }
