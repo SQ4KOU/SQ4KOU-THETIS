@@ -41,7 +41,7 @@ jobs:
         shell: bash
         run: |
           git diff --check -- 'Project Files/Source/Console/console.cs'
-          test "$(git diff --numstat -- 'Project Files/Source/Console/console.cs' | awk '{print $1+$2}')" = "2"
+          test "$(git diff --numstat -- 'Project Files/Source/Console/console.cs' | awk '{print $1+$2}')" = "3"
           git diff -- 'Project Files/Source/Console/console.cs'
       - name: Commit fix
         shell: bash
@@ -50,4 +50,6 @@ jobs:
           git config user.email 'actions@users.noreply.github.com'
           git add 'Project Files/Source/Console/console.cs'
           git commit -m 'Fix CW RF output in SQ4KOU branch'
+          git fetch origin sq4kou
+          git rebase origin/sq4kou
           git push origin HEAD:sq4kou
