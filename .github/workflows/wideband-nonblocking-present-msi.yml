@@ -1,0 +1,303 @@
+name: SQ4KOU WideBand nonblocking presenter x64 MSI
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/wideband-nonblocking-present-msi.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-build-validate:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout SQ4KOU synthesis branch
+        uses: actions/checkout@v4
+        with:
+          ref: sq4kou
+          fetch-depth: 2
+          persist-credentials: true
+
+      - name: Apply nonblocking WideBand presenter
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $p = 'Project Files/Source/Console/wbDisplay.cs'
+          $text = [IO.File]::ReadAllText($p)
+          $nl = if ($text.Contains("`r`n")) { "`r`n" } else { "`n" }
+
+          function Replace-Once([string]$src, [string]$old, [string]$new, [string]$label) {
+            $count = ([regex]::Matches($src, [regex]::Escape($old))).Count
+            if ($count -ne 1) { throw "$label anchor count=$count, expected 1" }
+            return $src.Replace($old, $new)
+          }
+
+          function Replace-BracedBlock([string]$src, [string]$marker, [string]$replacement, [string]$label) {
+            $first = $src.IndexOf($marker, [StringComparison]::Ordinal)
+            if ($first -lt 0) { throw "$label marker not found" }
+            $second = $src.IndexOf($marker, $first + $marker.Length, [StringComparison]::Ordinal)
+            if ($second -ge 0) { throw "$label marker is not unique" }
+            $open = $src.IndexOf('{', $first)
+            if ($open -lt 0) { throw "$label opening brace not found" }
+            $depth = 0
+            $close = -1
+            for ($i = $open; $i -lt $src.Length; $i++) {
+              if ($src[$i] -eq '{') { $depth++ }
+              elseif ($src[$i] -eq '}') {
+                $depth--
+                if ($depth -eq 0) { $close = $i; break }
+              }
+            }
+            if ($close -lt 0) { throw "$label closing brace not found" }
+            return $src.Substring(0, $first) + $replacement + $src.Substring($close + 1)
+          }
+
+          # Three reusable bitmaps: render, current presentation, spare. A fourth reference
+          # only identifies a frame already queued to the UI; no per-frame Bitmap allocation.
+          $fieldOld = '        private Bitmap wbDisplay_buffer;'
+          $fieldNew = @(
+            '        private Bitmap wbDisplay_buffer;                 // render/back buffer',
+            '        private Bitmap wbPresent_buffer;                 // bitmap currently presented by PictureBox',
+            '        private Bitmap wbSpare_buffer;                   // free bitmap for next completed frame',
+            '        private Bitmap wbQueued_buffer;                  // completed frame waiting in BeginInvoke',
+            '        private int wbPresentPending = 0;                // at most one queued UI presentation',
+            '        private int wbBufferGeneration = 0;              // invalidates queued frames after resize/reinit'
+          ) -join $nl
+          $text = Replace-Once $text $fieldOld $fieldNew 'buffer fields'
+
+          $updateMarker = '        public void UpdateGraphicsBuffer()'
+          $updateNew = @(
+            '        public void UpdateGraphicsBuffer()',
+            '        {',
+            '            int w = Math.Max(1, this.Width);',
+            '            int h = Math.Max(1, this.Height);',
+            '',
+            '            Bitmap newRender = new Bitmap(w, h);',
+            '            Bitmap newPresent = new Bitmap(w, h);',
+            '            Bitmap newSpare = new Bitmap(w, h);',
+            '            Bitmap oldRender;',
+            '            Bitmap oldPresent;',
+            '            Bitmap oldSpare;',
+            '            Bitmap oldQueued;',
+            '',
+            '            lock (m_objBufferLock)',
+            '            {',
+            '                oldRender = wbDisplay_buffer;',
+            '                oldPresent = wbPresent_buffer;',
+            '                oldSpare = wbSpare_buffer;',
+            '                oldQueued = wbQueued_buffer;',
+            '',
+            '                wbDisplay_buffer = newRender;',
+            '                wbPresent_buffer = newPresent;',
+            '                wbSpare_buffer = newSpare;',
+            '                wbQueued_buffer = null;',
+            '                wbBufferGeneration++;',
+            '',
+            '                if (Object.ReferenceEquals(this.Image, oldPresent) ||',
+            '                    Object.ReferenceEquals(this.Image, oldQueued))',
+            '                    this.Image = null;',
+            '            }',
+            '',
+            '            if (oldRender != null) oldRender.Dispose();',
+            '            if (oldPresent != null && !Object.ReferenceEquals(oldPresent, oldRender)) oldPresent.Dispose();',
+            '            if (oldSpare != null && !Object.ReferenceEquals(oldSpare, oldRender) && !Object.ReferenceEquals(oldSpare, oldPresent)) oldSpare.Dispose();',
+            '            if (oldQueued != null && !Object.ReferenceEquals(oldQueued, oldRender) && !Object.ReferenceEquals(oldQueued, oldPresent) && !Object.ReferenceEquals(oldQueued, oldSpare)) oldQueued.Dispose();',
+            '        }'
+          ) -join $nl
+          $text = Replace-BracedBlock $text $updateMarker $updateNew 'UpdateGraphicsBuffer'
+
+          $presentMarker = '                    if (!pauseDisplayThread)'
+          $presentNew = @(
+            '                    if (!pauseDisplayThread)',
+            '                    {',
+            '                        // SQ4KOU_WB_UI_NONBLOCK_V2:',
+            '                        // Never wait for the WinForms thread. If one WB frame is already',
+            '                        // queued for presentation, drop this display frame immediately.',
+            '                        if (Interlocked.CompareExchange(ref wbPresentPending, 1, 0) != 0)',
+            '                        {',
+            '                            this.DataReady = false;',
+            '                            continue;',
+            '                        }',
+            '',
+            '                        bool frameDrawn = false;',
+            '                        Bitmap readyBuffer = null;',
+            '                        int generation = 0;',
+            '',
+            '                        try',
+            '                        {',
+            '                            lock (m_objBufferLock)',
+            '                            {',
+            '                                if (wbDisplay_buffer != null && wbSpare_buffer != null)',
+            '                                {',
+            '                                    generation = wbBufferGeneration;',
+            '                                    using (Graphics grSrc = Graphics.FromImage(wbDisplay_buffer))',
+            '                                    {',
+            '                                        grSrc.Clear(Color.Transparent);',
+            '                                        frameDrawn = DrawWideBand(grSrc, rx);',
+            '                                    }',
+            '',
+            '                                    if (frameDrawn && generation == wbBufferGeneration)',
+            '                                    {',
+            '                                        readyBuffer = wbDisplay_buffer;',
+            '                                        wbDisplay_buffer = wbSpare_buffer;',
+            '                                        wbSpare_buffer = null;',
+            '                                        wbQueued_buffer = readyBuffer;',
+            '                                    }',
+            '                                }',
+            '                                else',
+            '                                {',
+            '                                    this.DataReady = false;',
+            '                                }',
+            '                            }',
+            '',
+            '                            if (!frameDrawn || readyBuffer == null || token.IsCancellationRequested ||',
+            '                                this.IsDisposed || !this.IsHandleCreated)',
+            '                            {',
+            '                                Interlocked.Exchange(ref wbPresentPending, 0);',
+            '                                continue;',
+            '                            }',
+            '',
+            '                            try',
+            '                            {',
+            '                                this.BeginInvoke(new Action(() =>',
+            '                                {',
+            '                                    try',
+            '                                    {',
+            '                                        bool invalidate = false;',
+            '                                        lock (m_objBufferLock)',
+            '                                        {',
+            '                                            if (!this.IsDisposed && generation == wbBufferGeneration &&',
+            '                                                Object.ReferenceEquals(wbQueued_buffer, readyBuffer))',
+            '                                            {',
+            '                                                Bitmap oldPresent = wbPresent_buffer;',
+            '                                                wbPresent_buffer = readyBuffer;',
+            '                                                wbQueued_buffer = null;',
+            '                                                wbSpare_buffer = oldPresent;',
+            '                                                this.Image = wbPresent_buffer;',
+            '                                                invalidate = true;',
+            '                                            }',
+            '                                        }',
+            '',
+            '                                        if (invalidate) this.Invalidate();',
+            '                                    }',
+            '                                    finally',
+            '                                    {',
+            '                                        Interlocked.Exchange(ref wbPresentPending, 0);',
+            '                                    }',
+            '                                }));',
+            '                            }',
+            '                            catch (InvalidOperationException)',
+            '                            {',
+            '                                lock (m_objBufferLock)',
+            '                                {',
+            '                                    if (Object.ReferenceEquals(wbQueued_buffer, readyBuffer))',
+            '                                    {',
+            '                                        wbQueued_buffer = null;',
+            '                                        if (wbSpare_buffer == null) wbSpare_buffer = readyBuffer;',
+            '                                    }',
+            '                                }',
+            '                                Interlocked.Exchange(ref wbPresentPending, 0);',
+            '                            }',
+            '                        }',
+            '                        catch',
+            '                        {',
+            '                            lock (m_objBufferLock)',
+            '                            {',
+            '                                if (readyBuffer != null && Object.ReferenceEquals(wbQueued_buffer, readyBuffer))',
+            '                                {',
+            '                                    wbQueued_buffer = null;',
+            '                                    if (wbSpare_buffer == null) wbSpare_buffer = readyBuffer;',
+            '                                }',
+            '                            }',
+            '                            Interlocked.Exchange(ref wbPresentPending, 0);',
+            '                            throw;',
+            '                        }',
+            '                    }'
+          ) -join $nl
+          $text = Replace-BracedBlock $text $presentMarker $presentNew 'WideBand presentation block'
+
+          [IO.File]::WriteAllText($p, $text, (New-Object Text.UTF8Encoding($true)))
+
+          $check = [IO.File]::ReadAllText($p)
+          if (-not $check.Contains('SQ4KOU_WB_UI_NONBLOCK_V2')) { throw 'Nonblocking presenter marker missing' }
+          if (-not $check.Contains('this.BeginInvoke(new Action(() =>')) { throw 'BeginInvoke presenter missing' }
+          if (-not $check.Contains('Interlocked.CompareExchange(ref wbPresentPending, 1, 0)')) { throw 'Single-pending gate missing' }
+          if (-not $check.Contains('private Bitmap wbSpare_buffer;')) { throw 'Spare buffer missing' }
+          if (-not $check.Contains('wbBufferGeneration++;')) { throw 'Buffer generation invalidation missing' }
+
+          $changed = @(git diff --name-only)
+          if ($changed.Count -ne 1 -or $changed[0] -ne 'Project Files/Source/Console/wbDisplay.cs') {
+            throw "Unexpected diff set: $($changed -join ', ')"
+          }
+          git diff --check
+          git diff --stat
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Restore packages
+        shell: pwsh
+        run: nuget restore 'Project Files/Source/Thetis_VS2026.sln' -NonInteractive
+
+      - name: Build Release x64 and MSI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path validation | Out-Null
+          msbuild 'Project Files/Source/Thetis_VS2026.sln' /m /t:Build /p:Configuration=Release /p:Platform=x64 /v:minimal /fl /flp:'logfile=validation/msbuild.log;verbosity=normal'
+
+      - name: Validate installer and runtime payload
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $msi = Get-ChildItem -LiteralPath 'Project Files/bin/Installers' -File -Filter '*.msi' | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
+          if ($null -eq $msi) { throw 'Final MSI missing' }
+
+          $bin = (Resolve-Path 'Project Files/bin/x64/Release').Path
+          $immutable = Join-Path $bin 'System.Collections.Immutable.dll'
+          $config = Join-Path $bin 'Thetis.exe.config'
+          if (-not (Test-Path $immutable) -or -not (Test-Path $config)) { throw 'Runtime dependency payload missing' }
+          $iv = [Reflection.AssemblyName]::GetAssemblyName($immutable).Version.ToString()
+          if ($iv -ne '10.0.0.8') { throw "Immutable regression: $iv" }
+          $ct = [IO.File]::ReadAllText($config)
+          if ($ct -notmatch 'oldVersion="0\.0\.0\.0-10\.0\.0\.8" newVersion="10\.0\.0\.8"') { throw 'Immutable binding redirect regression' }
+
+          New-Item -ItemType Directory -Force -Path artifact | Out-Null
+          $dest = 'artifact/SQ4KOU_THETIS_WIDEBAND_NONBLOCKING_PRESENT_X64.msi'
+          Copy-Item $msi.FullName $dest -Force
+          $sha = (Get-FileHash $dest -Algorithm SHA256).Hash.ToLowerInvariant()
+          $sha | Set-Content ($dest + '.sha256')
+          "MSI=$($msi.Name)" | Set-Content validation/result.txt
+          "SHA256=$sha" | Add-Content validation/result.txt
+          "IMMUTABLE_VERSION=$iv" | Add-Content validation/result.txt
+
+      - name: Commit validated source fix
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git config user.name 'SQ4KOU Build Bot'
+          git config user.email 'actions@github.com'
+          git add -- 'Project Files/Source/Console/wbDisplay.cs'
+          git commit -m 'Make WideBand UI presentation nonblocking'
+          git push origin HEAD:sq4kou
+          git rev-parse HEAD | Tee-Object -FilePath artifact/SOURCE_COMMIT.txt
+
+      - name: Upload validation
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sq4kou-wideband-nonblocking-present-validation
+          path: validation/
+          if-no-files-found: warn
+
+      - name: Upload MSI
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU_THETIS_WIDEBAND_NONBLOCKING_PRESENT_X64_MSI
+          path: artifact/
+          if-no-files-found: error
