@@ -27,87 +27,94 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $path = 'Project Files/Source/Console/wbDisplay.cs'
-          $text = [IO.File]::ReadAllText($path)
+          $bytes = [IO.File]::ReadAllBytes($path)
+          $hasBom = $bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF
+          $lines = [System.Collections.Generic.List[string]](Get-Content -LiteralPath $path)
 
-          if ($text.Contains('SQ4KOU_WB_UI_FLOW_V1')) {
-            Write-Host 'WideBand UI patch already present.'
-          }
-          else {
-            $oldRender = @'
-                    RunDisplay(rx); // get pixels
+          if (-not (($lines -join "`n").Contains('SQ4KOU_WB_UI_FLOW_V1'))) {
+            $runIdx = -1
+            for ($i = 0; $i -lt $lines.Count; $i++) {
+              if ($lines[$i].Trim() -eq 'RunDisplay(rx); // get pixels') { $runIdx = $i; break }
+            }
+            if ($runIdx -lt 0) { throw 'Active RunDisplay anchor not found' }
 
-                    if (!pauseDisplayThread)
-                    {
-                        using (Graphics grSrc = Graphics.FromImage(wbDisplay_buffer))
-                        {
-                            grSrc.Clear(Color.Transparent);
-                            if (DrawWideBand(grSrc, rx))
-                            {
-                                this.Invoke(new Action(() =>
-                                    {
-                                        this.Image = wbDisplay_buffer;
-                                        this.Refresh();
-                                    }));
-                            }
-                        }
-                    }
-          '@
-            $newRender = @'
-                    RunDisplay(rx); // get pixels
+            $lines.Insert($runIdx + 1, '')
+            $lines.Insert($runIdx + 2, '                    // SQ4KOU_WB_UI_FLOW_V1: render/present only a fresh WDSP frame.')
+            $lines.Insert($runIdx + 3, '                    if (!this.DataReady) continue;')
 
-                    // SQ4KOU_WB_UI_FLOW_V1: render/present only a fresh WDSP frame.
-                    if (!this.DataReady) continue;
+            $usingIdx = -1
+            for ($i = $runIdx + 4; $i -lt $lines.Count; $i++) {
+              if ($lines[$i].Trim() -eq 'using (Graphics grSrc = Graphics.FromImage(wbDisplay_buffer))') { $usingIdx = $i; break }
+            }
+            if ($usingIdx -lt 0) { throw 'Active Graphics block not found' }
 
-                    if (!pauseDisplayThread)
-                    {
-                        bool frameDrawn;
-                        using (Graphics grSrc = Graphics.FromImage(wbDisplay_buffer))
-                        {
-                            grSrc.Clear(Color.Transparent);
-                            frameDrawn = DrawWideBand(grSrc, rx);
-                        }
+            $expected = @(
+              'using (Graphics grSrc = Graphics.FromImage(wbDisplay_buffer))',
+              '{',
+              'grSrc.Clear(Color.Transparent);',
+              'if (DrawWideBand(grSrc, rx))',
+              '{',
+              'this.Invoke(new Action(() =>',
+              '{',
+              'this.Image = wbDisplay_buffer;',
+              'this.Refresh();',
+              '}));',
+              '}',
+              '}'
+            )
+            for ($j = 0; $j -lt $expected.Count; $j++) {
+              if (($usingIdx + $j) -ge $lines.Count -or $lines[$usingIdx + $j].Trim() -ne $expected[$j]) {
+                throw "Graphics block mismatch at offset $j: '$($lines[$usingIdx + $j].Trim())'"
+              }
+            }
 
-                        // GDI+ drawing is fully closed before the bitmap is presented by WinForms.
-                        if (frameDrawn)
-                        {
-                            this.Invoke(new Action(() =>
-                            {
-                                this.Image = wbDisplay_buffer;
-                                this.Refresh();
-                            }));
-                        }
-                    }
-          '@
+            $base = $lines[$usingIdx].Substring(0, $lines[$usingIdx].IndexOf('using'))
+            $replacement = [string[]]@(
+              ($base + 'bool frameDrawn;'),
+              ($base + 'using (Graphics grSrc = Graphics.FromImage(wbDisplay_buffer))'),
+              ($base + '{'),
+              ($base + '    grSrc.Clear(Color.Transparent);'),
+              ($base + '    frameDrawn = DrawWideBand(grSrc, rx);'),
+              ($base + '}'),
+              '',
+              ($base + '// GDI+ drawing is fully closed before the bitmap is presented by WinForms.'),
+              ($base + 'if (frameDrawn)'),
+              ($base + '{'),
+              ($base + '    this.Invoke(new Action(() =>'),
+              ($base + '    {'),
+              ($base + '        this.Image = wbDisplay_buffer;'),
+              ($base + '        this.Refresh();'),
+              ($base + '    }));'),
+              ($base + '}')
+            )
+            $lines.RemoveRange($usingIdx, 12)
+            $lines.InsertRange($usingIdx, $replacement)
 
-            $oldPixels = @'
-                    fixed (float* ptr = &new_display_data[0])
-                        SpecHPSDRDLL.GetPixels(rx, 0, ptr, ref flag);
+            $getIdx = -1
+            for ($i = $usingIdx + $replacement.Count; $i -lt $lines.Count; $i++) {
+              if ($lines[$i].Trim() -eq 'SpecHPSDRDLL.GetPixels(rx, 0, ptr, ref flag);') { $getIdx = $i; break }
+            }
+            if ($getIdx -lt 0) { throw 'GetPixels anchor not found' }
 
-                    this.DataReady = true;
-          '@
-            $newPixels = @'
-                    fixed (float* ptr = &new_display_data[0])
-                        SpecHPSDRDLL.GetPixels(rx, 0, ptr, ref flag);
+            $readyIdx = -1
+            for ($i = $getIdx + 1; $i -le [Math]::Min($getIdx + 8, $lines.Count - 1); $i++) {
+              if ($lines[$i].Trim() -eq 'this.DataReady = true;') { $readyIdx = $i; break }
+            }
+            if ($readyIdx -lt 0) { throw 'DataReady assignment after GetPixels not found' }
+            $readyBase = $lines[$readyIdx].Substring(0, $lines[$readyIdx].IndexOf('this.DataReady'))
+            $lines.RemoveAt($readyIdx)
+            $lines.Insert($readyIdx, $readyBase + '// WDSP flag==1 means a new pixel frame was actually returned.')
+            $lines.Insert($readyIdx + 1, $readyBase + 'if (flag != 0)')
+            $lines.Insert($readyIdx + 2, $readyBase + '    this.DataReady = true;')
 
-                    // WDSP flag==1 means a new pixel frame was actually returned.
-                    if (flag != 0)
-                        this.DataReady = true;
-          '@
-
-            $renderCount = ([regex]::Matches($text, [regex]::Escape($oldRender))).Count
-            $pixelCount = ([regex]::Matches($text, [regex]::Escape($oldPixels))).Count
-            if ($renderCount -ne 1) { throw "Render anchor count=$renderCount, expected 1" }
-            if ($pixelCount -ne 1) { throw "GetPixels anchor count=$pixelCount, expected 1" }
-
-            $text = $text.Replace($oldRender, $newRender)
-            $text = $text.Replace($oldPixels, $newPixels)
-            [IO.File]::WriteAllText($path, $text, (New-Object Text.UTF8Encoding($true)))
+            $enc = New-Object System.Text.UTF8Encoding($hasBom)
+            [IO.File]::WriteAllLines($path, $lines, $enc)
           }
 
           $check = [IO.File]::ReadAllText($path)
-          if (-not $check.Contains('SQ4KOU_WB_UI_FLOW_V1')) { throw 'Patch marker missing' }
-          if (-not $check.Contains('if (flag != 0)')) { throw 'GetPixels flag gate missing' }
-          if ($check.IndexOf('frameDrawn = DrawWideBand(grSrc, rx);') -lt 0) { throw 'frameDrawn gate missing' }
+          if (($check.Split('SQ4KOU_WB_UI_FLOW_V1').Count - 1) -ne 1) { throw 'Patch marker count is not 1' }
+          if (($check.Split('if (flag != 0)').Count - 1) -ne 1) { throw 'GetPixels flag gate count is not 1' }
+          if (($check.Split('frameDrawn = DrawWideBand(grSrc, rx);').Count - 1) -ne 1) { throw 'frameDrawn gate count is not 1' }
           $markerIndex = $check.IndexOf('SQ4KOU_WB_UI_FLOW_V1')
           $drawIndex = $check.IndexOf('frameDrawn = DrawWideBand(grSrc, rx);', $markerIndex)
           $invokeIndex = $check.IndexOf('this.Invoke(new Action(() =>', $markerIndex)
