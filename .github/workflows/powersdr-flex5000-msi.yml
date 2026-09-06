@@ -59,6 +59,42 @@ jobs:
         run: |
           & .\tools\powersdr\Build-PowerSDR-MSI.ps1 -WixBin "$env:WIXBIN"
 
+      - name: Smoke test MSI installs PowerSDR.exe
+        shell: pwsh
+        run: |
+          $msi = Get-ChildItem .\artifacts\powersdr\PowerSDR*.msi | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
+          if (-not $msi) { throw 'PowerSDR MSI missing before smoke test' }
+
+          $adminRoot = Join-Path $env:RUNNER_TEMP 'powersdr-msi-admin'
+          $msiLog = Join-Path $env:RUNNER_TEMP 'powersdr-msi-admin.log'
+          Remove-Item $adminRoot -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path $adminRoot | Out-Null
+
+          $args = @('/a', $msi.FullName, '/qn', "TARGETDIR=$adminRoot", '/L*v', $msiLog)
+          $p = Start-Process -FilePath 'msiexec.exe' -ArgumentList $args -Wait -PassThru
+          if ($p.ExitCode -ne 0) {
+            if (Test-Path $msiLog) { Get-Content $msiLog -Tail 200 }
+            throw "MSI administrative install failed rc=$($p.ExitCode)"
+          }
+
+          $exe = Get-ChildItem $adminRoot -Recurse -File -Filter PowerSDR.exe | Where-Object {
+            $_.DirectoryName -notmatch '\\app\\app\.publish$'
+          } | Select-Object -First 1
+          if (-not $exe) {
+            Get-ChildItem $adminRoot -Recurse -File | Select-Object FullName,Length | Format-Table -AutoSize
+            throw 'PowerSDR.exe missing from administrative MSI extraction'
+          }
+
+          $fv = [Diagnostics.FileVersionInfo]::GetVersionInfo($exe.FullName).FileVersion
+          if ($fv -ne '2.8.0.334') { throw "Wrong extracted PowerSDR.exe version: $fv" }
+          @(
+            "EXE=$($exe.FullName)",
+            "FILE_VERSION=$fv",
+            "MSI=$($msi.Name)"
+          ) | Set-Content .\artifacts\powersdr\MSI_INSTALL_CHECK.txt -Encoding ASCII
+          Write-Host "MSI_INSTALL_TEST_EXE=$($exe.FullName)"
+          Write-Host "MSI_INSTALL_TEST_VERSION=$fv"
+
       - name: Verify PowerSDR and display isolation
         shell: pwsh
         run: |
@@ -73,6 +109,7 @@ jobs:
           $msi = Get-ChildItem .\artifacts\powersdr\PowerSDR*.msi | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
           if (-not $msi) { throw 'PowerSDR MSI missing' }
           if ($msi.Length -lt 1MB) { throw "MSI unexpectedly small: $($msi.Length)" }
+          if (-not (Test-Path .\artifacts\powersdr\MSI_INSTALL_CHECK.txt)) { throw 'MSI install smoke-test result missing' }
           Write-Host "READY=$($msi.FullName)"
 
       - name: Upload PowerSDR display MSI
@@ -83,6 +120,7 @@ jobs:
             artifacts/powersdr/*.msi
             artifacts/powersdr/*.sha256
             artifacts/powersdr/POWERSDR_BUILD_MANIFEST.txt
+            artifacts/powersdr/MSI_INSTALL_CHECK.txt
           if-no-files-found: error
           compression-level: 0
 
