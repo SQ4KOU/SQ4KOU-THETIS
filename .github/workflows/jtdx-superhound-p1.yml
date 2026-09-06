@@ -14,7 +14,34 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  source-preflight:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate patch against current JTDX
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python -m py_compile tools/jtdx-superhound-p1/scripts/patch_jtdx.py
+          git clone --depth 1 https://git.code.sf.net/p/jtdx/code jtdx-preflight
+          git -C jtdx-preflight rev-parse HEAD
+          python tools/jtdx-superhound-p1/scripts/patch_jtdx.py jtdx-preflight tools/jtdx-superhound-p1/overlay
+          git -C jtdx-preflight diff --check
+          grep -n 'lsuperhound' jtdx-preflight/commons.h jtdx-preflight/lib/jt9com.f90 jtdx-preflight/lib/decoder.f90 jtdx-preflight/mainwindow.cpp
+          grep -n 'sq4kouMainMonitorSplitter' jtdx-preflight/mainwindow.cpp
+
+      - name: Compile bridge units
+        shell: bash
+        run: |
+          set -euxo pipefail
+          gcc -std=c99 -Wall -Wextra -pedantic -c tools/jtdx-superhound-p1/overlay/lib/superhound_external.c -o /tmp/superhound_external.o
+          gfortran -c tools/jtdx-superhound-p1/overlay/lib/superhound_external.f90 -o /tmp/superhound_external_f90.o
+
   windows-msi:
+    needs: source-preflight
     runs-on: windows-latest
     timeout-minutes: 90
 
