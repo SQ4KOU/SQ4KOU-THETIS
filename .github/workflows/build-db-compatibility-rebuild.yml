@@ -95,6 +95,7 @@ jobs:
           Write-Host "Thetis.exe: $($exe.FullName)"
 
       - name: Execute production DB backward-compatibility self-test
+        timeout-minutes: 5
         shell: powershell
         run: |
           & "tools\test_db_compatibility_rebuild.ps1" -ThetisExe "$env:THETIS_EXE" -WorkDir "$env:RUNNER_TEMP\db-compat-selftest"
