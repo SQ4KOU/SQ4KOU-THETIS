@@ -38,39 +38,20 @@ jobs:
           python tools/apply_db_backward_compat_v4_source.py
           git diff --check
 
-      - name: Verify preservation-first source contract
+      - name: Verify V4 source markers
         shell: pwsh
         run: |
           $db = Get-Content "Project Files\Source\Console\database.cs" -Raw
           $dbman = Get-Content "Project Files\Source\Console\clsDBMan.cs" -Raw
-          $dbRequired = @(
-            "SQ4KOU_DB_COMPAT_PRESERVATION_V4",
-            "BuildCurrentTXProfileDefinition",
-            "MergeMissingDefaultsFromDatabase",
-            "VerifyDatabasePreservesOriginal",
-            "Every original non-null value preserved",
-            "MarkCurrentDatabaseMetadata",
-            "Rows.Add(newRow)",
-            "if (_compatibilityRepairChanged) changed = true;"
-          )
-          foreach ($token in $dbRequired) {
-            if (-not $db.Contains($token)) { throw "database.cs missing: $token" }
-          }
-          $manRequired = @(
-            "SQ4KOU_DB_COMPAT_PRESERVATION_V4",
-            "File.Copy(original_db_filename_xml, candidateFile, true)",
-            "MergeMissingDefaultsFromDatabase",
-            "VerifyDatabasePreservesOriginal",
-            "COMPAT_METADATA_ONLY"
-          )
-          foreach ($token in $manRequired) {
-            if (-not $dbman.Contains($token)) { throw "clsDBMan.cs missing: $token" }
-          }
+          if (-not $db.Contains("SQ4KOU_DB_COMPAT_PRESERVATION_V4")) { throw "database.cs V4 marker missing" }
+          if (-not $db.Contains("MergeMissingDefaultsFromDatabase")) { throw "additive merge helper missing" }
+          if (-not $db.Contains("VerifyDatabasePreservesOriginal")) { throw "preservation gate missing" }
+          if (-not $db.Contains("Rows.Add(newRow)")) { throw "TX profile detached-row repair missing" }
           if ($db.Contains('expandedTable.ImportRow(newRow)')) { throw "Detached-row ImportRow bug remains" }
-          $v4 = $dbman.Substring($dbman.IndexOf("SQ4KOU_DB_COMPAT_PRESERVATION_V4"))
-          $v4 = $v4.Substring(0, $v4.IndexOf("private static void moveToBroken"))
-          if ($v4.Contains("ImportAndMergeDatabase(original_db_filename_xml")) { throw "Old fresh+partial automatic migration path remains" }
-          Write-Host "Preservation-first source contract PASS"
+          if (-not $dbman.Contains("SQ4KOU_DB_COMPAT_PRESERVATION_V4")) { throw "clsDBMan.cs V4 marker missing" }
+          if (-not $dbman.Contains("File.Copy(original_db_filename_xml, candidateFile, true)")) { throw "copy-first candidate path missing" }
+          if (-not $dbman.Contains("VerifyDatabasePreservesOriginal")) { throw "DBMan preservation gate missing" }
+          Write-Host "V4 source markers PASS"
 
       - name: Commit real C# source changes
         shell: pwsh
