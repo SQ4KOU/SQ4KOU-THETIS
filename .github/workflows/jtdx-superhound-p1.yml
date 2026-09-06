@@ -61,12 +61,26 @@ jobs:
             echo '=== FFTW ==='; pkg-config --modversion fftw3f || true
           } | tee logs/toolchain.txt
 
-      - name: Build JTDX Hamlib fork
+      - name: Cache pinned JTDX Hamlib
+        id: hamlib_cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ runner.temp }}\msys64\ucrt64\bin\libhamlib-4.dll
+            ${{ runner.temp }}\msys64\ucrt64\lib\libhamlib.dll.a
+            ${{ runner.temp }}\msys64\ucrt64\lib\pkgconfig\hamlib.pc
+            ${{ runner.temp }}\msys64\ucrt64\include\hamlib
+          key: jtdx-hamlib-ucrt64-1e70dd7b98fd715c829724313eb88884ca1cbfc1-v1
+
+      - name: Build pinned JTDX Hamlib
+        if: steps.hamlib_cache.outputs.cache-hit != 'true'
         shell: msys2 {0}
         run: |
           set -euxo pipefail
-          git clone --depth 1 https://git.code.sf.net/p/jtdx/hamlib hamlib
-          git -C hamlib branch --show-current | tee logs/hamlib-branch.txt
+          git init hamlib
+          git -C hamlib remote add origin https://git.code.sf.net/p/jtdx/hamlib
+          git -C hamlib fetch --depth 1 origin 1e70dd7b98fd715c829724313eb88884ca1cbfc1
+          git -C hamlib checkout --detach FETCH_HEAD
           git -C hamlib rev-parse HEAD | tee logs/hamlib-commit.txt
           cd hamlib
           ./bootstrap 2>&1 | tee ../logs/hamlib-bootstrap.log
@@ -82,7 +96,13 @@ jobs:
           make -j4 2>&1 | tee ../logs/hamlib-build.log
           make install 2>&1 | tee ../logs/hamlib-install.log
           cd ..
+
+      - name: Verify Hamlib
+        shell: msys2 {0}
+        run: |
+          set -euxo pipefail
           pkg-config --modversion hamlib | tee logs/hamlib-version.txt
+          ls -l /ucrt64/bin/libhamlib-4.dll /ucrt64/lib/libhamlib.dll.a | tee logs/hamlib-files.txt
 
       - name: Build official WSJT-X sfrx helper
         id: sfrx_build
@@ -97,6 +117,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_PREFIX_PATH=/ucrt64 \
             -DOMNIRIG_TYPE_LIB="$OMNI" \
+            -DWSJT_SKIP_MAP65=ON \
             -DWSJT_GENERATE_DOCS=OFF \
             -DWSJT_BUILD_UTILS=ON \
             2>&1 | tee logs/wsjtx-configure.log
@@ -179,11 +200,10 @@ jobs:
           @"
           JTDX SuperHound P1 CI
           =====================
+          Hamlib cache hit: ${{ steps.hamlib_cache.outputs.cache-hit }}
           WSJT-X sfrx outcome: ${{ steps.sfrx_build.outcome }}
           JTDX configure outcome: ${{ steps.jtdx_configure.outcome }}
           JTDX build outcome: ${{ steps.jtdx_build.outcome }}
-          Hamlib: current JTDX SourceForge default branch, built in CI
-          JTDX source: current SourceForge git.code.sf.net/p/jtdx/code
           Bridge policy: no SuperFox/QPC source copied into JTDX
           "@ | Set-Content artifacts/BUILD_SUMMARY.txt
 
