@@ -72,6 +72,7 @@ jobs:
             mingw-w64-ucrt-x86_64-qt5-serialport
             mingw-w64-ucrt-x86_64-qt5-websockets
             mingw-w64-ucrt-x86_64-qt5-tools
+            mingw-w64-ucrt-x86_64-qt5-activeqt
 
       - name: Prepare logs
         shell: msys2 {0}
