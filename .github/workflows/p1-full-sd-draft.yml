@@ -1,0 +1,37 @@
+name: Prepare SQ4KOU P1 full SD draft release
+
+on:
+  push:
+    branches:
+      - release-p1-full-sd-v1
+    paths:
+      - 'RELEASES/P1_FULL_SD_V1/**'
+      - '.github/workflows/p1-full-sd-draft.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  draft_release:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: sq4kou-p1-full-sd-v1
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create or update draft release
+        shell: bash
+        run: |
+          set -euo pipefail
+          NOTES='RELEASES/P1_FULL_SD_V1/RELEASE_NOTES.md'
+          TITLE='SQ4KOU P1 FULL SD V1 — Red Pitaya 125-14'
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release edit "$TAG" --title "$TITLE" --notes-file "$NOTES"
+          else
+            gh release create "$TAG" \
+              --draft \
+              --target "$GITHUB_SHA" \
+              --title "$TITLE" \
+              --notes-file "$NOTES"
+          fi
