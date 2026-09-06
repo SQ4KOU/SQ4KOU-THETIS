@@ -1,0 +1,94 @@
+name: Build DB backward compatibility test MSI
+
+on:
+  push:
+    branches:
+      - fix/db-backward-compat-100
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-msi:
+    runs-on: windows-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout test branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          filter: blob:none
+
+      - name: Enable long paths
+        shell: pwsh
+        run: git config --global core.longpaths true
+
+      - name: Apply DB compatibility patch
+        shell: pwsh
+        run: |
+          python tools/apply_db_backward_compat_test.py
+          git diff --check
+          git diff -- "Project Files/Source/Console/database.cs"
+
+      - name: Verify critical DB migration repairs
+        shell: pwsh
+        run: |
+          $db = Get-Content "Project Files\Source\Console\database.cs" -Raw
+          $required = @(
+            "BuildCurrentTXProfileDefinition",
+            "Rows.Add(newRow)",
+            "TXProfile not found in imported database; retained current profiles.",
+            "current column"
+          )
+          foreach ($token in $required) {
+            if (-not $db.Contains($token)) { throw "Missing DB repair token: $token" }
+          }
+          if ($db.Contains('expandedTable.ImportRow(newRow)')) { throw "Detached-row ImportRow bug still present" }
+          Write-Host "DB migration static verification PASS"
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) {
+            choco install wixtoolset -y --no-progress
+          }
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) {
+            $targets = Get-ChildItem "C:\Program Files (x86)\WiX Toolset*\Wix.targets" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          }
+          if (-not $targets) { throw "WiX 3.x Wix.targets not found" }
+          "WIX_TARGETS=$($targets.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore NuGet packages
+        shell: pwsh
+        run: nuget restore "Project Files\Source\Thetis_VS2026.sln" -NonInteractive
+
+      - name: Build Release x64 and MSI
+        shell: pwsh
+        run: |
+          msbuild "Project Files\Source\Thetis_VS2026.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal
+
+      - name: Verify MSI
+        shell: pwsh
+        run: |
+          $msi = Get-ChildItem "Project Files\bin\Installers\*.msi" -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $msi) { throw "MSI was not produced" }
+          if ($msi.Length -lt 1MB) { throw "MSI is unexpectedly small: $($msi.Length) bytes" }
+          Write-Host "MSI: $($msi.FullName) ($([math]::Round($msi.Length/1MB,2)) MB)"
+
+      - name: Upload MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-DB-BACKWARD-COMPAT-TEST-MSI
+          path: Project Files/bin/Installers/*.msi
+          if-no-files-found: error
+          compression-level: 0
