@@ -1,8 +1,8 @@
-name: PowerSDR FLEX-5000 MSI
+name: PowerSDR FLEX-5000 DISPLAY MSI
 
 on:
   push:
-    branches: [powersdr-flex5000-thetis-ui]
+    branches: [powersdr-flex5000-display]
   workflow_dispatch:
 
 permissions:
@@ -14,10 +14,10 @@ jobs:
     timeout-minutes: 90
 
     steps:
-      - name: Checkout build harness
+      - name: Checkout display build harness
         uses: actions/checkout@v4
         with:
-          ref: powersdr-flex5000-thetis-ui
+          ref: powersdr-flex5000-display
           fetch-depth: 1
           filter: blob:none
 
@@ -54,27 +54,31 @@ jobs:
           Write-Host "WIXBIN=$wixDir"
           Write-Host "INNOEXTRACT=$($inno.Source)"
 
-      - name: Build PowerSDR and MSI
+      - name: Build clean KE9NS 2.8.0.334 display MSI
         shell: pwsh
         run: |
           & .\tools\powersdr\Build-PowerSDR-MSI.ps1 -WixBin "$env:WIXBIN"
 
-      - name: Verify product identity
+      - name: Verify PowerSDR and display isolation
         shell: pwsh
         run: |
           $manifest = Get-Content .\artifacts\powersdr\POWERSDR_BUILD_MANIFEST.txt -Raw
           if ($manifest -notmatch '(?m)^PRODUCT=PowerSDR\r?$') { throw 'Product identity is not PowerSDR' }
           if ($manifest -notmatch '(?m)^EXE=PowerSDR.exe\r?$') { throw 'Executable identity is not PowerSDR.exe' }
+          if ($manifest -notmatch '(?m)^POWERSDR_FILE_VERSION=2\.8\.0\.334\r?$') { throw 'Executable is not KE9NS 2.8.0.334 base' }
+          if ($manifest -notmatch '(?m)^CONSOLE_LAYOUT=KE9NS_NATIVE\r?$') { throw 'Console layout isolation gate failed' }
+          if ($manifest -notmatch '(?m)^SKIN=KE9NS_NATIVE\r?$') { throw 'Skin isolation gate failed' }
+          if ($manifest -notmatch '(?m)^DISPLAY_DATA_SOURCE=POWERSDR_DTTSP\r?$') { throw 'Display data source gate failed' }
           if ($manifest -match 'Thetis\.exe') { throw 'Thetis executable leaked into PowerSDR product' }
           $msi = Get-ChildItem .\artifacts\powersdr\PowerSDR*.msi | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
           if (-not $msi) { throw 'PowerSDR MSI missing' }
           if ($msi.Length -lt 1MB) { throw "MSI unexpectedly small: $($msi.Length)" }
           Write-Host "READY=$($msi.FullName)"
 
-      - name: Upload PowerSDR MSI
+      - name: Upload PowerSDR display MSI
         uses: actions/upload-artifact@v4
         with:
-          name: PowerSDR-FLEX5000-SQ4KOU-x86-MSI
+          name: PowerSDR-FLEX5000-KE9NS334-DISPLAY-P01
           path: |
             artifacts/powersdr/*.msi
             artifacts/powersdr/*.sha256
@@ -86,6 +90,6 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: PowerSDR-FLEX5000-build-logs
+          name: PowerSDR-FLEX5000-display-build-logs
           path: artifacts/powersdr/logs/**
           if-no-files-found: ignore
