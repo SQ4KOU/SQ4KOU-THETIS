@@ -297,24 +297,52 @@ namespace Thetis
                 if (!tx.Columns.Contains("Name")) problems.Add("TXProfile.Name is missing.");
                 if (!def.Columns.Contains("Name")) problems.Add("TXProfileDef.Name is missing.");
 
-                foreach (DataColumn col in def.Columns)
+                // Backward compatibility rule: validate only fields required by THIS build.
+                // Extra legacy/future columns are harmless and must not invalidate an old DB.
+                try
                 {
-                    if (!tx.Columns.Contains(col.ColumnName))
-                        problems.Add("TXProfile missing column: " + col.ColumnName);
-                    else if (tx.Columns[col.ColumnName].DataType != col.DataType)
-                        problems.Add("TXProfile column type mismatch: " + col.ColumnName);
-                }
-                foreach (DataColumn col in tx.Columns)
-                {
-                    if (!def.Columns.Contains(col.ColumnName))
-                        problems.Add("TXProfileDef missing column: " + col.ColumnName);
-                }
+                    DataTable expected = BuildCurrentTXProfileDefinition();
+                    foreach (DataColumn col in expected.Columns)
+                    {
+                        if (!tx.Columns.Contains(col.ColumnName))
+                            problems.Add("TXProfile missing current column: " + col.ColumnName);
+                        else if (tx.Columns[col.ColumnName].DataType != col.DataType)
+                            problems.Add("TXProfile current column type mismatch: " + col.ColumnName);
 
-                if (def.Columns.Contains("Name"))
+                        if (!def.Columns.Contains(col.ColumnName))
+                            problems.Add("TXProfileDef missing current column: " + col.ColumnName);
+                        else if (def.Columns[col.ColumnName].DataType != col.DataType)
+                            problems.Add("TXProfileDef current column type mismatch: " + col.ColumnName);
+                    }
+
+                    if (def.Columns.Contains("Name"))
+                    {
+                        DataRow[] defaults = def.Select("Name = 'Default'");
+                        if (defaults.Length != 1)
+                            problems.Add("TXProfileDef must contain exactly one Default row; found " + defaults.Length + ".");
+                        else
+                        {
+                            foreach (DataColumn col in expected.Columns)
+                            {
+                                if (def.Columns.Contains(col.ColumnName) && defaults[0].IsNull(col.ColumnName))
+                                    problems.Add("TXProfileDef Default has no value for current field: " + col.ColumnName);
+                            }
+                        }
+                    }
+
+                    foreach (DataRow row in tx.Rows)
+                    {
+                        if (row.RowState == DataRowState.Deleted) continue;
+                        foreach (DataColumn col in expected.Columns)
+                        {
+                            if (tx.Columns.Contains(col.ColumnName) && row.IsNull(col.ColumnName))
+                                problems.Add("TXProfile has no value for current field: " + col.ColumnName);
+                        }
+                    }
+                }
+                catch (Exception ex)
                 {
-                    DataRow[] defaults = def.Select("Name = 'Default'");
-                    if (defaults.Length != 1)
-                        problems.Add("TXProfileDef must contain exactly one Default row; found " + defaults.Length + ".");
+                    problems.Add("Unable to validate current TXProfile schema: " + ex.Message);
                 }
             }
 
@@ -602,35 +630,106 @@ namespace Thetis
 
         // Yurij-eu2av - 2026-07-08: ensure any newly-added TXProfile columns exist
         // (migration helper for databases created before new features were added).
+        // SQ4KOU V3: normalize incomplete legacy TX profiles in-place BEFORE
+        // DBMan runs the compatibility gate. Existing non-null legacy values always win.
+        // Only missing current columns / DBNull current fields are filled from the
+        // current compiled profile definition. This avoids forcing a migration merely
+        // because one old/custom profile omitted fields such as DXLevel/Tune_Power.
         private static void VerifyTXProfileColumns()
         {
-            // EU2AV introduced CFCPhaseRotatorAuto after many existing databases were created.
-            // Adding a bool DataColumn to a populated DataTable leaves existing rows as DBNull.
-            // IsDatabaseCompatible() correctly rejects DBNull values, but that would force a full
-            // database migration for a setting whose defined legacy/default value is simply false.
-            // Normalize this one additive field in-place; all other compatibility checks stay strict.
-            foreach (string tableName in new[] { "TXProfile", "TXProfileDef" })
+            DataTable expected;
+            try
+            {
+                expected = BuildCurrentTXProfileDefinition();
+            }
+            catch (Exception ex)
+            {
+                LogDatabaseEvent("LEGACY_TXPROFILE_NORMALIZE_FAIL", "Unable to build current TXProfile definition", ex);
+                return;
+            }
+
+            DataRow[] expectedDefaults = expected.Select("Name = 'Default'");
+            if (expectedDefaults.Length != 1)
+            {
+                LogDatabaseEvent("LEGACY_TXPROFILE_NORMALIZE_FAIL", "Current TXProfile definition has no unique Default row");
+                return;
+            }
+            DataRow expectedDefault = expectedDefaults[0];
+
+            foreach (string tableName in new[] { "TXProfileDef", "TXProfile" })
             {
                 if (!ds.Tables.Contains(tableName)) continue;
-                DataTable t = ds.Tables[tableName];
-                DataColumn c;
-                if (!t.Columns.Contains("CFCPhaseRotatorAuto"))
+                DataTable target = ds.Tables[tableName];
+
+                // Add only fields required by this build. Legacy-only fields are retained.
+                foreach (DataColumn currentCol in expected.Columns)
                 {
-                    c = t.Columns.Add("CFCPhaseRotatorAuto", typeof(bool));
-                    c.DefaultValue = false;
-                }
-                else
-                {
-                    c = t.Columns["CFCPhaseRotatorAuto"];
-                    if (c.DataType == typeof(bool)) c.DefaultValue = false;
+                    if (!target.Columns.Contains(currentCol.ColumnName))
+                    {
+                        DataColumn added = target.Columns.Add(currentCol.ColumnName, currentCol.DataType);
+                        added.AllowDBNull = true;
+                        if (currentCol.DefaultValue != null && currentCol.DefaultValue != DBNull.Value)
+                            added.DefaultValue = currentCol.DefaultValue;
+                    }
                 }
 
-                if (c.DataType == typeof(bool))
+                // If an old TXProfileDef somehow lacks the Default row, add the current
+                // one without touching any existing rows. Multiple Default rows remain an
+                // error and are deliberately not guessed/repaired here.
+                if (tableName == "TXProfileDef" && target.Columns.Contains("Name"))
                 {
-                    foreach (DataRow row in t.Rows)
+                    DataRow[] defaults = target.Select("Name = 'Default'");
+                    if (defaults.Length == 0)
                     {
-                        if (row.RowState == DataRowState.Deleted) continue;
-                        if (row.IsNull(c)) row[c] = false;
+                        DataRow row = target.NewRow();
+                        foreach (DataColumn currentCol in expected.Columns)
+                        {
+                            if (!target.Columns.Contains(currentCol.ColumnName)) continue;
+                            if (!expectedDefault.IsNull(currentCol.ColumnName))
+                                row[currentCol.ColumnName] = expectedDefault[currentCol.ColumnName];
+                        }
+                        target.Rows.Add(row);
+                    }
+                }
+
+                foreach (DataRow row in target.Rows)
+                {
+                    if (row.RowState == DataRowState.Deleted) continue;
+                    string profileName = target.Columns.Contains("Name") ? Convert.ToString(row["Name"]) : "";
+
+                    DataRow seed = expectedDefault;
+                    if (!string.IsNullOrEmpty(profileName) && expected.Columns.Contains("Name"))
+                    {
+                        string escaped = profileName.Replace("'", "''");
+                        DataRow[] sameName = expected.Select("Name = '" + escaped + "'");
+                        if (sameName.Length == 1) seed = sameName[0];
+                    }
+
+                    foreach (DataColumn currentCol in expected.Columns)
+                    {
+                        if (!target.Columns.Contains(currentCol.ColumnName)) continue;
+                        if (!row.IsNull(currentCol.ColumnName)) continue; // old value is authoritative
+
+                        object value = DBNull.Value;
+                        if (seed != null && !seed.IsNull(currentCol.ColumnName))
+                            value = seed[currentCol.ColumnName];
+                        else if (!expectedDefault.IsNull(currentCol.ColumnName))
+                            value = expectedDefault[currentCol.ColumnName];
+                        else if (currentCol.DefaultValue != null && currentCol.DefaultValue != DBNull.Value)
+                            value = currentCol.DefaultValue;
+
+                        if (value == null || value == DBNull.Value) continue;
+                        try
+                        {
+                            row[currentCol.ColumnName] = value;
+                            LogDatabaseEvent("LEGACY_TXPROFILE_NORMALIZE",
+                                tableName + " '" + profileName + "': filled missing current field '" + currentCol.ColumnName + "'.");
+                        }
+                        catch (Exception ex)
+                        {
+                            LogDatabaseEvent("LEGACY_TXPROFILE_NORMALIZE_FAIL",
+                                tableName + " '" + profileName + "': could not fill '" + currentCol.ColumnName + "'.", ex);
+                        }
                     }
                 }
             }
@@ -643,6 +742,31 @@ namespace Thetis
         /// version of Thetis. Used to trigger an automatic upgrade when the VersionNumber alone
         /// has not changed (for example after adding new columns/settings).
         /// </summary>
+        private static DataTable BuildCurrentTXProfileDefinition()
+        {
+            // Build the canonical TX-profile schema directly from the current source code.
+            // This avoids comparing an old TXProfile table only with its equally-old TXProfileDef.
+            DataSet original = ds;
+            try
+            {
+                DataSet scratch = new DataSet("Data");
+                ds = scratch;
+                AddTXProfileTable("__CurrentTXProfileDef", true);
+                DataTable expected = scratch.Tables["__CurrentTXProfileDef"].Copy();
+                expected.TableName = "TXProfileDef";
+                return expected;
+            }
+            finally
+            {
+                ds = original;
+            }
+        }
+
+        /// <summary>
+        /// Checks whether the loaded database contains every TX-profile field required by
+        /// this build. Extra legacy/future columns are tolerated. Missing/currently-invalid
+        /// fields trigger the normal safe create+merge migration path.
+        /// </summary>
         public static bool IsDatabaseCompatible(out string reason)
         {
             reason = "";
@@ -653,7 +777,6 @@ namespace Thetis
                 return false;
             }
 
-            // Required tables
             foreach (string tableName in new[] { "TXProfile", "TXProfileDef", "State" })
             {
                 if (!ds.Tables.Contains(tableName))
@@ -665,42 +788,80 @@ namespace Thetis
 
             DataTable txp = ds.Tables["TXProfile"];
             DataTable txpDef = ds.Tables["TXProfileDef"];
+            DataTable expected;
+            try
+            {
+                expected = BuildCurrentTXProfileDefinition();
+            }
+            catch (Exception ex)
+            {
+                reason = "Unable to build current TXProfile schema: " + ex.Message;
+                return false;
+            }
 
-            // TXProfile must contain all columns defined in TXProfileDef
-            foreach (DataColumn col in txpDef.Columns)
+            // Compare both loaded profile tables against the schema compiled into this build.
+            // Do not reject extra columns: only missing or type-incompatible required columns matter.
+            foreach (DataColumn col in expected.Columns)
             {
                 if (!txp.Columns.Contains(col.ColumnName))
                 {
-                    reason = $"TXProfile table is missing column '{col.ColumnName}'.";
+                    reason = $"TXProfile table is missing current column '{col.ColumnName}'.";
+                    return false;
+                }
+                if (txp.Columns[col.ColumnName].DataType != col.DataType)
+                {
+                    reason = $"TXProfile column '{col.ColumnName}' has type {txp.Columns[col.ColumnName].DataType.FullName}; expected {col.DataType.FullName}.";
+                    return false;
+                }
+                if (!txpDef.Columns.Contains(col.ColumnName))
+                {
+                    reason = $"TXProfileDef table is missing current column '{col.ColumnName}'.";
+                    return false;
+                }
+                if (txpDef.Columns[col.ColumnName].DataType != col.DataType)
+                {
+                    reason = $"TXProfileDef column '{col.ColumnName}' has type {txpDef.Columns[col.ColumnName].DataType.FullName}; expected {col.DataType.FullName}.";
                     return false;
                 }
             }
 
-            // There must be a Default row to supply values during repair
-            DataRow[] defaultRows = txpDef.Select("Name = 'Default'");
-            if (defaultRows.Length == 0)
+            if (!txpDef.Columns.Contains("Name"))
             {
-                reason = "TXProfileDef table has no 'Default' row.";
+                reason = "TXProfileDef table has no Name column.";
                 return false;
             }
 
-            // No required column may be DBNull in any TXProfile row
+            DataRow[] defaultRows = txpDef.Select("Name = 'Default'");
+            if (defaultRows.Length != 1)
+            {
+                reason = "TXProfileDef must contain exactly one 'Default' row; found " + defaultRows.Length + ".";
+                return false;
+            }
+
+            // A current field with DBNull is treated as incomplete and repaired by migration.
             foreach (DataRow row in txp.Rows)
             {
                 if (row.RowState == DataRowState.Deleted) continue;
-
-                string profileName = row.Table.Columns.Contains("Name") ? Convert.ToString(row["Name"]) : "<unknown>";
-                foreach (DataColumn col in txpDef.Columns)
+                string profileName = txp.Columns.Contains("Name") ? Convert.ToString(row["Name"]) : "<unknown>";
+                foreach (DataColumn col in expected.Columns)
                 {
                     if (row.IsNull(col.ColumnName))
                     {
-                        reason = $"TXProfile '{profileName}' has no value for '{col.ColumnName}'.";
+                        reason = $"TXProfile '{profileName}' has no value for current field '{col.ColumnName}'.";
                         return false;
                     }
                 }
             }
 
-            // State table must contain version info
+            foreach (DataColumn col in expected.Columns)
+            {
+                if (defaultRows[0].IsNull(col.ColumnName))
+                {
+                    reason = $"TXProfileDef Default has no value for current field '{col.ColumnName}'.";
+                    return false;
+                }
+            }
+
             Dictionary<string, string> state = GetVarsDictionary("State");
             if (!state.ContainsKey("VersionNumber"))
             {
@@ -11241,6 +11402,200 @@ namespace Thetis
             //the shutdown
             get { return _merged; }
         }
+        private static void CopyCompatibleValues(DataRow source, DataRow target)
+        {
+            foreach (DataColumn sourceCol in source.Table.Columns)
+            {
+                if (!target.Table.Columns.Contains(sourceCol.ColumnName)) continue;
+                object value = source[sourceCol.ColumnName];
+                if (value == null || value == DBNull.Value) continue;
+
+                DataColumn targetCol = target.Table.Columns[sourceCol.ColumnName];
+                try
+                {
+                    if (sourceCol.DataType == targetCol.DataType || targetCol.DataType.IsAssignableFrom(sourceCol.DataType))
+                        target[targetCol.ColumnName] = value;
+                    else
+                        target[targetCol.ColumnName] = Convert.ChangeType(value, targetCol.DataType);
+                }
+                catch
+                {
+                    // Keep the seeded/current value if an obsolete value cannot be converted.
+                }
+            }
+        }
+
+        private static string[] LegacyIdentityColumns(DataTable currentTable, DataTable oldTable)
+        {
+            if (currentTable == null || oldTable == null) return null;
+            string name = currentTable.TableName;
+
+            if (name == "BandText" && currentTable.Columns.Contains("Low") && currentTable.Columns.Contains("High") && currentTable.Columns.Contains("Name") &&
+                oldTable.Columns.Contains("Low") && oldTable.Columns.Contains("High") && oldTable.Columns.Contains("Name"))
+                return new[] { "Low", "High", "Name" };
+
+            if (currentTable.Columns.Contains("Key") && oldTable.Columns.Contains("Key")) return new[] { "Key" };
+            if (currentTable.Columns.Contains("GroupID") && oldTable.Columns.Contains("GroupID")) return new[] { "GroupID" };
+            if (currentTable.Columns.Contains("GUID") && oldTable.Columns.Contains("GUID")) return new[] { "GUID" };
+            if (currentTable.Columns.Contains("Name") && oldTable.Columns.Contains("Name")) return new[] { "Name" };
+            return null;
+        }
+
+        private static bool RowsMatch(DataRow a, DataRow b, string[] columns)
+        {
+            if (a == null || b == null || columns == null || columns.Length == 0) return false;
+            foreach (string column in columns)
+            {
+                if (!a.Table.Columns.Contains(column) || !b.Table.Columns.Contains(column)) return false;
+                object av = a[column];
+                object bv = b[column];
+                if (av == DBNull.Value && bv == DBNull.Value) continue;
+                if (av == DBNull.Value || bv == DBNull.Value) return false;
+                if (!string.Equals(Convert.ToString(av), Convert.ToString(bv), StringComparison.Ordinal)) return false;
+            }
+            return true;
+        }
+
+        private static DataRow FindMatchingRow(DataTable table, DataRow source, string[] columns)
+        {
+            if (table == null || source == null || columns == null) return null;
+            foreach (DataRow row in table.Rows)
+            {
+                if (row.RowState == DataRowState.Deleted) continue;
+                if (RowsMatch(row, source, columns)) return row;
+            }
+            return null;
+        }
+
+        private static DataTable MergeLegacyTablePreferOld(DataTable currentTable, DataTable oldTable)
+        {
+            if (currentTable == null) return oldTable == null ? null : oldTable.Copy();
+            if (oldTable == null) return currentTable.Copy();
+
+            DataTable result = currentTable.Clone();
+
+            // Preserve legacy-only columns.
+            foreach (DataColumn oldCol in oldTable.Columns)
+            {
+                if (!result.Columns.Contains(oldCol.ColumnName))
+                {
+                    DataColumn extra = result.Columns.Add(oldCol.ColumnName, oldCol.DataType);
+                    extra.AllowDBNull = true;
+                }
+            }
+
+            string[] identity = LegacyIdentityColumns(currentTable, oldTable);
+
+            // Every old row is retained. Seed a matching current row first, then overlay
+            // old values so new fields get defaults without overwriting old user data.
+            foreach (DataRow oldRow in oldTable.Rows)
+            {
+                if (oldRow.RowState == DataRowState.Deleted) continue;
+                DataRow newRow = result.NewRow();
+                DataRow seed = FindMatchingRow(currentTable, oldRow, identity);
+
+                if (seed != null)
+                    CopyCompatibleValues(seed, newRow);
+                else
+                {
+                    foreach (DataColumn col in currentTable.Columns)
+                    {
+                        if (col.DefaultValue != null && col.DefaultValue != DBNull.Value)
+                        {
+                            try { newRow[col.ColumnName] = col.DefaultValue; }
+                            catch { }
+                        }
+                    }
+                }
+
+                CopyCompatibleValues(oldRow, newRow);
+                result.Rows.Add(newRow);
+            }
+
+            // For keyable/default tables keep genuinely new rows introduced by this build.
+            if (identity != null)
+            {
+                foreach (DataRow currentRow in currentTable.Rows)
+                {
+                    if (currentRow.RowState == DataRowState.Deleted) continue;
+                    if (FindMatchingRow(result, currentRow, identity) != null) continue;
+                    DataRow newRow = result.NewRow();
+                    CopyCompatibleValues(currentRow, newRow);
+                    result.Rows.Add(newRow);
+                }
+            }
+
+            return result;
+        }
+
+        private static bool TryReadImportedDatabaseWithRecovery(string filename, out DataSet imported, out string recoveryLog)
+        {
+            imported = null;
+            recoveryLog = "";
+
+            try
+            {
+                DataSet normal = new DataSet();
+                normal.ReadXml(filename);
+                imported = normal;
+                return true;
+            }
+            catch (Exception firstEx)
+            {
+                // Compatibility is separate from corruption, but old Thetis versions wrote
+                // database.xml non-atomically. A copied legacy file can therefore contain a
+                // complete schema and thousands of complete rows followed by one torn tail row.
+                // Recover ONLY complete top-level rows; never modify the source file.
+                try
+                {
+                    string xml = File.ReadAllText(filename);
+                    int searchFrom = xml.Length;
+                    for (int attempt = 0; attempt < 256; attempt++)
+                    {
+                        int cut = xml.LastIndexOf("\n  </", Math.Max(0, searchFrom - 1), StringComparison.Ordinal);
+                        if (cut < 0) break;
+                        int closeEnd = xml.IndexOf('>', cut);
+                        if (closeEnd < 0) break;
+
+                        string closing = xml.Substring(cut, closeEnd - cut + 1).Trim();
+                        searchFrom = cut;
+                        if (closing == "</Data>" || closing.IndexOf("schema", StringComparison.OrdinalIgnoreCase) >= 0)
+                            continue;
+
+                        string repaired = xml.Substring(0, closeEnd + 1) + Environment.NewLine + "</Data>" + Environment.NewLine;
+                        try
+                        {
+                            DataSet candidate = new DataSet();
+                            using (StringReader sr = new StringReader(repaired))
+                                candidate.ReadXml(sr);
+
+                            string basicProblems = ValidateDataSet(candidate, false);
+                            int totalRows = 0;
+                            foreach (DataTable t in candidate.Tables) totalRows += t.Rows.Count;
+                            if (string.IsNullOrEmpty(basicProblems) && totalRows > 0)
+                            {
+                                imported = candidate;
+                                recoveryLog = "WARNING: legacy database XML ended with an incomplete/truncated tail. " +
+                                    "Recovered " + totalRows + " complete rows; the incomplete final row was ignored. " +
+                                    "Original file was not modified. Original read error: " + firstEx.GetType().Name + ": " + firstEx.Message;
+                                return true;
+                            }
+                        }
+                        catch
+                        {
+                            // Try the previous complete top-level row.
+                        }
+                    }
+                }
+                catch
+                {
+                }
+
+                recoveryLog = "Unable to read imported database: " + firstEx.GetType().Name + ": " + firstEx.Message;
+                return false;
+            }
+        }
+
         public static bool ImportAndMergeDatabase(string filename, out string log, bool ignore_merged)
         {
             //[2.10.3.6]MW0LGE modified for new DB manager system
@@ -11258,17 +11613,16 @@ namespace Thetis
             // Make a copy of the existing DB
             DataSet current_inuseDB = ds.Copy();
 
-            // Read in DB to be imported and merged 
-            DataSet being_importedDB = new DataSet();
-            try
+            // Read in DB to be imported and merged. Legacy files are read normally;
+            // a torn/truncated tail from old non-atomic writers gets a conservative recovery pass.
+            if (!TryReadImportedDatabaseWithRecovery(filename, out DataSet being_importedDB, out string recoveryLog))
             {
-                being_importedDB.ReadXml(filename);
-            }
-            catch (Exception)
-            {
+                log += recoveryLog + "\n";
                 return false;
             }
-            log += "Read <" + filename + ">\n\n";
+            log += "Read <" + filename + ">\n";
+            if (!string.IsNullOrEmpty(recoveryLog)) log += recoveryLog + "\n";
+            log += "\n";
 
             // Check that imported DB has basic validity
             string validationProblems = ValidateImportedDatabase(being_importedDB);
@@ -11467,41 +11821,55 @@ namespace Thetis
                     case "BandText":
                     case "GroupList":
                     case "Memory":
-                        newDB.Merge(current_inuseDB_table); // don't overwrite current tables for these cases
-                        log += "Did not import table <" + current_inuseDB_table.TableName + "> into database.\n";
+                        if (being_importedDB.Tables.Contains(current_inuseDB_table.TableName))
+                        {
+                            DataTable preservedLegacy = MergeLegacyTablePreferOld(
+                                current_inuseDB_table,
+                                being_importedDB.Tables[current_inuseDB_table.TableName]);
+                            newDB.Merge(preservedLegacy);
+                            log += "Imported legacy-authoritative table <" + current_inuseDB_table.TableName + "> into database.\n";
+                        }
+                        else
+                        {
+                            newDB.Merge(current_inuseDB_table);
+                            log += "Legacy table not present; retained current <" + current_inuseDB_table.TableName + ">.\n";
+                        }
                         break;
 
                     case "TXProfile":
-                        // Get table of same name in oldDB   
-                        DataTable tempOldTable = being_importedDB.Tables["TXProfile"].Clone();
-                        tempMergedTable.Clear();
-                        foreach (DataTable t in being_importedDB.Tables)
+                        // Missing TXProfile in a very old/partial DB is not fatal: retain current defaults.
+                        if (!being_importedDB.Tables.Contains("TXProfile"))
                         {
-                            if (t.TableName == current_inuseDB_table.TableName)
-                            {
-                                tempOldTable = t.Copy();
-                                foundTable = true;
-                                break;
-                            }
+                            newDB.Merge(current_inuseDB_table);
+                            log += "TXProfile not found in imported database; retained current profiles.\n";
+                            break;
                         }
-                        if (!foundTable) break;
 
-                        // First, merge all rows of oldDB.
-                        //tempMergedTable.Merge(tempTable,false,MissingSchemaAction.Add);
-                        DataTable tT = ExpandOldTxProfileTable(tempOldTable);
-                        if (tT != null) tempMergedTable.Merge(tT);
-                        else { tempMergedTable.Merge(current_inuseDB_table); break; } // No default model exists so reject the old TXProfiles
+                        DataTable tempOldTable = being_importedDB.Tables["TXProfile"].Copy();
+                        tempMergedTable.Clear();
 
-                        // For each row of existingDB, if there is matching key in oldDB, 
-                        // keep that entry, else import new existing one into tempMergedTable.
+                        // Expand every old user profile into the CURRENT schema. Old values win only
+                        // where the field still exists and is safely type-compatible; new fields keep defaults.
+                        DataTable expandedProfiles = ExpandOldTxProfileTable(tempOldTable);
+                        if (expandedProfiles != null)
+                            tempMergedTable.Merge(expandedProfiles);
+                        else
+                        {
+                            tempMergedTable.Merge(current_inuseDB_table);
+                            log += "TXProfile could not be expanded; retained current profiles.\n";
+                            newDB.Merge(tempMergedTable);
+                            break;
+                        }
+
+                        // Keep current factory/new profiles that did not exist in the imported DB.
                         foreach (DataRow row in current_inuseDB_table.Rows)
                         {
-                            string selector = "Name = '" + row["Name"] + "'";
+                            string profileName = Convert.ToString(row["Name"]);
+                            string selector = "Name = '" + profileName.Replace("'", "''") + "'";
                             DataRow[] foundRow = tempMergedTable.Select(selector);
-                            if (foundRow.Length == 0) tempMergedTable.ImportRow(row); // If not in the oldDB, take the new one
+                            if (foundRow.Length == 0) tempMergedTable.ImportRow(row);
                         }
 
-                        // Copy tempTable into mergedDB 
                         newDB.Merge(tempMergedTable);
                         log += "Imported table <" + current_inuseDB_table.TableName + "> into database.\n";
                         break;
@@ -11800,14 +12168,59 @@ namespace Thetis
                             }
                         }
 
+                        // 100% backward compatibility: retain legacy-only Key/Value settings too.
+                        // The old importer only copied keys already known by the current build (plus a
+                        // partial hard-coded list), which silently discarded valid older user settings.
+                        if (tempTable.Columns.Contains("Key") && tempMergedTable.Columns.Contains("Key"))
+                        {
+                            foreach (DataRow oldRow in tempTable.Rows)
+                            {
+                                if (oldRow.RowState == DataRowState.Deleted) continue;
+                                string oldKey = Convert.ToString(oldRow["Key"]);
+                                if (string.IsNullOrEmpty(oldKey)) continue;
+
+                                // These are metadata owned by the current build, not user settings.
+                                if (tempTable.TableName == "State" &&
+                                    (oldKey == "VersionNumber" || oldKey == "Version" || oldKey == "DatabaseSchemaVersion"))
+                                    continue;
+
+                                bool exists = false;
+                                foreach (DataRow mergedRow in tempMergedTable.Rows)
+                                {
+                                    if (mergedRow.RowState == DataRowState.Deleted) continue;
+                                    if (string.Equals(Convert.ToString(mergedRow["Key"]), oldKey, StringComparison.Ordinal))
+                                    {
+                                        exists = true;
+                                        break;
+                                    }
+                                }
+                                if (!exists)
+                                {
+                                    tempMergedTable.ImportRow(oldRow);
+                                    log += "Preserved legacy-only key <" + tempTable.TableName + ":" + oldKey + ">.\n";
+                                }
+                            }
+                        }
+
                         // Merge in the assembled temp table into mergedDB 
                         newDB.Merge(tempMergedTable);
                         log += "Imported table <" + current_inuseDB_table.TableName + "> into database.\n";
                         break;
 
                     default:
-                        // Unrecognized table
-                        log += "Unrecognized table: " + current_inuseDB_table.TableName + "\n";
+                        if (being_importedDB.Tables.Contains(current_inuseDB_table.TableName))
+                        {
+                            DataTable preservedLegacy = MergeLegacyTablePreferOld(
+                                current_inuseDB_table,
+                                being_importedDB.Tables[current_inuseDB_table.TableName]);
+                            newDB.Merge(preservedLegacy);
+                            log += "Imported legacy-authoritative unclassified table <" + current_inuseDB_table.TableName + ">.\n";
+                        }
+                        else
+                        {
+                            newDB.Merge(current_inuseDB_table);
+                            log += "Retained current unclassified table <" + current_inuseDB_table.TableName + ">.\n";
+                        }
                         break;
                 }
             }
@@ -11863,33 +12276,72 @@ namespace Thetis
             return ValidateDataSet(oldDB, false);
         }
 
-        //-W2PA Expand an old TxProfile table into a newer one with more colunms. Fill in missing ones with default values.
+        //-W2PA Expand an old TxProfile table into the current schema.
+        // Old non-null values are authoritative. Missing/new CURRENT fields use the
+        // CURRENT Default row. Extra legacy columns are retained instead of discarded.
         private static DataTable ExpandOldTxProfileTable(DataTable oldTable)
         {
-            //Get a Default TXProfile to fill in missing columns in an old version
+            if (oldTable == null || !oldTable.Columns.Contains("Name")) return null;
+            if (!ds.Tables.Contains("TXProfileDef")) return null;
+
             DataTable dsTXPDefTable = ds.Tables["TXProfileDef"];
             DataTable expandedTable = dsTXPDefTable.Clone();
-            DataRow[] DefaultRows = dsTXPDefTable.Select("Name = 'Default'");
-            DataRow DefaultRow;
-            if (DefaultRows.Length > 0) DefaultRow = DefaultRows[0];  // Found a row of default values
-            else return null;
-         
-            foreach (DataRow OldRow in oldTable.Rows)
+            DataRow[] defaultRows = dsTXPDefTable.Select("Name = 'Default'");
+            if (defaultRows.Length != 1) return null;
+            DataRow defaultRow = defaultRows[0];
+
+            // Preserve columns which existed in an old database even when this build
+            // no longer knows them. They must not make a legacy database incompatible.
+            foreach (DataColumn oldCol in oldTable.Columns)
             {
-                DataRow newRow = expandedTable.NewRow();
-                newRow.ItemArray = (object[])DefaultRow.ItemArray.Clone();
-                foreach (DataColumn col in oldTable.Columns) // Overwrite the subset of columns that were in the old table
+                if (!expandedTable.Columns.Contains(oldCol.ColumnName))
                 {
-                    if ((ds.Tables["TXProfile"].Columns).Contains(col.ColumnName))  // Don't import a row having a colummn that's no longer used
-                    {
-                        System.Type oldType = OldRow[col.ColumnName].GetType();
-                        System.Type newType = newRow[col.ColumnName].GetType();
-                        if (newType.FullName == oldType.FullName)  // Don't assign a value of a different type
-                            newRow[col.ColumnName] = OldRow[col.ColumnName];
-                    }                                
+                    DataColumn extra = expandedTable.Columns.Add(oldCol.ColumnName, oldCol.DataType);
+                    extra.AllowDBNull = true;
                 }
-                if ("Default" != (string)(newRow["Name"]))  // Don't take in the old Default TXProfile at all
-                    expandedTable.ImportRow(newRow);
+            }
+
+            foreach (DataRow oldRow in oldTable.Rows)
+            {
+                if (oldRow.RowState == DataRowState.Deleted) continue;
+
+                string profileName = Convert.ToString(oldRow["Name"]);
+                if (string.IsNullOrEmpty(profileName) || profileName == "Default") continue;
+
+                DataRow newRow = expandedTable.NewRow();
+
+                // Seed only CURRENT columns from the current Default row.
+                foreach (DataColumn currentCol in dsTXPDefTable.Columns)
+                {
+                    if (!defaultRow.IsNull(currentCol))
+                        newRow[currentCol.ColumnName] = defaultRow[currentCol.ColumnName];
+                }
+
+                // Overlay every non-null old value. This is the key compatibility rule:
+                // existing user data always wins over a new default.
+                foreach (DataColumn sourceCol in oldTable.Columns)
+                {
+                    if (!expandedTable.Columns.Contains(sourceCol.ColumnName)) continue;
+                    object oldValue = oldRow[sourceCol.ColumnName];
+                    if (oldValue == null || oldValue == DBNull.Value) continue;
+
+                    DataColumn targetCol = expandedTable.Columns[sourceCol.ColumnName];
+                    try
+                    {
+                        if (sourceCol.DataType == targetCol.DataType || targetCol.DataType.IsAssignableFrom(sourceCol.DataType))
+                            newRow[targetCol.ColumnName] = oldValue;
+                        else
+                            newRow[targetCol.ColumnName] = Convert.ChangeType(oldValue, targetCol.DataType);
+                    }
+                    catch
+                    {
+                        // If an obsolete value cannot be converted, keep the current default
+                        // for a current field; an extra legacy field remains DBNull.
+                    }
+                }
+
+                newRow["Name"] = profileName;
+                expandedTable.Rows.Add(newRow);
             }
 
             return expandedTable;
