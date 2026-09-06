@@ -9,6 +9,10 @@ on:
       - 'scripts/build_jtdx_superhound_msi.ps1'
   workflow_dispatch:
 
+concurrency:
+  group: jtdx-superhound-p1-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   windows-msi:
     runs-on: windows-latest
@@ -48,6 +52,16 @@ jobs:
           gfortran --version | tee logs/gfortran.txt
           cmake --version | tee logs/cmake.txt
 
+      - name: Clone JTDX and apply SuperHound
+        shell: msys2 {0}
+        run: |
+          set -euxo pipefail
+          git clone --depth 1 https://git.code.sf.net/p/jtdx/code jtdx
+          git -C jtdx rev-parse HEAD | tee logs/jtdx-commit.txt
+          python tools/jtdx-superhound-p1/scripts/patch_jtdx.py jtdx tools/jtdx-superhound-p1/overlay 2>&1 | tee logs/jtdx-patch.log
+          git -C jtdx diff --check | tee logs/jtdx-diff-check.txt
+          git -C jtdx diff > artifacts/JTDX_SUPERHOUND_P1.patch
+
       - name: Build pinned JTDX Hamlib
         shell: msys2 {0}
         run: |
@@ -84,16 +98,6 @@ jobs:
           test -n "$SFRX"
           cp "$SFRX" artifacts/sfrx.exe
           sha256sum artifacts/sfrx.exe | tee logs/sfrx-sha256.txt
-
-      - name: Clone JTDX and apply SuperHound P1
-        shell: msys2 {0}
-        run: |
-          set -euxo pipefail
-          git clone --depth 1 https://git.code.sf.net/p/jtdx/code jtdx
-          git -C jtdx rev-parse HEAD | tee logs/jtdx-commit.txt
-          python tools/jtdx-superhound-p1/scripts/patch_jtdx.py jtdx tools/jtdx-superhound-p1/overlay 2>&1 | tee logs/jtdx-patch.log
-          git -C jtdx diff --check | tee logs/jtdx-diff-check.txt
-          git -C jtdx diff > artifacts/JTDX_SUPERHOUND_P1.patch
 
       - name: Configure JTDX
         shell: msys2 {0}
