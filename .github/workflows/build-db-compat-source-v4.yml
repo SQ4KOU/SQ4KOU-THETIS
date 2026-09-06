@@ -1,0 +1,130 @@
+name: Build DB compatibility source V4 MSI
+
+on:
+  push:
+    branches:
+      - fix/db-compat-100-source-v2
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  DB_BRANCH: fix/db-compat-100-source-v2
+
+jobs:
+  source-and-msi:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: windows-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          filter: blob:none
+
+      - name: Enable long paths
+        shell: pwsh
+        run: git config --global core.longpaths true
+
+      - name: Apply complete DB compatibility source repair
+        shell: pwsh
+        run: |
+          python tools/apply_db_backward_compat_test.py
+          python tools/apply_db_backward_compat_v2.py
+          python tools/apply_db_backward_compat_v3.py
+          python tools/apply_db_backward_compat_v4_source.py
+          git diff --check
+
+      - name: Verify preservation-first source contract
+        shell: pwsh
+        run: |
+          $db = Get-Content "Project Files\Source\Console\database.cs" -Raw
+          $dbman = Get-Content "Project Files\Source\Console\clsDBMan.cs" -Raw
+          $dbRequired = @(
+            "SQ4KOU_DB_COMPAT_PRESERVATION_V4",
+            "BuildCurrentTXProfileDefinition",
+            "MergeMissingDefaultsFromDatabase",
+            "VerifyDatabasePreservesOriginal",
+            "Every original non-null value preserved",
+            "MarkCurrentDatabaseMetadata",
+            "Rows.Add(newRow)",
+            "if (_compatibilityRepairChanged) changed = true;"
+          )
+          foreach ($token in $dbRequired) {
+            if (-not $db.Contains($token)) { throw "database.cs missing: $token" }
+          }
+          $manRequired = @(
+            "SQ4KOU_DB_COMPAT_PRESERVATION_V4",
+            "File.Copy(original_db_filename_xml, candidateFile, true)",
+            "MergeMissingDefaultsFromDatabase",
+            "VerifyDatabasePreservesOriginal",
+            "COMPAT_METADATA_ONLY"
+          )
+          foreach ($token in $manRequired) {
+            if (-not $dbman.Contains($token)) { throw "clsDBMan.cs missing: $token" }
+          }
+          if ($db.Contains('expandedTable.ImportRow(newRow)')) { throw "Detached-row ImportRow bug remains" }
+          $v4 = $dbman.Substring($dbman.IndexOf("SQ4KOU_DB_COMPAT_PRESERVATION_V4"))
+          $v4 = $v4.Substring(0, $v4.IndexOf("private static void moveToBroken"))
+          if ($v4.Contains("ImportAndMergeDatabase(original_db_filename_xml")) { throw "Old fresh+partial automatic migration path remains" }
+          Write-Host "Preservation-first source contract PASS"
+
+      - name: Commit real C# source changes
+        shell: pwsh
+        run: |
+          git config user.name "SQ4KOU Build Bot"
+          git config user.email "actions@github.com"
+          git add -- "Project Files/Source/Console/database.cs" "Project Files/Source/Console/clsDBMan.cs"
+          if (-not (git diff --cached --quiet)) {
+            git commit -m "Implement preservation-first 100% DB backward compatibility source"
+            git push origin "HEAD:$env:DB_BRANCH"
+          } else {
+            Write-Host "Source already committed."
+          }
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) { choco install wixtoolset -y --no-progress }
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) {
+            $targets = Get-ChildItem "C:\Program Files (x86)\WiX Toolset*\Wix.targets" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          }
+          if (-not $targets) { throw "WiX 3.x Wix.targets not found" }
+          "WIX_TARGETS=$($targets.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore NuGet packages
+        shell: pwsh
+        run: nuget restore "Project Files\Source\Thetis_VS2026.sln" -NonInteractive
+
+      - name: Build Release x64 and MSI
+        shell: pwsh
+        run: |
+          msbuild "Project Files\Source\Thetis_VS2026.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal
+
+      - name: Verify MSI
+        shell: pwsh
+        run: |
+          $msi = Get-ChildItem "Project Files\bin\Installers\*.msi" -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $msi) { throw "MSI was not produced" }
+          if ($msi.Length -lt 1MB) { throw "MSI is unexpectedly small: $($msi.Length) bytes" }
+          Get-FileHash $msi.FullName -Algorithm SHA256 | Format-List
+          Write-Host "MSI: $($msi.FullName) ($([math]::Round($msi.Length/1MB,2)) MB)"
+
+      - name: Upload MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-DB-COMPAT-SOURCE-V4-MSI
+          path: Project Files/bin/Installers/*.msi
+          if-no-files-found: error
+          compression-level: 0
