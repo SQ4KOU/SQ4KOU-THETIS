@@ -26,15 +26,12 @@ jobs:
         run: |
           set -euxo pipefail
           python -m py_compile tools/jtdx-superhound-p1/scripts/patch_jtdx.py
-          python -m py_compile tools/jtdx-superhound-p1/scripts/disable_omnirig_ci.py
           git clone --depth 1 https://git.code.sf.net/p/jtdx/code jtdx-preflight
           git -C jtdx-preflight rev-parse HEAD
           python tools/jtdx-superhound-p1/scripts/patch_jtdx.py jtdx-preflight tools/jtdx-superhound-p1/overlay
-          python tools/jtdx-superhound-p1/scripts/disable_omnirig_ci.py jtdx-preflight
           git -C jtdx-preflight diff --check
           grep -n 'lsuperhound' jtdx-preflight/commons.h jtdx-preflight/lib/jt9com.f90 jtdx-preflight/lib/decoder.f90 jtdx-preflight/mainwindow.cpp
           grep -n 'sq4kouMainMonitorSplitter' jtdx-preflight/mainwindow.cpp
-          ! grep -n 'OmniRigTransceiver.cpp' jtdx-preflight/CMakeLists.txt
 
       - name: Compile bridge units
         shell: bash
@@ -51,6 +48,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Install OmniRig build dependency
+        shell: pwsh
+        run: |
+          choco install omnirig -y --no-progress
 
       - name: Setup MSYS2 UCRT64
         uses: msys2/setup-msys2@v2
@@ -89,7 +91,6 @@ jobs:
           git clone --depth 1 https://git.code.sf.net/p/jtdx/code jtdx
           git -C jtdx rev-parse HEAD | tee logs/jtdx-commit.txt
           python tools/jtdx-superhound-p1/scripts/patch_jtdx.py jtdx tools/jtdx-superhound-p1/overlay 2>&1 | tee logs/jtdx-patch.log
-          python tools/jtdx-superhound-p1/scripts/disable_omnirig_ci.py jtdx 2>&1 | tee logs/jtdx-omnirig-disable.log
           git -C jtdx diff --check | tee logs/jtdx-diff-check.txt
           git -C jtdx diff > artifacts/JTDX_SUPERHOUND_P1.patch
 
