@@ -1,0 +1,148 @@
+name: JTDX SuperHound P1 CI
+
+on:
+  push:
+    branches:
+      - jtdx-superhound-p1-ci
+    paths:
+      - '.github/workflows/jtdx-superhound-p1.yml'
+      - 'tools/jtdx-superhound-p1/**'
+  workflow_dispatch:
+
+jobs:
+  windows-build:
+    runs-on: windows-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout SQ4KOU build harness
+        uses: actions/checkout@v4
+
+      - name: Setup MSYS2 UCRT64 toolchain
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: UCRT64
+          update: true
+          install: >-
+            git
+            make
+            patch
+            python
+            mingw-w64-ucrt-x86_64-toolchain
+            mingw-w64-ucrt-x86_64-cmake
+            mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-fftw
+            mingw-w64-ucrt-x86_64-hamlib
+            mingw-w64-ucrt-x86_64-libusb
+            mingw-w64-ucrt-x86_64-boost
+            mingw-w64-ucrt-x86_64-qt5-base
+            mingw-w64-ucrt-x86_64-qt5-multimedia
+            mingw-w64-ucrt-x86_64-qt5-serialport
+
+      - name: Toolchain report
+        shell: msys2 {0}
+        run: |
+          set -euxo pipefail
+          mkdir -p artifacts logs
+          {
+            echo '=== gcc ==='; gcc --version
+            echo '=== gfortran ==='; gfortran --version
+            echo '=== cmake ==='; cmake --version
+            echo '=== ninja ==='; ninja --version
+            echo '=== qmake ==='; qmake --version || true
+            echo '=== hamlib ==='; pkg-config --modversion hamlib || true
+            echo '=== fftw ==='; pkg-config --modversion fftw3f || true
+          } | tee logs/toolchain.txt
+
+      - name: Build official WSJT-X sfrx helper
+        shell: msys2 {0}
+        run: |
+          set -euxo pipefail
+          git clone --depth 1 --branch v3.0.2 https://github.com/WSJTX/wsjtx.git wsjtx
+          cmake -S wsjtx -B build-wsjtx -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH=/ucrt64 \
+            -DWSJT_GENERATE_DOCS=OFF \
+            -DWSJT_BUILD_UTILS=ON \
+            2>&1 | tee logs/wsjtx-configure.log
+          cmake --build build-wsjtx --target sfrx --parallel 2 \
+            2>&1 | tee logs/wsjtx-sfrx-build.log
+          SFRX=$(find build-wsjtx -type f -iname 'sfrx.exe' | head -n 1)
+          test -n "$SFRX"
+          cp "$SFRX" artifacts/sfrx.exe
+          "$SFRX" > logs/sfrx-probe.txt 2>&1 || true
+          ldd "$SFRX" > logs/sfrx-ldd.txt 2>&1 || true
+          file "$SFRX" > logs/sfrx-file.txt
+          sha256sum "$SFRX" > logs/sfrx-sha256.txt
+
+      - name: Clone current JTDX and apply P1 patch
+        shell: msys2 {0}
+        run: |
+          set -euxo pipefail
+          git clone --depth 1 https://git.code.sf.net/p/jtdx/code jtdx
+          python tools/jtdx-superhound-p1/scripts/patch_jtdx.py \
+            jtdx tools/jtdx-superhound-p1/overlay \
+            2>&1 | tee logs/jtdx-patch.log
+          git -C jtdx diff --check | tee logs/jtdx-diff-check.txt
+          git -C jtdx diff > artifacts/JTDX_SUPERHOUND_P1.patch
+          grep -n "superhound_external" jtdx/CMakeLists.txt jtdx/lib/decoder.f90 \
+            | tee logs/jtdx-patch-points.txt
+
+      - name: Configure JTDX
+        id: jtdx_configure
+        continue-on-error: true
+        shell: msys2 {0}
+        run: |
+          set -o pipefail
+          cmake -S jtdx -B build-jtdx -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH=/ucrt64 \
+            2>&1 | tee logs/jtdx-configure.log
+
+      - name: Build JTDX
+        id: jtdx_build
+        if: steps.jtdx_configure.outcome == 'success'
+        continue-on-error: true
+        shell: msys2 {0}
+        run: |
+          set -o pipefail
+          cmake --build build-jtdx --parallel 2 \
+            2>&1 | tee logs/jtdx-build.log
+          find build-jtdx -type f \( -iname 'jtdx.exe' -o -iname 'jtdxjt9.exe' \) \
+            -exec cp -v {} artifacts/ \; || true
+
+      - name: Build summary
+        if: always()
+        shell: pwsh
+        run: |
+          @"
+          JTDX SuperHound P1 CI
+          =====================
+          WSJT-X sfrx target: attempted from official WSJTX/wsjtx v3.0.2
+          JTDX source: current SourceForge git.code.sf.net/p/jtdx/code
+          JTDX configure outcome: ${{ steps.jtdx_configure.outcome }}
+          JTDX build outcome: ${{ steps.jtdx_build.outcome }}
+          Bridge policy: no SuperFox/QPC source copied into JTDX
+          "@ | Set-Content artifacts/BUILD_SUMMARY.txt
+
+      - name: Upload build artifacts and logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: JTDX-SUPERHOUND-P1-${{ github.run_number }}
+          path: |
+            artifacts/**
+            logs/**
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Fail if JTDX build failed
+        if: always()
+        shell: pwsh
+        run: |
+          if ('${{ steps.jtdx_configure.outcome }}' -ne 'success') {
+            throw 'JTDX configure failed; inspect uploaded artifact logs.'
+          }
+          if ('${{ steps.jtdx_build.outcome }}' -ne 'success') {
+            throw 'JTDX build failed; inspect uploaded artifact logs.'
+          }
