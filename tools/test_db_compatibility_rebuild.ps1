@@ -155,6 +155,8 @@ $initMethod = $dbType.GetMethod('Init', $flags)
 $compatMethod = $dbType.GetMethod('IsDatabaseCompatible', $flags)
 $importMethod = $dbType.GetMethod('ImportAndMergeDatabase', $flags)
 $preserveMethod = $dbType.GetMethod('ValidateDatabasePreservesSource', $flags)
+$checkpointMethod = $dbType.GetMethod('SetCheckpointingEnabled', $flags)
+[void]$checkpointMethod.Invoke($null, @($false))
 $currentSchema = [int]$dbType.GetField('CurrentDatabaseSchemaVersion', $flags).GetRawConstantValue()
 $writeOne = $dbType.GetMethods($flags) | Where-Object { $_.Name -eq 'WriteDB' -and $_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType -eq [string] } | Select-Object -First 1
 Assert ($null -ne $writeOne) 'WriteDB(string) reflection method missing'
