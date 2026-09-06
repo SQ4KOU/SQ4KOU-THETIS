@@ -1,0 +1,155 @@
+#!/usr/bin/env python3
+from pathlib import Path
+import hashlib, shutil, re, sys
+ROOT = Path(__file__).resolve().parent / "FPGA"
+PROJECT = "sdr_transceiver_hpsdr"
+ADDRESS_SECTION_SHA = "6fbbda20b69f2282628562aa2b22fc0b08a8d4e0113930d0533893b04d23749b"
+BASE_BLOCK_SHA = "55ca233383d9bdaaecc68661f31576888c740e91f50ea5cbbab5ee6acd4d139d"
+BASE_SERVER_SHA = "98d6e8ec7b80936e5eedb46c8bbc2738c7c71c3ecd3a714400c14d7026524b15"
+BASE_CORES_SHA = "5cd0a68aa430f5b1655f1cd0dae0daa677941ff32b3d0067e3a97359eca9e93a"
+BASE_RX_SHA = "bc3bbc74b0bf844feea4610708795cf82e4bde57d732b27ee31691aa93a2152d"
+BASE_TX_SHA = "defdf369eb8b7b6a43a744d7e99c3b0f9f508ebdbb3ed5d377817f338ca67bc1"
+BASE_PROJECT_TCL_SHA = "261add2c975d407cdb063dc3fd410a0ffa0694cbcbbb2c27364d3c8a7f4f246d"
+PATCHED_RX_SHA = "fea3c5d19dd9865485f757d3dd793ae1cf10ece24868e9ae01f5ab60bd540a33"
+PATCHED_TX_SHA = "0e4480805f88b273eda6456b1ffa950d8e9babb0a69a0e782d997d2a257e5d4e"
+PATCHED_PROJECT_TCL_PRE_AUDIT_SHA = "f1b31ae3f6ebebc98c8778caa927e54c77bc0708040c783f4d674627e43db396"
+PATCHED_PROJECT_TCL_PRE_VALIDATE_SHA = "bc1ee06445d534402f793d499d6ce1d1c75b81cec1e28d0cd8a1f4d63010c14d"
+PATCHED_PROJECT_TCL_SHA = "8971dfac783885ebfe9cd99181827ba5a5eaea2291d1656c98a3a164957f0d37"
+
+def sha256(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as stream:
+        for chunk in iter(lambda: stream.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def fail(message: str) -> None:
+    raise RuntimeError(message)
+
+
+def replace_once(text: str, old: str, new: str, label: str) -> str:
+    count = text.count(old)
+    if count != 1:
+        fail(f"{label}: oczekiwano jednego kotwiczenia, znaleziono {count}")
+    return text.replace(old, new, 1)
+
+
+def ensure_core_list_entry(text: str, core_name: str) -> str:
+    if core_name in text.split():
+        return text
+    anchor = " \\\n]"
+    if text.count(anchor) != 1:
+        fail(f"Lista IP: nie znaleziono jednoznacznego konca dla {core_name}")
+    return text.replace(anchor, f" {core_name} \\\n]", 1)
+
+
+def install_dsp48_core(repo: Path) -> None:
+    core_dir = repo / "cores" / "dsp48_v1_0"
+    core_dir.mkdir(exist_ok=True)
+    shutil.copy2(ROOT / "dsp48.v", core_dir / "dsp48.v")
+    shutil.copy2(ROOT / "dsp48_core_config.tcl", core_dir / "core_config.tcl")
+
+
+def install_constant_core(repo: Path) -> None:
+    core_dir = repo / "cores" / "constant_v1_0"
+    core_dir.mkdir(exist_ok=True)
+    shutil.copy2(ROOT / "constant.v", core_dir / "constant.v")
+    shutil.copy2(ROOT / "constant_core_config.tcl", core_dir / "core_config.tcl")
+
+
+def patch_constant_cells(repo: Path) -> None:
+    block = repo / "projects" / PROJECT / "block_design.tcl"
+    rx = repo / "projects" / PROJECT / "rx.tcl"
+
+    block_text = block.read_text(encoding="utf-8")
+    if "cell xilinx.com:ip:xlconstant const_0" in block_text:
+        block_text = replace_once(
+            block_text,
+            "cell xilinx.com:ip:xlconstant const_0",
+            "cell pavel-demin:user:constant const_0",
+            "Block Design oficjalny zamiennik xlconstant",
+        )
+        block.write_text(block_text, encoding="utf-8", newline="\n")
+
+    rx_text = rx.read_text(encoding="utf-8")
+    if "cell xilinx.com:ip:xlconstant const_0" in rx_text:
+        rx_text = replace_once(
+            rx_text,
+            "cell xilinx.com:ip:xlconstant const_0",
+            "cell pavel-demin:user:constant const_0",
+            "RX oficjalny zamiennik xlconstant",
+        )
+        rx.write_text(rx_text, encoding="utf-8", newline="\n")
+
+    if "xilinx.com:ip:xlconstant" in block.read_text(encoding="utf-8"):
+        fail("Block Design nadal odwoluje sie do wycofywanego xlconstant.")
+    if "xilinx.com:ip:xlconstant" in rx.read_text(encoding="utf-8"):
+        fail("RX nadal odwoluje sie do wycofywanego xlconstant.")
+
+
+def patch_project_driver(repo: Path) -> None:
+    project = repo / "scripts" / "project.tcl"
+    current_sha = sha256(project)
+    if current_sha == PATCHED_PROJECT_TCL_SHA:
+        return
+    if current_sha not in (
+        BASE_PROJECT_TCL_SHA,
+        PATCHED_PROJECT_TCL_PRE_AUDIT_SHA,
+        PATCHED_PROJECT_TCL_PRE_VALIDATE_SHA,
+    ):
+        fail("scripts/project.tcl nie jest baza 20190527 ani zatwierdzonym backportem.")
+
+    text = project.read_text(encoding="utf-8")
+    recursive_finder = """proc find_files_named {root target_name} {
+  set result [list]
+  if {![file isdirectory $root]} { return $result }
+  foreach item [glob -nocomplain -directory $root *] {
+    if {[file isdirectory $item]} {
+      set result [concat $result [find_files_named $item $target_name]]
+    } elseif {[file tail $item] eq $target_name} {
+      lappend result $item
+    }
+  }
+  return $result
+}
+
+"""
+    old_wrapper = """set wrapper_found 0
+foreach ext {srcs gen} {
+  set files [fileutil::findByPattern tmp/$project_name.$ext system_wrapper.v]
+  if {[llength $files] > 0} {
+    add_files -norecurse $files
+    set wrapper_found 1
+    break
+  }
+}
+if {!$wrapper_found} {
+  error "system_wrapper.v not found in .srcs or .gen"
+}
+set_property TOP system_wrapper [current_fileset]
+"""
+    new_wrapper = """set wrapper_files [concat \\
+  [find_files_named tmp/$project_name.srcs system_wrapper.v] \\
+  [find_files_named tmp/$project_name.gen system_wrapper.v]]
+if {[llength $wrapper_files] != 1} {
+  error "expected exactly one system_wrapper.v in .srcs/.gen, found [llength $wrapper_files]"
+}
+add_files -norecurse [lindex $wrapper_files 0]
+set_property TOP system_wrapper [current_fileset]
+"""
+
+    if current_sha == PATCHED_PROJECT_TCL_PRE_VALIDATE_SHA:
+        pass
+    elif current_sha == PATCHED_PROJECT_TCL_PRE_AUDIT_SHA:
+        text = replace_once(
+            text,
+            "package require fileutil\n\n",
+            recursive_finder,
+            "project.tcl usuniecie zaleznosci fileutil",
+        )
+        text = replace_once(
+            text,
+            old_wrapper,
+            new_wrapper,
+            "project.tcl natywny rekursywny finder wra

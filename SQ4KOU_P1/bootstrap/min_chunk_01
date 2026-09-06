@@ -1,0 +1,128 @@
+ppera",
+        )
+    else:
+        text = replace_once(
+            text,
+            "\nset project_name [lindex $argv 0]",
+            "\n" + recursive_finder + "set project_name [lindex $argv 0]",
+            "project.tcl natywny finder wrappera",
+        )
+        text = replace_once(
+            text,
+            "file delete -force tmp/$project_name.cache tmp/$project_name.hw tmp/$project_name.srcs tmp/$project_name.runs tmp/$project_name.xpr",
+            "file delete -force tmp/$project_name.cache tmp/$project_name.gen tmp/$project_name.hw tmp/$project_name.ip_user_files tmp/$project_name.runs tmp/$project_name.sim tmp/$project_name.srcs tmp/$project_name.xpr",
+            "project.tcl pelne czyszczenie czesciowego projektu",
+        )
+        text = replace_once(
+            text,
+            "set bd_path tmp/$project_name.srcs/sources_1/bd/system\n\n",
+            "",
+            "project.tcl usuniecie stalej sciezki wrappera",
+        )
+        text = replace_once(
+            text,
+            """if {[version -short] >= 2016.3} {
+  set_property synth_checkpoint_mode None [get_files $bd_path/system.bd]
+}
+
+generate_target all [get_files $bd_path/system.bd]
+make_wrapper -files [get_files $bd_path/system.bd] -top
+
+add_files -norecurse $bd_path/hdl/system_wrapper.v
+""",
+            """set system [get_files system.bd]
+set_property SYNTH_CHECKPOINT_MODE None $system
+
+generate_target all $system
+make_wrapper -files $system -top
+
+""" + new_wrapper,
+            "project.tcl wrapper Vivado 2018/2025",
+        )
+        text = replace_once(
+            text,
+            "set_property STRATEGY Performance_NetDelay_high [get_runs impl_1]",
+            "set_property STRATEGY Performance_ExploreWithRemap [get_runs impl_1]",
+            "project.tcl aktualna strategia implementacji",
+        )
+    text = replace_once(
+        text,
+        "rename cell {}\nrename module {}\n\n",
+        "rename cell {}\nrename module {}\n\n"
+        "validate_bd_design\n"
+        "save_bd_design\n"
+        "puts \"SQ4KOU_BD_VALIDATE=PASS\"\n\n",
+        "project.tcl jawna walidacja calego Block Design",
+    )
+    project.write_text(text, encoding="utf-8", newline="\n")
+    if sha256(project) != PATCHED_PROJECT_TCL_SHA:
+        fail("Backport scripts/project.tcl nie jest deterministyczny.")
+
+
+def validate_object_address_map_source(block: Path) -> None:
+    text = block.read_text(encoding="utf-8")
+    required = (
+        'proc bd_num {value} {',
+        'proc connect_gp0_auto {interface_path range offset} {',
+        'set before_paths {}',
+        'apply_bd_automation -rule xilinx.com:bd_rule:axi4 -config {',
+        'set after [get_bd_addr_segs -quiet -of_objects $address_space]',
+        'if {[lsearch -exact $before_paths $segment_path] < 0} {',
+        'set relation [get_bd_addr_segs -quiet -addressing -of_objects [lindex $slave 0]]',
+        'set_property RANGE $range $mapped_segment',
+        'set_property OFFSET $offset $mapped_segment',
+        'connect_gp0_auto wb_0/S_AXI                64K 0x48000000',
+    )
+    for item in required:
+        if text.count(item) != 1:
+            fail("Kontrakt mapy AXI nie jest jednoznaczny: " + item)
+    if re.search(r'^\s*assign_bd_address\b', text, re.MULTILINE):
+        fail("Mapa AXI V1.8 nie moze wykonywac assign_bd_address.")
+    if 'SEG_SQ4KOU_' in text:
+        fail("Mapa AXI V1.8 nie moze zalezec od nazw SEG_SQ4KOU_*.")
+    calls = [line for line in text.splitlines() if line.startswith("connect_gp0_auto ")]
+    expected_calls = [
+        "connect_gp0_auto sts_0/S_AXI               4K  0x40000000",
+        "connect_gp0_auto cfg_0/S_AXI               4K  0x40001000",
+        "connect_gp0_auto writer_0/S_AXI            4K  0x40002000",
+        "connect_gp0_auto rx_0/reader_0/S_AXI       32K 0x40010000",
+        "connect_gp0_auto tx_0/writer_0/S_AXI       16K 0x4000C000",
+        "connect_gp0_auto tx_0/switch_0/S_AXI_CTRL  4K  0x40003000",
+        "connect_gp0_auto tx_0/writer_1/S_AXI       4K  0x40004000",
+        "connect_gp0_auto codec/writer_1/S_AXI      4K  0x40005000",
+        "connect_gp0_auto codec/writer_0/S_AXI      4K  0x40006000",
+        "connect_gp0_auto codec/reader_0/S_AXI      4K  0x40007000",
+        "connect_gp0_auto xadc_0/s_axi_lite         64K 0x40020000",
+        "connect_gp0_auto wb_0/S_AXI                64K 0x48000000",
+    ]
+    if calls != expected_calls:
+        fail("Mapa AXI nie zawiera dokladnie zatwierdzonych 12 polaczen w kolejnosci bazy 20190527.")
+    if not text.endswith(expected_calls[-1] + "\n"):
+        fail("Po mapie AXI znajduja sie nieoczekiwane instrukcje.")
+    section_marker = "# AXI4 GP0 connections: preserve 20190527 order; capture each newly created segment.\n"
+    if text.count(section_marker) != 1:
+        fail("Sekcja mapy AXI nie ma jednoznacznego poczatku.")
+    section = text[text.index(section_marker):]
+    if hashlib.sha256(section.encode("utf-8")).hexdigest() != ADDRESS_SECTION_SHA:
+        fail("Sekcja mapy AXI nie jest bajtowo zgodna z zatwierdzonym V1.8.")
+
+
+def patch_axi_address_mapping(repo: Path) -> None:
+    """Preserve 20190527 order and never guess Vivado-generated SEG_* names."""
+    block = repo / "projects" / PROJECT / "block_design.tcl"
+    text = block.read_text(encoding="utf-8")
+    start_anchor = """# Create all required interconnections
+apply_bd_automation -rule xilinx.com:bd_rule:axi4 -config {
+  Master /ps_0/M_AXI_GP0
+  Clk Auto
+} [get_bd_intf_pins sts_0/S_AXI]
+"""
+    if text.count(start_anchor) != 1:
+        fail("Nie znaleziono jednoznacznego poczatku mapy AXI w Block Design.")
+    start = text.index(start_anchor)
+    address_section = """# AXI4 GP0 connections: preserve 20190527 order; capture each newly created segment.
+# Vivado 2025.2 can change generated SEG_* names for hierarchical instances.
+# The 20190527 architecture is preserved: apply_bd_automation is still used in
+# the original order. We only replace fragile name-based set_property calls.
+proc bd_num {value} {
+  set norm

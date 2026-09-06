@@ -1,0 +1,193 @@
+alized [string map {_ ""} $value]
+  switch -nocase -- $normalized {
+    4K  { return 4096 }
+    16K { return 16384 }
+    32K { return 32768 }
+    64K { return 65536 }
+  }
+  if {[scan $normalized %i parsed] == 1} { return $parsed }
+  error "Cannot normalize AXI value: $value"
+}
+
+proc connect_gp0_auto {interface_path range offset} {
+  set interface [get_bd_intf_pins -quiet $interface_path]
+  if {[llength $interface] != 1} {
+    error "AXI interface count is not one: $interface_path"
+  }
+  set address_space [get_bd_addr_spaces -quiet ps_0/Data]
+  if {[llength $address_space] != 1} {
+    error "PS GP0 address space count is not one"
+  }
+
+  # Snapshot the master address space before automation. This is independent
+  # of generated segment names and assign_bd_address return semantics.
+  set before_paths {}
+  foreach segment [get_bd_addr_segs -quiet -of_objects $address_space] {
+    lappend before_paths [get_property PATH $segment]
+  }
+
+  apply_bd_automation -rule xilinx.com:bd_rule:axi4 -config {
+    Master /ps_0/M_AXI_GP0
+    Clk Auto
+  } $interface
+
+  set after [get_bd_addr_segs -quiet -of_objects $address_space]
+  set mapped {}
+  foreach segment $after {
+    set segment_path [get_property PATH $segment]
+    if {[lsearch -exact $before_paths $segment_path] < 0} {
+      lappend mapped $segment
+    }
+  }
+
+  # Defensive fallback using the documented slave->master addressing relation.
+  if {[llength $mapped] != 1} {
+    set slave [get_bd_addr_segs -quiet -addressables -of_objects $interface]
+    if {[llength $slave] != 1} {
+      set slave [get_bd_addr_segs -quiet -of_objects $interface]
+    }
+    if {[llength $slave] == 1} {
+      set relation [get_bd_addr_segs -quiet -addressing -of_objects [lindex $slave 0]]
+      set mapped {}
+      foreach segment $relation {
+        if {[lsearch -exact $after $segment] >= 0} {
+          lappend mapped $segment
+        }
+      }
+    }
+  }
+
+  if {[llength $mapped] != 1} {
+    error "Cannot identify exactly one new GP0 segment: $interface_path"
+  }
+  set mapped_segment [lindex $mapped 0]
+
+  # Same operation as original 20190527, but on the actual Vivado object.
+  set_property RANGE $range $mapped_segment
+  set_property OFFSET $offset $mapped_segment
+
+  set actual_offset [get_property OFFSET $mapped_segment]
+  set actual_range  [get_property RANGE  $mapped_segment]
+  if {[bd_num $actual_offset] != [bd_num $offset]} {
+    error "AXI OFFSET mismatch: $interface_path expected=$offset actual=$actual_offset"
+  }
+  if {[bd_num $actual_range] != [bd_num $range]} {
+    error "AXI RANGE mismatch: $interface_path expected=$range actual=$actual_range"
+  }
+}
+
+# Exact original 20190527 connection order and address contract.
+connect_gp0_auto sts_0/S_AXI               4K  0x40000000
+connect_gp0_auto cfg_0/S_AXI               4K  0x40001000
+connect_gp0_auto writer_0/S_AXI            4K  0x40002000
+connect_gp0_auto rx_0/reader_0/S_AXI       32K 0x40010000
+connect_gp0_auto tx_0/writer_0/S_AXI       16K 0x4000C000
+connect_gp0_auto tx_0/switch_0/S_AXI_CTRL  4K  0x40003000
+connect_gp0_auto tx_0/writer_1/S_AXI       4K  0x40004000
+connect_gp0_auto codec/writer_1/S_AXI      4K  0x40005000
+connect_gp0_auto codec/writer_0/S_AXI      4K  0x40006000
+connect_gp0_auto codec/reader_0/S_AXI      4K  0x40007000
+connect_gp0_auto xadc_0/s_axi_lite         64K 0x40020000
+connect_gp0_auto wb_0/S_AXI                64K 0x48000000
+"""
+    block.write_text(text[:start] + address_section, encoding="utf-8", newline="\n")
+    validate_object_address_map_source(block)
+
+
+def patch_dsp48_projects(repo: Path) -> None:
+    rx = repo / "projects" / PROJECT / "rx.tcl"
+    tx = repo / "projects" / PROJECT / "tx.tcl"
+
+    if sha256(rx) == BASE_RX_SHA and sha256(tx) == BASE_TX_SHA:
+        rx_text = rx.read_text(encoding="utf-8")
+        rx_text = replace_once(
+            rx_text,
+            """# Create axis_lfsr
+cell pavel-demin:user:axis_lfsr lfsr_0 {} {
+  aclk /pll_0/clk_out1
+  aresetn /rst_0/peripheral_aresetn
+}
+
+""",
+            "",
+            "RX usuniecie losowego zaokraglania xbip",
+        )
+        rx_text = replace_once(
+            rx_text,
+            """  # Create xbip_dsp48_macro
+  cell xilinx.com:ip:xbip_dsp48_macro mult_$i {
+    INSTRUCTION1 RNDSIMPLE(A*B+CARRYIN)
+    A_WIDTH.VALUE_SRC USER
+    B_WIDTH.VALUE_SRC USER
+    OUTPUT_PROPERTIES User_Defined
+    A_WIDTH 24
+    B_WIDTH 14
+    P_WIDTH 25
+  } {
+    A dds_slice_$i/dout
+    B adc_slice_$i/dout
+    CARRYIN lfsr_0/m_axis_tdata
+    CLK /pll_0/clk_out1
+  }
+""",
+            """  # Create dsp48 - official Pavel Demin replacement for discontinued xbip
+  cell pavel-demin:user:dsp48 mult_$i {
+    A_WIDTH 24
+    B_WIDTH 14
+    P_WIDTH 24
+  } {
+    A dds_slice_$i/dout
+    B adc_slice_$i/dout
+    CLK /pll_0/clk_out1
+  }
+""",
+            "RX oficjalny zamiennik DSP48",
+        )
+
+        tx_text = tx.read_text(encoding="utf-8")
+        tx_text = replace_once(
+            tx_text,
+            """# Create axis_lfsr
+cell pavel-demin:user:axis_lfsr lfsr_1 {} {
+  aclk /pll_0/clk_out1
+  aresetn /rst_0/peripheral_aresetn
+}
+
+""",
+            "",
+            "TX usuniecie losowego zaokraglania xbip",
+        )
+        for index in (1, 2):
+            tx_text = replace_once(
+                tx_text,
+                f"""# Create xbip_dsp48_macro
+cell xilinx.com:ip:xbip_dsp48_macro mult_{index} {{
+  INSTRUCTION1 RNDSIMPLE(A*B+CARRYIN)
+  A_WIDTH.VALUE_SRC USER
+  B_WIDTH.VALUE_SRC USER
+  OUTPUT_PROPERTIES User_Defined
+  A_WIDTH 24
+  B_WIDTH 16
+  P_WIDTH 16
+}} {{
+  A mult_0/m_axis_dout_tdata
+  B slice_{index + 2}/dout
+  CARRYIN lfsr_1/m_axis_tdata
+  CLK /pll_0/clk_out1
+}}
+""",
+                f"""# Create dsp48 - official Pavel Demin replacement for discontinued xbip
+cell pavel-demin:user:dsp48 mult_{index} {{
+  A_WIDTH 24
+  B_WIDTH 16
+  P_WIDTH 15
+}} {{
+  A mult_0/m_axis_dout_tdata
+  B slice_{index + 2}/dout
+  CLK /pll_0/clk_out1
+}}
+""",
+                f"TX oficjalny zamiennik DSP48 mult_{index}",
+            )
+
+        rx.write_text(rx_text, encoding="utf-8", n
