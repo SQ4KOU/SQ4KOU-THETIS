@@ -25,10 +25,11 @@ jobs:
         shell: pwsh
         run: git config --global core.longpaths true
 
-      - name: Apply DB compatibility patch
+      - name: Apply DB compatibility patches
         shell: pwsh
         run: |
           python tools/apply_db_backward_compat_test.py
+          python tools/apply_db_backward_compat_v2.py
           git diff --check
           git diff -- "Project Files/Source/Console/database.cs"
 
@@ -40,7 +41,11 @@ jobs:
             "BuildCurrentTXProfileDefinition",
             "Rows.Add(newRow)",
             "TXProfile not found in imported database; retained current profiles.",
-            "current column"
+            "TryReadImportedDatabaseWithRecovery",
+            "MergeLegacyTablePreferOld",
+            "Imported legacy-authoritative table",
+            "Preserved legacy-only key",
+            "Extra legacy/future columns are harmless"
           )
           foreach ($token in $required) {
             if (-not $db.Contains($token)) { throw "Missing DB repair token: $token" }
@@ -88,7 +93,7 @@ jobs:
       - name: Upload MSI
         uses: actions/upload-artifact@v4
         with:
-          name: SQ4KOU-THETIS-DB-BACKWARD-COMPAT-TEST-MSI
+          name: SQ4KOU-THETIS-DB-BACKWARD-COMPAT-V2-MSI
           path: Project Files/bin/Installers/*.msi
           if-no-files-found: error
           compression-level: 0
