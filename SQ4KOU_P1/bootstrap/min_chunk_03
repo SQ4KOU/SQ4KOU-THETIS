@@ -1,0 +1,134 @@
+ewline="\n")
+        tx.write_text(tx_text, encoding="utf-8", newline="\n")
+    elif not (sha256(rx) == PATCHED_RX_SHA and sha256(tx) == PATCHED_TX_SHA):
+        fail("RX/TX nie sa ani czysta baza 20190527, ani dokladnym backportem DSP48.")
+
+    combined = rx.read_text(encoding="utf-8") + tx.read_text(encoding="utf-8")
+    if "xbip_dsp48_macro" in combined or "RNDSIMPLE(A*B+CARRYIN)" in combined:
+        fail("Backport DSP48 pozostawil odwolanie do wycofanego IP.")
+    if combined.count("pavel-demin:user:dsp48") != 3:
+        fail("Backport DSP48 ma nieoczekiwana liczbe deklaracji RX/TX.")
+
+
+def patch_exact_fpga(repo: Path) -> None:
+    block = repo / "projects" / PROJECT / "block_design.tcl"
+    server = repo / "projects" / PROJECT / "server" / "sdr-transceiver-hpsdr.c"
+    cores = repo / "helpers" / "build-cores.tcl"
+    if sha256(block) != BASE_BLOCK_SHA:
+        fail("Pobrany block_design.tcl nie jest dokladna baza 20190527.")
+    if sha256(server) != BASE_SERVER_SHA:
+        fail("Pobrany ARM source nie jest dokladna baza 20190527.")
+    if sha256(cores) != BASE_CORES_SHA:
+        fail("Pobrana lista IP cores nie jest dokladna baza 20190527.")
+
+    # Add the isolated WB core and Pavel Demin's official DSP48 replacement.
+    core_dir = repo / "cores" / "axi_wb_capture_v1_0"
+    core_dir.mkdir()
+    shutil.copy2(ROOT / "axi_wb_capture.v", core_dir / "axi_wb_capture.v")
+    shutil.copy2(ROOT / "core_config.tcl", core_dir / "core_config.tcl")
+    install_dsp48_core(repo)
+    install_constant_core(repo)
+
+    cores_text = cores.read_text(encoding="utf-8")
+    cores_text = ensure_core_list_entry(cores_text, "axi_wb_capture_v1_0")
+    cores_text = ensure_core_list_entry(cores_text, "dsp48_v1_0")
+    cores_text = ensure_core_list_entry(cores_text, "constant_v1_0")
+    cores.write_text(cores_text, encoding="utf-8", newline="\n")
+
+    text = block.read_text(encoding="utf-8")
+    if "wb_0" in text or "0x48000000" in text:
+        fail("Baza FPGA nie jest czysta: znaleziono istniejacy WB.")
+
+    wb_cell = """# WIDEBAND - passive raw physical IN2 / ADC-B snapshot
+
+# This is the only new data connection.  No existing RX/TX/DDC path is changed.
+cell pavel-demin:user:axi_wb_capture wb_0 {
+  AXI_DATA_WIDTH 32
+  AXI_ADDR_WIDTH 32
+} {
+  aclk pll_0/clk_out1
+  aresetn rst_0/peripheral_aresetn
+  adc_clk pll_0/clk_out1
+  adc_tvalid adc_0/m_axis_tvalid
+  adc_tdata adc_0/m_axis_tdata
+}
+
+"""
+    text = replace_once(text, "# DAC\n", wb_cell + "# DAC\n", "komorka WB")
+
+    # GPS PPS: passive tap of the already existing debounced E1 DIO3_N input.
+    # The original HPSDR GPIO path remains connected exactly as before.
+    gps_gpio_anchor = """cell pavel-demin:user:gpio_debouncer gpio_0 {
+  DATA_WIDTH 4
+  CNTR_WIDTH 16
+} {
+  gpio_data exp_n_tri_io
+  aclk pll_0/clk_out1
+}
+"""
+    gps_gpio_append = gps_gpio_anchor + """
+# GPS 1 PPS - E1 DIO3_N is exp_n_tri_io[3]; passive observation only
+cell pavel-demin:user:port_slicer gps_pps_slice_0 {
+  DIN_WIDTH 4
+  DIN_FROM 3
+  DIN_TO 3
+} {
+  din gpio_0/deb_data
+  dout wb_0/pps
+}
+"""
+    text = replace_once(text, gps_gpio_anchor, gps_gpio_append, "GPS PPS tap DIO3_N")
+
+    address_anchor = """set_property RANGE 64K [get_bd_addr_segs ps_0/Data/SEG_xadc_0_Reg]
+set_property OFFSET 0x40020000 [get_bd_addr_segs ps_0/Data/SEG_xadc_0_Reg]
+"""
+    address_append = address_anchor + """
+
+# WIDEBAND - isolated 64 KiB AXI window, outside every original 0x400xxxxx map
+apply_bd_automation -rule xilinx.com:bd_rule:axi4 -config {
+  Master /ps_0/M_AXI_GP0
+  Clk Auto
+} [get_bd_intf_pins wb_0/S_AXI]
+
+set_property RANGE 64K [get_bd_addr_segs ps_0/Data/SEG_wb_0_reg0]
+set_property OFFSET 0x48000000 [get_bd_addr_segs ps_0/Data/SEG_wb_0_reg0]
+"""
+    text = replace_once(text, address_anchor, address_append, "adres WB")
+
+    for invariant in (
+        "set_property OFFSET 0x40000000 [get_bd_addr_segs ps_0/Data/SEG_sts_0_reg0]",
+        "set_property OFFSET 0x40001000 [get_bd_addr_segs ps_0/Data/SEG_cfg_0_reg0]",
+        "set_property OFFSET 0x40002000 [get_bd_addr_segs ps_0/Data/SEG_writer_0_reg0]",
+        "set_property OFFSET 0x40010000 [get_bd_addr_segs ps_0/Data/SEG_reader_0_reg0]",
+        "set_property OFFSET 0x4000C000 [get_bd_addr_segs ps_0/Data/SEG_writer_0_reg01]",
+        "set_property OFFSET 0x40003000 [get_bd_addr_segs ps_0/Data/SEG_switch_0_Reg]",
+        "set_property OFFSET 0x40004000 [get_bd_addr_segs ps_0/Data/SEG_writer_1_reg0]",
+        "set_property OFFSET 0x40005000 [get_bd_addr_segs ps_0/Data/SEG_writer_1_reg01]",
+        "set_property OFFSET 0x40006000 [get_bd_addr_segs ps_0/Data/SEG_writer_0_reg02]",
+        "set_property OFFSET 0x40007000 [get_bd_addr_segs ps_0/Data/SEG_reader_0_reg01]",
+        "set_property OFFSET 0x40020000 [get_bd_addr_segs ps_0/Data/SEG_xadc_0_Reg]",
+    ):
+        if text.count(invariant) != 1:
+            fail("Naruszono oryginalna mape FPGA: " + invariant)
+    if text.count("wb_0/S_AXI") != 1 or text.count("0x48000000") != 1:
+        fail("Kontrakt nowego adresu WB nie jest jednoznaczny.")
+    if text.count("adc_tdata adc_0/m_axis_tdata") != 1:
+        fail("WB nie jest pojedynczym pasywnym tapem raw ADC.")
+    # Match the complete property line.  The old V1 check searched for the
+    # substring "DIN_FROM 3", which also matched existing lines such as
+    # "DIN_FROM 31" and falsely rejected the correct 20190527 source.
+    if text.count("dout wb_0/pps") != 1 or text.count("  DIN_FROM 3\n") != 1:
+        fail("GPS PPS nie jest jednoznacznym pasywnym tapem E1 DIO3_N.")
+
+    block.write_text(text, encoding="utf-8", newline="\n")
+    patch_dsp48_projects(repo)
+    patch_constant_cells(repo)
+    patch_project_driver(repo)
+    patch_axi_address_mapping(repo)
+    log("PATCH FPGA PASS: baza 20190527 + IN2/WB + GPS PPS DIO3_N + DSP48/constant")
+
+
+def patch_autoatt(repo: Path) -> None:
+    """Apply AutoATT only AFTER the proven WB+GPS patch from recovery_oneclick."""
+    block = repo / 'projects' / PROJECT / 'block_design.tcl'
+    cores = repo / 'helpers' / 'b

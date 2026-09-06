@@ -1,0 +1,76 @@
+uild-cores.tcl'
+
+    # Install one small passive IP core. No AXI slave and no new address map.
+    core_dir = repo / 'cores' / 'sq4kou_adc_overload_v1_0'
+    if core_dir.exists():
+        fail('AutoATT core directory unexpectedly already exists.')
+    core_dir.mkdir()
+    shutil.copy2(ROOT / 'sq4kou_adc_overload.v', core_dir / 'sq4kou_adc_overload.v')
+    shutil.copy2(ROOT / 'autoatt_core_config.tcl', core_dir / 'core_config.tcl')
+
+    cores_text = cores.read_text(encoding='utf-8')
+    cores_text = ensure_core_list_entry(cores_text, 'sq4kou_adc_overload_v1_0')
+    cores.write_text(cores_text, encoding='utf-8', newline='\n')
+
+    text = block.read_text(encoding='utf-8')
+    if 'sq4kou_adc_overload autoatt_0' in text or 'In7 autoatt_0/overload' in text:
+        fail('AutoATT appears to be already present in block_design.tcl.')
+
+    # The proven WB/GPS stage inserts its WB cell immediately before the original
+    # '# DAC' section. V4 incorrectly matched an older comment variant ending
+    # in 'snapshot capture'; the proven builder actually emits 'snapshot'.
+    # Use the structural DAC anchor already required to be unique by that builder,
+    # and separately verify that the expected WB cell is present.
+    wb_marker = '# WIDEBAND - passive raw physical IN2 / ADC-B snapshot\n'
+    wb_cell_marker = 'cell pavel-demin:user:axi_wb_capture wb_0 {'
+    dac_anchor = '# DAC\n'
+    if text.count(wb_marker) != 1:
+        fail(f'AutoATT precheck WB marker: expected 1, found {text.count(wb_marker)}')
+    if text.count(wb_cell_marker) != 1:
+        fail(f'AutoATT precheck WB cell: expected 1, found {text.count(wb_cell_marker)}')
+    if text.count(dac_anchor) != 1:
+        fail(f'AutoATT precheck DAC anchor: expected 1, found {text.count(dac_anchor)}')
+    print('AUTOATT PRECHECK PASS: proven WB cell present; unique DAC insertion point found')
+
+    autoatt_cell = '''# AUTO ATT RX - passive raw ADC overload telemetry for Ramdor/Thetis P1\n# No sample path is changed. ADC-A=IN1 -> ADC0, ADC-B=IN2 -> ADC1.\ncell pavel-demin:user:sq4kou_adc_overload autoatt_0 {\n  THRESHOLD 8064\n  HOLD_CYCLES 1250000\n} {\n  aclk pll_0/clk_out1\n  aresetn rst_0/peripheral_aresetn\n  adc_tvalid adc_0/m_axis_tvalid\n  adc_tdata adc_0/m_axis_tdata\n}\n\n'''
+    text = replace_once(text, dac_anchor, autoatt_cell + dac_anchor, 'AutoATT ADC cell insertion before DAC')
+
+    # Original status word is 192 bits. Original concat uses 164 bits:
+    # 32+64+16+16+16+16+4. Appending a 2-bit In7 therefore occupies
+    # status bits 164..165 = bits 4..5 of the existing ARM gpio_in byte
+    # at STS+20, without shifting any existing status field.
+    old_concat = '''cell xilinx.com:ip:xlconcat concat_0 {\n  NUM_PORTS 7\n  IN0_WIDTH 32\n  IN1_WIDTH 64\n  IN2_WIDTH 16\n  IN3_WIDTH 16\n  IN4_WIDTH 16\n  IN5_WIDTH 16\n  IN6_WIDTH 4\n} {\n  In0 const_0/dout\n  In1 dna_0/dna_data\n  In2 rx_0/fifo_generator_0/rd_data_count\n  In3 tx_0/fifo_generator_0/wr_data_count\n  In4 codec/fifo_generator_0/data_count\n  In5 codec/fifo_generator_1/data_count\n  In6 not_0/Res\n}\n'''
+    new_concat = '''cell xilinx.com:ip:xlconcat concat_0 {\n  NUM_PORTS 8\n  IN0_WIDTH 32\n  IN1_WIDTH 64\n  IN2_WIDTH 16\n  IN3_WIDTH 16\n  IN4_WIDTH 16\n  IN5_WIDTH 16\n  IN6_WIDTH 4\n  IN7_WIDTH 2\n} {\n  In0 const_0/dout\n  In1 dna_0/dna_data\n  In2 rx_0/fifo_generator_0/rd_data_count\n  In3 tx_0/fifo_generator_0/wr_data_count\n  In4 codec/fifo_generator_0/data_count\n  In5 codec/fifo_generator_1/data_count\n  In6 not_0/Res\n  In7 autoatt_0/overload\n}\n'''
+    text = replace_once(text, old_concat, new_concat, 'AutoATT status concat')
+
+    # Hard safety gates: original STS width and every existing address stay put.
+    required_once = [
+        'STS_DATA_WIDTH 192',
+        'connect_gp0_auto sts_0/S_AXI               4K  0x40000000',
+        'connect_gp0_auto cfg_0/S_AXI               4K  0x40001000',
+        'connect_gp0_auto wb_0/S_AXI                64K 0x48000000',
+        'adc_tdata adc_0/m_axis_tdata',
+        'dout wb_0/pps',
+        'In7 autoatt_0/overload',
+    ]
+    for marker in required_once:
+        count = text.count(marker)
+        # adc_tdata occurs once in WB plus once in AutoATT.
+        expected = 2 if marker == 'adc_tdata adc_0/m_axis_tdata' else 1
+        if count != expected:
+            fail(f'FPGA invariant failed: {marker!r}, count={count}, expected={expected}')
+    if 'STS_DATA_WIDTH 194' in text or '0x40000000' not in text:
+        fail('FPGA STS/address invariant failed.')
+
+    block.write_text(text, encoding='utf-8', newline='\n')
+    print('AUTOATT FPGA PATCH PASS: passive ADC tap + STS bits 164/165; no AXI/address changes')
+
+
+def main():
+    repo = Path(__file__).resolve().parents[1]
+    patch_exact_fpga(repo)
+    patch_autoatt(repo)
+    print("SQ4KOU_P1_FPGA_SOURCE_APPLY=PASS")
+
+if __name__ == "__main__":
+    main()

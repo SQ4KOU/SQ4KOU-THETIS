@@ -1,0 +1,1 @@
+Pakiet wykonywalny RAM-test z potwierdzonym FPGA oraz scalonym ARM jest generowany poza repo z tych samych SHA. Test docelowy: Red Pitaya 192.168.1.18, zero zapisow SD, FPGA z /tmp przez /dev/xdevcfg, ARM z /tmp z argumentami 1 2 1 1 1, rollback przez start.sh dzialajacej aplikacji z SD.

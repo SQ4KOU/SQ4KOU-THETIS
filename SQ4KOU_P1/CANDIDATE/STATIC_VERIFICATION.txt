@@ -1,0 +1,21 @@
+SQ4KOU P1 FINAL FPGA+ARM - STATIC VERIFICATION
+================================================
+BASE V8 ARM SHA256=2afc54a4f3415b22d1fe1b126f8deb2e0842c24a1f6d6bc14dc96d747180d71f
+AUTOATT CONFIRMED ARM SHA256=9384231994c309d0c26777cf6db0c742ae38950bd261c52e07ec3720aa19a41f
+FINAL ARM SHA256=11f0f28332d5dcbdcf19a5c4cbb72a9eb98e2d20e346185c287b0363e79820f6
+FINAL ARM SIZE=69534
+CONFIRMED FPGA SHA256=66494b64d4abb1b56019383733c9dd9331cc57b402f62d4c5d2bb7d7c3aeef4b
+
+PASS 1: V8 exact base SHA.
+PASS 2: AutoATT helper byte-identical to confirmed helper; SHA256=4f89111e46bed7e339be6013e41888cfab0c8c3a3d96f2519f1af0e60edf4389.
+PASS 3: Existing V8 mutations restricted to PT_LOAD size fields and handler_ep6 AutoATT hook.
+Changed existing ranges: 0x104-0x104, 0x108-0x108, 0x2338-0x233B.
+PASS 4: All V8 CMD07/GPS_SYNC transport bytes otherwise byte-identical.
+PASS 5: ELF32 entry point remains 0x1F21; executable injected PT_LOAD covers AutoATT helper.
+PASS 6: AutoATT hook anchor unchanged; BL target relocated to helper VA 0x20F7C.
+PASS 7: Runtime selector topology = 1 2 1 1 1.
+PASS 8: FPGA is hardware-confirmed AutoATT final bitstream containing WB+GPS/PPS+AutoATT.
+PASS 9: RAM test performs zero SD writes and restores SD application on failure.
+
+STATIC_FINAL_GATE=PASS
+HARDWARE_RAM_GATE=PENDING_UNTIL_RUN_ON_192.168.1.18
