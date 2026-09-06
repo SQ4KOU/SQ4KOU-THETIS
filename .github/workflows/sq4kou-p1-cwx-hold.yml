@@ -1,0 +1,133 @@
+name: SQ4KOU P1 CWX PTT Hold
+
+on:
+  push:
+    branches: [sq4kou]
+    paths:
+      - 'tools/sq4kou_apply_p1_cwx_hold.py'
+      - '.github/workflows/sq4kou-p1-cwx-hold.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch-build:
+    runs-on: windows-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout sq4kou
+        uses: actions/checkout@v4
+        with:
+          ref: sq4kou
+          fetch-depth: 0
+
+      - name: Enable long paths
+        shell: pwsh
+        run: git config --global core.longpaths true
+
+      - name: Apply P1 CWX PTT hold patch
+        shell: pwsh
+        run: |
+          python "tools\sq4kou_apply_p1_cwx_hold.py"
+          if ($LASTEXITCODE -ne 0) { throw "P1 CWX PTT hold patch failed: $LASTEXITCODE" }
+          git diff --check
+          git diff --stat -- "Project Files/Source/Console/cwx.cs"
+          $x = Get-Content -Raw "Project Files\Source\Console\cwx.cs"
+          if (-not $x.Contains("p1_cwx_ptt_hold_elements")) { throw "PTT hold helper missing" }
+          if (-not $x.Contains("return Math.Max(configured, 8)")) { throw "8-dot minimum missing" }
+          $calls = ([regex]::Matches($x, "ttx = p1_cwx_ptt_hold_elements\(\);")).Count
+          if ($calls -ne 3) { throw "PTT hold call count=$calls, expected 3" }
+          if (-not $x.Contains("console.SQ4KOUSetP1SoftwareCWXKey(state)")) { throw "P1 software-IQ route missing" }
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Show Visual Studio toolchain
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          & $vswhere -all -products * -format json
+          msbuild -version
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) { choco install wixtoolset -y --no-progress }
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) {
+            $targets = Get-ChildItem "C:\Program Files (x86)\WiX Toolset*\Wix.targets" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          }
+          if (-not $targets) { throw "WiX 3.x Wix.targets not found" }
+          "WIX_TARGETS=$($targets.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore NuGet packages
+        shell: pwsh
+        run: nuget restore "Project Files\Source\Thetis_VS2026.sln" -NonInteractive
+
+      - name: Build Release x64 and MSI
+        shell: pwsh
+        run: |
+          msbuild "Project Files\Source\Thetis_VS2026.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal /fl /flp:"logfile=SQ4KOU_P1_CWX_PTT_HOLD_BUILD.log;verbosity=normal"
+          if ($LASTEXITCODE -ne 0) { throw "MSBuild failed: $LASTEXITCODE" }
+
+      - name: Verify and stage MSI
+        shell: pwsh
+        run: |
+          $dir = "Project Files\bin\Installers"
+          $msi = Get-ChildItem $dir -Filter "*.msi" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $msi) { throw "MSI was not produced" }
+          if ($msi.Length -lt 1MB) { throw "MSI is unexpectedly small: $($msi.Length) bytes" }
+          $dst = Join-Path $dir "SQ4KOU_THETIS_P1_CWX_PTT_HOLD_x64.msi"
+          Copy-Item $msi.FullName $dst -Force
+          $hash = (Get-FileHash $dst -Algorithm SHA256).Hash.ToLower()
+          $size = (Get-Item $dst).Length
+          "MSI_SIZE=$size" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "MSI_SHA256=$hash" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "MSI=$dst"
+          Write-Host "SIZE=$size"
+          Write-Host "SHA256=$hash"
+
+      - name: Commit verified source patch
+        shell: pwsh
+        run: |
+          git config user.name "SQ4KOU Build Bot"
+          git config user.email "actions@github.com"
+          git add -- "Project Files/Source/Console/cwx.cs"
+          git rm -- ".github/workflows/sq4kou-p1-cwx-hold.yml" "tools/sq4kou_apply_p1_cwx_hold.py"
+          git commit -m "Hold Protocol 1 CWX PTT across word gaps"
+          $sha = git rev-parse HEAD
+          "SOURCE_SHA=$sha" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          git push origin HEAD:sq4kou
+          Write-Host "VERIFIED_SOURCE_SHA=$sha"
+
+      - name: Write build information
+        shell: pwsh
+        run: |
+          @(
+            "SQ4KOU P1 CWX PTT HOLD"
+            "SOURCE_SHA=$env:SOURCE_SHA"
+            "MSI_SIZE=$env:MSI_SIZE"
+            "MSI_SHA256=$env:MSI_SHA256"
+            "P1_CWX_PTT_HOLD=min(configured Drop Delay, corrected as max(configured, 8 dot periods))"
+            "WORD_GAP=7 dot periods"
+            "P1_SOFTWARE_IQ=unchanged"
+            "P2=unchanged"
+            "ARM_FPGA=unchanged"
+          ) | Set-Content -Encoding UTF8 "SQ4KOU_P1_CWX_PTT_HOLD_BUILD_INFO.txt"
+
+      - name: Upload P1 CWX PTT hold MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU_THETIS_P1_CWX_PTT_HOLD_MSI
+          path: |
+            Project Files/bin/Installers/SQ4KOU_THETIS_P1_CWX_PTT_HOLD_x64.msi
+            SQ4KOU_P1_CWX_PTT_HOLD_BUILD_INFO.txt
+            SQ4KOU_P1_CWX_PTT_HOLD_BUILD.log
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14
