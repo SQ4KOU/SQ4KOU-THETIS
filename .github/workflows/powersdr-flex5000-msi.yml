@@ -59,11 +59,38 @@ jobs:
         run: |
           & .\tools\powersdr\Build-PowerSDR-MSI.ps1 -WixBin "$env:WIXBIN"
 
+      - name: Set cumulative P03 package identity
+        shell: pwsh
+        run: |
+          $root = '.\artifacts\powersdr'
+          $msi = Get-ChildItem $root\PowerSDR*.msi | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
+          if (-not $msi) { throw 'MSI missing before P03 identity step' }
+
+          $newName = 'PowerSDR-SQ4KOU-FLEX5000-KE9NS-v2.8.0.334-DISPLAY-P03-THETIS-PAN.x86.msi'
+          $newPath = Join-Path $root $newName
+          if ($msi.FullName -ne (Join-Path (Resolve-Path $root).Path $newName)) {
+            Move-Item -LiteralPath $msi.FullName -Destination $newPath -Force
+          }
+
+          Get-ChildItem $root\*.sha256 -ErrorAction SilentlyContinue | Remove-Item -Force
+          $sha = (Get-FileHash -Algorithm SHA256 -LiteralPath $newPath).Hash.ToLowerInvariant()
+          "$sha  $newName" | Set-Content ($newPath + '.sha256') -Encoding ASCII
+
+          $manifestPath = Join-Path $root 'POWERSDR_BUILD_MANIFEST.txt'
+          $manifest = Get-Content $manifestPath -Raw
+          $manifest = [regex]::Replace($manifest, '(?m)^DISPLAY_PATCH=.*$', 'DISPLAY_PATCH=SQ4KOU_PANAFALL_P02_PLUS_PANADAPTER_P03_THETIS_VISUAL')
+          $manifest = [regex]::Replace($manifest, '(?m)^MSI=.*$', "MSI=$newName")
+          $manifest = [regex]::Replace($manifest, '(?m)^MSI_SHA256=.*$', "MSI_SHA256=$sha")
+          Set-Content $manifestPath -Value $manifest -Encoding UTF8 -NoNewline
+          Write-Host "P03_MSI=$newPath"
+          Write-Host "P03_SHA256=$sha"
+
       - name: Smoke test MSI installs PowerSDR.exe
         shell: pwsh
         run: |
           $msi = Get-ChildItem .\artifacts\powersdr\PowerSDR*.msi | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
           if (-not $msi) { throw 'PowerSDR MSI missing before smoke test' }
+          if ($msi.Name -ne 'PowerSDR-SQ4KOU-FLEX5000-KE9NS-v2.8.0.334-DISPLAY-P03-THETIS-PAN.x86.msi') { throw "Wrong P03 MSI identity: $($msi.Name)" }
 
           $adminRoot = Join-Path $env:RUNNER_TEMP 'powersdr-msi-admin'
           $msiLog = Join-Path $env:RUNNER_TEMP 'powersdr-msi-admin.log'
@@ -105,9 +132,11 @@ jobs:
           if ($manifest -notmatch '(?m)^CONSOLE_LAYOUT=KE9NS_NATIVE\r?$') { throw 'Console layout isolation gate failed' }
           if ($manifest -notmatch '(?m)^SKIN=KE9NS_NATIVE\r?$') { throw 'Skin isolation gate failed' }
           if ($manifest -notmatch '(?m)^DISPLAY_DATA_SOURCE=POWERSDR_DTTSP\r?$') { throw 'Display data source gate failed' }
+          if ($manifest -notmatch '(?m)^DISPLAY_PATCH=SQ4KOU_PANAFALL_P02_PLUS_PANADAPTER_P03_THETIS_VISUAL\r?$') { throw 'P03 display identity gate failed' }
           if ($manifest -match 'Thetis\.exe') { throw 'Thetis executable leaked into PowerSDR product' }
           $msi = Get-ChildItem .\artifacts\powersdr\PowerSDR*.msi | Sort-Object LastWriteTimeUtc -Descending | Select-Object -First 1
           if (-not $msi) { throw 'PowerSDR MSI missing' }
+          if ($msi.Name -notmatch 'DISPLAY-P03-THETIS-PAN') { throw 'Published MSI is not P03' }
           if ($msi.Length -lt 1MB) { throw "MSI unexpectedly small: $($msi.Length)" }
           if (-not (Test-Path .\artifacts\powersdr\MSI_INSTALL_CHECK.txt)) { throw 'MSI install smoke-test result missing' }
           Write-Host "READY=$($msi.FullName)"
@@ -115,7 +144,7 @@ jobs:
       - name: Upload PowerSDR display MSI
         uses: actions/upload-artifact@v4
         with:
-          name: PowerSDR-FLEX5000-KE9NS334-DISPLAY-P01
+          name: PowerSDR-FLEX5000-KE9NS334-DISPLAY-P03
           path: |
             artifacts/powersdr/*.msi
             artifacts/powersdr/*.sha256
