@@ -30,6 +30,7 @@ jobs:
         run: |
           python tools/apply_db_backward_compat_test.py
           python tools/apply_db_backward_compat_v2.py
+          python tools/apply_db_backward_compat_v3.py
           git diff --check
           git diff -- "Project Files/Source/Console/database.cs"
 
@@ -45,13 +46,16 @@ jobs:
             "MergeLegacyTablePreferOld",
             "Imported legacy-authoritative table",
             "Preserved legacy-only key",
-            "Extra legacy/future columns are harmless"
+            "Extra legacy/future columns are harmless",
+            "LEGACY_TXPROFILE_NORMALIZE",
+            "old value is authoritative",
+            "filled missing current field"
           )
           foreach ($token in $required) {
             if (-not $db.Contains($token)) { throw "Missing DB repair token: $token" }
           }
           if ($db.Contains('expandedTable.ImportRow(newRow)')) { throw "Detached-row ImportRow bug still present" }
-          Write-Host "DB migration static verification PASS"
+          Write-Host "DB migration/load-time normalization static verification PASS"
 
       - name: Setup NuGet
         uses: NuGet/setup-nuget@v2
@@ -93,7 +97,7 @@ jobs:
       - name: Upload MSI
         uses: actions/upload-artifact@v4
         with:
-          name: SQ4KOU-THETIS-DB-BACKWARD-COMPAT-V2-MSI
+          name: SQ4KOU-THETIS-DB-BACKWARD-COMPAT-V3-MSI
           path: Project Files/bin/Installers/*.msi
           if-no-files-found: error
           compression-level: 0
