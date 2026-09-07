@@ -49,11 +49,11 @@ jobs:
           git diff --name-status refs/remotes/ramdor/v2.10.3.15 refs/remotes/pa3ghm/TL2-4 | Tee-Object -FilePath .synthesis/PA3GHM_TL2_4_FILES.txt
           git diff --stat refs/remotes/ramdor/v2.10.3.15 refs/remotes/pa3ghm/TL2-4 | Tee-Object -FilePath .synthesis/PA3GHM_TL2_4_STAT.txt
 
-      - name: Build semantic source patch
+      - name: Semantic union merge of TL2 runtime
         shell: pwsh
         run: |
-          # Only runtime/source files required by TL2 are transplanted. Branding,
-          # attribution docs, release notes and VS toolset substitutions remain untouched.
+          $baseRef = 'refs/remotes/ramdor/v2.10.3.15'
+          $theirRef = 'refs/remotes/pa3ghm/TL2-4'
           $paths = @(
             'Project Files/Source/Console/TCIServer.cs',
             'Project Files/Source/Console/console.cs',
@@ -62,42 +62,95 @@ jobs:
             'Project Files/Source/Console/setup.cs',
             'Project Files/Source/Console/setup.designer.cs'
           )
-          $args = @('diff','--full-index','--no-ext-diff','refs/remotes/ramdor/v2.10.3.15','refs/remotes/pa3ghm/TL2-4','--') + $paths
-          & git @args | Out-File -FilePath .synthesis/PA3GHM_TL2_4_RUNTIME.patch -Encoding utf8
-          if ($LASTEXITCODE -ne 0) { throw 'Unable to generate TL2 runtime patch' }
-          Write-Host "Runtime patch bytes: $((Get-Item .synthesis/PA3GHM_TL2_4_RUNTIME.patch).Length)"
+          $n = 0
+          foreach ($path in $paths) {
+            $n++
+            $base = ".synthesis/base_$n.cs"
+            $theirs = ".synthesis/theirs_$n.cs"
+            & git show "${baseRef}:$path" | Set-Content -LiteralPath $base -Encoding utf8NoBOM
+            if ($LASTEXITCODE -ne 0) { throw "Cannot materialize ramdor base for $path" }
+            & git show "${theirRef}:$path" | Set-Content -LiteralPath $theirs -Encoding utf8NoBOM
+            if ($LASTEXITCODE -ne 0) { throw "Cannot materialize PA3GHM TL2-4 for $path" }
+            & git merge-file --union -L SQ4KOU -L RAMDOR_2_10_3_15 -L PA3GHM_TL2_4 -- "$path" $base $theirs
+            $mergeExit = $LASTEXITCODE
+            Write-Host "merge-file $path => $mergeExit"
+          }
+          git status --short | Tee-Object -FilePath .synthesis/POST_MERGE_STATUS.txt
 
-      - name: Apply TL2-4 with three-way merge
+      - name: Static synthesis gates
         shell: pwsh
         run: |
-          $ErrorActionPreference = 'Continue'
-          git apply --3way --whitespace=nowarn .synthesis/PA3GHM_TL2_4_RUNTIME.patch
-          $applyExit = $LASTEXITCODE
-          git status --short | Tee-Object -FilePath .synthesis/POST_APPLY_STATUS.txt
-          if ($applyExit -ne 0) {
-            Write-Host 'THREE_WAY_APPLY_CONFLICT'
-            git diff --name-only --diff-filter=U | Tee-Object -FilePath .synthesis/CONFLICT_FILES.txt
-            git diff --cc | Out-File -FilePath .synthesis/CONFLICT_DIFF.txt -Encoding utf8
-            throw 'PA3GHM runtime patch has merge conflicts; inspect synthesis artifacts/log.'
+          function Require-Text([string]$Path, [string]$Text) {
+            if (-not (Select-String -LiteralPath $Path -SimpleMatch $Text -Quiet)) {
+              throw "SYNTHESIS GATE FAILED: '$Text' missing in $Path"
+            }
           }
+          $tci = 'Project Files/Source/Console/TCIServer.cs'
+          $con = 'Project Files/Source/Console/console.cs'
+          $cm = 'Project Files/Source/Console/cmaster.cs'
+          $div = 'Project Files/Source/Console/DiversityForm.cs'
+          $setup = 'Project Files/Source/Console/setup.cs'
+          $designer = 'Project Files/Source/Console/setup.designer.cs'
+
+          # PA3GHM TL2-4 surface
+          Require-Text $tci 'tci_caps_ex'
+          Require-Text $tci 'rx_filter_preset_ex'
+          Require-Text $tci 'diversity_enable_ex'
+          Require-Text $tci 'diversity_smartnull_ex'
+          Require-Text $tci 'diversity_ultranull_ex'
+          Require-Text $tci 'ddc_sample_rate_ex'
+          Require-Text $tci 'auto_recenter_owner_ex'
+          Require-Text $tci 's9_frequency_ex'
+          Require-Text $tci 'rx_only_ex'
+          Require-Text $tci 'BroadcastFilterBand'
+          Require-Text $con 'ThetisLinkExtensionsEnabled'
+          Require-Text $div 'DiversityGainMulti'
+          Require-Text $setup 'chkThetisLinkExtensions_CheckedChanged'
+          Require-Text $designer 'chkThetisLinkExtensions'
+
+          # SQ4KOU functions that must survive the synthesis
+          Require-Text $tci 'sq4kou_cmd07_ex'
+          Require-Text $tci 'sq4kou_radio_hw_ex'
+          Require-Text $tci 'sq4kou_rx_antenna_selected_ex'
+          Require-Text $tci 'sq4kou_tx_antenna_selected_ex'
+          Require-Text $con 'SQ4KOUStartP1SoftwareCWX'
+          Require-Text $cm 'ApplyDiversityP1TxGate'
+
+          $bad = Select-String -Path $tci,$con,$cm,$div,$setup,$designer -Pattern '^<<<<<<<|^=======|^>>>>>>>'
+          if ($bad) { $bad | ForEach-Object { Write-Host $_ }; throw 'Unresolved merge markers remain' }
+          Write-Host 'Static synthesis gates: PASS'
 
       - name: Record provenance
         shell: pwsh
         run: |
           @'
-          # PA3GHM TL2-4 synthesis provenance
+          # PA3GHM TL2-4 full synthesis provenance
 
           Target branch: synthesis/pa3ghm-tl2-4-full
           Base: SQ4KOU branch sq4kou
-          PA3GHM functional source: cjenschede/Thetis tag TL2-4
-          PA3GHM upstream reference: ramdor/Thetis tag v2.10.3.15
+          PA3GHM functional source: cjenschede/Thetis tag TL2-4 (7c97c803)
+          PA3GHM upstream reference: ramdor/Thetis tag v2.10.3.15 (3759d096)
 
-          Integration policy:
-          - retain SQ4KOU Protocol-1 CWX, Diversity P1 TX gate, WideBand, GPS/CMD07,
-            hardware telemetry, antenna TCI and database fixes;
-          - transplant PA3GHM TL2 runtime changes by a 3-way source merge;
-          - do not import PA3GHM branding/About/ReleaseNotes or VS toolset substitutions;
-          - build must pass before synthesized source is committed.
+          Runtime files integrated:
+          - TCIServer.cs
+          - console.cs
+          - DiversityForm.cs
+          - cmaster.cs
+          - setup.cs
+          - setup.designer.cs
+
+          Intentionally excluded:
+          - PA3GHM title/About branding
+          - ReleaseNotes/README/NOTICE/ATTRIBUTION packaging changes
+          - VS project toolset substitutions (v145 -> v143)
+
+          Mandatory retained SQ4KOU functions:
+          - Protocol-1 software CWX IQ bridge
+          - Protocol-1 Diversity TX gate
+          - WideBand/PAN/ZOOM and P1 changes outside the TL2 file set
+          - GPS/CMD07 telemetry
+          - hardware snapshot telemetry and antenna TCI
+          - SQ4KOU database safety/compatibility changes
           '@ | Set-Content .synthesis/PA3GHM_TL2_4_SYNTHESIS.md -Encoding utf8
 
       - name: Setup NuGet
@@ -140,7 +193,7 @@ jobs:
         run: |
           git add -- 'Project Files/Source/Console/TCIServer.cs' 'Project Files/Source/Console/console.cs' 'Project Files/Source/Console/DiversityForm.cs' 'Project Files/Source/Console/cmaster.cs' 'Project Files/Source/Console/setup.cs' 'Project Files/Source/Console/setup.designer.cs' '.synthesis/PA3GHM_TL2_4_SYNTHESIS.md' '.synthesis/PA3GHM_TL2_4_FILES.txt' '.synthesis/PA3GHM_TL2_4_STAT.txt'
           if (-not (git diff --cached --quiet)) {
-            git commit -m '[pa3ghm-synth] Integrate PA3GHM TL2-4 runtime into SQ4KOU'
+            git commit -m '[pa3ghm-synth] Integrate full PA3GHM TL2-4 runtime into SQ4KOU'
             git push origin HEAD:synthesis/pa3ghm-tl2-4-full
           } else {
             Write-Host 'No source changes to commit.'
@@ -156,3 +209,4 @@ jobs:
             Project Files/bin/Installers/*.msi
           if-no-files-found: warn
           compression-level: 0
+          include-hidden-files: true
