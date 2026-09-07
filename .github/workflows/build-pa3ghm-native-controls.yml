@@ -1,4 +1,4 @@
-# native controls build v5 full-height UI
+# native controls build v6 - complete operator-facing TL2-4 control
 name: Build PA3GHM Native Controls
 
 on:
@@ -29,13 +29,17 @@ jobs:
           git config user.name "SQ4KOU native-controls automation"
           git config user.email "actions@users.noreply.github.com"
 
-      - name: Apply native GUI integration
+      - name: Apply native Diversity and Setup integration
         shell: pwsh
         run: ./tools/add_native_pa3ghm_controls.ps1
 
       - name: Apply full-height Diversity layout fix
         shell: pwsh
         run: ./tools/fix_native_pa3ghm_layout.ps1
+
+      - name: Finalize all native TL2-4 operator controls
+        shell: pwsh
+        run: ./tools/finalize_native_tl24_controls.ps1
 
       - uses: NuGet/setup-nuget@v2
       - uses: microsoft/setup-msbuild@v2
@@ -57,42 +61,77 @@ jobs:
         shell: pwsh
         run: msbuild "Project Files\Source\Thetis_VS2026.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal
 
-      - name: Verify MSI and native layout
+      - name: Verify final MSI and complete native surface
         shell: pwsh
         run: |
           $msi = Get-ChildItem "Project Files\bin\Installers\*.msi" -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
           if (-not $msi) { throw 'MSI was not produced' }
           if ($msi.Length -lt 1MB) { throw "MSI unexpectedly small: $($msi.Length)" }
+
           $div = [System.IO.File]::ReadAllText('Project Files/Source/Console/DiversityForm.cs')
+          $nativeDiv = [System.IO.File]::ReadAllText('Project Files/Source/Console/DiversityForm.PA3GHMNative.cs')
+          $nativeCtl = [System.IO.File]::ReadAllText('Project Files/Source/Console/PA3GHMNativeControlForm.cs')
+          $nativeConsole = [System.IO.File]::ReadAllText('Project Files/Source/Console/Console.PA3GHMNative.cs')
+          $setupNative = [System.IO.File]::ReadAllText('Project Files/Source/Console/Setup.PA3GHMNative.cs')
+          $console = [System.IO.File]::ReadAllText('Project Files/Source/Console/console.cs')
+          $proj = [System.IO.File]::ReadAllText('Project Files/Source/Console/Thetis.csproj')
+
           $init = $div.IndexOf('InitPA3GHMNativePanel();')
           $restore = $div.IndexOf('Common.RestoreForm(this, "DiversityForm", true);')
-          if ($init -lt 0 -or $restore -lt 0 -or $init -gt $restore) { throw 'Native controls are not initialized before RestoreForm' }
-          if (-not $div.Contains('EnsurePA3GHMNativePanelSize();')) { throw 'Native panel size finalization missing' }
-          $native = [System.IO.File]::ReadAllText('Project Files/Source/Console/DiversityForm.PA3GHMNative.cs')
-          if (-not $native.Contains('grpPA3GHMNative.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;')) { throw 'Full-height anchor missing' }
-          if (-not $native.Contains('Math.Max(582, this.ClientSize.Height - 12)')) { throw 'Full-height panel sizing missing' }
-          if (-not $native.Contains('txtPA3GHMAutoPlan.Location = new Point(10, 346);')) { throw 'Auto Null plan missing' }
-          if (-not $native.Contains('txtPA3GHMStatus.Location = new Point(10, 458);')) { throw 'Status panel missing' }
-          if (-not (Select-String -LiteralPath 'Project Files/Source/Console/setup.cs' -SimpleMatch 'InitPA3GHMNativeSetupControls();' -Quiet)) { throw 'Native Setup init marker missing' }
-          Write-Host "Verified full-height native MSI $($msi.Name) $([math]::Round($msi.Length/1MB,2)) MB"
+          if ($init -lt 0 -or $restore -lt 0 -or $init -gt $restore) { throw 'Native Diversity controls are not initialized before RestoreForm' }
+          if (-not $nativeDiv.Contains('Math.Max(582, this.ClientSize.Height - 12)')) { throw 'Full-height Diversity sizing missing' }
 
-      - name: Commit integrated source
+          foreach ($marker in @(
+            'RX Only (TX inhibit)',
+            'S9 HF/VHF threshold',
+            'RX1 DDC sample rate',
+            'RX2 DDC sample rate',
+            'RX1 filter preset',
+            'RX2 filter preset',
+            'Native smooth-scroll Auto Recenter',
+            'Recenter RX1 now',
+            'Recenter RX2 now',
+            'Open Advanced Diversity',
+            'tci_caps_ex and auto_recenter_owner_ex are protocol capability/ownership handshake'
+          )) {
+            if (-not $nativeCtl.Contains($marker)) { throw "Final native control marker missing: $marker" }
+          }
+
+          foreach ($marker in @('NativeAutoRecenterEnabled','NativeRecenterRX1','NativeRecenterRX2','NativeReleaseExternalRecenterOwner','NativeOpenDiversityControl')) {
+            if (-not $nativeConsole.Contains($marker)) { throw "Native Console hook missing: $marker" }
+          }
+
+          if (-not $setupNative.Contains('Native TL2-4 Control...')) { throw 'Setup entry point missing' }
+          if (-not $proj.Contains('PA3GHMNativeControlForm.cs') -or -not $proj.Contains('Console.PA3GHMNative.cs')) { throw 'Final native source files missing from project' }
+
+          $gate = 'if (NativeAutoRecenterEnabled && !(ThetisLinkExtensionsEnabled && ThetisLinkRecenterOwnerActive) && !bLimitToSpectral'
+          $gateCount = ([regex]::Matches($console, [regex]::Escape($gate))).Count
+          if ($gateCount -ne 4) { throw "Expected 4 native Auto Recenter gates, found $gateCount" }
+
+          if ($nativeCtl.Contains('ThetisLinkExtensionsEnabled')) { throw 'Native control surface still depends on ThetisLinkExtensionsEnabled' }
+          if ($nativeConsole.Contains('ThetisLinkExtensionsEnabled')) { throw 'Native Console hooks still depend on ThetisLinkExtensionsEnabled' }
+
+          Write-Host "FINAL COMPLETE NATIVE TL2-4 MSI VERIFIED: $($msi.Name) $([math]::Round($msi.Length/1MB,2)) MB; recenter gates=$gateCount"
+
+      - name: Commit final integrated source
         shell: pwsh
         run: |
-          git add -- 'Project Files/Source/Console/DiversityForm.cs' 'Project Files/Source/Console/setup.cs' 'Project Files/Source/Console/Thetis.csproj' 'Project Files/Source/Console/DiversityForm.PA3GHMNative.cs'
+          git add -- 'Project Files/Source/Console/console.cs' 'Project Files/Source/Console/DiversityForm.cs' 'Project Files/Source/Console/setup.cs' 'Project Files/Source/Console/Thetis.csproj' 'Project Files/Source/Console/DiversityForm.PA3GHMNative.cs' 'Project Files/Source/Console/PA3GHMNativeControlForm.cs' 'Project Files/Source/Console/Console.PA3GHMNative.cs' 'Project Files/Source/Console/Setup.PA3GHMNative.cs'
           if (-not (git diff --cached --quiet)) {
-            git commit -m '[pa3ghm-native] Fix clipped native Diversity controls'
+            git commit -m '[pa3ghm-native] Finalize complete native TL2-4 operator control surface'
             git push origin HEAD:feature/native-pa3ghm-controls
           }
 
-      - name: Upload test MSI
+      - name: Upload final MSI
         uses: actions/upload-artifact@v4
         with:
-          name: PA3GHM-NATIVE-CONTROLS-FULL-HEIGHT
+          name: PA3GHM-NATIVE-TL2-4-FINAL-ALL-CONTROLS
           path: |
             Project Files/bin/Installers/*.msi
             Project Files/Source/Console/PA3GHMNativeDiversity.cs
             Project Files/Source/Console/DiversityForm.PA3GHMNative.cs
+            Project Files/Source/Console/PA3GHMNativeControlForm.cs
+            Project Files/Source/Console/Console.PA3GHMNative.cs
             Project Files/Source/Console/Setup.PA3GHMNative.cs
           if-no-files-found: error
           compression-level: 0
