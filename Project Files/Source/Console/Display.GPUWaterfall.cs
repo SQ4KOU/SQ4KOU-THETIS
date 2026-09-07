@@ -4,14 +4,22 @@ namespace Thetis
 {
     partial class Display
     {
-        // SQ4KOU GPU Waterfall V2.
+        // SQ4KOU GPU Waterfall V3.
         // GPU FFT remains optional and any failure falls back to the existing CPU/WDSP path.
         private static bool _waterfallUseGPU = true;
         private static int _gpuWaterfallFFTSize = 32768;
+        private static int _gpuWaterfallWindowType = 0;          // Hann
+        private static float _gpuWaterfallKaiserBeta = 8.6f;
+        private static int _gpuWaterfallMagnitudeMode = 0;       // dBFS
+        private static bool _gpuWaterfallAutoOverlap = true;
+        private static float _gpuWaterfallOverlapPercent = 75.0f;
+        private static int _gpuWaterfallLanczosWindow = 3;
+        private static int _gpuWaterfallResamplingMode = 1;      // Power Average
+
         private static readonly int[] _gpuWaterfallConfiguredFFT = new int[2];
         private static readonly bool[] _gpuWaterfallFailed = new bool[2];
 
-        // V2 post-processing state.
+        // V2/V3 post-processing state.
         private static readonly float[][] _gpuRawRow = new float[2][];
         private static readonly float[][] _gpuPrevRow = new float[2][];
         private static readonly float[][] _gpuCpuReference = new float[2][];
@@ -28,7 +36,7 @@ namespace Thetis
             {
                 if (_waterfallUseGPU == value) return;
                 _waterfallUseGPU = value;
-                if (!value) ResetGPUWaterfallState();
+                ResetGPUWaterfallState();
             }
         }
 
@@ -40,6 +48,89 @@ namespace Thetis
                 int v = ClampGPUFFTSize(value);
                 if (_gpuWaterfallFFTSize == v) return;
                 _gpuWaterfallFFTSize = v;
+                ResetGPUWaterfallState();
+            }
+        }
+
+        public static int GPUWaterfallWindowType
+        {
+            get { return _gpuWaterfallWindowType; }
+            set
+            {
+                int v = Math.Max(0, Math.Min(3, value));
+                if (_gpuWaterfallWindowType == v) return;
+                _gpuWaterfallWindowType = v;
+                ResetGPUWaterfallState();
+            }
+        }
+
+        public static float GPUWaterfallKaiserBeta
+        {
+            get { return _gpuWaterfallKaiserBeta; }
+            set
+            {
+                float v = Math.Max(0.0f, Math.Min(20.0f, value));
+                if (Math.Abs(_gpuWaterfallKaiserBeta - v) < 0.0001f) return;
+                _gpuWaterfallKaiserBeta = v;
+                ResetGPUWaterfallState();
+            }
+        }
+
+        public static int GPUWaterfallMagnitudeMode
+        {
+            get { return _gpuWaterfallMagnitudeMode; }
+            set
+            {
+                int v = Math.Max(0, Math.Min(1, value));
+                if (_gpuWaterfallMagnitudeMode == v) return;
+                _gpuWaterfallMagnitudeMode = v;
+                ResetGPUWaterfallState();
+            }
+        }
+
+        public static bool GPUWaterfallAutoOverlap
+        {
+            get { return _gpuWaterfallAutoOverlap; }
+            set
+            {
+                if (_gpuWaterfallAutoOverlap == value) return;
+                _gpuWaterfallAutoOverlap = value;
+                ResetGPUWaterfallState();
+            }
+        }
+
+        public static float GPUWaterfallOverlapPercent
+        {
+            get { return _gpuWaterfallOverlapPercent; }
+            set
+            {
+                float v = Math.Max(0.0f, Math.Min(95.0f, value));
+                if (Math.Abs(_gpuWaterfallOverlapPercent - v) < 0.01f) return;
+                _gpuWaterfallOverlapPercent = v;
+                ResetGPUWaterfallState();
+            }
+        }
+
+        public static int GPUWaterfallLanczosWindow
+        {
+            get { return _gpuWaterfallLanczosWindow; }
+            set
+            {
+                int v = Math.Max(2, Math.Min(4, value));
+                if (_gpuWaterfallLanczosWindow == v) return;
+                _gpuWaterfallLanczosWindow = v;
+                ResetGPUWaterfallState();
+            }
+        }
+
+        public static int GPUWaterfallResamplingMode
+        {
+            get { return _gpuWaterfallResamplingMode; }
+            set
+            {
+                int v = Math.Max(0, Math.Min(3, value));
+                if (_gpuWaterfallResamplingMode == v) return;
+                _gpuWaterfallResamplingMode = v;
                 ResetGPUWaterfallState();
             }
         }
@@ -90,6 +181,17 @@ namespace Thetis
             return !float.IsNaN(value) && !float.IsInfinity(value);
         }
 
+        public static void ResetGPUWaterfallCalibration()
+        {
+            for (int ch = 0; ch < 2; ch++)
+            {
+                _gpuPrevValid[ch] = false;
+                _gpuCalibrationValid[ch] = false;
+                _gpuCalibrationOffset[ch] = 0.0f;
+                _gpuCalibrationFrame[ch] = 0;
+            }
+        }
+
         public static void ResetGPUWaterfallState()
         {
             for (int ch = 0; ch < 2; ch++)
@@ -107,6 +209,26 @@ namespace Thetis
                 _gpuPrevRow[ch] = null;
                 _gpuCpuReference[ch] = null;
                 _gpuCalibrationScratch[ch] = null;
+            }
+        }
+
+        private static bool ConfigureGPUWaterfall(int channel)
+        {
+            try
+            {
+                return GPUWaterfallNative.CM_GPUWaterfall_Configure(
+                    channel,
+                    _gpuWaterfallWindowType,
+                    _gpuWaterfallKaiserBeta,
+                    _gpuWaterfallMagnitudeMode,
+                    _gpuWaterfallAutoOverlap ? 1 : 0,
+                    _gpuWaterfallOverlapPercent,
+                    _gpuWaterfallLanczosWindow,
+                    _gpuWaterfallResamplingMode) != 0;
+            }
+            catch
+            {
+                return false;
             }
         }
 
@@ -130,6 +252,13 @@ namespace Thetis
                 int ringCapacity = Math.Max(1048576, fftSize * 4);
                 if (GPUWaterfallNative.CM_GPUWaterfall_Init(channel, fftSize, ringCapacity) != 0)
                 {
+                    if (!ConfigureGPUWaterfall(channel))
+                    {
+                        try { GPUWaterfallNative.CM_GPUWaterfall_Free(channel); } catch { }
+                        _gpuWaterfallFailed[channel] = true;
+                        return false;
+                    }
+
                     _gpuWaterfallConfiguredFFT[channel] = fftSize;
                     _gpuPrevValid[channel] = false;
                     _gpuCalibrationValid[channel] = false;
@@ -146,13 +275,15 @@ namespace Thetis
             return false;
         }
 
-        // Robust A/B level calibration. We compare the GPU row with the currently available
-        // CPU/WDSP row and use the median delta, then a slow EMA. Median makes the calibration
-        // insensitive to strong stations and local spectral peaks.
+        // Robust A/B level calibration. It is intentionally used only in dBFS mode.
+        // PSD mode represents a different physical quantity and therefore must not be
+        // forced to the CPU/WDSP dBFS row.
         private static void UpdateGPUCalibration(int channel, float[] cpu, float[] gpu, int width)
         {
+            if (_gpuWaterfallMagnitudeMode != 0) return;
+
             _gpuCalibrationFrame[channel]++;
-            if ((_gpuCalibrationFrame[channel] & 7) != 0) return; // every 8th GPU row
+            if ((_gpuCalibrationFrame[channel] & 7) != 0) return;
 
             EnsureRowBuffer(ref _gpuCalibrationScratch[channel], width);
             float[] scratch = _gpuCalibrationScratch[channel];
@@ -163,7 +294,7 @@ namespace Thetis
                 float c = cpu[i];
                 float g = gpu[i];
                 if (!IsFinite(c) || !IsFinite(g)) continue;
-                if (c < -220.0f || c > 60.0f || g < -260.0f || g > 80.0f) continue;
+                if (c < -220.0f || c > 60.0f || g < -280.0f || g > 80.0f) continue;
 
                 float d = c - g;
                 if (d < -80.0f || d > 80.0f) continue;
@@ -189,18 +320,18 @@ namespace Thetis
             }
             else
             {
-                // Slow enough not to pump with signals, fast enough to settle after a rate/span change.
                 _gpuCalibrationOffset[channel] += 0.08f * (median - _gpuCalibrationOffset[channel]);
             }
         }
 
-        // Adaptive temporal filter. Quiet noise is strongly stabilised, while a real signal
-        // appearing/disappearing is followed quickly so CW/SSB edges are not smeared.
+        // Adaptive temporal filter. Quiet noise is stabilised strongly, while a real
+        // signal appearing/disappearing is followed quickly so CW/SSB edges stay sharp.
         private static void PostProcessGPUWaterfallRow(int channel, float[] raw, float[] target, int width)
         {
             EnsureRowBuffer(ref _gpuPrevRow[channel], width);
             float[] prev = _gpuPrevRow[channel];
-            float offset = _gpuCalibrationValid[channel] ? _gpuCalibrationOffset[channel] : 0.0f;
+            float offset = (_gpuWaterfallMagnitudeMode == 0 && _gpuCalibrationValid[channel])
+                ? _gpuCalibrationOffset[channel] : 0.0f;
 
             if (!_gpuPrevValid[channel])
             {
@@ -237,8 +368,6 @@ namespace Thetis
         }
 
         // Called immediately before the unchanged SQ4KOU CPU waterfall ready/copy block.
-        // V2 keeps a separate GPU row, optionally calibrates it against the CPU/WDSP row,
-        // post-processes it, then publishes it through the existing SQ4KOU waterfall arrays.
         private static void TryUpdateGPUWaterfallRow(int rx, int width, bool localMox)
         {
             if (!_waterfallUseGPU || localMox || width <= 0 || !console.PowerOn) return;
