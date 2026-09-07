@@ -255,7 +255,9 @@
     <ClCompile Include="cmasio.c" />
     <ClCompile Include="cmaster.c" />
     <ClCompile Include="waterfall_iq.c" />
-    <ClCompile Include="gpu_waterfall.cpp" />
+    <ClCompile Include="gpu_waterfall.cpp">
+      <CompileAs>CompileAsCpp</CompileAs>
+    </ClCompile>
     <ClCompile Include="cmbuffs.c" />
     <ClCompile Include="cmsetup.c" />
     <ClCompile Include="ilv.c" />
