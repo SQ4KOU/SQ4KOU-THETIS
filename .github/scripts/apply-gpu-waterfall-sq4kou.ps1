@@ -39,15 +39,23 @@ if (-not $cmaster.Contains($pushMarker)) {
 Write-Text $cmasterPath $cmaster
 
 # Native project: compile the new C ring buffer and C++ DirectCompute backend.
+# ChannelMaster globally forces CompileAsC, therefore the GPU backend must override
+# that setting for this file only.
 $vcxPath = 'Project Files\Source\ChannelMaster\ChannelMaster.vcxproj'
 $vcx = Read-Text $vcxPath
-if (-not $vcx.Contains('<ClCompile Include="gpu_waterfall.cpp" />')) {
+if (-not $vcx.Contains('<ClCompile Include="gpu_waterfall.cpp"')) {
     $anchor = '    <ClCompile Include="cmaster.c" />'
     if (-not $vcx.Contains($anchor)) { throw 'ChannelMaster.vcxproj compile anchor not found' }
-    $replacement = $anchor + "`r`n    <ClCompile Include=`"waterfall_iq.c`" />`r`n    <ClCompile Include=`"gpu_waterfall.cpp`" />"
+    $replacement = $anchor + "`r`n    <ClCompile Include=`"waterfall_iq.c`" />`r`n    <ClCompile Include=`"gpu_waterfall.cpp`">`r`n      <CompileAs>CompileAsCpp</CompileAs>`r`n    </ClCompile>"
     $vcx = $vcx.Replace($anchor, $replacement)
-    Write-Text $vcxPath $vcx
 }
+elseif ($vcx.Contains('<ClCompile Include="gpu_waterfall.cpp" />')) {
+    $vcx = $vcx.Replace('    <ClCompile Include="gpu_waterfall.cpp" />', "    <ClCompile Include=`"gpu_waterfall.cpp`">`r`n      <CompileAs>CompileAsCpp</CompileAs>`r`n    </ClCompile>")
+}
+if (-not $vcx.Contains('<CompileAs>CompileAsCpp</CompileAs>')) {
+    throw 'ChannelMaster.vcxproj C++ override was not applied'
+}
+Write-Text $vcxPath $vcx
 
 # Managed project: compile the bridge and Display partial integration.
 $csprojPath = 'Project Files\Source\Console\Thetis.csproj'
