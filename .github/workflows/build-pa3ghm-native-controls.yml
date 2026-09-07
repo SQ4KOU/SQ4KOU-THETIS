@@ -1,4 +1,4 @@
-# native controls build v6 - complete operator-facing TL2-4 control
+# native controls build v6.1 - complete operator-facing TL2-4 control
 name: Build PA3GHM Native Controls
 
 on:
