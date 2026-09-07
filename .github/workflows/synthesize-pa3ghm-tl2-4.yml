@@ -1,0 +1,157 @@
+name: Synthesize PA3GHM TL2-4
+
+on:
+  push:
+    branches:
+      - synthesis/pa3ghm-tl2-4-full
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  synthesize:
+    if: ${{ !contains(github.event.head_commit.message || '', '[pa3ghm-synth]') }}
+    runs-on: windows-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout synthesis branch
+        uses: actions/checkout@v4
+        with:
+          ref: synthesis/pa3ghm-tl2-4-full
+          fetch-depth: 0
+
+      - name: Enable long paths and identity
+        shell: pwsh
+        run: |
+          git config --global core.longpaths true
+          git config user.name "SQ4KOU synthesis automation"
+          git config user.email "actions@users.noreply.github.com"
+
+      - name: Fetch exact upstream references
+        shell: pwsh
+        run: |
+          git remote remove ramdor 2>$null
+          git remote remove pa3ghm 2>$null
+          git remote add ramdor https://github.com/ramdor/Thetis.git
+          git remote add pa3ghm https://github.com/cjenschede/Thetis.git
+          git fetch --force ramdor refs/tags/v2.10.3.15:refs/remotes/ramdor/v2.10.3.15
+          git fetch --force pa3ghm refs/tags/TL2-4:refs/remotes/pa3ghm/TL2-4
+          Write-Host "ramdor base: $(git rev-parse refs/remotes/ramdor/v2.10.3.15)"
+          Write-Host "PA3GHM TL2-4: $(git rev-parse refs/remotes/pa3ghm/TL2-4)"
+
+      - name: Audit exact TL2-4 delta
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path .synthesis | Out-Null
+          git diff --name-status refs/remotes/ramdor/v2.10.3.15 refs/remotes/pa3ghm/TL2-4 | Tee-Object -FilePath .synthesis/PA3GHM_TL2_4_FILES.txt
+          git diff --stat refs/remotes/ramdor/v2.10.3.15 refs/remotes/pa3ghm/TL2-4 | Tee-Object -FilePath .synthesis/PA3GHM_TL2_4_STAT.txt
+
+      - name: Build semantic source patch
+        shell: pwsh
+        run: |
+          # Only runtime/source files required by TL2 are transplanted. Branding,
+          # attribution docs, release notes and VS toolset substitutions remain untouched.
+          $paths = @(
+            'Project Files/Source/Console/TCIServer.cs',
+            'Project Files/Source/Console/console.cs',
+            'Project Files/Source/Console/DiversityForm.cs',
+            'Project Files/Source/Console/cmaster.cs',
+            'Project Files/Source/Console/setup.cs',
+            'Project Files/Source/Console/setup.designer.cs'
+          )
+          $args = @('diff','--binary','--full-index','--no-ext-diff','refs/remotes/ramdor/v2.10.3.15','refs/remotes/pa3ghm/TL2-4','--') + $paths
+          & git @args | Out-File -FilePath .synthesis/PA3GHM_TL2_4_RUNTIME.patch -Encoding utf8
+          if ($LASTEXITCODE -ne 0) { throw 'Unable to generate TL2 runtime patch' }
+          Write-Host "Runtime patch bytes: $((Get-Item .synthesis/PA3GHM_TL2_4_RUNTIME.patch).Length)"
+
+      - name: Apply TL2-4 with three-way merge
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Continue'
+          git apply --3way --whitespace=nowarn .synthesis/PA3GHM_TL2_4_RUNTIME.patch
+          $applyExit = $LASTEXITCODE
+          git status --short | Tee-Object -FilePath .synthesis/POST_APPLY_STATUS.txt
+          if ($applyExit -ne 0) {
+            Write-Host 'THREE_WAY_APPLY_CONFLICT'
+            git diff --name-only --diff-filter=U | Tee-Object -FilePath .synthesis/CONFLICT_FILES.txt
+            git diff --cc | Out-File -FilePath .synthesis/CONFLICT_DIFF.txt -Encoding utf8
+            throw 'PA3GHM runtime patch has merge conflicts; inspect synthesis artifacts/log.'
+          }
+
+      - name: Record provenance
+        shell: pwsh
+        run: |
+          @'
+          # PA3GHM TL2-4 synthesis provenance
+
+          Target branch: synthesis/pa3ghm-tl2-4-full
+          Base: SQ4KOU branch sq4kou
+          PA3GHM functional source: cjenschede/Thetis tag TL2-4
+          PA3GHM upstream reference: ramdor/Thetis tag v2.10.3.15
+
+          Integration policy:
+          - retain SQ4KOU Protocol-1 CWX, Diversity P1 TX gate, WideBand, GPS/CMD07,
+            hardware telemetry, antenna TCI and database fixes;
+          - transplant PA3GHM TL2 runtime changes by a 3-way source merge;
+          - do not import PA3GHM branding/About/ReleaseNotes or VS toolset substitutions;
+          - build must pass before synthesized source is committed.
+          '@ | Set-Content .synthesis/PA3GHM_TL2_4_SYNTHESIS.md -Encoding utf8
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) { choco install wixtoolset -y --no-progress }
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) {
+            $targets = Get-ChildItem "C:\Program Files (x86)\WiX Toolset*\Wix.targets" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          }
+          if (-not $targets) { throw "WiX 3.x Wix.targets not found" }
+          "WIX_TARGETS=$($targets.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore packages
+        shell: pwsh
+        run: nuget restore "Project Files\Source\Thetis_VS2026.sln" -NonInteractive
+
+      - name: Build Release x64 and MSI
+        shell: pwsh
+        run: |
+          msbuild "Project Files\Source\Thetis_VS2026.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal
+
+      - name: Verify MSI
+        shell: pwsh
+        run: |
+          $msi = Get-ChildItem "Project Files\bin\Installers\*.msi" -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $msi) { throw 'MSI was not produced' }
+          if ($msi.Length -lt 1MB) { throw "MSI unexpectedly small: $($msi.Length)" }
+          Write-Host "Verified MSI $($msi.Name) $([math]::Round($msi.Length/1MB,2)) MB"
+
+      - name: Commit synthesized source
+        shell: pwsh
+        run: |
+          git add -- 'Project Files/Source/Console/TCIServer.cs' 'Project Files/Source/Console/console.cs' 'Project Files/Source/Console/DiversityForm.cs' 'Project Files/Source/Console/cmaster.cs' 'Project Files/Source/Console/setup.cs' 'Project Files/Source/Console/setup.designer.cs' '.synthesis/PA3GHM_TL2_4_SYNTHESIS.md' '.synthesis/PA3GHM_TL2_4_FILES.txt' '.synthesis/PA3GHM_TL2_4_STAT.txt'
+          if (-not (git diff --cached --quiet)) {
+            git commit -m '[pa3ghm-synth] Integrate PA3GHM TL2-4 runtime into SQ4KOU'
+            git push origin HEAD:synthesis/pa3ghm-tl2-4-full
+          } else {
+            Write-Host 'No source changes to commit.'
+          }
+
+      - name: Upload synthesis diagnostics and MSI
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PA3GHM-TL2-4-SYNTHESIS
+          path: |
+            .synthesis/**
+            Project Files/bin/Installers/*.msi
+          if-no-files-found: warn
+          compression-level: 0
