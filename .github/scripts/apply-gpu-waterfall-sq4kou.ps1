@@ -38,6 +38,16 @@ if (-not $cmaster.Contains($pushMarker)) {
 }
 Write-Text $cmasterPath $cmaster
 
+# DirectCompute source includes Windows.h. Suppress legacy min/max macros so
+# std::min/std::max compile correctly under the ChannelMaster Windows headers.
+$gpuPath = 'Project Files\Source\ChannelMaster\gpu_waterfall.cpp'
+$gpu = Read-Text $gpuPath
+if (-not $gpu.StartsWith('#define NOMINMAX')) {
+    if (-not $gpu.StartsWith('#include <Windows.h>')) { throw 'gpu_waterfall.cpp Windows.h anchor not found' }
+    $gpu = "#define NOMINMAX`r`n" + $gpu
+    Write-Text $gpuPath $gpu
+}
+
 # Native project: compile the new C ring buffer and C++ DirectCompute backend.
 # ChannelMaster globally forces CompileAsC, therefore the GPU backend must override
 # that setting for this file only.
