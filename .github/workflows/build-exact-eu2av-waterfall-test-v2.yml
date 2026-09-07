@@ -79,7 +79,7 @@ jobs:
         shell: pwsh
         run: |
           nuget restore "Project Files\Source\Thetis_VS2026.sln" -NonInteractive
-          msbuild "Project Files\Source\Thetis_VS2026.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal
+          msbuild "Project Files\Source\Thetis_VS2026.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:LangVersion=latest /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal
 
       - name: Verify and name MSI
         shell: pwsh
