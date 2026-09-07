@@ -1,3 +1,4 @@
+#define NOMINMAX
 #include <Windows.h>
 #include <d3d11.h>
 #include <d3dcompiler.h>
@@ -476,19 +477,78 @@ extern "C" __declspec(dllexport) int __cdecl CM_GPUWaterfall_Process(int channel
         return -3;
     }
 
+    // SQ4KOU V2 resolve: integrate FFT power over each display pixel.
+    // This is the anti-alias/resolve stage missing from V1. Work in linear power,
+    // then return to dB. A 20% peak term preserves narrow carriers without bringing
+    // back the single-bin speckle pattern.
     float span = displayHighHz - displayLowHz;
     float nyquist = 0.5f * (float)sampleRate;
+    const double kMinPower = 1.0e-30;
+
     for (int x = 0; x < displayWidth; ++x)
     {
-        float t = displayWidth > 1 ? (float)x / (float)(displayWidth - 1) : 0.5f;
-        float f = displayLowHz + span * t;
-        float pos = ((f + nyquist) / (float)sampleRate) * (float)s.fftSize;
-        if (pos < 0.0f) pos = 0.0f;
-        if (pos > (float)(s.fftSize - 1)) pos = (float)(s.fftSize - 1);
-        int i0 = (int)floorf(pos);
-        int i1 = std::min(i0 + 1, s.fftSize - 1);
-        float frac = pos - (float)i0;
-        outputDb[x] = s.magnitude[i0] + (s.magnitude[i1] - s.magnitude[i0]) * frac;
+        float fx0 = displayLowHz + span * ((float)x / (float)displayWidth);
+        float fx1 = displayLowHz + span * ((float)(x + 1) / (float)displayWidth);
+        double p0 = ((double)fx0 + (double)nyquist) / (double)sampleRate * (double)s.fftSize;
+        double p1 = ((double)fx1 + (double)nyquist) / (double)sampleRate * (double)s.fftSize;
+
+        if (p1 < p0)
+        {
+            double t = p0;
+            p0 = p1;
+            p1 = t;
+        }
+
+        if (p0 < 0.0) p0 = 0.0;
+        if (p1 < 0.0) p1 = 0.0;
+        if (p0 > (double)s.fftSize) p0 = (double)s.fftSize;
+        if (p1 > (double)s.fftSize) p1 = (double)s.fftSize;
+
+        double binSpan = p1 - p0;
+        if (binSpan <= 1.25)
+        {
+            double center = 0.5 * (p0 + p1);
+            if (center < 0.0) center = 0.0;
+            if (center > (double)(s.fftSize - 1)) center = (double)(s.fftSize - 1);
+            int i0 = (int)floor(center);
+            int i1 = i0 + 1;
+            if (i1 >= s.fftSize) i1 = s.fftSize - 1;
+            double frac = center - (double)i0;
+            double pow0 = pow(10.0, (double)s.magnitude[i0] / 10.0);
+            double pow1 = pow(10.0, (double)s.magnitude[i1] / 10.0);
+            double power = pow0 + (pow1 - pow0) * frac;
+            if (power < kMinPower) power = kMinPower;
+            outputDb[x] = (float)(10.0 * log10(power));
+            continue;
+        }
+
+        int firstBin = (int)floor(p0);
+        int lastBin = (int)ceil(p1);
+        double sumPower = 0.0;
+        double sumWeight = 0.0;
+        double peakPower = 0.0;
+
+        for (int b = firstBin; b < lastBin; ++b)
+        {
+            if (b < 0 || b >= s.fftSize) continue;
+            double left = p0 > (double)b ? p0 : (double)b;
+            double right = p1 < (double)(b + 1) ? p1 : (double)(b + 1);
+            double weight = right - left;
+            if (weight <= 0.0) continue;
+
+            double power = pow(10.0, (double)s.magnitude[b] / 10.0);
+            sumPower += power * weight;
+            sumWeight += weight;
+            if (power > peakPower) peakPower = power;
+        }
+
+        double meanPower = sumWeight > 0.0 ? (sumPower / sumWeight) : kMinPower;
+        if (meanPower < kMinPower) meanPower = kMinPower;
+        if (peakPower < meanPower) peakPower = meanPower;
+
+        double resolvedPower = 0.80 * meanPower + 0.20 * peakPower;
+        if (resolvedPower < kMinPower) resolvedPower = kMinPower;
+        outputDb[x] = (float)(10.0 * log10(resolvedPower));
     }
     return 1;
 }
