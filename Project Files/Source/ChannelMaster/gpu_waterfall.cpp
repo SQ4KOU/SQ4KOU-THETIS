@@ -15,6 +15,7 @@
 
 #define GPU_WF_MAX_CHANNELS 8
 #define GPU_WF_THREADS 256
+#define GPU_WF_AUTO_ROWS_PER_SEC 30.0
 
 struct Float2
 {
@@ -67,10 +68,7 @@ void BitReverseCS(uint3 tid : SV_DispatchThreadID)
 {
     uint i = tid.x;
     if (i >= g_N) return;
-    uint src = ReverseBits(i, g_bits);
-    float2 z = g_input[src];
-    float w = (g_N > 1) ? (0.5 - 0.5 * cos(6.2831853071795864769 * (float)src / (float)(g_N - 1))) : 1.0;
-    g_output[i] = z * w;
+    g_output[i] = g_input[ReverseBits(i, g_bits)];
 }
 
 StructuredBuffer<float2> g_stageInput : register(t0);
@@ -149,6 +147,31 @@ static HRESULT CompileCompute(const char* entry, ID3DBlob** blob)
     return hr;
 }
 
+static double BesselI0(double x)
+{
+    double ax = fabs(x);
+    if (ax < 3.75)
+    {
+        double y = x / 3.75;
+        y *= y;
+        return 1.0 + y * (3.5156229 + y * (3.0899424 + y * (1.2067492 +
+            y * (0.2659732 + y * (0.0360768 + y * 0.0045813)))));
+    }
+
+    double y = 3.75 / ax;
+    return (exp(ax) / sqrt(ax)) * (0.39894228 + y * (0.01328592 +
+        y * (0.00225319 + y * (-0.00157565 + y * (0.00916281 +
+        y * (-0.02057706 + y * (0.02635537 + y * (-0.01647633 + y * 0.00392377))))))));
+}
+
+static double Sinc(double x)
+{
+    const double pi = 3.14159265358979323846;
+    if (fabs(x) < 1.0e-12) return 1.0;
+    double px = pi * x;
+    return sin(px) / px;
+}
+
 struct GPUWaterfallState
 {
     int fftSize;
@@ -156,6 +179,16 @@ struct GPUWaterfallState
     bool primed;
     bool ready;
     HRESULT lastError;
+
+    int windowType;          // 0 Hann, 1 Hamming, 2 Blackman-Harris, 3 Kaiser
+    float kaiserBeta;
+    int magnitudeMode;       // 0 dBFS, 1 PSD dBFS/Hz
+    bool autoOverlap;
+    float overlapPercent;
+    int lanczosWindow;       // 2..4
+    int resamplingMode;      // 0 Linear, 1 Power Average, 2 Peak, 3 Lanczos
+    float coherentGain;
+    float enbwBins;
 
     ID3D11Device* device;
     ID3D11DeviceContext* context;
@@ -179,16 +212,20 @@ struct GPUWaterfallState
     std::vector<float> tempI;
     std::vector<float> tempQ;
     std::vector<float> magnitude;
+    std::vector<float> window;
 
     GPUWaterfallState()
         : fftSize(0), hopSize(0), primed(false), ready(false), lastError(S_OK),
+          windowType(0), kaiserBeta(8.6f), magnitudeMode(0), autoOverlap(true),
+          overlapPercent(75.0f), lanczosWindow(3), resamplingMode(1),
+          coherentGain(0.5f), enbwBins(1.5f),
           device(0), context(0), bitReverseCS(0), stageCS(0), magnitudeCS(0),
           inputBuffer(0), inputSRV(0), fftA(0), fftASRV(0), fftAUAV(0),
           fftB(0), fftBSRV(0), fftBUAV(0), magBuffer(0), magUAV(0), magStaging(0), paramsBuffer(0)
     {
     }
 
-    void Release()
+    void ReleaseResources()
     {
         ready = false;
         primed = false;
@@ -213,12 +250,89 @@ struct GPUWaterfallState
         tempI.clear();
         tempQ.clear();
         magnitude.clear();
+        window.clear();
         fftSize = 0;
         hopSize = 0;
     }
 };
 
 static GPUWaterfallState g_gpuWaterfall[GPU_WF_MAX_CHANNELS];
+
+static void BuildWindow(GPUWaterfallState& s)
+{
+    if (s.fftSize <= 0) return;
+    s.window.resize(s.fftSize);
+
+    const double pi2 = 6.28318530717958647692;
+    double sum = 0.0;
+    double sumSq = 0.0;
+    double denomKaiser = BesselI0((double)s.kaiserBeta);
+    if (denomKaiser <= 0.0) denomKaiser = 1.0;
+
+    for (int i = 0; i < s.fftSize; ++i)
+    {
+        double t = s.fftSize > 1 ? (double)i / (double)(s.fftSize - 1) : 0.0;
+        double w;
+        switch (s.windowType)
+        {
+        case 1: // Hamming
+            w = 0.54 - 0.46 * cos(pi2 * t);
+            break;
+        case 2: // Blackman-Harris 4-term
+            w = 0.35875 - 0.48829 * cos(pi2 * t) + 0.14128 * cos(2.0 * pi2 * t) - 0.01168 * cos(3.0 * pi2 * t);
+            break;
+        case 3: // Kaiser
+        {
+            double x = 2.0 * t - 1.0;
+            double a = 1.0 - x * x;
+            if (a < 0.0) a = 0.0;
+            w = BesselI0((double)s.kaiserBeta * sqrt(a)) / denomKaiser;
+            break;
+        }
+        default: // Hann
+            w = 0.5 - 0.5 * cos(pi2 * t);
+            break;
+        }
+        s.window[i] = (float)w;
+        sum += w;
+        sumSq += w * w;
+    }
+
+    if (sum <= 1.0e-20)
+    {
+        s.coherentGain = 1.0f;
+        s.enbwBins = 1.0f;
+    }
+    else
+    {
+        s.coherentGain = (float)(sum / (double)s.fftSize);
+        s.enbwBins = (float)(((double)s.fftSize * sumSq) / (sum * sum));
+        if (s.enbwBins < 1.0f) s.enbwBins = 1.0f;
+    }
+}
+
+static void UpdateHopSize(GPUWaterfallState& s, int sampleRate)
+{
+    if (s.fftSize <= 0) return;
+    int hop;
+    if (s.autoOverlap && sampleRate > 0)
+    {
+        hop = (int)floor((double)sampleRate / GPU_WF_AUTO_ROWS_PER_SEC + 0.5);
+        int minHop = std::max(1, (int)floor((double)s.fftSize * 0.05 + 0.5)); // 95% max overlap
+        if (hop < minHop) hop = minHop;
+        if (hop > s.fftSize) hop = s.fftSize;
+    }
+    else
+    {
+        double overlap = (double)s.overlapPercent;
+        if (overlap < 0.0) overlap = 0.0;
+        if (overlap > 95.0) overlap = 95.0;
+        hop = (int)floor((double)s.fftSize * (1.0 - overlap / 100.0) + 0.5);
+        if (hop < 1) hop = 1;
+        if (hop > s.fftSize) hop = s.fftSize;
+    }
+    s.hopSize = hop;
+}
 
 static HRESULT CreateStructuredBuffer(ID3D11Device* dev, UINT count, UINT stride, UINT bindFlags,
     D3D11_USAGE usage, UINT cpuAccess, ID3D11Buffer** buffer)
@@ -263,9 +377,9 @@ static HRESULT BuildGPUState(GPUWaterfallState& s, int fftSize)
     D3D_FEATURE_LEVEL requested[] = { D3D_FEATURE_LEVEL_11_1, D3D_FEATURE_LEVEL_11_0 };
     D3D_FEATURE_LEVEL actual = D3D_FEATURE_LEVEL_11_0;
 
-    s.Release();
+    s.ReleaseResources();
     s.fftSize = fftSize;
-    s.hopSize = std::max(256, fftSize / 4); /* 75% overlap */
+    UpdateHopSize(s, 0);
 
     hr = D3D11CreateDevice(0, D3D_DRIVER_TYPE_HARDWARE, 0, 0, requested, ARRAYSIZE(requested),
         D3D11_SDK_VERSION, &s.device, &actual, &s.context);
@@ -274,54 +388,54 @@ static HRESULT BuildGPUState(GPUWaterfallState& s, int fftSize)
         hr = D3D11CreateDevice(0, D3D_DRIVER_TYPE_HARDWARE, 0, 0, &requested[1], 1,
             D3D11_SDK_VERSION, &s.device, &actual, &s.context);
     }
-    if (FAILED(hr)) { s.lastError = hr; s.Release(); return hr; }
+    if (FAILED(hr)) { s.lastError = hr; s.ReleaseResources(); return hr; }
 
     ID3DBlob* blob = 0;
     hr = CompileCompute("BitReverseCS", &blob);
-    if (FAILED(hr)) { s.lastError = hr; s.Release(); return hr; }
+    if (FAILED(hr)) { s.lastError = hr; s.ReleaseResources(); return hr; }
     hr = s.device->CreateComputeShader(blob->GetBufferPointer(), blob->GetBufferSize(), 0, &s.bitReverseCS);
     blob->Release(); blob = 0;
-    if (FAILED(hr)) { s.lastError = hr; s.Release(); return hr; }
+    if (FAILED(hr)) { s.lastError = hr; s.ReleaseResources(); return hr; }
 
     hr = CompileCompute("StageCS", &blob);
-    if (FAILED(hr)) { s.lastError = hr; s.Release(); return hr; }
+    if (FAILED(hr)) { s.lastError = hr; s.ReleaseResources(); return hr; }
     hr = s.device->CreateComputeShader(blob->GetBufferPointer(), blob->GetBufferSize(), 0, &s.stageCS);
     blob->Release(); blob = 0;
-    if (FAILED(hr)) { s.lastError = hr; s.Release(); return hr; }
+    if (FAILED(hr)) { s.lastError = hr; s.ReleaseResources(); return hr; }
 
     hr = CompileCompute("MagnitudeCS", &blob);
-    if (FAILED(hr)) { s.lastError = hr; s.Release(); return hr; }
+    if (FAILED(hr)) { s.lastError = hr; s.ReleaseResources(); return hr; }
     hr = s.device->CreateComputeShader(blob->GetBufferPointer(), blob->GetBufferSize(), 0, &s.magnitudeCS);
     blob->Release(); blob = 0;
-    if (FAILED(hr)) { s.lastError = hr; s.Release(); return hr; }
+    if (FAILED(hr)) { s.lastError = hr; s.ReleaseResources(); return hr; }
 
     hr = CreateStructuredBuffer(s.device, fftSize, sizeof(Float2), D3D11_BIND_SHADER_RESOURCE,
         D3D11_USAGE_DYNAMIC, D3D11_CPU_ACCESS_WRITE, &s.inputBuffer);
-    if (FAILED(hr)) { s.lastError = hr; s.Release(); return hr; }
+    if (FAILED(hr)) { s.lastError = hr; s.ReleaseResources(); return hr; }
     hr = CreateSRV(s.device, s.inputBuffer, fftSize, &s.inputSRV);
-    if (FAILED(hr)) { s.lastError = hr; s.Release(); return hr; }
+    if (FAILED(hr)) { s.lastError = hr; s.ReleaseResources(); return hr; }
 
     hr = CreateStructuredBuffer(s.device, fftSize, sizeof(Float2), D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS,
         D3D11_USAGE_DEFAULT, 0, &s.fftA);
-    if (FAILED(hr)) { s.lastError = hr; s.Release(); return hr; }
+    if (FAILED(hr)) { s.lastError = hr; s.ReleaseResources(); return hr; }
     hr = CreateSRV(s.device, s.fftA, fftSize, &s.fftASRV);
-    if (FAILED(hr)) { s.lastError = hr; s.Release(); return hr; }
+    if (FAILED(hr)) { s.lastError = hr; s.ReleaseResources(); return hr; }
     hr = CreateUAV(s.device, s.fftA, fftSize, &s.fftAUAV);
-    if (FAILED(hr)) { s.lastError = hr; s.Release(); return hr; }
+    if (FAILED(hr)) { s.lastError = hr; s.ReleaseResources(); return hr; }
 
     hr = CreateStructuredBuffer(s.device, fftSize, sizeof(Float2), D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS,
         D3D11_USAGE_DEFAULT, 0, &s.fftB);
-    if (FAILED(hr)) { s.lastError = hr; s.Release(); return hr; }
+    if (FAILED(hr)) { s.lastError = hr; s.ReleaseResources(); return hr; }
     hr = CreateSRV(s.device, s.fftB, fftSize, &s.fftBSRV);
-    if (FAILED(hr)) { s.lastError = hr; s.Release(); return hr; }
+    if (FAILED(hr)) { s.lastError = hr; s.ReleaseResources(); return hr; }
     hr = CreateUAV(s.device, s.fftB, fftSize, &s.fftBUAV);
-    if (FAILED(hr)) { s.lastError = hr; s.Release(); return hr; }
+    if (FAILED(hr)) { s.lastError = hr; s.ReleaseResources(); return hr; }
 
     hr = CreateStructuredBuffer(s.device, fftSize, sizeof(float), D3D11_BIND_UNORDERED_ACCESS,
         D3D11_USAGE_DEFAULT, 0, &s.magBuffer);
-    if (FAILED(hr)) { s.lastError = hr; s.Release(); return hr; }
+    if (FAILED(hr)) { s.lastError = hr; s.ReleaseResources(); return hr; }
     hr = CreateUAV(s.device, s.magBuffer, fftSize, &s.magUAV);
-    if (FAILED(hr)) { s.lastError = hr; s.Release(); return hr; }
+    if (FAILED(hr)) { s.lastError = hr; s.ReleaseResources(); return hr; }
 
     D3D11_BUFFER_DESC stagingDesc;
     ZeroMemory(&stagingDesc, sizeof(stagingDesc));
@@ -329,7 +443,7 @@ static HRESULT BuildGPUState(GPUWaterfallState& s, int fftSize)
     stagingDesc.Usage = D3D11_USAGE_STAGING;
     stagingDesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
     hr = s.device->CreateBuffer(&stagingDesc, 0, &s.magStaging);
-    if (FAILED(hr)) { s.lastError = hr; s.Release(); return hr; }
+    if (FAILED(hr)) { s.lastError = hr; s.ReleaseResources(); return hr; }
 
     D3D11_BUFFER_DESC cb;
     ZeroMemory(&cb, sizeof(cb));
@@ -337,12 +451,13 @@ static HRESULT BuildGPUState(GPUWaterfallState& s, int fftSize)
     cb.Usage = D3D11_USAGE_DEFAULT;
     cb.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     hr = s.device->CreateBuffer(&cb, 0, &s.paramsBuffer);
-    if (FAILED(hr)) { s.lastError = hr; s.Release(); return hr; }
+    if (FAILED(hr)) { s.lastError = hr; s.ReleaseResources(); return hr; }
 
     s.rolling.assign(fftSize, Float2{ 0.0f, 0.0f });
     s.tempI.resize(fftSize);
     s.tempQ.resize(fftSize);
     s.magnitude.resize(fftSize);
+    BuildWindow(s);
     s.ready = true;
     s.lastError = S_OK;
     return S_OK;
@@ -363,14 +478,21 @@ static HRESULT RunFFT(GPUWaterfallState& s)
     ZeroMemory(&mapped, sizeof(mapped));
     hr = s.context->Map(s.inputBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped);
     if (FAILED(hr)) return hr;
-    memcpy(mapped.pData, &s.rolling[0], (size_t)s.fftSize * sizeof(Float2));
+
+    Float2* dst = (Float2*)mapped.pData;
+    for (int i = 0; i < s.fftSize; ++i)
+    {
+        float w = s.window.empty() ? 1.0f : s.window[i];
+        dst[i].x = s.rolling[i].x * w;
+        dst[i].y = s.rolling[i].y * w;
+    }
     s.context->Unmap(s.inputBuffer, 0);
 
     GPUParams p;
     ZeroMemory(&p, sizeof(p));
     p.N = (UINT)s.fftSize;
     p.bits = Log2Pow2((UINT)s.fftSize);
-    p.coherentGain = 0.5f;
+    p.coherentGain = s.coherentGain;
     s.context->UpdateSubresource(s.paramsBuffer, 0, 0, &p, 0, 0);
     s.context->CSSetConstantBuffers(0, 1, &s.paramsBuffer);
 
@@ -386,10 +508,10 @@ static HRESULT RunFFT(GPUWaterfallState& s)
         p.stage = stage;
         s.context->UpdateSubresource(s.paramsBuffer, 0, 0, &p, 0, 0);
         ID3D11ShaderResourceView* src = inputIsA ? s.fftASRV : s.fftBSRV;
-        ID3D11UnorderedAccessView* dst = inputIsA ? s.fftBUAV : s.fftAUAV;
+        ID3D11UnorderedAccessView* dstUAV = inputIsA ? s.fftBUAV : s.fftAUAV;
         s.context->CSSetShader(s.stageCS, 0, 0);
         s.context->CSSetShaderResources(0, 1, &src);
-        s.context->CSSetUnorderedAccessViews(0, 1, &dst, 0);
+        s.context->CSSetUnorderedAccessViews(0, 1, &dstUAV, 0);
         s.context->Dispatch((((UINT)s.fftSize >> 1) + GPU_WF_THREADS - 1) / GPU_WF_THREADS, 1, 1);
         UnbindCompute(s.context);
         inputIsA = !inputIsA;
@@ -411,6 +533,109 @@ static HRESULT RunFFT(GPUWaterfallState& s)
     return S_OK;
 }
 
+static double DbToPower(float db)
+{
+    return pow(10.0, (double)db / 10.0);
+}
+
+static float PowerToDb(double power)
+{
+    if (power < 1.0e-30) power = 1.0e-30;
+    return (float)(10.0 * log10(power));
+}
+
+static float SampleLinear(const GPUWaterfallState& s, double pos)
+{
+    if (pos < 0.0) pos = 0.0;
+    if (pos > (double)(s.fftSize - 1)) pos = (double)(s.fftSize - 1);
+    int i0 = (int)floor(pos);
+    int i1 = i0 + 1;
+    if (i1 >= s.fftSize) i1 = s.fftSize - 1;
+    double frac = pos - (double)i0;
+    double p0 = DbToPower(s.magnitude[i0]);
+    double p1 = DbToPower(s.magnitude[i1]);
+    return PowerToDb(p0 + (p1 - p0) * frac);
+}
+
+static float SampleLanczos(const GPUWaterfallState& s, double pos)
+{
+    int a = s.lanczosWindow;
+    if (a < 2) a = 2;
+    if (a > 4) a = 4;
+    int center = (int)floor(pos);
+    double sum = 0.0;
+    double weightSum = 0.0;
+
+    for (int i = center - a + 1; i <= center + a; ++i)
+    {
+        if (i < 0 || i >= s.fftSize) continue;
+        double x = pos - (double)i;
+        if (fabs(x) >= (double)a) continue;
+        double w = Sinc(x) * Sinc(x / (double)a);
+        sum += DbToPower(s.magnitude[i]) * w;
+        weightSum += w;
+    }
+
+    if (fabs(weightSum) < 1.0e-12) return SampleLinear(s, pos);
+    double p = sum / weightSum;
+    if (p <= 0.0) return SampleLinear(s, pos);
+    return PowerToDb(p);
+}
+
+static float ResolvePixel(const GPUWaterfallState& s, double p0, double p1)
+{
+    if (p1 < p0)
+    {
+        double t = p0;
+        p0 = p1;
+        p1 = t;
+    }
+    if (p0 < 0.0) p0 = 0.0;
+    if (p1 < 0.0) p1 = 0.0;
+    if (p0 > (double)s.fftSize) p0 = (double)s.fftSize;
+    if (p1 > (double)s.fftSize) p1 = (double)s.fftSize;
+
+    double span = p1 - p0;
+    double center = 0.5 * (p0 + p1);
+
+    if (s.resamplingMode == 0)
+        return SampleLinear(s, center);
+    if (s.resamplingMode == 3 && span <= 1.5)
+        return SampleLanczos(s, center);
+    if (span <= 1.0)
+        return SampleLinear(s, center);
+
+    int firstBin = (int)floor(p0);
+    int lastBin = (int)ceil(p1);
+    double sumPower = 0.0;
+    double sumWeight = 0.0;
+    double peakPower = 0.0;
+
+    for (int b = firstBin; b < lastBin; ++b)
+    {
+        if (b < 0 || b >= s.fftSize) continue;
+        double left = p0 > (double)b ? p0 : (double)b;
+        double right = p1 < (double)(b + 1) ? p1 : (double)(b + 1);
+        double weight = right - left;
+        if (weight <= 0.0) continue;
+
+        double power = DbToPower(s.magnitude[b]);
+        sumPower += power * weight;
+        sumWeight += weight;
+        if (power > peakPower) peakPower = power;
+    }
+
+    double meanPower = sumWeight > 0.0 ? sumPower / sumWeight : 1.0e-30;
+    if (meanPower < 1.0e-30) meanPower = 1.0e-30;
+    if (peakPower < meanPower) peakPower = meanPower;
+
+    if (s.resamplingMode == 2)
+        return PowerToDb(peakPower);
+
+    // Power-average default. A small peak component preserves narrow carriers.
+    return PowerToDb(0.88 * meanPower + 0.12 * peakPower);
+}
+
 extern "C" __declspec(dllexport) int __cdecl CM_GPUWaterfall_Init(int channel, int fftSize, int ringCapacity)
 {
     if (channel < 0 || channel >= GPU_WF_MAX_CHANNELS || !IsPowerOfTwo(fftSize)) return 0;
@@ -425,11 +650,46 @@ extern "C" __declspec(dllexport) int __cdecl CM_GPUWaterfall_Init(int channel, i
     if (ringCapacity < fftSize * 4) ringCapacity = fftSize * 4;
     if (CM_WaterfallIQ_Init(channel, ringCapacity) <= 0)
     {
-        s.Release();
+        s.ReleaseResources();
         return 0;
     }
     CM_WaterfallIQ_ResetDropped(channel);
     CM_WaterfallIQ_SetEnabled(channel, 1);
+    return 1;
+}
+
+extern "C" __declspec(dllexport) int __cdecl CM_GPUWaterfall_Configure(int channel, int windowType, float kaiserBeta,
+    int magnitudeMode, int autoOverlap, float overlapPercent, int lanczosWindow, int resamplingMode)
+{
+    if (channel < 0 || channel >= GPU_WF_MAX_CHANNELS) return 0;
+    GPUWaterfallState& s = g_gpuWaterfall[channel];
+
+    if (windowType < 0) windowType = 0;
+    if (windowType > 3) windowType = 3;
+    if (kaiserBeta < 0.0f) kaiserBeta = 0.0f;
+    if (kaiserBeta > 20.0f) kaiserBeta = 20.0f;
+    if (magnitudeMode < 0) magnitudeMode = 0;
+    if (magnitudeMode > 1) magnitudeMode = 1;
+    if (overlapPercent < 0.0f) overlapPercent = 0.0f;
+    if (overlapPercent > 95.0f) overlapPercent = 95.0f;
+    if (lanczosWindow < 2) lanczosWindow = 2;
+    if (lanczosWindow > 4) lanczosWindow = 4;
+    if (resamplingMode < 0) resamplingMode = 0;
+    if (resamplingMode > 3) resamplingMode = 3;
+
+    bool windowChanged = s.windowType != windowType || fabs((double)s.kaiserBeta - (double)kaiserBeta) > 0.0001;
+    s.windowType = windowType;
+    s.kaiserBeta = kaiserBeta;
+    s.magnitudeMode = magnitudeMode;
+    s.autoOverlap = autoOverlap != 0;
+    s.overlapPercent = overlapPercent;
+    s.lanczosWindow = lanczosWindow;
+    s.resamplingMode = resamplingMode;
+
+    if (s.ready && windowChanged)
+        BuildWindow(s);
+    if (s.ready)
+        s.primed = false;
     return 1;
 }
 
@@ -440,6 +700,7 @@ extern "C" __declspec(dllexport) int __cdecl CM_GPUWaterfall_Process(int channel
     GPUWaterfallState& s = g_gpuWaterfall[channel];
     if (!s.ready || s.fftSize <= 0) return -2;
 
+    UpdateHopSize(s, sampleRate);
     int need = s.primed ? s.hopSize : s.fftSize;
     if (CM_WaterfallIQ_Available(channel) < need) return 0;
 
@@ -457,14 +718,15 @@ extern "C" __declspec(dllexport) int __cdecl CM_GPUWaterfall_Process(int channel
     else
     {
         int keep = s.fftSize - s.hopSize;
-        memmove(&s.rolling[0], &s.rolling[s.hopSize], (size_t)keep * sizeof(Float2));
+        if (keep > 0)
+            memmove(&s.rolling[0], &s.rolling[s.hopSize], (size_t)keep * sizeof(Float2));
         int got = CM_WaterfallIQ_Get(channel, s.hopSize, &s.tempI[0], &s.tempQ[0]);
         if (got != s.hopSize) return 0;
         for (int i = 0; i < s.hopSize; ++i)
         {
-            int dst = keep + i;
-            s.rolling[dst].x = s.tempI[i];
-            s.rolling[dst].y = s.tempQ[i];
+            int dstIndex = keep + i;
+            s.rolling[dstIndex].x = s.tempI[i];
+            s.rolling[dstIndex].y = s.tempQ[i];
         }
     }
 
@@ -477,78 +739,24 @@ extern "C" __declspec(dllexport) int __cdecl CM_GPUWaterfall_Process(int channel
         return -3;
     }
 
-    // SQ4KOU V2 resolve: integrate FFT power over each display pixel.
-    // This is the anti-alias/resolve stage missing from V1. Work in linear power,
-    // then return to dB. A 20% peak term preserves narrow carriers without bringing
-    // back the single-bin speckle pattern.
-    float span = displayHighHz - displayLowHz;
+    float spanHz = displayHighHz - displayLowHz;
     float nyquist = 0.5f * (float)sampleRate;
-    const double kMinPower = 1.0e-30;
+    float psdCorrection = 0.0f;
+    if (s.magnitudeMode == 1)
+    {
+        double binWidth = (double)sampleRate / (double)s.fftSize;
+        double noiseBandwidth = binWidth * (double)s.enbwBins;
+        if (noiseBandwidth > 1.0e-20)
+            psdCorrection = (float)(10.0 * log10(noiseBandwidth));
+    }
 
     for (int x = 0; x < displayWidth; ++x)
     {
-        float fx0 = displayLowHz + span * ((float)x / (float)displayWidth);
-        float fx1 = displayLowHz + span * ((float)(x + 1) / (float)displayWidth);
+        float fx0 = displayLowHz + spanHz * ((float)x / (float)displayWidth);
+        float fx1 = displayLowHz + spanHz * ((float)(x + 1) / (float)displayWidth);
         double p0 = ((double)fx0 + (double)nyquist) / (double)sampleRate * (double)s.fftSize;
         double p1 = ((double)fx1 + (double)nyquist) / (double)sampleRate * (double)s.fftSize;
-
-        if (p1 < p0)
-        {
-            double t = p0;
-            p0 = p1;
-            p1 = t;
-        }
-
-        if (p0 < 0.0) p0 = 0.0;
-        if (p1 < 0.0) p1 = 0.0;
-        if (p0 > (double)s.fftSize) p0 = (double)s.fftSize;
-        if (p1 > (double)s.fftSize) p1 = (double)s.fftSize;
-
-        double binSpan = p1 - p0;
-        if (binSpan <= 1.25)
-        {
-            double center = 0.5 * (p0 + p1);
-            if (center < 0.0) center = 0.0;
-            if (center > (double)(s.fftSize - 1)) center = (double)(s.fftSize - 1);
-            int i0 = (int)floor(center);
-            int i1 = i0 + 1;
-            if (i1 >= s.fftSize) i1 = s.fftSize - 1;
-            double frac = center - (double)i0;
-            double pow0 = pow(10.0, (double)s.magnitude[i0] / 10.0);
-            double pow1 = pow(10.0, (double)s.magnitude[i1] / 10.0);
-            double power = pow0 + (pow1 - pow0) * frac;
-            if (power < kMinPower) power = kMinPower;
-            outputDb[x] = (float)(10.0 * log10(power));
-            continue;
-        }
-
-        int firstBin = (int)floor(p0);
-        int lastBin = (int)ceil(p1);
-        double sumPower = 0.0;
-        double sumWeight = 0.0;
-        double peakPower = 0.0;
-
-        for (int b = firstBin; b < lastBin; ++b)
-        {
-            if (b < 0 || b >= s.fftSize) continue;
-            double left = p0 > (double)b ? p0 : (double)b;
-            double right = p1 < (double)(b + 1) ? p1 : (double)(b + 1);
-            double weight = right - left;
-            if (weight <= 0.0) continue;
-
-            double power = pow(10.0, (double)s.magnitude[b] / 10.0);
-            sumPower += power * weight;
-            sumWeight += weight;
-            if (power > peakPower) peakPower = power;
-        }
-
-        double meanPower = sumWeight > 0.0 ? (sumPower / sumWeight) : kMinPower;
-        if (meanPower < kMinPower) meanPower = kMinPower;
-        if (peakPower < meanPower) peakPower = meanPower;
-
-        double resolvedPower = 0.80 * meanPower + 0.20 * peakPower;
-        if (resolvedPower < kMinPower) resolvedPower = kMinPower;
-        outputDb[x] = (float)(10.0 * log10(resolvedPower));
+        outputDb[x] = ResolvePixel(s, p0, p1) - psdCorrection;
     }
     return 1;
 }
@@ -558,7 +766,7 @@ extern "C" __declspec(dllexport) void __cdecl CM_GPUWaterfall_Free(int channel)
     if (channel < 0 || channel >= GPU_WF_MAX_CHANNELS) return;
     CM_WaterfallIQ_SetEnabled(channel, 0);
     CM_WaterfallIQ_Free(channel);
-    g_gpuWaterfall[channel].Release();
+    g_gpuWaterfall[channel].ReleaseResources();
 }
 
 extern "C" __declspec(dllexport) int __cdecl CM_GPUWaterfall_IsReady(int channel)
