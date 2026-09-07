@@ -701,11 +701,28 @@ extern "C" __declspec(dllexport) int __cdecl CM_GPUWaterfall_Process(int channel
     if (!s.ready || s.fftSize <= 0) return -2;
 
     UpdateHopSize(s, sampleRate);
-    int need = s.primed ? s.hopSize : s.fftSize;
-    if (CM_WaterfallIQ_Available(channel) < need) return 0;
 
-    if (!s.primed)
+    // SQ4KOU GPUWF freshness fix: never render stale ring-buffer IQ.
+    // overlapPercent defines the minimum amount of new IQ required for a new row.
+    // If more IQ accumulated between paints, advance farther (or re-prime from the
+    // newest full FFT window) instead of leaving an ever-growing backlog behind.
+    int available = CM_WaterfallIQ_Available(channel);
+    int minimumNeeded = s.primed ? s.hopSize : s.fftSize;
+    if (available < minimumNeeded) return 0;
+
+    if (!s.primed || available >= s.fftSize)
     {
+        // Re-prime from the newest complete FFT window. Discarding here is deliberate:
+        // old IQ is useless for a real-time waterfall and is what caused VFO misalignment.
+        int discard = available - s.fftSize;
+        while (discard > 0)
+        {
+            int chunk = discard > s.fftSize ? s.fftSize : discard;
+            int skipped = CM_WaterfallIQ_Get(channel, chunk, &s.tempI[0], &s.tempQ[0]);
+            if (skipped <= 0) return 0;
+            discard -= skipped;
+        }
+
         int got = CM_WaterfallIQ_Get(channel, s.fftSize, &s.tempI[0], &s.tempQ[0]);
         if (got != s.fftSize) return 0;
         for (int i = 0; i < s.fftSize; ++i)
@@ -717,12 +734,19 @@ extern "C" __declspec(dllexport) int __cdecl CM_GPUWaterfall_Process(int channel
     }
     else
     {
-        int keep = s.fftSize - s.hopSize;
+        // Keep the configured overlap only when the UI is keeping pace. If several
+        // hops arrived, consume all of them so this row stays tied to the current VFO.
+        int advance = available;
+        if (advance < s.hopSize) return 0;
+        if (advance > s.fftSize) advance = s.fftSize;
+
+        int keep = s.fftSize - advance;
         if (keep > 0)
-            memmove(&s.rolling[0], &s.rolling[s.hopSize], (size_t)keep * sizeof(Float2));
-        int got = CM_WaterfallIQ_Get(channel, s.hopSize, &s.tempI[0], &s.tempQ[0]);
-        if (got != s.hopSize) return 0;
-        for (int i = 0; i < s.hopSize; ++i)
+            memmove(&s.rolling[0], &s.rolling[advance], (size_t)keep * sizeof(Float2));
+
+        int got = CM_WaterfallIQ_Get(channel, advance, &s.tempI[0], &s.tempQ[0]);
+        if (got != advance) return 0;
+        for (int i = 0; i < advance; ++i)
         {
             int dstIndex = keep + i;
             s.rolling[dstIndex].x = s.tempI[i];
