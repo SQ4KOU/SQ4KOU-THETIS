@@ -15,10 +15,8 @@ jobs:
   finalize:
     runs-on: windows-latest
     timeout-minutes: 120
-
     steps:
-      - name: Checkout synthesized branch
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           ref: synthesis/pa3ghm-tl2-4-full
           fetch-depth: 1
@@ -30,123 +28,12 @@ jobs:
           git config user.name "SQ4KOU synthesis automation"
           git config user.email "actions@users.noreply.github.com"
 
-      - name: Add Protocol-1 Diversity worker TX guard
+      - name: Apply P1 Diversity finalization
         shell: pwsh
-        run: |
-          $path = 'Project Files/Source/Console/TCIServer.cs'
-          $text = [System.IO.File]::ReadAllText($path)
+        run: ./tools/finalize_pa3ghm_p1_diversity.ps1
 
-          $helperMarker = 'SQ4KOU_P1_DIVERSITY_WORKER_TX_GUARD'
-          if (-not $text.Contains($helperMarker)) {
-            $anchor = "`t`t// diversity_sweep_ex:type,start,end,step,settleMs;"
-            if (-not $text.Contains($anchor)) { throw 'Cannot find PA3GHM Diversity sweep anchor' }
-
-            $helper = @"
-`t`t// SQ4KOU_P1_DIVERSITY_WORKER_TX_GUARD
-`t`t// PA3GHM null/sweep workers run asynchronously. In Protocol 1 our
-`t`t// cmaster TX gate deliberately stops EXTDIV for MOX. Do not let a
-`t`t// background worker keep changing phase/gain while that gate is active.
-`t`t// Protocol 2 and normal RX behaviour are unchanged.
-`t`tprivate bool shouldAbortSq4kouP1DiversityWorker(Console c)
-`t`t{
-`t`t`tif (m_disconnected || c == null || c.IsDisposed) return true;
-`t`t`tif (NetworkIO.CurrentRadioProtocol != RadioProtocol.USB) return false;
-
-`t`t`ttry
-`t`t`t{
-`t`t`t`tif (c.InvokeRequired)
-`t`t`t`t`treturn (bool)c.Invoke(new Func<bool>(() => c.MOX || c.TUN));
-
-`t`t`t`treturn c.MOX || c.TUN;
-`t`t`t}
-`t`t`tcatch
-`t`t`t{
-`t`t`t`t// Fail safe: an invalid UI state must never let the P1 worker
-`t`t`t`t// alter Diversity during a possible TX transition.
-`t`t`t`treturn true;
-`t`t`t}
-`t`t}
-
-"@
-            $text = $text.Replace($anchor, $helper + $anchor)
-          }
-
-          $startMarker = "`t`t// diversity_sweep_ex:type,start,end,step,settleMs;"
-          $endMarker = "`t`t// [ThetisLink TL2-1] END"
-          $start = $text.IndexOf($startMarker)
-          if ($start -lt 0) { throw 'Cannot find start of PA3GHM asynchronous Diversity section' }
-          $end = $text.IndexOf($endMarker, $start)
-          if ($end -lt 0) { throw 'Cannot find end of PA3GHM asynchronous Diversity section' }
-          $end += $endMarker.Length
-
-          $before = $text.Substring(0, $start)
-          $section = $text.Substring($start, $end - $start)
-          $after = $text.Substring($end)
-
-          $section = $section.Replace('if (listener.m_disconnected || c == null || c.IsDisposed) return;', 'if (listener.shouldAbortSq4kouP1DiversityWorker(c)) return;')
-          $section = $section.Replace('if (listener.m_disconnected || c == null || c.IsDisposed) return dbm;', 'if (listener.shouldAbortSq4kouP1DiversityWorker(c)) return dbm;')
-          $section = $section.Replace('if (listener.m_disconnected) return;', 'if (listener.shouldAbortSq4kouP1DiversityWorker(c)) return;')
-
-          $text = $before + $section + $after
-          [System.IO.File]::WriteAllText($path, $text, [System.Text.UTF8Encoding]::new($true))
-
-          if (-not (Select-String -LiteralPath $path -SimpleMatch $helperMarker -Quiet)) { throw 'P1 Diversity guard insertion failed' }
-          $count = (Select-String -LiteralPath $path -SimpleMatch 'shouldAbortSq4kouP1DiversityWorker(c)' | Measure-Object).Count
-          Write-Host "P1 Diversity worker guard call sites: $count"
-          if ($count -lt 10) { throw "Too few guarded PA3GHM worker call sites: $count" }
-
-      - name: Full synthesis static gates
-        shell: pwsh
-        run: |
-          function Require-Text([string]$Path, [string]$Text) {
-            if (-not (Select-String -LiteralPath $Path -SimpleMatch $Text -Quiet)) {
-              throw "SYNTHESIS GATE FAILED: '$Text' missing in $Path"
-            }
-          }
-          $tci = 'Project Files/Source/Console/TCIServer.cs'
-          $con = 'Project Files/Source/Console/console.cs'
-          $cm = 'Project Files/Source/Console/cmaster.cs'
-          $div = 'Project Files/Source/Console/DiversityForm.cs'
-          $setup = 'Project Files/Source/Console/setup.cs'
-          $designer = 'Project Files/Source/Console/setup.designer.cs'
-
-          Require-Text $tci 'tci_caps_ex'
-          Require-Text $tci 'rx_filter_preset_ex'
-          Require-Text $tci 'diversity_enable_ex'
-          Require-Text $tci 'diversity_sweep_ex'
-          Require-Text $tci 'diversity_fastsweep_ex'
-          Require-Text $tci 'diversity_autonull_ex'
-          Require-Text $tci 'diversity_smartnull_ex'
-          Require-Text $tci 'diversity_ultranull_ex'
-          Require-Text $tci 'ddc_sample_rate_ex'
-          Require-Text $tci 'auto_recenter_ex'
-          Require-Text $tci 'auto_recenter_owner_ex'
-          Require-Text $tci 's9_frequency_ex'
-          Require-Text $tci 'rx_only_ex'
-          Require-Text $tci 'BroadcastFilterBand'
-          Require-Text $tci 'SQ4KOU_P1_DIVERSITY_WORKER_TX_GUARD'
-          Require-Text $con 'ThetisLinkExtensionsEnabled'
-          Require-Text $con 'ThetisLinkRecenterOwnerActive'
-          Require-Text $div 'DiversityGainMulti'
-          Require-Text $setup 'chkThetisLinkExtensions_CheckedChanged'
-          Require-Text $designer 'chkThetisLinkExtensions'
-
-          Require-Text $tci 'sq4kou_cmd07_ex'
-          Require-Text $tci 'sq4kou_radio_hw_ex'
-          Require-Text $tci 'sq4kou_rx_antenna_selected_ex'
-          Require-Text $tci 'sq4kou_tx_antenna_selected_ex'
-          Require-Text $con 'SQ4KOUStartP1SoftwareCWX'
-          Require-Text $cm 'ApplyDiversityP1TxGate'
-
-          $bad = Select-String -Path $tci,$con,$cm,$div,$setup,$designer -Pattern '^<<<<<<<|^=======|^>>>>>>>'
-          if ($bad) { throw 'Unresolved merge markers remain' }
-          Write-Host 'Full synthesis static gates: PASS'
-
-      - name: Setup NuGet
-        uses: NuGet/setup-nuget@v2
-
-      - name: Setup MSBuild
-        uses: microsoft/setup-msbuild@v2
+      - uses: NuGet/setup-nuget@v2
+      - uses: microsoft/setup-msbuild@v2
 
       - name: Ensure WiX Toolset 3.x
         shell: pwsh
@@ -154,9 +41,6 @@ jobs:
           $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
           if (-not $targets) { choco install wixtoolset -y --no-progress }
           $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
-          if (-not $targets) {
-            $targets = Get-ChildItem "C:\Program Files (x86)\WiX Toolset*\Wix.targets" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-          }
           if (-not $targets) { throw 'WiX 3.x Wix.targets not found' }
           "WIX_TARGETS=$($targets.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
@@ -166,8 +50,7 @@ jobs:
 
       - name: Build final Release x64 and MSI
         shell: pwsh
-        run: |
-          msbuild "Project Files\Source\Thetis_VS2026.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal
+        run: msbuild "Project Files\Source\Thetis_VS2026.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal
 
       - name: Verify MSI
         shell: pwsh
@@ -177,29 +60,17 @@ jobs:
           if ($msi.Length -lt 1MB) { throw "MSI unexpectedly small: $($msi.Length)" }
           Write-Host "Verified final MSI $($msi.Name) $([math]::Round($msi.Length/1MB,2)) MB"
 
-      - name: Update synthesis provenance
+      - name: Commit final adaptation
         shell: pwsh
         run: |
-          $p = '.synthesis/PA3GHM_TL2_4_SYNTHESIS.md'
-          Add-Content -LiteralPath $p -Encoding utf8 -Value @'
-
-          Final SQ4KOU Protocol-1 adaptation:
-          - asynchronous PA3GHM Diversity sweep/null workers cooperatively abort on P1 MOX/TUNE;
-          - prevents phase/gain mutation while the existing P1 EXTDIV TX gate is active;
-          - P2 and normal RX behavior are unchanged.
-          '@
-
-      - name: Commit final P1 adaptation
-        shell: pwsh
-        run: |
+          Add-Content -LiteralPath '.synthesis/PA3GHM_TL2_4_SYNTHESIS.md' -Value "`nFinal SQ4KOU P1 adaptation: PA3GHM async Diversity workers abort on P1 MOX/TUNE."
           git add -- 'Project Files/Source/Console/TCIServer.cs' '.synthesis/PA3GHM_TL2_4_SYNTHESIS.md'
           if (-not (git diff --cached --quiet)) {
-            git commit -m '[pa3ghm-synth] Finalize PA3GHM TL2-4 with SQ4KOU P1 Diversity TX guard'
+            git commit -m '[pa3ghm-synth] Finalize TL2-4 with SQ4KOU P1 Diversity TX guard'
             git push origin HEAD:synthesis/pa3ghm-tl2-4-full
           }
 
-      - name: Upload final MSI and synthesis audit
-        if: always()
+      - name: Upload final MSI
         uses: actions/upload-artifact@v4
         with:
           name: PA3GHM-TL2-4-SQ4KOU-FINAL
