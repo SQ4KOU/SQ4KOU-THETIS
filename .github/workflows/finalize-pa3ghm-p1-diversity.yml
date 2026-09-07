@@ -1,4 +1,4 @@
-# SQ4KOU PA3GHM finalizer v3
+# SQ4KOU PA3GHM finalizer v4
 name: Finalize PA3GHM P1 Diversity Safety
 
 on:
@@ -64,10 +64,10 @@ jobs:
       - name: Commit final adaptation
         shell: pwsh
         run: |
-          Add-Content -LiteralPath '.synthesis/PA3GHM_TL2_4_SYNTHESIS.md' -Value "`nFinal SQ4KOU P1 adaptation: PA3GHM async Diversity workers abort on P1 MOX/TUNE."
+          Add-Content -LiteralPath '.synthesis/PA3GHM_TL2_4_SYNTHESIS.md' -Value "`nFinal SQ4KOU P1 adaptation: all five PA3GHM async Diversity handlers abort safely on P1 MOX/TUNE."
           git add -- 'Project Files/Source/Console/TCIServer.cs' '.synthesis/PA3GHM_TL2_4_SYNTHESIS.md'
           if (-not (git diff --cached --quiet)) {
-            git commit -m '[pa3ghm-synth] Finalize TL2-4 with SQ4KOU P1 Diversity TX guard'
+            git commit -m '[pa3ghm-synth] Finalize TL2-4 with complete SQ4KOU P1 Diversity TX guard'
             git push origin HEAD:synthesis/pa3ghm-tl2-4-full
           }
 
