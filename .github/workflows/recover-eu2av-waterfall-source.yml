@@ -27,13 +27,12 @@ jobs:
       - name: Administrative extract MSI
         shell: pwsh
         run: |
-          $ErrorActionPreference = 'Stop'
           $dest = Join-Path $env:RUNNER_TEMP 'eu2av-installed'
           New-Item -ItemType Directory -Force -Path $dest | Out-Null
           $p = Start-Process msiexec.exe -ArgumentList @('/a', "`"$env:EU2AV_MSI`"", '/qn', "TARGETDIR=`"$dest`"") -Wait -PassThru
-          if ($p.ExitCode -ne 0) { throw "msiexec administrative extraction failed: $($p.ExitCode)" }
+          if ($p.ExitCode -ne 0) { throw "msiexec failed: $($p.ExitCode)" }
           $exe = Get-ChildItem $dest -Recurse -Filter Thetis.exe | Sort-Object Length -Descending | Select-Object -First 1
-          if (-not $exe) { throw 'Thetis.exe not found after MSI extraction' }
+          if (-not $exe) { throw 'Thetis.exe not found' }
           "EU2AV_EXE=$($exe.FullName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Install ILSpy command line
@@ -45,53 +44,47 @@ jobs:
       - name: Decompile exact Waterfall implementation
         shell: pwsh
         run: |
-          $ErrorActionPreference = 'Stop'
           New-Item -ItemType Directory -Force -Path recovered | Out-Null
           $types = @(
-            'Thetis.Setup',
-            'Thetis.GPUDetector',
-            'Thetis.GPUWaterfallPipeline',
-            'Thetis.WaterfallEnhancer',
-            'Thetis.NoiseFloorPro',
-            'Thetis.GPUWaterfallWindowType',
-            'Thetis.GPUWaterfallMagnitudeMode',
-            'Thetis.GPUWaterfallResamplingMode'
+            'Thetis.Setup','Thetis.Display','Thetis.GPUDetector','Thetis.GPUWaterfallPipeline',
+            'Thetis.WaterfallEnhancer','Thetis.NoiseFloorPro','Thetis.GPUWaterfallWindowType',
+            'Thetis.GPUWaterfallMagnitudeMode','Thetis.GPUWaterfallResamplingMode'
           )
           foreach ($t in $types) {
             try { ilspycmd --disable-updatecheck -t $t -o recovered "$env:EU2AV_EXE" }
             catch { Write-Warning "Could not decompile $t : $_" }
           }
-          Get-ChildItem recovered -Recurse | Format-Table FullName,Length
 
-      - name: Extract exact Setup Waterfall block
+      - name: Extract exact Setup and Display Waterfall blocks
         shell: pwsh
         run: |
           $setup = Get-ChildItem recovered -Recurse -File | Where-Object { $_.Name -match 'Setup' } | Sort-Object Length -Descending | Select-Object -First 1
-          if (-not $setup) { throw 'Decompiled Setup source not found' }
+          if (-not $setup) { throw 'Setup source not found' }
           $text = Get-Content $setup.FullName -Raw
           $start = $text.IndexOf('private void InitWaterfallQualityControls()')
           $end = $text.IndexOf('private void SyncWaterfallEnhancerFromControls()', $start)
-          if ($start -lt 0 -or $end -lt 0) { throw 'Waterfall Setup block not found' }
-          $tail = $text.Substring($end)
-          $depth = 0; $seen = $false; $finish = -1
-          for ($i=0; $i -lt $tail.Length; $i++) {
-            if ($tail[$i] -eq '{') { $depth++; $seen=$true }
-            elseif ($tail[$i] -eq '}') { $depth-- }
-            if ($seen -and $depth -eq 0) { $finish=$i+1; break }
-          }
-          if ($finish -lt 0) { throw 'End of SyncWaterfallEnhancerFromControls not found' }
-          $block = $text.Substring($start, ($end-$start)+$finish)
-          [IO.File]::WriteAllText((Join-Path recovered 'EU2AV_Waterfall_Setup_exact_block.cs'), $block)
-          $tabStart = $text.IndexOf('private void InitWaterfallTab()')
-          if ($tabStart -ge 0) {
-            $tail2 = $text.Substring($tabStart); $depth=0; $seen=$false; $finish=-1
-            for ($i=0; $i -lt $tail2.Length; $i++) { if($tail2[$i]-eq '{'){$depth++;$seen=$true}elseif($tail2[$i]-eq '}'){$depth--}; if($seen -and $depth -eq 0){$finish=$i+1;break} }
-            if($finish -gt 0){ [IO.File]::WriteAllText((Join-Path recovered 'EU2AV_InitWaterfallTab_exact.cs'), $tail2.Substring(0,$finish)) }
+          $tail = $text.Substring($end); $depth=0; $seen=$false; $finish=-1
+          for($i=0;$i -lt $tail.Length;$i++){if($tail[$i]-eq '{'){$depth++;$seen=$true}elseif($tail[$i]-eq '}'){$depth--};if($seen -and $depth -eq 0){$finish=$i+1;break}}
+          [IO.File]::WriteAllText((Join-Path recovered 'EU2AV_Waterfall_Setup_exact_block.cs'), $text.Substring($start,($end-$start)+$finish))
+          $tabStart=$text.IndexOf('private void InitWaterfallTab()'); $tail2=$text.Substring($tabStart);$depth=0;$seen=$false;$finish=-1
+          for($i=0;$i -lt $tail2.Length;$i++){if($tail2[$i]-eq '{'){$depth++;$seen=$true}elseif($tail2[$i]-eq '}'){$depth--};if($seen -and $depth -eq 0){$finish=$i+1;break}}
+          [IO.File]::WriteAllText((Join-Path recovered 'EU2AV_InitWaterfallTab_exact.cs'),$tail2.Substring(0,$finish))
+          $display = Get-ChildItem recovered -Recurse -File | Where-Object { $_.Name -match 'Display' } | Sort-Object Length -Descending | Select-Object -First 1
+          if($display){
+            $dt=Get-Content $display.FullName -Raw
+            $terms=@('GPUWaterfallPipelineEnabled','GPUWaterfallFFTSize','GPUWaterfallWindowType','GPUWaterfallKaiserBeta','GPUWaterfallMagnitudeMode','GPUWaterfallOverlapPercent','GPUWaterfallAutoOverlap','GPUWaterfallLanczosWindow','GPUWaterfallResamplingMode','WaterfallQuality','NFMode','NFLowPct','NFHighPct','AutoHighEnabledRX1','AutoHighEnabledRX2','AutoHighMarginDb','WaterfallAgcSmoothing','AutoThresholdEnabled','AutoThresholdFineOffset','ZoomAdaptiveEnabled','TemporalStrength','TemporalEnabled','GPUEffectsEnabled','AutoEnableGPU','GPUDetectionLevel','GPUName','GPUWaterfallEffectiveOverlapChanged')
+            $out=New-Object System.Collections.Generic.List[string]
+            $lines=$dt -split "`r?`n"
+            foreach($term in $terms){
+              $out.Add("// ==== $term ====")
+              for($i=0;$i -lt $lines.Count;$i++){ if($lines[$i].Contains($term)){ $a=[Math]::Max(0,$i-8);$b=[Math]::Min($lines.Count-1,$i+45);for($j=$a;$j -le $b;$j++){$out.Add($lines[$j])};$out.Add('');break}}
+            }
+            [IO.File]::WriteAllLines((Join-Path recovered 'EU2AV_Display_Waterfall_relevant.cs'),$out)
           }
 
       - name: Upload recovered source
         uses: actions/upload-artifact@v4
         with:
-          name: EU2AV-2.10.3.16-WATERFALL-RECOVERED-SOURCE-COMPLETE
+          name: EU2AV-2.10.3.16-WATERFALL-RECOVERED-SOURCE-WITH-DISPLAY
           path: recovered/**/*
           if-no-files-found: error
