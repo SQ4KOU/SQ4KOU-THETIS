@@ -1,0 +1,113 @@
+name: Build GPU Waterfall State Fix Test
+
+on:
+  push:
+    branches: [feature/eu2av-gpu-waterfall-sq4kou]
+    paths:
+      - .github/workflows/build-gpu-waterfall-statefix-test.yml
+      - .github/scripts/fix-gpu-waterfall-state.ps1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-msi:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/eu2av-gpu-waterfall-sq4kou
+          fetch-depth: 1
+
+      - name: Apply existing GPU backend integration
+        shell: pwsh
+        run: |
+          git config --global core.longpaths true
+          .\.github\scripts\apply-gpu-waterfall-sq4kou.ps1
+
+      - name: Recover exact EU2AV 2.10.3.16 source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $pkg = Join-Path $env:RUNNER_TEMP 'Thetis-Extended-Final.7z'
+          Invoke-WebRequest -Uri 'https://eu2av.net/download/file.php?id=2070' -OutFile $pkg -UseBasicParsing
+          if ((Get-Item $pkg).Length -lt 10MB) { throw 'EU2AV package is unexpectedly small' }
+          $unpack = Join-Path $env:RUNNER_TEMP 'eu2av'; New-Item -ItemType Directory -Force -Path $unpack | Out-Null
+          & 7z x $pkg "-o$unpack" -y | Out-Null
+          $msi = Get-ChildItem $unpack -Recurse -Filter *.msi | Select-Object -First 1
+          if (-not $msi) { throw 'EU2AV MSI not found' }
+          $installed = Join-Path $env:RUNNER_TEMP 'eu2av-installed'; New-Item -ItemType Directory -Force -Path $installed | Out-Null
+          $p = Start-Process msiexec.exe -ArgumentList @('/a', "`"$($msi.FullName)`"", '/qn', "TARGETDIR=`"$installed`"") -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "MSI extraction failed: $($p.ExitCode)" }
+          $exe = Get-ChildItem $installed -Recurse -Filter Thetis.exe | Sort-Object Length -Descending | Select-Object -First 1
+          if (-not $exe) { throw 'Thetis.exe not found in EU2AV installer' }
+          dotnet tool install --global ilspycmd --version 11.0.0.9375
+          $env:PATH = "$env:USERPROFILE\.dotnet\tools;$env:PATH"
+          $rec = Join-Path $env:RUNNER_TEMP 'recovered'; New-Item -ItemType Directory -Force -Path $rec | Out-Null
+          ilspycmd --disable-updatecheck -t Thetis.Setup -o $rec $exe.FullName
+          ilspycmd --disable-updatecheck -t Thetis.WaterfallEnhancer -o $rec $exe.FullName
+          ilspycmd --disable-updatecheck -t Thetis.NoiseFloorPro -o $rec $exe.FullName
+          "RECOVERED=$rec" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Replay recovered EU2AV Waterfall integration
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $workflow = [IO.File]::ReadAllText((Join-Path $PWD '.github\workflows\build-exact-eu2av-waterfall-test.yml'))
+          $needle = '$b64 = '''
+          $start = $workflow.IndexOf($needle)
+          if ($start -lt 0) { throw 'Exact EU2AV patch payload not found' }
+          $start += $needle.Length
+          $finish = $workflow.IndexOf("'", $start)
+          if ($finish -le $start) { throw 'Exact EU2AV patch payload terminator not found' }
+          $b64 = $workflow.Substring($start, $finish - $start)
+          [IO.File]::WriteAllBytes('exact_patch.py.gz', [Convert]::FromBase64String($b64))
+          python -c "import gzip; open('exact_patch.py','wb').write(gzip.open('exact_patch.py.gz','rb').read())"
+          python exact_patch.py
+
+      - name: Fix Waterfall setup state and hot reconfiguration
+        shell: pwsh
+        run: |
+          .\.github\scripts\fix-gpu-waterfall-state.ps1
+
+      - uses: NuGet/setup-nuget@v2
+        with:
+          nuget-version: latest
+
+      - uses: microsoft/setup-msbuild@v2
+        with:
+          msbuild-architecture: x86
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) { choco install wixtoolset -y --no-progress }
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) { $targets = Get-ChildItem "C:\Program Files (x86)\WiX Toolset*\Wix.targets" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 }
+          if (-not $targets) { throw 'WiX 3.x Wix.targets not found' }
+          "WIX_TARGETS=$($targets.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore and build Release x64 MSI
+        shell: pwsh
+        run: |
+          nuget restore "Project Files\Source\Thetis_VS2026.sln" -NonInteractive
+          msbuild "Project Files\Source\Thetis_VS2026.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal
+
+      - name: Verify and name MSI
+        shell: pwsh
+        run: |
+          $msi = Get-ChildItem "Project Files\bin\Installers\*.msi" -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $msi -or $msi.Length -lt 1MB) { throw 'Valid MSI was not produced' }
+          $out = Join-Path $msi.DirectoryName 'SQ4KOU-THETIS-GPU-WATERFALL-STATEFIX-TEST-x64.msi'
+          Copy-Item $msi.FullName $out -Force
+          Get-FileHash $out -Algorithm SHA256 | Format-List
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-GPU-WATERFALL-STATEFIX-TEST-MSI
+          path: Project Files/bin/Installers/SQ4KOU-THETIS-GPU-WATERFALL-STATEFIX-TEST-x64.msi
+          if-no-files-found: error
+          compression-level: 0
