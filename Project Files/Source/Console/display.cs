@@ -1,4 +1,4 @@
-﻿//=================================================================
+//=================================================================
 // display.cs
 //=================================================================
 // Thetis is a C# implementation of a Software Defined Radio.
@@ -96,7 +96,7 @@ namespace Thetis
         LAST,
     }
 
-    class Display
+    partial class Display
     {
         #region Variable Declaration
 
@@ -6778,6 +6778,7 @@ namespace Thetis
 
             if (console.PowerOn)
             {
+                TryUpdateGPUWaterfallRow(rx, nDecimatedWidth, local_mox);
                 if (rx == 1 && waterfall_data_ready)
                 {
                     bDoVisualNotch = true;

@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -254,6 +254,8 @@
     <ClCompile Include="bandwidth_monitor.c" />
     <ClCompile Include="cmasio.c" />
     <ClCompile Include="cmaster.c" />
+    <ClCompile Include="waterfall_iq.c" />
+    <ClCompile Include="gpu_waterfall.cpp" />
     <ClCompile Include="cmbuffs.c" />
     <ClCompile Include="cmsetup.c" />
     <ClCompile Include="ilv.c" />

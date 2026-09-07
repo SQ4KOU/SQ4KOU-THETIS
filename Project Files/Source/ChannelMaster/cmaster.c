@@ -25,6 +25,7 @@ warren@wpratt.com
 */
 
 #include "cmcomm.h"
+#include "waterfall_iq.h"
 
 cmaster cm  = {0};
 CMASTER pcm = &cm;
@@ -350,6 +351,7 @@ void xcmaster (int stream)
 		xpipe (stream, 0, pcm->in);
 		xanb (pcm->rcvr[rx].panb);																// nb
 		xnob (pcm->rcvr[rx].pnob);																// nb2
+		CM_WaterfallIQ_Push(rx, pcm->xcm_insize[stream], pcm->in[stream]);
 		Spectrum0 (_InterlockedAnd (&pcm->rcvr[rx].run_pan, 0xffffffff), rx, 0, 0,				// panadapter 
 			pcm->in[stream]);
 
