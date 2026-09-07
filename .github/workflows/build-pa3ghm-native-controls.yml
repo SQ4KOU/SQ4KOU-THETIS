@@ -1,4 +1,4 @@
-# native controls build v3
+# native controls build v4 persistent UI
 name: Build PA3GHM Native Controls
 
 on:
@@ -59,7 +59,11 @@ jobs:
           $msi = Get-ChildItem "Project Files\bin\Installers\*.msi" -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
           if (-not $msi) { throw 'MSI was not produced' }
           if ($msi.Length -lt 1MB) { throw "MSI unexpectedly small: $($msi.Length)" }
-          if (-not (Select-String -LiteralPath 'Project Files/Source/Console/DiversityForm.cs' -SimpleMatch 'InitPA3GHMNativePanel();' -Quiet)) { throw 'Native Diversity init marker missing' }
+          $div = [System.IO.File]::ReadAllText('Project Files/Source/Console/DiversityForm.cs')
+          $init = $div.IndexOf('InitPA3GHMNativePanel();')
+          $restore = $div.IndexOf('Common.RestoreForm(this, "DiversityForm", true);')
+          if ($init -lt 0 -or $restore -lt 0 -or $init -gt $restore) { throw 'Native controls are not initialized before RestoreForm' }
+          if (-not $div.Contains('EnsurePA3GHMNativePanelSize();')) { throw 'Native panel size finalization missing' }
           if (-not (Select-String -LiteralPath 'Project Files/Source/Console/setup.cs' -SimpleMatch 'InitPA3GHMNativeSetupControls();' -Quiet)) { throw 'Native Setup init marker missing' }
           Write-Host "Verified native MSI $($msi.Name) $([math]::Round($msi.Length/1MB,2)) MB"
 
@@ -68,7 +72,7 @@ jobs:
         run: |
           git add -- 'Project Files/Source/Console/DiversityForm.cs' 'Project Files/Source/Console/setup.cs' 'Project Files/Source/Console/Thetis.csproj'
           if (-not (git diff --cached --quiet)) {
-            git commit -m '[pa3ghm-native] Integrate native PA3GHM controls into Thetis UI'
+            git commit -m '[pa3ghm-native] Integrate persistent native PA3GHM controls into Thetis UI'
             git push origin HEAD:feature/native-pa3ghm-controls
           }
 
