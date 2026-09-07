@@ -1,0 +1,84 @@
+name: Build PA3GHM Native Controls
+
+on:
+  push:
+    branches:
+      - feature/native-pa3ghm-controls
+    paths:
+      - .github/workflows/build-pa3ghm-native-controls.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-native:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/native-pa3ghm-controls
+          fetch-depth: 1
+
+      - name: Configure Git
+        shell: pwsh
+        run: |
+          git config --global core.longpaths true
+          git config user.name "SQ4KOU native-controls automation"
+          git config user.email "actions@users.noreply.github.com"
+
+      - name: Apply native GUI integration
+        shell: pwsh
+        run: ./tools/add_native_pa3ghm_controls.ps1
+
+      - uses: NuGet/setup-nuget@v2
+      - uses: microsoft/setup-msbuild@v2
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) { choco install wixtoolset -y --no-progress }
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) { throw 'WiX 3.x Wix.targets not found' }
+          "WIX_TARGETS=$($targets.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore packages
+        shell: pwsh
+        run: nuget restore "Project Files\Source\Thetis_VS2026.sln" -NonInteractive
+
+      - name: Build Release x64 and MSI
+        shell: pwsh
+        run: msbuild "Project Files\Source\Thetis_VS2026.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal
+
+      - name: Verify MSI and native markers
+        shell: pwsh
+        run: |
+          $msi = Get-ChildItem "Project Files\bin\Installers\*.msi" -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $msi) { throw 'MSI was not produced' }
+          if ($msi.Length -lt 1MB) { throw "MSI unexpectedly small: $($msi.Length)" }
+          Select-String -LiteralPath 'Project Files/Source/Console/DiversityForm.cs' -SimpleMatch 'InitPA3GHMNativePanel();' -Quiet | Out-Null
+          Select-String -LiteralPath 'Project Files/Source/Console/setup.cs' -SimpleMatch 'InitPA3GHMNativeSetupControls();' -Quiet | Out-Null
+          Write-Host "Verified native MSI $($msi.Name) $([math]::Round($msi.Length/1MB,2)) MB"
+
+      - name: Commit integrated source
+        shell: pwsh
+        run: |
+          git add -- 'Project Files/Source/Console/DiversityForm.cs' 'Project Files/Source/Console/setup.cs' 'Project Files/Source/Console/Thetis.csproj'
+          if (-not (git diff --cached --quiet)) {
+            git commit -m '[pa3ghm-native] Integrate native PA3GHM controls into Thetis UI'
+            git push origin HEAD:feature/native-pa3ghm-controls
+          }
+
+      - name: Upload test MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: PA3GHM-NATIVE-CONTROLS-TEST
+          path: |
+            Project Files/bin/Installers/*.msi
+            Project Files/Source/Console/PA3GHMNativeDiversity.cs
+            Project Files/Source/Console/DiversityForm.PA3GHMNative.cs
+            Project Files/Source/Console/Setup.PA3GHMNative.cs
+          if-no-files-found: error
+          compression-level: 0
