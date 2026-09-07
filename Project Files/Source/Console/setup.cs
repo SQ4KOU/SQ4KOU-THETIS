@@ -1,4 +1,4 @@
-﻿//=================================================================
+//=================================================================
 // setup.cs
 //=================================================================
 // Thetis is a C# implementation of a Software Defined Radio.
@@ -464,6 +464,7 @@ namespace Thetis
             CreateDpiAwarenessCheckBox();
             updateDpiAwarenessCheckBox();
             InitWaterfallQualityControls();
+            InitGPUWaterfallSetupUI();
 
             // Yurij_eu2av: hardware-specific defaults for PureSignal advanced settings.
             // Done before getOptions() so a saved user override takes precedence.
