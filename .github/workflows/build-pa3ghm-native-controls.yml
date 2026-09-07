@@ -1,4 +1,4 @@
-# native controls build v4 persistent UI
+# native controls build v5 full-height UI
 name: Build PA3GHM Native Controls
 
 on:
@@ -33,6 +33,10 @@ jobs:
         shell: pwsh
         run: ./tools/add_native_pa3ghm_controls.ps1
 
+      - name: Apply full-height Diversity layout fix
+        shell: pwsh
+        run: ./tools/fix_native_pa3ghm_layout.ps1
+
       - uses: NuGet/setup-nuget@v2
       - uses: microsoft/setup-msbuild@v2
 
@@ -53,7 +57,7 @@ jobs:
         shell: pwsh
         run: msbuild "Project Files\Source\Thetis_VS2026.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal
 
-      - name: Verify MSI and native markers
+      - name: Verify MSI and native layout
         shell: pwsh
         run: |
           $msi = Get-ChildItem "Project Files\bin\Installers\*.msi" -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
@@ -64,22 +68,27 @@ jobs:
           $restore = $div.IndexOf('Common.RestoreForm(this, "DiversityForm", true);')
           if ($init -lt 0 -or $restore -lt 0 -or $init -gt $restore) { throw 'Native controls are not initialized before RestoreForm' }
           if (-not $div.Contains('EnsurePA3GHMNativePanelSize();')) { throw 'Native panel size finalization missing' }
+          $native = [System.IO.File]::ReadAllText('Project Files/Source/Console/DiversityForm.PA3GHMNative.cs')
+          if (-not $native.Contains('grpPA3GHMNative.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;')) { throw 'Full-height anchor missing' }
+          if (-not $native.Contains('Math.Max(582, this.ClientSize.Height - 12)')) { throw 'Full-height panel sizing missing' }
+          if (-not $native.Contains('txtPA3GHMAutoPlan.Location = new Point(10, 346);')) { throw 'Auto Null plan missing' }
+          if (-not $native.Contains('txtPA3GHMStatus.Location = new Point(10, 458);')) { throw 'Status panel missing' }
           if (-not (Select-String -LiteralPath 'Project Files/Source/Console/setup.cs' -SimpleMatch 'InitPA3GHMNativeSetupControls();' -Quiet)) { throw 'Native Setup init marker missing' }
-          Write-Host "Verified native MSI $($msi.Name) $([math]::Round($msi.Length/1MB,2)) MB"
+          Write-Host "Verified full-height native MSI $($msi.Name) $([math]::Round($msi.Length/1MB,2)) MB"
 
       - name: Commit integrated source
         shell: pwsh
         run: |
-          git add -- 'Project Files/Source/Console/DiversityForm.cs' 'Project Files/Source/Console/setup.cs' 'Project Files/Source/Console/Thetis.csproj'
+          git add -- 'Project Files/Source/Console/DiversityForm.cs' 'Project Files/Source/Console/setup.cs' 'Project Files/Source/Console/Thetis.csproj' 'Project Files/Source/Console/DiversityForm.PA3GHMNative.cs'
           if (-not (git diff --cached --quiet)) {
-            git commit -m '[pa3ghm-native] Integrate persistent native PA3GHM controls into Thetis UI'
+            git commit -m '[pa3ghm-native] Fix clipped native Diversity controls'
             git push origin HEAD:feature/native-pa3ghm-controls
           }
 
       - name: Upload test MSI
         uses: actions/upload-artifact@v4
         with:
-          name: PA3GHM-NATIVE-CONTROLS-TEST
+          name: PA3GHM-NATIVE-CONTROLS-FULL-HEIGHT
           path: |
             Project Files/bin/Installers/*.msi
             Project Files/Source/Console/PA3GHMNativeDiversity.cs
