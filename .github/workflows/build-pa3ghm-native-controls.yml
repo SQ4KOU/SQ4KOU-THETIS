@@ -1,3 +1,4 @@
+# native controls build v2
 name: Build PA3GHM Native Controls
 
 on:
@@ -58,8 +59,8 @@ jobs:
           $msi = Get-ChildItem "Project Files\bin\Installers\*.msi" -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
           if (-not $msi) { throw 'MSI was not produced' }
           if ($msi.Length -lt 1MB) { throw "MSI unexpectedly small: $($msi.Length)" }
-          Select-String -LiteralPath 'Project Files/Source/Console/DiversityForm.cs' -SimpleMatch 'InitPA3GHMNativePanel();' -Quiet | Out-Null
-          Select-String -LiteralPath 'Project Files/Source/Console/setup.cs' -SimpleMatch 'InitPA3GHMNativeSetupControls();' -Quiet | Out-Null
+          if (-not (Select-String -LiteralPath 'Project Files/Source/Console/DiversityForm.cs' -SimpleMatch 'InitPA3GHMNativePanel();' -Quiet)) { throw 'Native Diversity init marker missing' }
+          if (-not (Select-String -LiteralPath 'Project Files/Source/Console/setup.cs' -SimpleMatch 'InitPA3GHMNativeSetupControls();' -Quiet)) { throw 'Native Setup init marker missing' }
           Write-Host "Verified native MSI $($msi.Name) $([math]::Round($msi.Length/1MB,2)) MB"
 
       - name: Commit integrated source
