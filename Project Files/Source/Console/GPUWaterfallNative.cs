@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.InteropServices;
+using System.Text;
 
 namespace Thetis
 {
@@ -29,5 +30,17 @@ namespace Thetis
 
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
         internal static extern void CM_WaterfallIQ_ResetDropped(int channel);
+
+        [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+        internal static extern int CM_GPUDetector_GetAdapterName(StringBuilder buffer, int bufferSize);
+
+        [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern int CM_GPUDetector_GetFeatureLevel();
+
+        [DllImport(DllName, CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+        internal static extern int CM_GPUDetector_GetCapabilities(StringBuilder buffer, int bufferSize);
+
+        [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern int CM_GPUDetector_Test();
     }
 }
