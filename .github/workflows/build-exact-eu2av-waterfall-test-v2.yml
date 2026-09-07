@@ -5,7 +5,6 @@ on:
     branches: [feature/eu2av-gpu-waterfall-sq4kou]
     paths:
       - .github/workflows/build-exact-eu2av-waterfall-test-v2.yml
-      - .github/scripts/exact-eu2av-waterfall-patch.py.gz.b64
   workflow_dispatch:
 
 permissions:
@@ -57,10 +56,17 @@ jobs:
       - name: Install exact recovered Waterfall source
         shell: pwsh
         run: |
-          $b64 = Get-Content '.github\scripts\exact-eu2av-waterfall-patch.py.gz.b64' -Raw
+          $ErrorActionPreference = 'Stop'
+          git fetch origin fd74b0b08400779747d849904c08149728e5e523 --depth=1
+          git show fd74b0b08400779747d849904c08149728e5e523:.github/scripts/exact-eu2av-waterfall-patch.py.gz.b64 | Out-File exact_patch.b64 -Encoding ascii -NoNewline
+          $b64 = Get-Content exact_patch.b64 -Raw
           [IO.File]::WriteAllBytes('exact_patch.py.gz',[Convert]::FromBase64String($b64.Trim()))
           python -c "import gzip; open('exact_patch.py','wb').write(gzip.open('exact_patch.py.gz','rb').read())"
           python exact_patch.py
+          $setupPath = 'Project Files\Source\Console\Setup.GPUWaterfall.cs'
+          $s = Get-Content $setupPath -Raw
+          $s = $s.Replace('udGPUWaterfallOverlap.Value = Display.GPUWaterfallOverlapPercent;', 'udGPUWaterfallOverlap.Value = (decimal)Display.GPUWaterfallOverlapPercent;')
+          [IO.File]::WriteAllText($setupPath, $s, [Text.UTF8Encoding]::new($false))
 
       - uses: NuGet/setup-nuget@v2
       - uses: microsoft/setup-msbuild@v2
