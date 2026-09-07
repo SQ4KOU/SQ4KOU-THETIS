@@ -36,8 +36,81 @@ $gpu = Read-Text $gpuPath
 if (-not $gpu.StartsWith('#define NOMINMAX')) {
     if (-not $gpu.StartsWith('#include <Windows.h>')) { throw 'gpu_waterfall.cpp Windows.h anchor not found' }
     $gpu = "#define NOMINMAX`r`n" + $gpu
-    Write-Text $gpuPath $gpu
 }
+
+# Freshness fix: the old implementation consumed exactly one configured hop per paint.
+# At high overlap the producer writes much faster than the UI consumes, so the ring
+# accumulates stale IQ. The displayed row then represents an old receiver frequency
+# while Thetis labels/aligns it with the current VFO. This produces the large spectrum /
+# waterfall horizontal drift seen during tuning and after changing FFT settings.
+# Consume up to the newest available IQ on every rendered row while retaining at least
+# the requested overlap when the UI is fast enough.
+$freshMarker = '// SQ4KOU GPUWF freshness fix: never render stale ring-buffer IQ.'
+if (-not $gpu.Contains($freshMarker)) {
+    $pattern = '(?s)    UpdateHopSize\(s, sampleRate\);\s*int need = s\.primed \? s\.hopSize : s\.fftSize;.*?\s*    HRESULT hr = RunFFT\(s\);'
+    $rxFresh = New-Object System.Text.RegularExpressions.Regex($pattern)
+    if (-not $rxFresh.IsMatch($gpu)) { throw 'gpu_waterfall.cpp process/backlog anchor not found' }
+
+    $replacement = @'
+    UpdateHopSize(s, sampleRate);
+
+    // SQ4KOU GPUWF freshness fix: never render stale ring-buffer IQ.
+    // overlapPercent defines the minimum amount of new IQ required for a new row.
+    // If more IQ accumulated between paints, advance farther (or re-prime from the
+    // newest full FFT window) instead of leaving an ever-growing backlog behind.
+    int available = CM_WaterfallIQ_Available(channel);
+    int minimumNeeded = s.primed ? s.hopSize : s.fftSize;
+    if (available < minimumNeeded) return 0;
+
+    if (!s.primed || available >= s.fftSize)
+    {
+        // Re-prime from the newest complete FFT window. Discarding here is deliberate:
+        // old IQ is useless for a real-time waterfall and is what caused VFO misalignment.
+        int discard = available - s.fftSize;
+        while (discard > 0)
+        {
+            int chunk = discard > s.fftSize ? s.fftSize : discard;
+            int skipped = CM_WaterfallIQ_Get(channel, chunk, &s.tempI[0], &s.tempQ[0]);
+            if (skipped <= 0) return 0;
+            discard -= skipped;
+        }
+
+        int got = CM_WaterfallIQ_Get(channel, s.fftSize, &s.tempI[0], &s.tempQ[0]);
+        if (got != s.fftSize) return 0;
+        for (int i = 0; i < s.fftSize; ++i)
+        {
+            s.rolling[i].x = s.tempI[i];
+            s.rolling[i].y = s.tempQ[i];
+        }
+        s.primed = true;
+    }
+    else
+    {
+        // Keep the configured overlap only when the UI is keeping pace. If several
+        // hops arrived, consume all of them so this row stays tied to the current VFO.
+        int advance = available;
+        if (advance < s.hopSize) return 0;
+        if (advance > s.fftSize) advance = s.fftSize;
+
+        int keep = s.fftSize - advance;
+        if (keep > 0)
+            memmove(&s.rolling[0], &s.rolling[advance], (size_t)keep * sizeof(Float2));
+
+        int got = CM_WaterfallIQ_Get(channel, advance, &s.tempI[0], &s.tempQ[0]);
+        if (got != advance) return 0;
+        for (int i = 0; i < advance; ++i)
+        {
+            int dstIndex = keep + i;
+            s.rolling[dstIndex].x = s.tempI[i];
+            s.rolling[dstIndex].y = s.tempQ[i];
+        }
+    }
+
+    HRESULT hr = RunFFT(s);
+'@
+    $gpu = $rxFresh.Replace($gpu, $replacement, 1)
+}
+Write-Text $gpuPath $gpu
 
 # Native project: compile the C ring buffer and C++ DirectCompute backend.
 $vcxPath = 'Project Files\Source\ChannelMaster\ChannelMaster.vcxproj'
@@ -110,4 +183,4 @@ if (-not $setup.Contains($setupMarker)) {
     Write-Text $setupPath $setup
 }
 
-Write-Host 'SQ4KOU GPU Waterfall V3 Setup integration applied/verified.'
+Write-Host 'SQ4KOU GPU Waterfall integration applied/verified, including real-time IQ freshness fix.'
