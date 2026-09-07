@@ -1,4 +1,4 @@
-name: Build SQ4KOU GPU Waterfall V2
+name: Build SQ4KOU GPU Waterfall V3 Setup
 
 on:
   push:
@@ -24,7 +24,7 @@ jobs:
         shell: pwsh
         run: git config --global core.longpaths true
 
-      - name: Apply SQ4KOU GPU V2 integration
+      - name: Apply SQ4KOU GPU V3 Setup integration
         shell: pwsh
         run: .\.github\scripts\apply-gpu-waterfall-sq4kou.ps1
 
@@ -38,12 +38,15 @@ jobs:
                      "Project Files/Source/ChannelMaster/gpu_waterfall.cpp" `
                      "Project Files/Source/Console/Thetis.csproj" `
                      "Project Files/Source/Console/display.cs" `
-                     "Project Files/Source/Console/Display.GPUWaterfall.cs"
+                     "Project Files/Source/Console/setup.cs" `
+                     "Project Files/Source/Console/Display.GPUWaterfall.cs" `
+                     "Project Files/Source/Console/GPUWaterfallNative.cs" `
+                     "Project Files/Source/Console/Setup.GPUWaterfall.cs"
           if (-not (git diff --cached --quiet)) {
-            git commit -m "GPU waterfall V2: integrate resolve and calibration"
+            git commit -m "GPU waterfall V3: integrate Setup Display Waterfall controls"
             git push origin HEAD:feature/eu2av-gpu-waterfall-sq4kou
           } else {
-            Write-Host "V2 integration patch already committed."
+            Write-Host "V3 integration patch already committed."
           }
 
       - name: Setup NuGet
@@ -85,7 +88,7 @@ jobs:
       - name: Upload MSI
         uses: actions/upload-artifact@v4
         with:
-          name: SQ4KOU-THETIS-GPU-WATERFALL-V2-MSI
+          name: SQ4KOU-THETIS-GPU-WATERFALL-V3-SETUP-MSI
           path: Project Files/bin/Installers/*.msi
           if-no-files-found: error
           compression-level: 0
