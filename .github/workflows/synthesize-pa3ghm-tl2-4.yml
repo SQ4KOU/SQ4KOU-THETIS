@@ -20,7 +20,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: synthesis/pa3ghm-tl2-4-full
-          fetch-depth: 0
+          fetch-depth: 1
+          filter: blob:none
 
       - name: Enable long paths and identity
         shell: pwsh
@@ -36,8 +37,8 @@ jobs:
           git remote remove pa3ghm 2>$null
           git remote add ramdor https://github.com/ramdor/Thetis.git
           git remote add pa3ghm https://github.com/cjenschede/Thetis.git
-          git fetch --force ramdor refs/tags/v2.10.3.15:refs/remotes/ramdor/v2.10.3.15
-          git fetch --force pa3ghm refs/tags/TL2-4:refs/remotes/pa3ghm/TL2-4
+          git fetch --force --depth=1 ramdor refs/tags/v2.10.3.15:refs/remotes/ramdor/v2.10.3.15
+          git fetch --force --depth=1 pa3ghm refs/tags/TL2-4:refs/remotes/pa3ghm/TL2-4
           Write-Host "ramdor base: $(git rev-parse refs/remotes/ramdor/v2.10.3.15)"
           Write-Host "PA3GHM TL2-4: $(git rev-parse refs/remotes/pa3ghm/TL2-4)"
 
@@ -61,7 +62,7 @@ jobs:
             'Project Files/Source/Console/setup.cs',
             'Project Files/Source/Console/setup.designer.cs'
           )
-          $args = @('diff','--binary','--full-index','--no-ext-diff','refs/remotes/ramdor/v2.10.3.15','refs/remotes/pa3ghm/TL2-4','--') + $paths
+          $args = @('diff','--full-index','--no-ext-diff','refs/remotes/ramdor/v2.10.3.15','refs/remotes/pa3ghm/TL2-4','--') + $paths
           & git @args | Out-File -FilePath .synthesis/PA3GHM_TL2_4_RUNTIME.patch -Encoding utf8
           if ($LASTEXITCODE -ne 0) { throw 'Unable to generate TL2 runtime patch' }
           Write-Host "Runtime patch bytes: $((Get-Item .synthesis/PA3GHM_TL2_4_RUNTIME.patch).Length)"
