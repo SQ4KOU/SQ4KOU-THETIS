@@ -11,6 +11,10 @@ namespace Thetis
         internal static extern int CM_GPUWaterfall_Init(int channel, int fftSize, int ringCapacity);
 
         [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+        internal static extern int CM_GPUWaterfall_Configure(int channel, int windowType, float kaiserBeta,
+            int magnitudeMode, int autoOverlap, float overlapPercent, int lanczosWindow, int resamplingMode);
+
+        [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
         internal static extern int CM_GPUWaterfall_Process(int channel, int displayWidth, int sampleRate,
             float displayLowHz, float displayHighHz, [Out] float[] outputDb);
 
