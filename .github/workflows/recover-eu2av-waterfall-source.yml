@@ -1,0 +1,88 @@
+name: Recover EU2AV Waterfall Source
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/eu2av-gpu-waterfall-sq4kou]
+    paths: [.github/workflows/recover-eu2av-waterfall-source.yml]
+
+jobs:
+  recover:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Download Thetis 2.10.3.16 Extended Final
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $pkg = Join-Path $env:RUNNER_TEMP 'Thetis-Extended-Final.7z'
+          Invoke-WebRequest -Uri 'https://eu2av.net/download/file.php?id=2070' -OutFile $pkg -UseBasicParsing
+          if ((Get-Item $pkg).Length -lt 10MB) { throw "Downloaded package is unexpectedly small" }
+          New-Item -ItemType Directory -Force -Path (Join-Path $env:RUNNER_TEMP 'eu2av') | Out-Null
+          & 7z x $pkg "-o$env:RUNNER_TEMP\eu2av" -y
+          $msi = Get-ChildItem (Join-Path $env:RUNNER_TEMP 'eu2av') -Recurse -Filter *.msi | Select-Object -First 1
+          if (-not $msi) { throw 'MSI not found in EU2AV archive' }
+          "EU2AV_MSI=$($msi.FullName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Administrative extract MSI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $dest = Join-Path $env:RUNNER_TEMP 'eu2av-installed'
+          New-Item -ItemType Directory -Force -Path $dest | Out-Null
+          $p = Start-Process msiexec.exe -ArgumentList @('/a', "`"$env:EU2AV_MSI`"", '/qn', "TARGETDIR=`"$dest`"") -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "msiexec administrative extraction failed: $($p.ExitCode)" }
+          $exe = Get-ChildItem $dest -Recurse -Filter Thetis.exe | Sort-Object Length -Descending | Select-Object -First 1
+          if (-not $exe) { throw 'Thetis.exe not found after MSI extraction' }
+          Write-Host "Recovered original EXE: $($exe.FullName) $($exe.Length) bytes"
+          "EU2AV_EXE=$($exe.FullName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Install ILSpy command line
+        shell: pwsh
+        run: |
+          dotnet tool install --global ilspycmd --version 11.0.0.9375
+          "$env:USERPROFILE\.dotnet\tools" | Out-File $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Decompile exact Setup and GPU classes
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path recovered | Out-Null
+          ilspycmd --disable-updatecheck -t Thetis.Setup -o recovered "$env:EU2AV_EXE"
+          ilspycmd --disable-updatecheck -t Thetis.GPUDetector -o recovered "$env:EU2AV_EXE"
+          ilspycmd --disable-updatecheck -t Thetis.GPUWaterfallPipeline -o recovered "$env:EU2AV_EXE"
+          Get-ChildItem recovered -Recurse | Format-Table FullName,Length
+
+      - name: Extract Waterfall source slice
+        shell: pwsh
+        run: |
+          $setup = Get-ChildItem recovered -Recurse -File | Where-Object { $_.Name -match 'Setup' } | Sort-Object Length -Descending | Select-Object -First 1
+          if (-not $setup) { throw 'Decompiled Setup source not found' }
+          $text = Get-Content $setup.FullName -Raw
+          $names = @('InitWaterfallTab','InitWaterfallQualityControls','InitGeneralTabWaterfallControls','InitNoiseFloorProControls','UpdateGPUInfoLabel','ApplyGPUSelection','btnTestGPU_Click','comboGPU_SelectedIndexChanged','chkGPUWaterfallFFT_CheckedChanged','comboGPUWaterfallFFTSize_SelectedIndexChanged','comboGPUWaterfallWindow_SelectedIndexChanged','udGPUWaterfallKaiserBeta_ValueChanged','comboGPUWaterfallMagnitudeMode_SelectedIndexChanged','udGPUWaterfallOverlap_ValueChanged','chkGPUWaterfallAutoOverlap_CheckedChanged','comboGPUWaterfallLanczos_SelectedIndexChanged','comboGPUWaterfallResampling_SelectedIndexChanged','comboWaterfallRenderQuality_SelectedIndexChanged','OnGPUWaterfallEffectiveOverlapChanged','SyncWaterfallEnhancerFromControls')
+          $lines = $text -split "`r?`n"
+          $out = New-Object System.Collections.Generic.List[string]
+          foreach ($name in $names) {
+            $idx = -1
+            for ($i=0; $i -lt $lines.Count; $i++) { if ($lines[$i] -match "\b$name\s*\(") { $idx=$i; break } }
+            if ($idx -lt 0) { continue }
+            $depth=0; $started=$false
+            $out.Add("// ===== $name =====")
+            for ($i=$idx; $i -lt $lines.Count; $i++) {
+              $line=$lines[$i]; $out.Add($line)
+              foreach ($ch in $line.ToCharArray()) {
+                if ($ch -eq '{') { $depth++; $started=$true }
+                elseif ($ch -eq '}') { $depth-- }
+              }
+              if ($started -and $depth -le 0) { break }
+            }
+            $out.Add('')
+          }
+          [IO.File]::WriteAllLines((Join-Path recovered 'EU2AV_Waterfall_Setup_exact.cs'), $out)
+
+      - name: Upload recovered source
+        uses: actions/upload-artifact@v4
+        with:
+          name: EU2AV-2.10.3.16-WATERFALL-RECOVERED-SOURCE
+          path: recovered/**/*
+          if-no-files-found: error
