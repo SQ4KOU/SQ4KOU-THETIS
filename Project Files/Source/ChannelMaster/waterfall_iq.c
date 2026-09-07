@@ -5,7 +5,9 @@
 #include "waterfall_iq.h"
 
 #define WF_MAX_CHANNELS 8
-#define WF_MIN_CAPACITY 1024
+/* Fixed process-lifetime buffer: 1,048,576 complex samples = 8 MiB/channel.
+   Never realloc/free while RX producer threads can be active. */
+#define WF_FIXED_CAPACITY (1 << 20)
 
 typedef struct _WF_IQ_RING
 {
@@ -25,52 +27,33 @@ static int wf_valid_channel(int channel)
     return channel >= 0 && channel < WF_MAX_CHANNELS;
 }
 
-static LONG wf_round_pow2(LONG value)
-{
-    LONG n = WF_MIN_CAPACITY;
-    if (value < WF_MIN_CAPACITY) value = WF_MIN_CAPACITY;
-    while (n < value && n < (1 << 28)) n <<= 1;
-    return n;
-}
-
 __declspec(dllexport) int __cdecl CM_WaterfallIQ_Init(int channel, int requestedSamples)
 {
     WF_IQ_RING* r;
-    LONG capacity;
     float* newData;
 
     if (!wf_valid_channel(channel)) return 0;
+    if (requestedSamples <= 0 || requestedSamples > WF_FIXED_CAPACITY) return 0;
 
     r = &g_wfIq[channel];
-    capacity = wf_round_pow2((LONG)requestedSamples);
-
-    /* Init is called while capture is disabled. */
     InterlockedExchange(&r->enabled, 0);
 
-    if (r->data != 0 && r->capacity == capacity)
+    /* Allocate once. The buffer intentionally remains valid until process exit.
+       This prevents use-after-free if RX entered Push immediately before disable. */
+    if (r->data == 0)
     {
-        InterlockedExchange(&r->readIndex, 0);
-        InterlockedExchange(&r->writeIndex, 0);
-        InterlockedExchange64(&r->dropped, 0);
-        return capacity;
+        newData = (float*)_aligned_malloc((size_t)WF_FIXED_CAPACITY * 2u * sizeof(float), 64);
+        if (newData == 0) return 0;
+        memset(newData, 0, (size_t)WF_FIXED_CAPACITY * 2u * sizeof(float));
+        r->data = newData;
+        r->capacity = WF_FIXED_CAPACITY;
+        r->mask = WF_FIXED_CAPACITY - 1;
     }
 
-    newData = (float*)_aligned_malloc((size_t)capacity * 2u * sizeof(float), 64);
-    if (newData == 0) return 0;
-    memset(newData, 0, (size_t)capacity * 2u * sizeof(float));
-
-    if (r->data != 0)
-    {
-        _aligned_free(r->data);
-    }
-
-    r->data = newData;
-    r->capacity = capacity;
-    r->mask = capacity - 1;
     InterlockedExchange(&r->readIndex, 0);
     InterlockedExchange(&r->writeIndex, 0);
     InterlockedExchange64(&r->dropped, 0);
-    return capacity;
+    return r->capacity;
 }
 
 __declspec(dllexport) void __cdecl CM_WaterfallIQ_SetEnabled(int channel, int enabled)
@@ -136,15 +119,10 @@ __declspec(dllexport) void __cdecl CM_WaterfallIQ_Free(int channel)
     if (!wf_valid_channel(channel)) return;
     r = &g_wfIq[channel];
 
+    /* Deliberately do not deallocate r->data here. RX may already be inside Push.
+       Disable first; subsequent producer calls become no-ops. OS reclaims the
+       process-lifetime allocation when Thetis exits. */
     InterlockedExchange(&r->enabled, 0);
-    MemoryBarrier();
-    if (r->data != 0)
-    {
-        _aligned_free(r->data);
-        r->data = 0;
-    }
-    r->capacity = 0;
-    r->mask = 0;
     InterlockedExchange(&r->readIndex, 0);
     InterlockedExchange(&r->writeIndex, 0);
 }
