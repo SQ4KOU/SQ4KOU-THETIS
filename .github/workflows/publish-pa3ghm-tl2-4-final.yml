@@ -1,0 +1,152 @@
+name: Publish PA3GHM TL2-4 Final Release
+
+on:
+  push:
+    branches:
+      - release/pa3ghm-tl2-4-final
+    paths:
+      - .github/workflows/publish-pa3ghm-tl2-4-final.yml
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    env:
+      RELEASE_TAG: sq4kou-tl2-4-native-2026-09-07
+      TARGET_SHA: 295de7e74bdaf6494e80d0cea9e71b8abd94b256
+      RELEASE_MSI: SQ4KOU_THETIS_v2.10.3_PA3GHM_TL2-4_NATIVE_x64.msi
+
+    steps:
+      - name: Checkout exact merged sq4kou source
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.TARGET_SHA }}
+          fetch-depth: 1
+          filter: blob:none
+
+      - name: Verify exact release source
+        shell: pwsh
+        run: |
+          $head = git rev-parse HEAD
+          if ($head -ne $env:TARGET_SHA) { throw "Wrong source commit: $head" }
+          $required = @(
+            'Project Files/Source/Console/PA3GHMNativeDiversity.cs',
+            'Project Files/Source/Console/DiversityForm.PA3GHMNative.cs',
+            'Project Files/Source/Console/PA3GHMNativeControlForm.cs',
+            'Project Files/Source/Console/Console.PA3GHMNative.cs',
+            'Project Files/Source/Console/Setup.PA3GHMNative.cs'
+          )
+          foreach ($f in $required) { if (-not (Test-Path $f)) { throw "Missing release source file: $f" } }
+
+          $ctl = Get-Content 'Project Files/Source/Console/PA3GHMNativeControlForm.cs' -Raw
+          foreach ($marker in @(
+            'RX Only (TX inhibit)',
+            'S9 HF/VHF threshold',
+            'RX1 DDC sample rate',
+            'RX2 DDC sample rate',
+            'RX1 filter preset',
+            'RX2 filter preset',
+            'Native smooth-scroll Auto Recenter',
+            'Recenter RX1 now',
+            'Recenter RX2 now',
+            'Open Advanced Diversity'
+          )) {
+            if (-not $ctl.Contains($marker)) { throw "Missing native control: $marker" }
+          }
+
+      - name: Enable long paths
+        shell: pwsh
+        run: git config --global core.longpaths true
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) { choco install wixtoolset -y --no-progress }
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) { throw 'WiX 3.x Wix.targets not found' }
+          "WIX_TARGETS=$($targets.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore packages
+        shell: pwsh
+        run: nuget restore "Project Files\Source\Thetis_VS2026.sln" -NonInteractive
+
+      - name: Build Release x64 and MSI
+        shell: pwsh
+        run: msbuild "Project Files\Source\Thetis_VS2026.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal
+
+      - name: Prepare signed-off release payload
+        shell: pwsh
+        run: |
+          $src = Get-ChildItem "Project Files\bin\Installers\*.msi" -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $src -or $src.Length -lt 1MB) { throw 'Valid MSI was not produced' }
+          New-Item -ItemType Directory -Force -Path release | Out-Null
+          $dst = Join-Path release $env:RELEASE_MSI
+          Copy-Item $src.FullName $dst -Force
+          $hash = (Get-FileHash $dst -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $env:RELEASE_MSI" | Set-Content release/SHA256SUMS.txt -Encoding ascii
+          "MSI_SHA256=$hash" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "MSI_SIZE=$((Get-Item $dst).Length)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Create release notes
+        shell: pwsh
+        run: |
+          $notes = @'
+          ## SQ4KOU Thetis v2.10.3 — PA3GHM TL2-4 Native Controls
+
+          Final hardware-confirmed release from the merged `sq4kou` branch.
+
+          ### Native operator controls
+          - Advanced Diversity: Sweep, Fast Sweep, Auto Null, Smart Null, Ultra Null, STOP, parameters and status.
+          - Native Diversity operation is independent of the TCI server / ThetisLink checkbox.
+          - RX Only / TX inhibit.
+          - RX1 and RX2 DDC sample rate controls.
+          - RX1 and RX2 filter preset controls.
+          - Custom S9 HF/VHF threshold.
+          - Native smooth-scroll Auto Recenter ON/OFF.
+          - Recenter RX1 now / Recenter RX2 now.
+          - External recenter-owner status/release and direct access to Advanced Diversity.
+
+          `tci_caps_ex` and `auto_recenter_owner_ex` remain protocol capability/ownership mechanisms; they are not presented as artificial DSP controls.
+
+          ### Protocol 1 safety
+          The advanced Diversity workers retain the SQ4KOU Protocol-1 TX guard and abort on MOX/TUNE. Protocol 2 behaviour is unchanged by that guard.
+
+          ### Source
+          Release source commit: `295de7e74bdaf6494e80d0cea9e71b8abd94b256`
+
+          This MSI was rebuilt from that exact merged commit by GitHub Actions before publication.
+          '@
+          $notes | Set-Content release/RELEASE_NOTES.md -Encoding utf8
+
+      - name: Publish GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create $env:RELEASE_TAG `
+            "release/$env:RELEASE_MSI#Windows x64 MSI" `
+            "release/SHA256SUMS.txt#SHA-256 checksums" `
+            --repo $env:GITHUB_REPOSITORY `
+            --target $env:TARGET_SHA `
+            --title "SQ4KOU Thetis v2.10.3 — PA3GHM TL2-4 Native Controls" `
+            --notes-file release/RELEASE_NOTES.md `
+            --latest
+
+      - name: Verify published release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view $env:RELEASE_TAG --repo $env:GITHUB_REPOSITORY --json tagName,name,isDraft,isPrerelease,url,assets
+          Write-Host "Published MSI SHA256: $env:MSI_SHA256"
+          Write-Host "Published MSI bytes: $env:MSI_SIZE"
