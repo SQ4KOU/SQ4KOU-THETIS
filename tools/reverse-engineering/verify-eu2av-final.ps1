@@ -123,12 +123,19 @@ foreach ($row in $native) {
         $chunkPath = Join-Path $dir $fallback.chunk
         Require-File $chunkPath 100
         $chunkText = Get-Content -LiteralPath $chunkPath -Raw
-        if (-not $chunkText.Contains("ENTRY: $($fallback.entry)")) {
-            Fail "assembly fallback entry missing from chunk: $($row.path) $($fallback.entry)"
+        # A neighbouring function's listing must never validate this entry.
+        $blocks = @([regex]::Matches($chunkText,
+            '(?ms)^/\* ={20,}\r?\n[ \t]+ENTRY:[ \t]*(?<entry>[^\r\n]+)\r?\n.*?(?=^/\* ={20,}\r?\n[ \t]+ENTRY:|\z)') |
+            Where-Object { $_.Groups['entry'].Value.Trim() -eq [string]$fallback.entry })
+        if ($blocks.Count -ne 1) {
+            Fail "assembly fallback entry missing or duplicated: $($row.path) $($fallback.entry)"
         }
-        if ($chunkText -notmatch 'ASSEMBLY FALLBACK AFTER PSEUDOCODE FAILURE' -or
-            $chunkText -notmatch 'ASSEMBLY INSTRUCTIONS: [1-9][0-9]*') {
-            Fail "assembly fallback is empty or unverifiable: $($row.path) $($fallback.entry)"
+        $blockText = $blocks[0].Value
+        $counts = @([regex]::Matches($blockText, 'ASSEMBLY INSTRUCTIONS: ([1-9][0-9]*)'))
+        $instructions = @([regex]::Matches($blockText, '(?m)^[0-9a-fA-F]+[ \t]{2,}\S[^\r\n]*$'))
+        if ($blockText -notmatch 'ASSEMBLY FALLBACK AFTER PSEUDOCODE FAILURE' -or
+            $counts.Count -ne 1 -or $instructions.Count -ne [int]$counts[0].Groups[1].Value) {
+            Fail "assembly fallback instruction accounting mismatch: $($row.path) $($fallback.entry)"
         }
         [void]$documentedFallbacks.Add([pscustomobject]@{
             module = $moduleName
@@ -137,7 +144,7 @@ foreach ($row in $native) {
             name = $fallback.name
             status = 'ASSEMBLY_FALLBACK'
             reason = 'Ghidra pseudocode failed after decompile, normalize and register modes'
-            evidence = 'Third-party Skia native runtime; not ChannelMaster.dll, wdsp.dll, a DXBC shader, or the managed GPU-waterfall control path'
+            evidence = 'PENDING function-specific relevance proof; module name alone is not evidence of irrelevance'
             listing_chunk = $fallback.chunk
         })
     }
