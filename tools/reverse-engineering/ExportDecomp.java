@@ -74,21 +74,36 @@ public class ExportDecomp extends GhidraScript {
             }
 
             String status = "OK";
-            String body;
-            try {
-                DecompileResults result = decompiler.decompileFunction(f, 120, monitor);
-                if (result.decompileCompleted() && result.getDecompiledFunction() != null) {
-                    body = result.getDecompiledFunction().getC();
-                    ok++;
-                } else {
-                    status = "FAILED: " + result.getErrorMessage();
-                    body = "/* DECOMPILATION FAILED: " + result.getErrorMessage() + " */\n";
-                    failed++;
+            String body = null;
+            String lastError = "";
+            Throwable lastException = null;
+            String[] styles = new String[] { "decompile", "normalize", "register" };
+            for (String style : styles) {
+                if (body != null || monitor.isCancelled()) break;
+                try {
+                    decompiler.flushCache();
+                    decompiler.setSimplificationStyle(style);
+                    DecompileResults result = decompiler.decompileFunction(f, 600, monitor);
+                    if (result.decompileCompleted() && result.getDecompiledFunction() != null) {
+                        body = result.getDecompiledFunction().getC();
+                        status = style.equals("decompile") ? "OK" : "OK_RETRY_" + style.toUpperCase();
+                    } else {
+                        lastError = result.getErrorMessage();
+                    }
+                } catch (Throwable ex) {
+                    lastException = ex;
+                    lastError = ex.getClass().getName() + ": " + ex.getMessage();
                 }
-            } catch (Throwable ex) {
-                status = "EXCEPTION: " + ex.getClass().getName() + ": " + ex.getMessage();
-                body = "/* DECOMPILATION EXCEPTION: " + ex.toString() + " */\n";
+            }
+            decompiler.setSimplificationStyle("decompile");
+            if (body != null) {
+                ok++;
+            } else {
+                status = (lastException == null ? "FAILED: " : "EXCEPTION: ") + lastError;
+                body = "/* DECOMPILATION FAILED AFTER ALL STRICT RETRIES: " + lastError + " */\n";
                 failed++;
+                println("STRICT_DECOMP_FAILURE entry=" + f.getEntryPoint() +
+                        " name=" + f.getName() + " error=" + lastError);
             }
 
             String header = "\n/* ========================================================================\n" +
