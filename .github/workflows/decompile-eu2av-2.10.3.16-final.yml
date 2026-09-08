@@ -32,6 +32,25 @@ jobs:
           fetch-depth: 1
           persist-credentials: true
 
+      - name: Validate reverse-engineering scripts before expensive work
+        shell: pwsh
+        run: |
+          $files = @(
+            'tools/reverse-engineering/decompile-eu2av-final.ps1',
+            'tools/reverse-engineering/verify-eu2av-final.ps1'
+          )
+          foreach ($file in $files) {
+            $tokens = $null
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile(
+              (Resolve-Path $file), [ref]$tokens, [ref]$errors
+            )
+            if ($errors.Count -ne 0) {
+              $errors | ForEach-Object { Write-Error "$file : $($_.Message)" }
+              throw "PowerShell parser rejected $file"
+            }
+          }
+
       - name: Set up Java for Ghidra
         uses: actions/setup-java@v4
         with:
@@ -62,10 +81,7 @@ jobs:
         with:
           name: EU2AV-2.10.3.16-Final-verification-failure
           path: |
-            reverse-engineering/EU2AV-Thetis-2.10.3.16-Final/metadata
-            reverse-engineering/EU2AV-Thetis-2.10.3.16-Final/logs
-            reverse-engineering/EU2AV-Thetis-2.10.3.16-Final/native/*/decompile-stats.txt
-            reverse-engineering/EU2AV-Thetis-2.10.3.16-Final/native/*/functions.csv
+            reverse-engineering/EU2AV-Thetis-2.10.3.16-Final
           if-no-files-found: warn
           retention-days: 7
 
