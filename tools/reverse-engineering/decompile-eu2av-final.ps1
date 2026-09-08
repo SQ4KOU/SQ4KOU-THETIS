@@ -66,14 +66,13 @@ Write-Host "Package size=$($pkgInfo.Length) SHA256=$packageHash magic=$packageMa
 if ($packageHash -ne ([string]$sourceLockData.package_sha256).ToLowerInvariant()) { throw "Package SHA-256 differs from verified source lock" }
 if ($pkgInfo.Length -ne [long]$sourceLockData.package_size) { throw "Package size differs from verified source lock" }
 if ($packageMagic -ne [string]$sourceLockData.package_magic) { throw "Package magic differs from verified source lock" }
-& $sevenZip t $Package
-if ($LASTEXITCODE -ne 0) { throw "Package integrity test failed with 7-Zip exit code $LASTEXITCODE" }
-
 # 2. Extract the outer distribution archive and MSI while preserving installed layout.
 $cmd7z = Get-Command 7z.exe -ErrorAction SilentlyContinue
 if (-not $cmd7z) { $cmd7z = Get-Command 7z -ErrorAction SilentlyContinue }
 if (-not $cmd7z) { throw '7-Zip is required on the runner but was not found.' }
 $sevenZip = $cmd7z.Source
+& $sevenZip t $Package
+if ($LASTEXITCODE -ne 0) { throw "Package integrity test failed with 7-Zip exit code $LASTEXITCODE" }
 
 # The official id=2070 payload is a RAR archive (magic 52 61 72 21 1A 07),
 # despite earlier locally split test copies having .7z.* names. Do not infer format
