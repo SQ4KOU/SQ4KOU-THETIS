@@ -65,6 +65,31 @@ jobs:
             Write-Host "PASS shader $n $a"
           }
 
+      - name: Normalize legacy ProjectReference metadata for MSBuild 18
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          import re
+          p = Path(r'Project Files/Source/Console/Thetis.csproj')
+          s = p.read_text(encoding='utf-8-sig')
+          refs = [r'..\Midi2Cat\Midi2Cat.csproj', r'..\RawInput\RawInput.csproj']
+          changed = 0
+          for ref in refs:
+              pat = r'(<ProjectReference\s+Include="' + re.escape(ref) + r'">\s*)<Project>[^<]+</Project>\s*'
+              s, n = re.subn(pat, r'\1', s, count=1)
+              if n == 1:
+                  changed += 1
+                  print('MSBUILD18_PROJECTREF_FIX: removed legacy Project GUID metadata for ' + ref)
+              elif re.search(r'<ProjectReference\s+Include="' + re.escape(ref) + r'">', s):
+                  print('MSBUILD18_PROJECTREF_FIX: legacy Project metadata already absent for ' + ref)
+              else:
+                  raise SystemExit('MSBUILD18_PROJECTREF_FAIL: ProjectReference not found: ' + ref)
+          if changed:
+              p.write_text(s, encoding='utf-8-sig')
+          print(f'MSBUILD18_PROJECTREF_FIX=PASS changed={changed}')
+          '@ | python -
+
       - name: Setup NuGet
         uses: NuGet/setup-nuget@v2
       - name: Setup MSBuild
