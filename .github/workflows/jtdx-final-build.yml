@@ -57,8 +57,6 @@ jobs:
             $expectedLen = if ($i -eq 13) { 704 } else { 8000 }
             if ($part.Length -ne $expectedLen) { throw "Part $i length mismatch: $($part.Length), expected $expectedLen" }
 
-            $tmpPart = Join-Path $env:RUNNER_TEMP ("part{0:D2}.txt" -f $i)
-            [IO.File]::WriteAllText($tmpPart, $part, [Text.Encoding]::ASCII)
             $gitHeader = [Text.Encoding]::ASCII.GetBytes("blob $($part.Length)`0")
             $body = [Text.Encoding]::ASCII.GetBytes($part)
             $all = New-Object byte[] ($gitHeader.Length + $body.Length)
@@ -97,10 +95,47 @@ jobs:
       - name: Build JTDX SuperHound FINAL MSI
         shell: powershell
         run: |
-          $ErrorActionPreference = 'Stop'
+          $ErrorActionPreference = 'Continue'
           $root = "$env:RUNNER_TEMP\jtdx-final\JTDX_SUPERHOUND_MSI_FINAL"
           & powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$root\BUILD_JTDX_SUPERHOUND_MSI.ps1"
-          if ($LASTEXITCODE -ne 0) { throw "FINAL builder failed with exit code $LASTEXITCODE" }
+          $code = $LASTEXITCODE
+          Write-Host "FINAL_BUILDER_EXIT=$code"
+          if ($code -ne 0) { exit $code }
+
+      - name: Dump builder logs on failure
+        if: failure()
+        shell: powershell
+        run: |
+          $root = "$env:RUNNER_TEMP\jtdx-final\JTDX_SUPERHOUND_MSI_FINAL"
+          Write-Host '===== FINAL BUILDER DIAGNOSTICS ====='
+          if (Test-Path "$root\LOGS") {
+            Get-ChildItem "$root\LOGS\*.log" -ErrorAction SilentlyContinue | Sort-Object LastWriteTime | ForEach-Object {
+              Write-Host "===== LOG: $($_.FullName) ====="
+              Get-Content $_.FullName -Tail 500 -ErrorAction SilentlyContinue
+            }
+          } else {
+            Write-Host 'LOGS directory not found.'
+          }
+          $work = "$root\WORK"
+          if (Test-Path $work) {
+            Write-Host '===== RECENT BUILD FILES ====='
+            Get-ChildItem $work -Recurse -File -ErrorAction SilentlyContinue |
+              Where-Object { $_.Extension -in '.log','.txt' -or $_.Name -match 'CMakeError|CMakeOutput' } |
+              Sort-Object LastWriteTime -Descending | Select-Object -First 12 | ForEach-Object {
+                Write-Host "===== FILE: $($_.FullName) ====="
+                Get-Content $_.FullName -Tail 250 -ErrorAction SilentlyContinue
+              }
+          }
+
+      - name: Upload diagnostic logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: JTDX-SuperHound-FINAL-DIAGNOSTICS
+          path: |
+            ${{ runner.temp }}\jtdx-final\JTDX_SUPERHOUND_MSI_FINAL\LOGS\*.log
+            ${{ runner.temp }}\jtdx-final\JTDX_SUPERHOUND_MSI_FINAL\OUTPUT\*.txt
+          if-no-files-found: warn
 
       - name: Validate FINAL MSI
         shell: powershell
