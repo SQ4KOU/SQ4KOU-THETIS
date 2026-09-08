@@ -1,0 +1,92 @@
+name: Integrate GPU Waterfall 16 Final
+
+on:
+  push:
+    branches: [feature/gpu-waterfall-16final-recovered]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  integrate-build:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout integration branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/gpu-waterfall-16final-recovered
+          fetch-depth: 0
+
+      - name: Fetch recovered reference branch
+        shell: pwsh
+        run: |
+          git fetch origin reference/eu2av-2.10.3.16-final-decompiled:refs/remotes/origin/reference/eu2av-2.10.3.16-final-decompiled
+          git rev-parse origin/reference/eu2av-2.10.3.16-final-decompiled
+
+      - name: Integrate recovered 16 Final GPU sources
+        shell: pwsh
+        run: python tools/integrate_gpu_waterfall_16final.py
+
+      - name: Verify recovered shader identity
+        shell: pwsh
+        run: |
+          $ref='origin/reference/eu2av-2.10.3.16-final-decompiled'
+          $base='reverse-engineering/EU2AV-Thetis-2.10.3.16-Final/managed/Thetis.exe'
+          $names=@('waterfall_fft_bitreverse_cs.bin','waterfall_fft_magnitude_cs.bin','waterfall_fft_stage_ab_cs.bin','waterfall_fft_stage_ba_cs.bin','waterfall_postproc.bin','waterfall_resolve_cs.bin','waterfall_row_cs.bin')
+          foreach($n in $names){
+            $tmp=Join-Path $env:RUNNER_TEMP $n
+            cmd /c "git show $ref`:$base/Thetis.$n > `"$tmp`""
+            if($LASTEXITCODE -ne 0){throw "Cannot extract reference shader $n"}
+            $a=(Get-FileHash $tmp -Algorithm SHA256).Hash
+            $b=(Get-FileHash "Project Files/Source/Console/$n" -Algorithm SHA256).Hash
+            if($a -ne $b){throw "Shader mismatch: $n"}
+            Write-Host "PASS shader $n $a"
+          }
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $targets=Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if(-not $targets){ choco install wixtoolset -y --no-progress }
+          $targets=Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if(-not $targets){ throw 'WiX 3.x not found' }
+          "WIX_TARGETS=$($targets.FullName)" | Out-File $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Restore packages
+        shell: pwsh
+        run: nuget restore "Project Files\Source\Thetis_VS2026.sln" -NonInteractive
+
+      - name: Build Release x64
+        shell: pwsh
+        run: msbuild "Project Files\Source\Thetis_VS2026.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal
+
+      - name: Verify MSI
+        shell: pwsh
+        run: |
+          $msi=Get-ChildItem "Project Files\bin\Installers\*.msi" -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if(-not $msi -or $msi.Length -lt 1MB){throw 'Valid MSI not produced'}
+          Write-Host "MSI=$($msi.FullName) SIZE=$($msi.Length)"
+
+      - name: Commit generated recovered sources after successful build
+        shell: pwsh
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add -- "Project Files/Source/Console" "Project Files/Source/ChannelMaster"
+          if(git diff --cached --quiet){ Write-Host 'No generated source changes to commit'; exit 0 }
+          git commit -m "[gpu16-integrated] Recovered 2.10.3.16 GPU core pipeline"
+          git push origin HEAD:feature/gpu-waterfall-16final-recovered
+
+      - name: Upload test MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-GPU16-STAGE1-MSI
+          path: Project Files/bin/Installers/*.msi
+          if-no-files-found: error
+          compression-level: 0
