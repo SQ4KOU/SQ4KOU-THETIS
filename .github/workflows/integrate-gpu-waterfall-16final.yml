@@ -25,6 +25,27 @@ jobs:
           git fetch origin reference/eu2av-2.10.3.16-final-decompiled:refs/remotes/origin/reference/eu2av-2.10.3.16-final-decompiled
           git rev-parse origin/reference/eu2av-2.10.3.16-final-decompiled
 
+      - name: Normalize integrator anchor for current SQ4KOU cmaster ABI
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          p = Path('tools/integrate_gpu_waterfall_16final.py')
+          s = p.read_text(encoding='utf-8')
+          old = '''        [DllImport(\"ChannelMaster.dll\", CallingConvention = CallingConvention.Cdecl)]\\
+                  public static extern void SendpOutboundTCIRxIQ'''
+          new = '''        [DllImport(\"ChannelMaster.dll\", EntryPoint = \"SendpOutboundTCIRxIQ\", CallingConvention = CallingConvention.Cdecl)]\\
+                  public static extern void SendpOutboundTCIRxIQ'''
+          if old in s:
+              s = s.replace(old, new, 1)
+              p.write_text(s, encoding='utf-8')
+              print('GPU16_PRECHECK: updated cmaster.cs interop anchor for SQ4KOU/ramdor syntax')
+          elif new in s:
+              print('GPU16_PRECHECK: anchor already current')
+          else:
+              raise SystemExit('GPU16_PRECHECK_FAIL: cmaster.cs interop marker not found in integrator')
+          '@ | python -
+
       - name: Integrate recovered 16 Final GPU sources
         shell: pwsh
         run: python tools/integrate_gpu_waterfall_16final.py
@@ -78,7 +99,7 @@ jobs:
         run: |
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add -- "Project Files/Source/Console" "Project Files/Source/ChannelMaster"
+          git add -- "Project Files/Source/Console" "Project Files/Source/ChannelMaster" "tools/integrate_gpu_waterfall_16final.py"
           if(git diff --cached --quiet){ Write-Host 'No generated source changes to commit'; exit 0 }
           git commit -m "[gpu16-integrated] Recovered 2.10.3.16 GPU core pipeline"
           git push origin HEAD:feature/gpu-waterfall-16final-recovered
