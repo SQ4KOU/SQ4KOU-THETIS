@@ -58,13 +58,23 @@ jobs:
             }
           }
 
-      - name: Restore preserved export for verification
-        uses: actions/download-artifact@v4
-        with:
-          name: EU2AV-2.10.3.16-Final-verification-failure
-          run-id: 34222077364
-          github-token: ${{ github.token }}
-          path: reverse-engineering/EU2AV-Thetis-2.10.3.16-Final
+      - name: Verify the committed export without overwriting recovered work
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = 'reverse-engineering/EU2AV-Thetis-2.10.3.16-Final'
+          foreach ($relative in @('metadata/MANIFEST.csv', 'metadata/PROVENANCE.txt')) {
+            if (-not (Test-Path -LiteralPath "$root/$relative" -PathType Leaf)) {
+              throw "Committed export is incomplete: $relative"
+            }
+          }
+          foreach ($relative in @('managed', 'native', 'dxbc')) {
+            if (-not (Test-Path -LiteralPath "$root/$relative" -PathType Container)) {
+              throw "Committed export directory is missing: $relative"
+            }
+          }
+          git rev-parse HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'Unable to identify verification commit' }
 
       - name: Inspect preserved shader profiles and decompiler diagnostics
         shell: pwsh
