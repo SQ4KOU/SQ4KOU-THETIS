@@ -1,4 +1,5 @@
 name: Materialize EU2AV Managed GPU Waterfall
+# Exact recovered managed GPU pipeline; preserve existing SQ4KOU Extended waterfall support.
 
 on:
   workflow_dispatch:
@@ -50,8 +51,7 @@ jobs:
           $src = Join-Path $env:REC 'Thetis'
           $classes = @(
             'GPUWaterfallPipeline.cs','WaterfallGPURenderer.cs','GPUWaterfallLogger.cs','SharedWaterfallState.cs',
-            'GPUWaterfallWindowType.cs','GPUWaterfallMagnitudeMode.cs','GPUWaterfallResamplingMode.cs',
-            'WaterfallPalette.cs','WaterfallEnhancer.cs','NoiseFloorPro.cs'
+            'GPUWaterfallWindowType.cs','GPUWaterfallMagnitudeMode.cs','GPUWaterfallResamplingMode.cs'
           )
           foreach ($f in $classes) {
             $s = Join-Path $src $f
