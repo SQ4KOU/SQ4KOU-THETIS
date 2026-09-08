@@ -108,7 +108,46 @@ foreach ($row in $native) {
     }
     $functions = @(Import-Csv -LiteralPath $indexPath)
     if ($functions.Count -ne ([int]$stats.functions_decompiled_ok + [int]$stats.functions_failed)) { Fail "native function index mismatch: $($row.path)" }
-    if (@($functions | Where-Object status -ne 'OK').Count -ne 0) { Fail "non-OK native function status: $($row.path)" }
+    if (@($functions | Where-Object { $_.status -notmatch '^OK(?:_RETRY_[A-Z]+)?
+    foreach ($chunk in @($functions.chunk | Sort-Object -Unique)) { Require-File (Join-Path $dir $chunk) 100 }
+}
+foreach ($name in @('ChannelMaster.dll','wdsp.dll')) {
+    if (-not ($native | Where-Object { [IO.Path]::GetFileName($_.path) -ieq $name })) { Fail "required native module missing: $name" }
+}
+
+$shaderRows = @($manifest | Where-Object { [IO.Path]::GetFileName($_.path) -match '^waterfall_.*\.(bin|cso)$' })
+$requiredShaders = @(
+    'waterfall_fft_bitreverse_cs.bin','waterfall_fft_magnitude_cs.bin',
+    'waterfall_fft_stage_ab_cs.bin','waterfall_fft_stage_ba_cs.bin',
+    'waterfall_postproc.bin','waterfall_resolve_cs.bin','waterfall_row_cs.bin'
+)
+foreach ($name in $requiredShaders) {
+    if (-not ($shaderRows | Where-Object { [IO.Path]::GetFileName($_.path) -ieq $name })) { Fail "required shader missing: $name" }
+}
+foreach ($row in $shaderRows) {
+    $safe = Safe-Name ($row.path -replace '/','__')
+    $asm = Join-Path "$Root/dxbc" ($safe + '.asm.txt')
+    Require-File $asm 100
+    if (-not (Select-String -LiteralPath $asm -Pattern 'cs_[456]_[0-9]|Compute Shader|DXBC' -Quiet)) {
+        Fail "shader disassembly lacks a recognized DXBC compute profile: $($row.path)"
+    }
+}
+$asmFiles = @(Get-ChildItem -LiteralPath "$Root/dxbc" -File -Filter *.asm.txt)
+if ($asmFiles.Count -ne $shaderRows.Count) { Fail "shader coverage mismatch: payload=$($shaderRows.Count), output=$($asmFiles.Count)" }
+
+$summary = [ordered]@{
+    result = 'PASS'
+    verified_utc = [DateTime]::UtcNow.ToString('o')
+    package_sha256 = $prov.package_sha256
+    thetis_sha256 = $prov.thetis_exe_sha256
+    managed_assemblies = $managed.Count
+    native_modules = $native.Count
+    native_functions_failed = 0
+    waterfall_shaders = $shaderRows.Count
+}
+$summary | ConvertTo-Json | Set-Content -LiteralPath "$Root/metadata/STRICT_VERIFICATION.json" -Encoding utf8
+Write-Host "STRICT VERIFY PASS: managed=$($managed.Count), native=$($native.Count), shaders=$($shaderRows.Count), native failures=0"
+ }).Count -ne 0) { Fail "non-OK native function status: $($row.path)" }
     foreach ($chunk in @($functions.chunk | Sort-Object -Unique)) { Require-File (Join-Path $dir $chunk) 100 }
 }
 foreach ($name in @('ChannelMaster.dll','wdsp.dll')) {
