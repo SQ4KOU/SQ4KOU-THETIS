@@ -1,4 +1,4 @@
-/*  cmaster.c
+﻿/*  cmaster.c
 
 This file is part of a program that implements a Software-Defined Radio.
 
@@ -25,6 +25,7 @@ warren@wpratt.com
 */
 
 #include "cmcomm.h"
+#include "waterfall_iq.h"
 
 cmaster cm  = {0};
 CMASTER pcm = &cm;
@@ -347,6 +348,7 @@ void xcmaster (int stream)
 
 	case 0:  // standard receiver
 		rx = rxid (stream);
+		CM_WaterfallIQ_Push(stream, pcm->xcm_insize[stream], pcm->in[stream]);
 		xpipe (stream, 0, pcm->in);
 		xanb (pcm->rcvr[rx].panb);																// nb
 		xnob (pcm->rcvr[rx].pnob);																// nb2

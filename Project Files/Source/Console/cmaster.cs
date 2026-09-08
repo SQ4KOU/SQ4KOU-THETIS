@@ -119,6 +119,47 @@ namespace Thetis
         public static extern int GetCMAstate();
 
         // tci
+
+        // Recovered 2.10.3.16 Final GPU waterfall raw-IQ bridge.
+        [DllImport("ChannelMaster.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void CM_WaterfallIQ_Init(int stream, int capacitySamples);
+        [DllImport("ChannelMaster.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void CM_WaterfallIQ_Free(int stream);
+        [DllImport("ChannelMaster.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void CM_WaterfallIQ_SetEnabled(int stream, int enable);
+        [DllImport("ChannelMaster.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int CM_WaterfallIQ_Available(int stream);
+        [DllImport("ChannelMaster.dll", CallingConvention = CallingConvention.Cdecl)]
+        public unsafe static extern int CM_WaterfallIQ_Get(int stream, float* outI, float* outQ, int maxSamples);
+        [DllImport("ChannelMaster.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int CM_WaterfallIQ_DroppedSamples(int stream);
+        [DllImport("ChannelMaster.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void CM_WaterfallIQ_ResetDropped(int stream);
+
+        public static void InitWaterfallIQ(int capacitySamples)
+        {
+            for (int i = 0; i < cmRCVR; i++) CM_WaterfallIQ_Init(inid(0, i), capacitySamples);
+        }
+        public static void FreeWaterfallIQ()
+        {
+            for (int i = 0; i < cmRCVR; i++) CM_WaterfallIQ_Free(inid(0, i));
+        }
+        public static void SetWaterfallIQEnabled(bool enabled)
+        {
+            for (int i = 0; i < cmRCVR; i++) CM_WaterfallIQ_SetEnabled(inid(0, i), enabled ? 1 : 0);
+        }
+        public static int GetWaterfallIQDroppedSamples(int stream) { return CM_WaterfallIQ_DroppedSamples(stream); }
+        public static void ResetWaterfallIQDropped(int stream) { CM_WaterfallIQ_ResetDropped(stream); }
+        public unsafe static int ReadWaterfallIQ(int stream, float[] outI, float[] outQ, int maxSamples)
+        {
+            if (outI == null || outQ == null || outI.Length < maxSamples || outQ.Length < maxSamples) return 0;
+            int n;
+            fixed (float* pI = outI) fixed (float* pQ = outQ) n = CM_WaterfallIQ_Get(stream, pI, pQ, maxSamples);
+            // Exact recovered managed convention: swap I/Q after the native read.
+            for (int i = 0; i < n; i++) { float x = outI[i]; outI[i] = outQ[i]; outQ[i] = x; }
+            return n;
+        }
+
         [DllImport("ChannelMaster.dll", EntryPoint = "SendpOutboundTCIRxIQ", CallingConvention = CallingConvention.Cdecl)]
         public static extern void SendpOutboundTCIRxIQ(TCIStreamSamples del);
 

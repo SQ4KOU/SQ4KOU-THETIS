@@ -28,6 +28,7 @@
     </UpgradeBackupLocation>
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <LangVersion>latest</LangVersion>
     <ManifestCertificateThumbprint>AEF2072BFD4E1723668C4A72938E707A73AAFB8B</ManifestCertificateThumbprint>
     <ManifestKeyFile>PowerSDR_TemporaryKey.pfx</ManifestKeyFile>
     <GenerateManifests>false</GenerateManifests>
@@ -419,6 +420,20 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="GPUWaterfallLogger.cs" />
+    <Compile Include="GPUWaterfallMagnitudeMode.cs" />
+    <Compile Include="GPUWaterfallPipeline.cs" />
+    <Compile Include="GPUWaterfallResamplingMode.cs" />
+    <Compile Include="GPUWaterfallWindowType.cs" />
+    <Compile Include="FFTParams.cs" />
+    <Compile Include="WaterfallGPURenderer.cs" />
+    <Compile Include="WaterfallRowParams.cs" />
+    <Compile Include="GPUDetector.cs" />
+    <Compile Include="WaterfallEffect.cs" />
+    <Compile Include="WaterfallEffectImpl.cs" />
+    <Compile Include="WaterfallEffectParams.cs" />
+    <Compile Include="GPUWaterfallShaderLoader.cs" />
+
     <Compile Include="AmpView.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -1374,4 +1389,34 @@ copy /Y "..\..\..\Source\packages\SkiaSharp.NativeAssets.Win32.3.119.2\runtimes\
     <MakeDir Directories="$(ProjectDir)$(OutDir)SkinsAPF" Condition="'@(APFSkinImages)' != ''" />
     <Copy SourceFiles="@(APFSkinImages)" DestinationFolder="$(ProjectDir)$(OutDir)SkinsAPF" SkipUnchangedFiles="true" Condition="'@(APFSkinImages)' != ''" />
   </Target>
+  <ItemGroup>
+    <EmbeddedResource Include="waterfall_fft_bitreverse_cs.bin">
+      <LogicalName>Thetis.waterfall_fft_bitreverse_cs.bin</LogicalName>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="waterfall_fft_magnitude_cs.bin">
+      <LogicalName>Thetis.waterfall_fft_magnitude_cs.bin</LogicalName>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="waterfall_fft_stage_ab_cs.bin">
+      <LogicalName>Thetis.waterfall_fft_stage_ab_cs.bin</LogicalName>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="waterfall_fft_stage_ba_cs.bin">
+      <LogicalName>Thetis.waterfall_fft_stage_ba_cs.bin</LogicalName>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="waterfall_postproc.bin">
+      <LogicalName>Thetis.waterfall_postproc.bin</LogicalName>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="waterfall_resolve_cs.bin">
+      <LogicalName>Thetis.waterfall_resolve_cs.bin</LogicalName>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+    <EmbeddedResource Include="waterfall_row_cs.bin">
+      <LogicalName>Thetis.waterfall_row_cs.bin</LogicalName>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </EmbeddedResource>
+  </ItemGroup>
 </Project>

@@ -218,6 +218,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="aamix.h" />
+    <ClInclude Include="waterfall_iq.h" />
     <ClInclude Include="amix.h" />
     <ClInclude Include="analyzers.h" />
     <ClInclude Include="bandwidth_monitor.h" />
@@ -254,6 +255,7 @@
     <ClCompile Include="bandwidth_monitor.c" />
     <ClCompile Include="cmasio.c" />
     <ClCompile Include="cmaster.c" />
+    <ClCompile Include="waterfall_iq.c" />
     <ClCompile Include="cmbuffs.c" />
     <ClCompile Include="cmsetup.c" />
     <ClCompile Include="ilv.c" />

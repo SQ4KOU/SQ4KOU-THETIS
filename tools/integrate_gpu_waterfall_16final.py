@@ -322,7 +322,7 @@ interop = r'''
 
 '''
 if 'CM_WaterfallIQ_Init' not in t:
-    marker = '        [DllImport("ChannelMaster.dll", CallingConvention = CallingConvention.Cdecl)]\n        public static extern void SendpOutboundTCIRxIQ'
+    marker = '        [DllImport("ChannelMaster.dll", EntryPoint = "SendpOutboundTCIRxIQ", CallingConvention = CallingConvention.Cdecl)]\n        public static extern void SendpOutboundTCIRxIQ'
     t = add_before(t, marker, interop, "cmaster.cs interop")
 cmcs.write_text(t, encoding="utf-8-sig")
 
@@ -347,7 +347,9 @@ if 'LogicalName>Thetis.waterfall_row_cs.bin' not in t:
     res = '  <ItemGroup>\n' + ''.join(
         f'    <EmbeddedResource Include="{n}">\n      <LogicalName>Thetis.{n}</LogicalName>\n      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>\n    </EmbeddedResource>\n' for n in shaders
     ) + '  </ItemGroup>\n'
-    t = t.replace('</Project>', res + '</Project>')
+    root_close = t.rfind('</Project>')
+    if root_close < 0: die('Thetis.csproj root closing tag missing')
+    t = t[:root_close] + res + t[root_close:]
 proj.write_text(t, encoding="utf-8-sig")
 
 vcx = CM / "ChannelMaster.vcxproj"
