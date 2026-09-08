@@ -10,33 +10,36 @@ permissions:
   contents: write
 
 jobs:
-  materialize-build:
+  recover-source:
     runs-on: windows-latest
-    timeout-minutes: 90
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
           ref: feature/eu2av-gpu-waterfall-sq4kou
           fetch-depth: 0
 
-      - name: Recover untouched EU2AV 2.10.3.16 managed project
+      - name: Recover untouched EU2AV 2.10.3.16 project
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $pkg = Join-Path $env:RUNNER_TEMP 'Thetis-Extended-Final.7z'
           Invoke-WebRequest -Uri 'https://eu2av.net/download/file.php?id=2070' -OutFile $pkg -UseBasicParsing
           if ((Get-Item $pkg).Length -lt 10MB) { throw 'EU2AV package is unexpectedly small' }
+
           $unpack = Join-Path $env:RUNNER_TEMP 'eu2av'
           New-Item -ItemType Directory -Force -Path $unpack | Out-Null
           & 7z x $pkg "-o$unpack" -y | Out-Null
           $msi = Get-ChildItem $unpack -Recurse -Filter *.msi | Select-Object -First 1
           if (-not $msi) { throw 'EU2AV MSI not found' }
+
           $installed = Join-Path $env:RUNNER_TEMP 'eu2av-installed'
           New-Item -ItemType Directory -Force -Path $installed | Out-Null
           $p = Start-Process msiexec.exe -ArgumentList @('/a', "`"$($msi.FullName)`"", '/qn', "TARGETDIR=`"$installed`"") -Wait -PassThru
           if ($p.ExitCode -ne 0) { throw "MSI extraction failed: $($p.ExitCode)" }
           $exe = Get-ChildItem $installed -Recurse -Filter Thetis.exe | Sort-Object Length -Descending | Select-Object -First 1
           if (-not $exe) { throw 'Thetis.exe not found' }
+
           dotnet tool install --global ilspycmd --version 11.0.0.9375
           $env:PATH = "$env:USERPROFILE\.dotnet\tools;$env:PATH"
           $rec = Join-Path $env:RUNNER_TEMP 'recovered-project'
@@ -45,110 +48,97 @@ jobs:
           "REC=$rec" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           "EUROOT=$installed" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Materialize exact GPU classes and shader binaries
+      - name: Materialize exact managed GPU classes and shaders
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $dst = Join-Path $PWD 'Project Files\Source\Console'
           $src = Join-Path $env:REC 'Thetis'
-          $classes = @('GPUWaterfallPipeline.cs','WaterfallGPURenderer.cs','GPUWaterfallLogger.cs','SharedWaterfallState.cs','GPUWaterfallWindowType.cs','GPUWaterfallMagnitudeMode.cs','GPUWaterfallResamplingMode.cs')
+          $classes = @(
+            'GPUWaterfallPipeline.cs',
+            'WaterfallGPURenderer.cs',
+            'GPUWaterfallLogger.cs',
+            'SharedWaterfallState.cs',
+            'GPUWaterfallWindowType.cs',
+            'GPUWaterfallMagnitudeMode.cs',
+            'GPUWaterfallResamplingMode.cs'
+          )
           foreach ($f in $classes) {
             $s = Join-Path $src $f
             if (-not (Test-Path $s)) { throw "Recovered source missing: $f" }
             Copy-Item $s (Join-Path $dst $f) -Force
           }
-          $shaders = @('waterfall_fft_bitreverse_cs.bin','waterfall_fft_stage_ab_cs.bin','waterfall_fft_stage_ba_cs.bin','waterfall_fft_magnitude_cs.bin','waterfall_row_cs.bin','waterfall_postproc.bin','waterfall_resolve_cs.bin')
+
+          $shaders = @(
+            'waterfall_fft_bitreverse_cs.bin',
+            'waterfall_fft_stage_ab_cs.bin',
+            'waterfall_fft_stage_ba_cs.bin',
+            'waterfall_fft_magnitude_cs.bin',
+            'waterfall_row_cs.bin',
+            'waterfall_postproc.bin',
+            'waterfall_resolve_cs.bin'
+          )
           foreach ($f in $shaders) {
             $s = Get-ChildItem $env:EUROOT -Recurse -Filter $f | Select-Object -First 1
             if (-not $s) { throw "Recovered shader missing: $f" }
             Copy-Item $s.FullName (Join-Path $dst $f) -Force
           }
 
-      - name: Restore exact managed Display adapter from audited recovery commit
+      - name: Preserve exact recovered Display Setup and project references
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $old = (git show HEAD^:.github/workflows/materialize-eu2av-managed-gpu.yml) -join "`n"
-          $m = [regex]::Match($old, "\$b64\s*=\s*'([^']+)'", [Text.RegularExpressions.RegexOptions]::Singleline)
-          if (-not $m.Success) { throw 'Audited Display adapter payload not found in parent commit' }
-          [IO.File]::WriteAllBytes('gpu_display_exact.cs.gz', [Convert]::FromBase64String($m.Groups[1].Value))
-          python -c "import gzip; open(r'Project Files/Source/Console/Display.GPUWaterfall.cs','wb').write(gzip.open('gpu_display_exact.cs.gz','rb').read())"
+          $src = Join-Path $env:REC 'Thetis'
+          $audit = Join-Path $PWD '.github\recovered\eu2av-2.10.3.16'
+          New-Item -ItemType Directory -Force -Path $audit | Out-Null
 
-      - name: Patch SQ4KOU integration points
-        shell: pwsh
-        run: |
-          $patchB64 = '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'
-          [IO.File]::WriteAllBytes('integrate_exact_gpu.py.gz', [Convert]::FromBase64String($patchB64))
-          python -c "import gzip; open('integrate_exact_gpu.py','wb').write(gzip.open('integrate_exact_gpu.py.gz','rb').read())"
-          python integrate_exact_gpu.py
-
-      - name: Verify managed GPU source before commit
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $display = Get-Content 'Project Files\Source\Console\Display.GPUWaterfall.cs' -Raw
-          if ($display -match 'CM_GPUWaterfall_Process') { throw 'Old native GPU path still active' }
-          foreach ($f in @('GPUWaterfallPipeline.cs','WaterfallGPURenderer.cs','SharedWaterfallState.cs','waterfall_fft_magnitude_cs.bin','waterfall_row_cs.bin')) {
-            if (-not (Test-Path (Join-Path 'Project Files\Source\Console' $f))) { throw "Missing component: $f" }
+          $display = Get-ChildItem $src -Recurse -Filter *.cs | Where-Object { $_.Name -ieq 'display.cs' } | Select-Object -First 1
+          if (-not $display) {
+            $display = Get-ChildItem $src -Recurse -Filter *.cs | Where-Object { (Get-Content $_.FullName -Raw) -match 'GPUWaterfallPipeline' } | Select-Object -First 1
           }
-          git diff --stat
+          if (-not $display) { throw 'Recovered Display source containing GPUWaterfallPipeline not found' }
+          Copy-Item $display.FullName (Join-Path $audit 'Display.EU2AV.2.10.3.16.cs.txt') -Force
 
-      - name: Commit recovered managed GPU source
+          $setup = Get-ChildItem $src -Recurse -Filter *.cs | Where-Object { $_.Name -ieq 'setup.cs' } | Select-Object -First 1
+          if (-not $setup) {
+            $setup = Get-ChildItem $src -Recurse -Filter *.cs | Where-Object { (Get-Content $_.FullName -Raw) -match 'GPUWaterfallPipelineEnabled' } | Select-Object -First 1
+          }
+          if ($setup) { Copy-Item $setup.FullName (Join-Path $audit 'Setup.EU2AV.2.10.3.16.cs.txt') -Force }
+
+          $proj = Get-ChildItem $env:REC -Recurse -Filter Thetis.csproj | Select-Object -First 1
+          if ($proj) { Copy-Item $proj.FullName (Join-Path $audit 'Thetis.EU2AV.2.10.3.16.csproj.txt') -Force }
+
+          @(
+            "Display=$($display.FullName)",
+            "Setup=$($setup.FullName)",
+            "Project=$($proj.FullName)",
+            "RecoveredExeRoot=$env:EUROOT"
+          ) | Set-Content (Join-Path $audit 'RECOVERY-MANIFEST.txt')
+
+      - name: Verify recovery is managed D3D11 path
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = 'Project Files\Source\Console'
+          $pipeline = Get-Content (Join-Path $root 'GPUWaterfallPipeline.cs') -Raw
+          $renderer = Get-Content (Join-Path $root 'WaterfallGPURenderer.cs') -Raw
+          if ($pipeline -notmatch 'SharpDX|Direct3D11|ComputeShader') { throw 'Recovered pipeline does not expose expected managed GPU API' }
+          if ($renderer -notmatch 'SharpDX|Direct3D11|RenderTarget') { throw 'Recovered renderer does not expose expected managed renderer API' }
+          foreach ($f in @('waterfall_fft_bitreverse_cs.bin','waterfall_fft_stage_ab_cs.bin','waterfall_fft_stage_ba_cs.bin','waterfall_fft_magnitude_cs.bin','waterfall_row_cs.bin','waterfall_postproc.bin','waterfall_resolve_cs.bin')) {
+            $p = Join-Path $root $f
+            if (-not (Test-Path $p) -or (Get-Item $p).Length -lt 32) { throw "Invalid recovered shader: $f" }
+          }
+          $displayRef = Get-Content '.github\recovered\eu2av-2.10.3.16\Display.EU2AV.2.10.3.16.cs.txt' -Raw
+          if ($displayRef -notmatch 'GPUWaterfallPipeline') { throw 'Recovered Display reference has no GPUWaterfallPipeline integration' }
+
+      - name: Commit exact recovered source of truth
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -- 'Project Files/Source/Console'
-          if (-not (git diff --cached --quiet)) {
-            git commit -m 'Integrate recovered EU2AV 2.10.3.16 managed GPU waterfall'
-            git push origin HEAD:feature/eu2av-gpu-waterfall-sq4kou
-          }
-          "SOURCE_SHA=$(git rev-parse HEAD)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-
-      - uses: NuGet/setup-nuget@v2
-        with:
-          nuget-version: latest
-      - uses: microsoft/setup-msbuild@v2
-        with:
-          msbuild-architecture: x86
-
-      - name: Ensure WiX Toolset 3.x
-        shell: pwsh
-        run: |
-          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
-          if (-not $targets) { choco install wixtoolset -y --no-progress }
-          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
-          if (-not $targets) { $targets = Get-ChildItem "C:\Program Files (x86)\WiX Toolset*\Wix.targets" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 }
-          if (-not $targets) { throw 'WiX 3.x Wix.targets not found' }
-          "WIX_TARGETS=$($targets.FullName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-
-      - name: Restore and build Release x64 MSI
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          nuget restore "Project Files\Source\Thetis_VS2026.sln" -NonInteractive
-          msbuild "Project Files\Source\Thetis_VS2026.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal
-
-      - name: Verify shaders and final MSI
-        shell: pwsh
-        run: |
-          $ErrorActionPreference = 'Stop'
-          foreach ($f in @('waterfall_fft_bitreverse_cs.bin','waterfall_fft_stage_ab_cs.bin','waterfall_fft_stage_ba_cs.bin','waterfall_fft_magnitude_cs.bin','waterfall_row_cs.bin')) {
-            if (-not (Get-ChildItem 'Project Files\bin' -Recurse -Filter $f | Select-Object -First 1)) { throw "Shader not deployed: $f" }
-          }
-          $msi = Get-ChildItem "Project Files\bin\Installers\*.msi" -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-          if (-not $msi -or $msi.Length -lt 1MB) { throw 'Valid MSI was not produced' }
-          $final = Join-Path $msi.DirectoryName 'SQ4KOU-THETIS-EU2AV-2.10.3.16-MANAGED-GPU-x64.msi'
-          Copy-Item $msi.FullName $final -Force
-          @("SOURCE_SHA=$env:SOURCE_SHA", "MSI_SHA256=$((Get-FileHash $final -Algorithm SHA256).Hash)", "MSI_BYTES=$((Get-Item $final).Length)") | Set-Content (Join-Path $msi.DirectoryName 'EU2AV-MANAGED-GPU-BUILD.txt')
-          Get-Content (Join-Path $msi.DirectoryName 'EU2AV-MANAGED-GPU-BUILD.txt')
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: SQ4KOU-THETIS-EU2AV-2.10.3.16-MANAGED-GPU-MSI
-          path: |
-            Project Files/bin/Installers/SQ4KOU-THETIS-EU2AV-2.10.3.16-MANAGED-GPU-x64.msi
-            Project Files/bin/Installers/EU2AV-MANAGED-GPU-BUILD.txt
-          if-no-files-found: error
-          compression-level: 0
+          git add -- 'Project Files/Source/Console/GPUWaterfallPipeline.cs' 'Project Files/Source/Console/WaterfallGPURenderer.cs' 'Project Files/Source/Console/GPUWaterfallLogger.cs' 'Project Files/Source/Console/SharedWaterfallState.cs' 'Project Files/Source/Console/GPUWaterfallWindowType.cs' 'Project Files/Source/Console/GPUWaterfallMagnitudeMode.cs' 'Project Files/Source/Console/GPUWaterfallResamplingMode.cs' 'Project Files/Source/Console/waterfall_fft_bitreverse_cs.bin' 'Project Files/Source/Console/waterfall_fft_stage_ab_cs.bin' 'Project Files/Source/Console/waterfall_fft_stage_ba_cs.bin' 'Project Files/Source/Console/waterfall_fft_magnitude_cs.bin' 'Project Files/Source/Console/waterfall_row_cs.bin' 'Project Files/Source/Console/waterfall_postproc.bin' 'Project Files/Source/Console/waterfall_resolve_cs.bin' '.github/recovered/eu2av-2.10.3.16'
+          if (git diff --cached --quiet) { throw 'Recovery produced no changes to commit' }
+          git commit -m 'Materialize exact EU2AV 2.10.3.16 managed GPU source of truth'
+          git push origin HEAD:feature/eu2av-gpu-waterfall-sq4kou
+          git rev-parse HEAD
