@@ -1,0 +1,4 @@
+Display=D:\a\_temp\recovered-project\Thetis\Display.cs
+Setup=D:\a\_temp\recovered-project\Thetis\Setup.cs
+Project=D:\a\_temp\recovered-project\Thetis.csproj
+RecoveredExeRoot=D:\a\_temp\eu2av-installed

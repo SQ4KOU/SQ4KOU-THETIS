@@ -1,0 +1,218 @@
+<Project Sdk="Microsoft.NET.Sdk.WindowsDesktop">
+  <PropertyGroup>
+    <AssemblyName>Thetis</AssemblyName>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+    <OutputType>WinExe</OutputType>
+    <UseWindowsForms>True</UseWindowsForms>
+    <TargetFramework>net48</TargetFramework>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+  <PropertyGroup>
+    <LangVersion>14.0</LangVersion>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <RootNamespace />
+  </PropertyGroup>
+  <ItemGroup>
+    <None Remove="Thetis.Resources.star.png" />
+    <None Remove="Thetis.Resources.sun.png" />
+    <None Remove="Thetis.Resources.digital7.ttf" />
+    <None Remove="Thetis.Resources.swiss.ttf" />
+    <None Remove="Thetis.Resources.swissb.ttf" />
+    <None Remove="Thetis.Resources.swissbi.ttf" />
+    <None Remove="Thetis.Resources.swissbo.ttf" />
+    <None Remove="Thetis.Resources.swissc.ttf" />
+    <None Remove="Thetis.Resources.swisscb.ttf" />
+    <None Remove="Thetis.Resources.swisscbi.ttf" />
+    <None Remove="Thetis.Resources.swisscbo.ttf" />
+    <None Remove="Thetis.Resources.swissci.ttf" />
+    <None Remove="Thetis.Resources.swissck.ttf" />
+    <None Remove="Thetis.Resources.swisscki.ttf" />
+    <None Remove="Thetis.Resources.swisscl.ttf" />
+    <None Remove="Thetis.Resources.swisscli.ttf" />
+    <None Remove="Thetis.Resources.swisse.ttf" />
+    <None Remove="Thetis.Resources.swisseb.ttf" />
+    <None Remove="Thetis.Resources.swissek.ttf" />
+    <None Remove="Thetis.Resources.swissel.ttf" />
+    <None Remove="Thetis.Resources.swissi.ttf" />
+    <None Remove="Thetis.Resources.swissk.ttf" />
+    <None Remove="Thetis.Resources.swisski.ttf" />
+    <None Remove="Thetis.Resources.swissko.ttf" />
+    <None Remove="Thetis.Resources.swissl.ttf" />
+    <None Remove="Thetis.Resources.swissli.ttf" />
+    <None Remove="Thetis.images.clock.jpg" />
+    <None Remove="Thetis.images.demi144-28frs.jpg" />
+    <None Remove="Thetis.images.flex-5000.jpg" />
+    <None Remove="Thetis.images.no_hardware.jpg" />
+    <None Remove="Thetis.images.sdr-1000.jpg" />
+    <None Remove="Thetis.images.sdr-atu.jpg" />
+    <None Remove="Thetis.images.sdr-pa100.jpg" />
+    <None Remove="Thetis.images.sdr-rfe.jpg" />
+    <None Remove="Thetis.images.sdr-usb.jpg" />
+    <None Remove="Thetis.images.softrock40.jpg" />
+    <None Remove="Thetis.images.soundcard.jpg" />
+    <None Remove="Thetis.images.splash.jpg" />
+    <None Remove="Thetis.images.flex-3000.jpg" />
+    <None Remove="Thetis.waterfall_postproc.bin" />
+    <None Remove="Thetis.waterfall_row_cs.bin" />
+    <None Remove="Thetis.waterfall_fft_bitreverse_cs.bin" />
+    <None Remove="Thetis.waterfall_fft_stage_ab_cs.bin" />
+    <None Remove="Thetis.waterfall_fft_stage_ba_cs.bin" />
+    <None Remove="Thetis.waterfall_fft_magnitude_cs.bin" />
+    <None Remove="Thetis.waterfall_resolve_cs.bin" />
+    <EmbeddedResource Include="Thetis.Resources.star.png" LogicalName="Thetis.Resources.star.png" />
+    <EmbeddedResource Include="Thetis.Resources.sun.png" LogicalName="Thetis.Resources.sun.png" />
+    <EmbeddedResource Include="Thetis.Resources.digital7.ttf" LogicalName="Thetis.Resources.digital7.ttf" />
+    <EmbeddedResource Include="Thetis.Resources.swiss.ttf" LogicalName="Thetis.Resources.swiss.ttf" />
+    <EmbeddedResource Include="Thetis.Resources.swissb.ttf" LogicalName="Thetis.Resources.swissb.ttf" />
+    <EmbeddedResource Include="Thetis.Resources.swissbi.ttf" LogicalName="Thetis.Resources.swissbi.ttf" />
+    <EmbeddedResource Include="Thetis.Resources.swissbo.ttf" LogicalName="Thetis.Resources.swissbo.ttf" />
+    <EmbeddedResource Include="Thetis.Resources.swissc.ttf" LogicalName="Thetis.Resources.swissc.ttf" />
+    <EmbeddedResource Include="Thetis.Resources.swisscb.ttf" LogicalName="Thetis.Resources.swisscb.ttf" />
+    <EmbeddedResource Include="Thetis.Resources.swisscbi.ttf" LogicalName="Thetis.Resources.swisscbi.ttf" />
+    <EmbeddedResource Include="Thetis.Resources.swisscbo.ttf" LogicalName="Thetis.Resources.swisscbo.ttf" />
+    <EmbeddedResource Include="Thetis.Resources.swissci.ttf" LogicalName="Thetis.Resources.swissci.ttf" />
+    <EmbeddedResource Include="Thetis.Resources.swissck.ttf" LogicalName="Thetis.Resources.swissck.ttf" />
+    <EmbeddedResource Include="Thetis.Resources.swisscki.ttf" LogicalName="Thetis.Resources.swisscki.ttf" />
+    <EmbeddedResource Include="Thetis.Resources.swisscl.ttf" LogicalName="Thetis.Resources.swisscl.ttf" />
+    <EmbeddedResource Include="Thetis.Resources.swisscli.ttf" LogicalName="Thetis.Resources.swisscli.ttf" />
+    <EmbeddedResource Include="Thetis.Resources.swisse.ttf" LogicalName="Thetis.Resources.swisse.ttf" />
+    <EmbeddedResource Include="Thetis.Resources.swisseb.ttf" LogicalName="Thetis.Resources.swisseb.ttf" />
+    <EmbeddedResource Include="Thetis.Resources.swissek.ttf" LogicalName="Thetis.Resources.swissek.ttf" />
+    <EmbeddedResource Include="Thetis.Resources.swissel.ttf" LogicalName="Thetis.Resources.swissel.ttf" />
+    <EmbeddedResource Include="Thetis.Resources.swissi.ttf" LogicalName="Thetis.Resources.swissi.ttf" />
+    <EmbeddedResource Include="Thetis.Resources.swissk.ttf" LogicalName="Thetis.Resources.swissk.ttf" />
+    <EmbeddedResource Include="Thetis.Resources.swisski.ttf" LogicalName="Thetis.Resources.swisski.ttf" />
+    <EmbeddedResource Include="Thetis.Resources.swissko.ttf" LogicalName="Thetis.Resources.swissko.ttf" />
+    <EmbeddedResource Include="Thetis.Resources.swissl.ttf" LogicalName="Thetis.Resources.swissl.ttf" />
+    <EmbeddedResource Include="Thetis.Resources.swissli.ttf" LogicalName="Thetis.Resources.swissli.ttf" />
+    <EmbeddedResource Include="Thetis.images.clock.jpg" LogicalName="Thetis.images.clock.jpg" />
+    <EmbeddedResource Include="Thetis.images.demi144-28frs.jpg" LogicalName="Thetis.images.demi144-28frs.jpg" />
+    <EmbeddedResource Include="Thetis.images.flex-5000.jpg" LogicalName="Thetis.images.flex-5000.jpg" />
+    <EmbeddedResource Include="Thetis.images.no_hardware.jpg" LogicalName="Thetis.images.no_hardware.jpg" />
+    <EmbeddedResource Include="Thetis.images.sdr-1000.jpg" LogicalName="Thetis.images.sdr-1000.jpg" />
+    <EmbeddedResource Include="Thetis.images.sdr-atu.jpg" LogicalName="Thetis.images.sdr-atu.jpg" />
+    <EmbeddedResource Include="Thetis.images.sdr-pa100.jpg" LogicalName="Thetis.images.sdr-pa100.jpg" />
+    <EmbeddedResource Include="Thetis.images.sdr-rfe.jpg" LogicalName="Thetis.images.sdr-rfe.jpg" />
+    <EmbeddedResource Include="Thetis.images.sdr-usb.jpg" LogicalName="Thetis.images.sdr-usb.jpg" />
+    <EmbeddedResource Include="Thetis.images.softrock40.jpg" LogicalName="Thetis.images.softrock40.jpg" />
+    <EmbeddedResource Include="Thetis.images.soundcard.jpg" LogicalName="Thetis.images.soundcard.jpg" />
+    <EmbeddedResource Include="Thetis.images.splash.jpg" LogicalName="Thetis.images.splash.jpg" />
+    <EmbeddedResource Include="Thetis.images.flex-3000.jpg" LogicalName="Thetis.images.flex-3000.jpg" />
+    <EmbeddedResource Include="Thetis.waterfall_postproc.bin" LogicalName="Thetis.waterfall_postproc.bin" />
+    <EmbeddedResource Include="Thetis.waterfall_row_cs.bin" LogicalName="Thetis.waterfall_row_cs.bin" />
+    <EmbeddedResource Include="Thetis.waterfall_fft_bitreverse_cs.bin" LogicalName="Thetis.waterfall_fft_bitreverse_cs.bin" />
+    <EmbeddedResource Include="Thetis.waterfall_fft_stage_ab_cs.bin" LogicalName="Thetis.waterfall_fft_stage_ab_cs.bin" />
+    <EmbeddedResource Include="Thetis.waterfall_fft_stage_ba_cs.bin" LogicalName="Thetis.waterfall_fft_stage_ba_cs.bin" />
+    <EmbeddedResource Include="Thetis.waterfall_fft_magnitude_cs.bin" LogicalName="Thetis.waterfall_fft_magnitude_cs.bin" />
+    <EmbeddedResource Include="Thetis.waterfall_resolve_cs.bin" LogicalName="Thetis.waterfall_resolve_cs.bin" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="System.Core" />
+    <Reference Include="System.Windows.Forms.DataVisualization" />
+    <Reference Include="System.Data" />
+    <Reference Include="RawInput">
+      <HintPath>..\eu2av-installed\OpenHPSDR\Thetis\RawInput.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="FTDI2XX">
+      <HintPath>..\eu2av-installed\OpenHPSDR\Thetis\FTDI2XX.dll</HintPath>
+    </Reference>
+    <Reference Include="NAudio.Core">
+      <HintPath>..\eu2av-installed\OpenHPSDR\Thetis\NAudio.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="NAudio">
+      <HintPath>..\eu2av-installed\OpenHPSDR\Thetis\NAudio.dll</HintPath>
+    </Reference>
+    <Reference Include="NAudio.Wasapi">
+      <HintPath>..\eu2av-installed\OpenHPSDR\Thetis\NAudio.Wasapi.dll</HintPath>
+    </Reference>
+    <Reference Include="NAudio.WinMM">
+      <HintPath>..\eu2av-installed\OpenHPSDR\Thetis\NAudio.WinMM.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Xml" />
+    <Reference Include="Newtonsoft.Json">
+      <HintPath>..\eu2av-installed\OpenHPSDR\Thetis\Newtonsoft.Json.dll</HintPath>
+    </Reference>
+    <Reference Include="Discord.Net.WebSocket">
+      <HintPath>..\eu2av-installed\OpenHPSDR\Thetis\Discord.Net.WebSocket.dll</HintPath>
+    </Reference>
+    <Reference Include="Discord.Net.Core">
+      <HintPath>..\eu2av-installed\OpenHPSDR\Thetis\Discord.Net.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="Discord.Net.Rest">
+      <HintPath>..\eu2av-installed\OpenHPSDR\Thetis\Discord.Net.Rest.dll</HintPath>
+    </Reference>
+    <Reference Include="SkiaSharp">
+      <HintPath>..\eu2av-installed\OpenHPSDR\Thetis\SkiaSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="HtmlAgilityPack">
+      <HintPath>..\eu2av-installed\OpenHPSDR\Thetis\HtmlAgilityPack.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.CodeAnalysis.Scripting">
+      <HintPath>..\eu2av-installed\OpenHPSDR\Thetis\Microsoft.CodeAnalysis.Scripting.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.CodeAnalysis">
+      <HintPath>..\eu2av-installed\OpenHPSDR\Thetis\Microsoft.CodeAnalysis.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Collections.Immutable">
+      <HintPath>..\eu2av-installed\OpenHPSDR\Thetis\System.Collections.Immutable.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Buffers">
+      <HintPath>..\eu2av-installed\OpenHPSDR\Thetis\System.Buffers.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Net.Http">
+      <HintPath>C:\Program Files\dotnet\shared\Microsoft.NETCore.App\10.0.11\System.Net.Http.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Net.Http.WebRequest" />
+    <Reference Include="WindowsFirewallHelper">
+      <HintPath>..\eu2av-installed\OpenHPSDR\Thetis\WindowsFirewallHelper.dll</HintPath>
+    </Reference>
+    <Reference Include="SharpDX.Mathematics">
+      <HintPath>..\eu2av-installed\OpenHPSDR\Thetis\SharpDX.Mathematics.dll</HintPath>
+    </Reference>
+    <Reference Include="SharpDX.Direct2D1">
+      <HintPath>..\eu2av-installed\OpenHPSDR\Thetis\SharpDX.Direct2D1.dll</HintPath>
+    </Reference>
+    <Reference Include="SharpDX.DXGI">
+      <HintPath>..\eu2av-installed\OpenHPSDR\Thetis\SharpDX.DXGI.dll</HintPath>
+    </Reference>
+    <Reference Include="SharpDX.Direct3D11">
+      <HintPath>..\eu2av-installed\OpenHPSDR\Thetis\SharpDX.Direct3D11.dll</HintPath>
+    </Reference>
+    <Reference Include="SharpDX">
+      <HintPath>..\eu2av-installed\OpenHPSDR\Thetis\SharpDX.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Management" />
+    <Reference Include="Midi2Cat">
+      <HintPath>..\eu2av-installed\OpenHPSDR\Thetis\Midi2Cat.dll</HintPath>
+    </Reference>
+    <Reference Include="System.IO.Compression">
+      <HintPath>C:\Program Files\dotnet\shared\Microsoft.NETCore.App\10.0.11\System.IO.Compression.dll</HintPath>
+    </Reference>
+    <Reference Include="NAudio.WinForms">
+      <HintPath>..\eu2av-installed\OpenHPSDR\Thetis\NAudio.WinForms.dll</HintPath>
+    </Reference>
+    <Reference Include="Svg">
+      <HintPath>..\eu2av-installed\OpenHPSDR\Thetis\Svg.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.CodeAnalysis.CSharp">
+      <HintPath>..\eu2av-installed\OpenHPSDR\Thetis\Microsoft.CodeAnalysis.CSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.CodeAnalysis.CSharp.Scripting">
+      <HintPath>..\eu2av-installed\OpenHPSDR\Thetis\Microsoft.CodeAnalysis.CSharp.Scripting.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="Markdig">
+      <HintPath>..\eu2av-installed\OpenHPSDR\Thetis\Markdig.dll</HintPath>
+    </Reference>
+    <Reference Include="System.IO.Compression.FileSystem" />
+    <Reference Include="Microsoft.Bcl.AsyncInterfaces">
+      <HintPath>..\eu2av-installed\OpenHPSDR\Thetis\Microsoft.Bcl.AsyncInterfaces.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>
