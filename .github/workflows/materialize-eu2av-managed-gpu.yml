@@ -1,5 +1,4 @@
 name: Materialize EU2AV Managed GPU Waterfall
-# Exact recovered managed GPU pipeline; preserve existing SQ4KOU Extended waterfall support.
 
 on:
   workflow_dispatch:
@@ -27,184 +26,70 @@ jobs:
           $pkg = Join-Path $env:RUNNER_TEMP 'Thetis-Extended-Final.7z'
           Invoke-WebRequest -Uri 'https://eu2av.net/download/file.php?id=2070' -OutFile $pkg -UseBasicParsing
           if ((Get-Item $pkg).Length -lt 10MB) { throw 'EU2AV package is unexpectedly small' }
-          $unpack = Join-Path $env:RUNNER_TEMP 'eu2av'; New-Item -ItemType Directory -Force -Path $unpack | Out-Null
+          $unpack = Join-Path $env:RUNNER_TEMP 'eu2av'
+          New-Item -ItemType Directory -Force -Path $unpack | Out-Null
           & 7z x $pkg "-o$unpack" -y | Out-Null
           $msi = Get-ChildItem $unpack -Recurse -Filter *.msi | Select-Object -First 1
           if (-not $msi) { throw 'EU2AV MSI not found' }
-          $installed = Join-Path $env:RUNNER_TEMP 'eu2av-installed'; New-Item -ItemType Directory -Force -Path $installed | Out-Null
+          $installed = Join-Path $env:RUNNER_TEMP 'eu2av-installed'
+          New-Item -ItemType Directory -Force -Path $installed | Out-Null
           $p = Start-Process msiexec.exe -ArgumentList @('/a', "`"$($msi.FullName)`"", '/qn', "TARGETDIR=`"$installed`"") -Wait -PassThru
           if ($p.ExitCode -ne 0) { throw "MSI extraction failed: $($p.ExitCode)" }
           $exe = Get-ChildItem $installed -Recurse -Filter Thetis.exe | Sort-Object Length -Descending | Select-Object -First 1
           if (-not $exe) { throw 'Thetis.exe not found' }
           dotnet tool install --global ilspycmd --version 11.0.0.9375
           $env:PATH = "$env:USERPROFILE\.dotnet\tools;$env:PATH"
-          $rec = Join-Path $env:RUNNER_TEMP 'recovered-project'; New-Item -ItemType Directory -Force -Path $rec | Out-Null
+          $rec = Join-Path $env:RUNNER_TEMP 'recovered-project'
+          New-Item -ItemType Directory -Force -Path $rec | Out-Null
           ilspycmd --disable-updatecheck -p -o $rec $exe.FullName
           "REC=$rec" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           "EUROOT=$installed" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Materialize exact EU2AV GPU classes and shaders
+      - name: Materialize exact GPU classes and shader binaries
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $dst = Join-Path $PWD 'Project Files\Source\Console'
           $src = Join-Path $env:REC 'Thetis'
-          $classes = @(
-            'GPUWaterfallPipeline.cs','WaterfallGPURenderer.cs','GPUWaterfallLogger.cs','SharedWaterfallState.cs',
-            'GPUWaterfallWindowType.cs','GPUWaterfallMagnitudeMode.cs','GPUWaterfallResamplingMode.cs'
-          )
+          $classes = @('GPUWaterfallPipeline.cs','WaterfallGPURenderer.cs','GPUWaterfallLogger.cs','SharedWaterfallState.cs','GPUWaterfallWindowType.cs','GPUWaterfallMagnitudeMode.cs','GPUWaterfallResamplingMode.cs')
           foreach ($f in $classes) {
             $s = Join-Path $src $f
             if (-not (Test-Path $s)) { throw "Recovered source missing: $f" }
             Copy-Item $s (Join-Path $dst $f) -Force
           }
-          $shaders = @(
-            'waterfall_fft_bitreverse_cs.bin','waterfall_fft_stage_ab_cs.bin','waterfall_fft_stage_ba_cs.bin',
-            'waterfall_fft_magnitude_cs.bin','waterfall_row_cs.bin','waterfall_postproc.bin','waterfall_resolve_cs.bin'
-          )
+          $shaders = @('waterfall_fft_bitreverse_cs.bin','waterfall_fft_stage_ab_cs.bin','waterfall_fft_stage_ba_cs.bin','waterfall_fft_magnitude_cs.bin','waterfall_row_cs.bin','waterfall_postproc.bin','waterfall_resolve_cs.bin')
           foreach ($f in $shaders) {
             $s = Get-ChildItem $env:EUROOT -Recurse -Filter $f | Select-Object -First 1
             if (-not $s) { throw "Recovered shader missing: $f" }
             Copy-Item $s.FullName (Join-Path $dst $f) -Force
           }
 
-      - name: Install exact managed GPU Display adapter
+      - name: Restore exact managed Display adapter from audited recovery commit
         shell: pwsh
         run: |
-          $b64 = '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'
-          [IO.File]::WriteAllBytes('gpu_display_exact.cs.gz', [Convert]::FromBase64String($b64))
+          $ErrorActionPreference = 'Stop'
+          $old = (git show HEAD^:.github/workflows/materialize-eu2av-managed-gpu.yml) -join "`n"
+          $m = [regex]::Match($old, "\$b64\s*=\s*'([^']+)'", [Text.RegularExpressions.RegexOptions]::Singleline)
+          if (-not $m.Success) { throw 'Audited Display adapter payload not found in parent commit' }
+          [IO.File]::WriteAllBytes('gpu_display_exact.cs.gz', [Convert]::FromBase64String($m.Groups[1].Value))
           python -c "import gzip; open(r'Project Files/Source/Console/Display.GPUWaterfall.cs','wb').write(gzip.open('gpu_display_exact.cs.gz','rb').read())"
 
-      - name: Patch SQ4KOU integration points without replacing Display or Setup
+      - name: Patch SQ4KOU integration points
         shell: pwsh
         run: |
-          @'
-import pathlib, re
-root = pathlib.Path('Project Files/Source/Console')
-
-p = root/'cmaster.cs'
-s = p.read_text(encoding='utf-8-sig')
-marker = '        // siphon\n'
-if 'ReadWaterfallIQ(int stream' not in s:
-    block = r'''        // EU2AV 2.10.3.16 GPU waterfall I/Q ring
-        private static bool _waterfallIQInitialized = false;
-        [DllImport("ChannelMaster.dll", CallingConvention = CallingConvention.Cdecl)] public static extern int CM_WaterfallIQ_Init(int stream, int capacitySamples);
-        [DllImport("ChannelMaster.dll", CallingConvention = CallingConvention.Cdecl)] public static extern void CM_WaterfallIQ_Free(int stream);
-        [DllImport("ChannelMaster.dll", CallingConvention = CallingConvention.Cdecl)] public static extern void CM_WaterfallIQ_SetEnabled(int stream, int enable);
-        [DllImport("ChannelMaster.dll", CallingConvention = CallingConvention.Cdecl)] public static extern int CM_WaterfallIQ_Available(int stream);
-        [DllImport("ChannelMaster.dll", CallingConvention = CallingConvention.Cdecl)] private unsafe static extern int CM_WaterfallIQ_Get(int stream, int maxSamples, float* outI, float* outQ);
-        [DllImport("ChannelMaster.dll", CallingConvention = CallingConvention.Cdecl)] public static extern ulong CM_WaterfallIQ_DroppedSamples(int stream);
-        [DllImport("ChannelMaster.dll", CallingConvention = CallingConvention.Cdecl)] public static extern void CM_WaterfallIQ_ResetDropped(int stream);
-        public static void SetWaterfallIQEnabled(bool enabled)
-        {
-            if (enabled && !_waterfallIQInitialized)
-            {
-                for (int i = 0; i < 2; i++) CM_WaterfallIQ_Init(i, 524288);
-                _waterfallIQInitialized = true;
-            }
-            if (_waterfallIQInitialized) for (int i = 0; i < 2; i++) CM_WaterfallIQ_SetEnabled(i, enabled ? 1 : 0);
-        }
-        public unsafe static int ReadWaterfallIQ(int stream, float[] outI, float[] outQ, int maxSamples)
-        {
-            if (outI == null || outQ == null || maxSamples <= 0) return 0;
-            int n = Math.Min(maxSamples, Math.Min(outI.Length, outQ.Length));
-            if (n <= 0) return 0;
-            int got;
-            fixed (float* pi = outI) fixed (float* pq = outQ) got = CM_WaterfallIQ_Get(stream, n, pi, pq);
-            for (int i = 0; i < got; i++) { float t = outI[i]; outI[i] = outQ[i]; outQ[i] = t; }
-            return got;
-        }
-        public static int GetWaterfallIQDroppedSamples(int stream)
-        {
-            ulong v = CM_WaterfallIQ_DroppedSamples(stream); return v > int.MaxValue ? int.MaxValue : (int)v;
-        }
-        public static void ResetWaterfallIQDropped(int stream) { CM_WaterfallIQ_ResetDropped(stream); }
-
-'''
-    if marker not in s: raise SystemExit('cmaster siphon anchor not found')
-    s = s.replace(marker, block + marker, 1)
-p.write_text(s, encoding='utf-8-sig')
-
-p = root/'display.cs'
-s = p.read_text(encoding='utf-8-sig')
-s = s.replace('TryUpdateGPUWaterfallRow(rx, nDecimatedWidth, local_mox);', 'TryUpdateGPUWaterfallRow(rx, W, local_mox);')
-anchor = """                    if (horizontalShiftPixels > W) horizontalShiftPixels = W;
-                    else if (horizontalShiftPixels < -W) horizontalShiftPixels = -W;
-
-                    if (rx == 1)"""
-replacement = """                    if (horizontalShiftPixels > W) horizontalShiftPixels = W;
-                    else if (horizontalShiftPixels < -W) horizontalShiftPixels = -W;
-
-                    UpdateEU2AVGPURenderer(rx, W, H, local_mox, cScheme, low_threshold, high_threshold, horizontalShiftPixels, addRow);
-
-                    if (rx == 1)"""
-if anchor not in s: raise SystemExit('display shift anchor not found')
-s = s.replace(anchor, replacement, 1)
-old = """                if (rx == 1)
-                {
-                    _d2dRenderTarget.DrawBitmap(_waterfall_bmp_dx2d, new RectangleF(0, nVerticalShift + 20, _waterfall_bmp_dx2d.Size.Width, _waterfall_bmp_dx2d.Size.Height), m_fRX1WaterfallOpacity, BitmapInterpolationMode.Linear);
-                }
-                else
-                {
-                    _d2dRenderTarget.DrawBitmap(_waterfall_bmp2_dx2d, new RectangleF(0, nVerticalShift + 20, _waterfall_bmp2_dx2d.Size.Width, _waterfall_bmp2_dx2d.Size.Height), m_fRX2WaterfallOpacity, BitmapInterpolationMode.Linear);
-                }"""
-new = """                if (!DrawEU2AVGPURenderer(rx, nVerticalShift))
-                {
-                    if (rx == 1)
-                    {
-                        _d2dRenderTarget.DrawBitmap(_waterfall_bmp_dx2d, new RectangleF(0, nVerticalShift + 20, _waterfall_bmp_dx2d.Size.Width, _waterfall_bmp_dx2d.Size.Height), m_fRX1WaterfallOpacity, BitmapInterpolationMode.Linear);
-                    }
-                    else
-                    {
-                        _d2dRenderTarget.DrawBitmap(_waterfall_bmp2_dx2d, new RectangleF(0, nVerticalShift + 20, _waterfall_bmp2_dx2d.Size.Width, _waterfall_bmp2_dx2d.Size.Height), m_fRX2WaterfallOpacity, BitmapInterpolationMode.Linear);
-                    }
-                }"""
-if old not in s: raise SystemExit('display draw anchor not found')
-s = s.replace(old, new, 1)
-p.write_text(s, encoding='utf-8-sig')
-
-p = root/'Thetis.csproj'
-s = p.read_text(encoding='utf-8-sig')
-s = s.replace('    <Compile Include="GPUWaterfallEnums.cs" />\n', '')
-compile_anchor = '    <Compile Include="GPUWaterfallNative.cs" />\n'
-add = '''    <Compile Include="GPUWaterfallWindowType.cs" />
-    <Compile Include="GPUWaterfallMagnitudeMode.cs" />
-    <Compile Include="GPUWaterfallResamplingMode.cs" />
-    <Compile Include="GPUWaterfallPipeline.cs" />
-    <Compile Include="WaterfallGPURenderer.cs" />
-    <Compile Include="GPUWaterfallLogger.cs" />
-    <Compile Include="SharedWaterfallState.cs" />
-'''
-for name in ['GPUWaterfallWindowType.cs','GPUWaterfallMagnitudeMode.cs','GPUWaterfallResamplingMode.cs','GPUWaterfallPipeline.cs','WaterfallGPURenderer.cs','GPUWaterfallLogger.cs','SharedWaterfallState.cs']:
-    s = s.replace(f'    <Compile Include="{name}" />\n','')
-if compile_anchor not in s: raise SystemExit('csproj compile anchor not found')
-s = s.replace(compile_anchor, compile_anchor + add, 1)
-shader_xml = '''    <Content Include="waterfall_fft_bitreverse_cs.bin"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
-    <Content Include="waterfall_fft_stage_ab_cs.bin"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
-    <Content Include="waterfall_fft_stage_ba_cs.bin"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
-    <Content Include="waterfall_fft_magnitude_cs.bin"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
-    <Content Include="waterfall_row_cs.bin"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
-    <Content Include="waterfall_postproc.bin"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
-    <Content Include="waterfall_resolve_cs.bin"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
-'''
-for sh in ['waterfall_fft_bitreverse_cs.bin','waterfall_fft_stage_ab_cs.bin','waterfall_fft_stage_ba_cs.bin','waterfall_fft_magnitude_cs.bin','waterfall_row_cs.bin','waterfall_postproc.bin','waterfall_resolve_cs.bin']:
-    s = re.sub(r'\s*<Content Include="'+re.escape(sh)+r'"[^>]*>.*?</Content>\s*', '\n', s, flags=re.S)
-none_anchor = '    <None Include="Resources\\thetis-logo2.png" />'
-if none_anchor not in s: raise SystemExit('csproj content anchor not found')
-s = s.replace(none_anchor, shader_xml + none_anchor, 1)
-p.write_text(s, encoding='utf-8-sig')
-print('Managed EU2AV GPU integration patched successfully')
-'@ | Set-Content integrate_exact_gpu.py -Encoding utf8
+          $patchB64 = 'H4sIANJ8oGoC/+VZbVPbOBD+7l+hy4c6BmMg9zId3jo9oC0zTQuElpsBLqPYSqzWllxJTkIp//1WfknsxE7SHgPXOc8wwZJ299lHu6vVmIYRFwpFWPkB7dlIEENwrtB+PuScwm/TPBX8E3EVekUDIjc7PBYu2TzkTPKAmJZhRCChBTdNN8RSEeG40jSk1uMIgr2uImPVJMzlHmWDfTNW/Y3nG5IOQDjE4jMRsNRE2bO5iSSNfM6umWnQPjLPQcUlBrV9HAQnZ03KFJIKFIcmYgCXMiR3DC3aC7j7WYMxzaK64w+tlx9Ry9necn51tv9Ar08/oFGuEJ1sniEBuIxcIhJ0CLNgAyvqoh7nAeqOpgBOGFUUB/Qr8cAWjEmyOxG+OoIlCa/NxqGPGSNBO+XEC4KGjQ5BBRgD9oaEKcoZqJgbcw494gbWDYriXgAQMiTAIhEMaf8P290CJV0NqcCLnaxxcYRdqm47OIxg46xHBTnk1JtF+UoQUkD59IA6RB0z3AuIN0ceScatp97Yl0NMA43kUXjLAj9mEvfJcnCvyXzQhXicxZuN+gHHag3xWJ0UX84el9U44GwwC/1I8CgiXgb1PxWU50QSleGrBlZWleiASC7oyIM6KV1pJHvWRPxu8p9+oMI2syXo2TP0S02ls0pCZRX66XOBErQUWNjahZ891IKf9XWruljZ6PfWb63nzwt+5U99sVUiJuX193PO1DnwPRCLhcHOGUQv0DbaQVsFxPeze1JOHW2s/vTKcuLqppgh6dvZbDIt2j0tjfb3EYvhNPv2LZEvvk+1oD1w3IJzXsUQfFtlJrVBHcJtOPOdNmXNYipPBrUx5y1hA+XbiaXsxZrZRw2MLbU34Ko82KdjILqZFYtI75S2aM1OfEknziytQufdfGXKSWY26IG/LzMIq8JB40kD4i7dDqQyBFf0Zjf/J7OdD52lQyBZDsbM7ZKP9zVJrHG8LuVwfYWqCYW0zg3nyZjRlJeTHN8QHWjzThuPP+IgJhDmpdedhCVruNyJpBIl5Wvej6IDQO6imjcBeG8Y0MgZWThlneKk40MCU0lQ5xZKcng8hpqSt59Z/4gwc32eSvR5zDwzpU43phIa0yjALmmmau2sd1xH+fu2ZUTOSFBF0vZV6jpQ1cEW2l+PSlB6+x3tbxmLeSFuP0QeEAMt6oSfcz5qijEE8hFxaQij3iX1dPoBYhx0Qz62dk0bLRa+LC+3jIycfdRoNFDFoxMYFtCvnCkcdHzaV6eQg4GEcLm0UPXUPrqcL+f6gUmyQOUe2ligcwOUGnUYxVjXum0L3DAyHkM4en9ux9J9TO4tsJnnhHlEEJFv5JvCXtrI7bg+uKzHRl3lCyJ9Hng28unAL71XgbAR9jyIEWtFhuG9kFV1eZjlAZLaUFUalsM+XaDvn5PtS/IPYFdvYxHVHOy7Ske6XstLebzAYkCUcyTw6E+qQhwVOoZuL4y63rgFdDEyglrmKswGAXnV3IKRj0RAmcv4g1LRgsEKWacD/YaT5Wjt/BsC+6MsG4Xd/vlf25OEfZ9e2myUgjthMB7xAOtmss094ryljGBR0TbdG1XB+eD8tP4NQa1lDLVqKWo9BEU6hjXw2rD6RftdmXhl76xVA29hrNaL/U9itjpua2P3ofj6mWO4mrL7rDrrmrlKafaAmuWVOTk4gKQfa4cufKKohG4oEvzTD3ZE2re9Qx5GNCDohLlB7JH9RrHDOWZxqI000ObBNdONEGhxU4nupMtZQdE7IH9IppoMOBq1pLmC7CVlHh9d3Ea5vLFcpo0HcD2F4WS/VxaDXll38kDc98md0oiA1BKJyfJC+Vvdxls+GCxb3/GxINMrcQfuDhNMut3X9zKGQ6JD+MqsJdm0zUVkzkzPkTYzXyAHZmpImJGZOAvjNU6ZNzsVV45+TUDdabfv8zjWYQwJPRPJC68/SaLlEsuzu6zanjW1rnvDJPOlj4GD7jgMSvkANQsa7Qn8aQ3s91W3R+EaNyRCkq4rnR5ljQMQiW4v+PtYRbE6ogIKLxe3B6fQohIxJO/IiEi1t1m9So8nBidxtdA8XEkH4EnvCY338JMYD/NMeHTrAi4gj20z4lJB1LuP7CmRPBg+PMN5/ZN+Wv2WpBQUiYVRXzM/Ccy5+dnYKS2Ybm9puLgD5fUlkoqlUBBHxr2mMK/l2jzN5jrME+niiDSlb60Ls3H198HN2oGz9mLKFYjqsz458ZNvDXgg90GwYxmMs7mT/x2MTU3AcZB8xZTX1yppUjYCPuAtJ2IDXX6T745FLStV3dSNpVW3oBeQTyvrOirNrNxwRYIygNHGDPbWyz526k+cMEwGIuko9Qdd14dZGbvgtezHQXALsv8AHrLF6QIeAAA='
+          [IO.File]::WriteAllBytes('integrate_exact_gpu.py.gz', [Convert]::FromBase64String($patchB64))
+          python -c "import gzip; open('integrate_exact_gpu.py','wb').write(gzip.open('integrate_exact_gpu.py.gz','rb').read())"
           python integrate_exact_gpu.py
 
-      - name: Verify exact managed GPU source
+      - name: Verify managed GPU source before commit
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $display = Get-Content 'Project Files\Source\Console\Display.GPUWaterfall.cs' -Raw
-          if ($display -match 'CM_GPUWaterfall_Process') { throw 'Old native GPU waterfall path still active' }
-          foreach ($f in @('GPUWaterfallPipeline.cs','WaterfallGPURenderer.cs','waterfall_fft_magnitude_cs.bin','waterfall_row_cs.bin')) {
-            if (-not (Test-Path (Join-Path 'Project Files\Source\Console' $f))) { throw "Missing GPU component $f" }
+          if ($display -match 'CM_GPUWaterfall_Process') { throw 'Old native GPU path still active' }
+          foreach ($f in @('GPUWaterfallPipeline.cs','WaterfallGPURenderer.cs','SharedWaterfallState.cs','waterfall_fft_magnitude_cs.bin','waterfall_row_cs.bin')) {
+            if (-not (Test-Path (Join-Path 'Project Files\Source\Console' $f))) { throw "Missing component: $f" }
           }
           git diff --stat
 
@@ -238,20 +123,19 @@ print('Managed EU2AV GPU integration patched successfully')
           if (-not $targets) { throw 'WiX 3.x Wix.targets not found' }
           "WIX_TARGETS=$($targets.FullName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Restore and build Release x64 MSI from committed managed GPU source
+      - name: Restore and build Release x64 MSI
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           nuget restore "Project Files\Source\Thetis_VS2026.sln" -NonInteractive
           msbuild "Project Files\Source\Thetis_VS2026.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal
 
-      - name: Verify shader deployment and final MSI
+      - name: Verify shaders and final MSI
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           foreach ($f in @('waterfall_fft_bitreverse_cs.bin','waterfall_fft_stage_ab_cs.bin','waterfall_fft_stage_ba_cs.bin','waterfall_fft_magnitude_cs.bin','waterfall_row_cs.bin')) {
-            $hit = Get-ChildItem 'Project Files\bin' -Recurse -Filter $f | Select-Object -First 1
-            if (-not $hit) { throw "Shader not deployed: $f" }
+            if (-not (Get-ChildItem 'Project Files\bin' -Recurse -Filter $f | Select-Object -First 1)) { throw "Shader not deployed: $f" }
           }
           $msi = Get-ChildItem "Project Files\bin\Installers\*.msi" -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
           if (-not $msi -or $msi.Length -lt 1MB) { throw 'Valid MSI was not produced' }
