@@ -1031,7 +1031,7 @@ namespace Thetis
 		{
 			if (Enum.TryParse<GPUWaterfallWindowType>(comboGPUWaterfallWindow.SelectedItem.ToString(), out var result))
 			{
-				Display.GPUWaterfallWindowType = (int)result;
+				Display.GPUWaterfallWindowType = result;
 			}
 			UpdateKaiserBetaVisibility();
 		}
@@ -1042,7 +1042,7 @@ namespace Thetis
 	{
 		if (!initializing)
 		{
-			Display.GPUWaterfallKaiserBeta = (float)udGPUWaterfallKaiserBeta.Value;
+			Display.GPUWaterfallKaiserBeta = (double)udGPUWaterfallKaiserBeta.Value;
 		}
 	}
 
@@ -1051,7 +1051,7 @@ namespace Thetis
 	{
 		if (!initializing && comboGPUWaterfallMagnitudeMode.SelectedItem != null)
 		{
-			Display.GPUWaterfallMagnitudeMode = comboGPUWaterfallMagnitudeMode.SelectedIndex;
+			Display.GPUWaterfallMagnitudeMode = (GPUWaterfallMagnitudeMode)comboGPUWaterfallMagnitudeMode.SelectedIndex;
 		}
 	}
 
@@ -1088,7 +1088,7 @@ namespace Thetis
 	{
 		if (!initializing && comboGPUWaterfallResampling != null && comboGPUWaterfallResampling.SelectedIndex >= 0)
 		{
-			Display.GPUWaterfallResamplingMode = comboGPUWaterfallResampling.SelectedIndex;
+			Display.GPUWaterfallResamplingMode = (GPUWaterfallResamplingMode)comboGPUWaterfallResampling.SelectedIndex;
 		}
 	}
 
