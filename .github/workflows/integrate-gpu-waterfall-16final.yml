@@ -30,19 +30,19 @@ jobs:
         run: |
           @'
           from pathlib import Path
+          import re
           p = Path('tools/integrate_gpu_waterfall_16final.py')
           s = p.read_text(encoding='utf-8')
-          old = '[DllImport(\\"ChannelMaster.dll\\", CallingConvention = CallingConvention.Cdecl)]'
-          new = '[DllImport(\\"ChannelMaster.dll\\", EntryPoint = \\"SendpOutboundTCIRxIQ\\", CallingConvention = CallingConvention.Cdecl)]'
-          n = s.count(old)
+          pattern = r'''(marker\s*=\s*'\s*\[DllImport\("ChannelMaster\.dll",\s*)CallingConvention\s*=\s*CallingConvention\.Cdecl(\)\])'''
+          repl = r'''\1EntryPoint = "SendpOutboundTCIRxIQ", CallingConvention = CallingConvention.Cdecl\2'''
+          s2, n = re.subn(pattern, repl, s, count=1)
           if n == 1:
-              s = s.replace(old, new, 1)
-              p.write_text(s, encoding='utf-8')
+              p.write_text(s2, encoding='utf-8')
               print('GPU16_PRECHECK: updated cmaster.cs interop anchor for SQ4KOU/ramdor syntax')
-          elif new in s:
+          elif 'EntryPoint = "SendpOutboundTCIRxIQ", CallingConvention = CallingConvention.Cdecl' in s:
               print('GPU16_PRECHECK: anchor already current')
           else:
-              raise SystemExit(f'GPU16_PRECHECK_FAIL: expected one escaped DllImport marker, got {n}')
+              raise SystemExit(f'GPU16_PRECHECK_FAIL: cmaster marker regex matches={n}')
           '@ | python -
 
       - name: Integrate recovered 16 Final GPU sources
