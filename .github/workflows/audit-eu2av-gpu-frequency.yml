@@ -1,6 +1,9 @@
 name: Audit EU2AV GPU Waterfall Frequency Reference
 
 on:
+  push:
+    branches: [feature/eu2av-gpu-waterfall-sq4kou]
+    paths: [.github/workflows/audit-eu2av-gpu-frequency.yml]
   workflow_dispatch:
 
 permissions:
@@ -52,7 +55,7 @@ jobs:
             $lines = Get-Content $path
             foreach ($pat in $patterns) {
               Add-Content $out "`r`n--- PATTERN: $pat ---"
-              $hits = Select-String -InputObject $lines -Pattern $pat -SimpleMatch
+              $hits = Select-String -Path $path -Pattern $pat -SimpleMatch
               if (-not $hits) { Add-Content $out 'NO MATCH'; continue }
               foreach ($h in $hits) {
                 $n = $h.LineNumber
