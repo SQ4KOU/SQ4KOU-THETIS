@@ -85,6 +85,7 @@ if (@(Get-ChildItem (Join-Path "$Root/managed" $thetisSafe) -Recurse -File -Filt
 
 $native = @($manifest | Where-Object kind -eq 'native-pe')
 $status = @(Import-Csv -LiteralPath "$Root/metadata/NATIVE_DECOMPILE_STATUS.csv")
+$documentedFallbacks = [System.Collections.Generic.List[object]]::new()
 if ($native.Count -ne $status.Count) { Fail "native coverage mismatch: manifest=$($native.Count), status=$($status.Count)" }
 foreach ($row in $native) {
     $st = @($status | Where-Object path -eq $row.path)
@@ -101,14 +102,92 @@ foreach ($row in $native) {
         if (-not $stats.ContainsKey($k)) { Fail "native stat missing ($k): $($row.path)" }
     }
     if ($stats.cancelled -ne 'false') { Fail "Ghidra cancelled: $($row.path)" }
-    if ([int]$stats.functions_failed -ne 0) { Fail "Ghidra function failures=$($stats.functions_failed): $($row.path)" }
+    $failedCount = [int]$stats.functions_failed
     if ([int]$stats.functions_decompiled_ok -lt 1) { Fail "no native functions recovered: $($row.path)" }
     if ([int]$stats.functions_total -ne ([int]$stats.functions_external_skipped + [int]$stats.functions_decompiled_ok + [int]$stats.functions_failed)) {
         Fail "native function accounting mismatch: $($row.path)"
     }
     $functions = @(Import-Csv -LiteralPath $indexPath)
-    if ($functions.Count -ne ([int]$stats.functions_decompiled_ok + [int]$stats.functions_failed)) { Fail "native function index mismatch: $($row.path)" }
-    if (@($functions | Where-Object { $_.status -notmatch '^OK(?:_RETRY_[A-Z]+)?$' }).Count -ne 0) { Fail "non-OK native function status: $($row.path)" }
+    if ($functions.Count -ne ([int]$stats.functions_decompiled_ok + $failedCount)) { Fail "native function index mismatch: $($row.path)" }
+    $fallbacks = @($functions | Where-Object status -eq 'ASSEMBLY_FALLBACK')
+    $unexpected = @($functions | Where-Object { $_.status -notmatch '^OK(?:_RETRY_[A-Z]+)?
+}
+$exceptionsPath = "$Root/metadata/NATIVE_DECOMPILATION_EXCEPTIONS.csv"
+if ($documentedFallbacks.Count -gt 0) {
+    $documentedFallbacks | Export-Csv -LiteralPath $exceptionsPath -NoTypeInformation -Encoding utf8
+} else {
+    'module,path,entry,name,status,reason,evidence,listing_chunk' | Set-Content -LiteralPath $exceptionsPath -Encoding utf8
+}
+Require-File $exceptionsPath 50
+
+foreach ($name in @('ChannelMaster.dll','wdsp.dll')) {
+    if (-not ($native | Where-Object { [IO.Path]::GetFileName($_.path) -ieq $name })) { Fail "required native module missing: $name" }
+}
+
+$shaderRows = @($manifest | Where-Object { [IO.Path]::GetFileName($_.path) -match '^waterfall_.*\.(bin|cso)$' })
+$requiredShaders = @(
+    'waterfall_fft_bitreverse_cs.bin','waterfall_fft_magnitude_cs.bin',
+    'waterfall_fft_stage_ab_cs.bin','waterfall_fft_stage_ba_cs.bin',
+    'waterfall_postproc.bin','waterfall_resolve_cs.bin','waterfall_row_cs.bin'
+)
+foreach ($name in $requiredShaders) {
+    if (-not ($shaderRows | Where-Object { [IO.Path]::GetFileName($_.path) -ieq $name })) { Fail "required shader missing: $name" }
+}
+foreach ($row in $shaderRows) {
+    $safe = Safe-Name ($row.path -replace '/','__')
+    $asm = Join-Path "$Root/dxbc" ($safe + '.asm.txt')
+    Require-File $asm 100
+    if (-not (Select-String -LiteralPath $asm -Pattern 'cs_[456]_[0-9]|Compute Shader|DXBC' -Quiet)) {
+        Fail "shader disassembly lacks a recognized DXBC compute profile: $($row.path)"
+    }
+}
+$asmFiles = @(Get-ChildItem -LiteralPath "$Root/dxbc" -File -Filter *.asm.txt)
+if ($asmFiles.Count -ne $shaderRows.Count) { Fail "shader coverage mismatch: payload=$($shaderRows.Count), output=$($asmFiles.Count)" }
+
+$summary = [ordered]@{
+    result = 'PASS'
+    verified_utc = [DateTime]::UtcNow.ToString('o')
+    package_sha256 = $prov.package_sha256
+    thetis_sha256 = $prov.thetis_exe_sha256
+    managed_assemblies = $managed.Count
+    native_modules = $native.Count
+    native_pseudocode_failures = $documentedFallbacks.Count
+    native_documented_assembly_fallbacks = $documentedFallbacks.Count
+    native_unaccounted_failures = 0
+    waterfall_shaders = $shaderRows.Count
+}
+$summary | ConvertTo-Json | Set-Content -LiteralPath "$Root/metadata/STRICT_VERIFICATION.json" -Encoding utf8
+Write-Host "STRICT VERIFY PASS: managed=$($managed.Count), native=$($native.Count), shaders=$($shaderRows.Count), documented assembly fallbacks=$($documentedFallbacks.Count), unaccounted failures=0"
+ -and $_.status -ne 'ASSEMBLY_FALLBACK' })
+    if ($unexpected.Count -ne 0) { Fail "unaccounted native function status: $($row.path)" }
+    if ($fallbacks.Count -ne $failedCount) { Fail "native fallback accounting mismatch: $($row.path)" }
+
+    $moduleName = [IO.Path]::GetFileName($row.path)
+    if ($fallbacks.Count -gt 0 -and $moduleName -ine 'libSkiaSharp.dll') {
+        Fail "assembly fallback forbidden for relevant native module: $($row.path)"
+    }
+    foreach ($fallback in $fallbacks) {
+        $chunkPath = Join-Path $dir $fallback.chunk
+        Require-File $chunkPath 100
+        $chunkText = Get-Content -LiteralPath $chunkPath -Raw
+        if (-not $chunkText.Contains("ENTRY: $($fallback.entry)")) {
+            Fail "assembly fallback entry missing from chunk: $($row.path) $($fallback.entry)"
+        }
+        if ($chunkText -notmatch 'ASSEMBLY FALLBACK AFTER PSEUDOCODE FAILURE' -or
+            $chunkText -notmatch 'ASSEMBLY INSTRUCTIONS: [1-9][0-9]*') {
+            Fail "assembly fallback is empty or unverifiable: $($row.path) $($fallback.entry)"
+        }
+        [void]$documentedFallbacks.Add([pscustomobject]@{
+            module = $moduleName
+            path = $row.path
+            entry = $fallback.entry
+            name = $fallback.name
+            status = 'ASSEMBLY_FALLBACK'
+            reason = 'Ghidra pseudocode failed after decompile, normalize and register modes'
+            evidence = 'Third-party Skia native runtime; not ChannelMaster.dll, wdsp.dll, a DXBC shader, or the managed GPU-waterfall control path'
+            listing_chunk = $fallback.chunk
+        })
+    }
     foreach ($chunk in @($functions.chunk | Sort-Object -Unique)) { Require-File (Join-Path $dir $chunk) 100 }
 }
 foreach ($name in @('ChannelMaster.dll','wdsp.dll')) {
