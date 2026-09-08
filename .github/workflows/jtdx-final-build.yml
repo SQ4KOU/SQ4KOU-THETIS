@@ -1,0 +1,84 @@
+name: JTDX FINAL Windows Build
+
+on:
+  push:
+    branches:
+      - jtdx-final-build-2
+    paths:
+      - '.github/workflows/jtdx-final-build.yml'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout build branch
+        uses: actions/checkout@v4
+
+      - name: Reconstruct and verify FINAL bundle
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $parts = Get-ChildItem "$env:GITHUB_WORKSPACE\jtdx-final\bundle.part*" | Sort-Object Name
+          if ($parts.Count -ne 14) { throw "Expected 14 bundle parts, got $($parts.Count)" }
+          $b64 = ''
+          foreach ($p in $parts) { $b64 += [IO.File]::ReadAllText($p.FullName).Trim() }
+          $zip = "$env:RUNNER_TEMP\JTDX_SUPERHOUND_MSI_FINAL.zip"
+          [IO.File]::WriteAllBytes($zip, [Convert]::FromBase64String($b64))
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
+          Write-Host "BUNDLE_SHA256=$hash"
+          if ($hash -ne 'c7bafdd622a46dac7730f477b46daf69f821a4b2edc70e27345036e842a1b354') {
+            throw "Bundle SHA256 mismatch: $hash"
+          }
+          $dst = "$env:RUNNER_TEMP\jtdx-final"
+          New-Item -ItemType Directory -Force -Path $dst | Out-Null
+          Expand-Archive -Path $zip -DestinationPath $dst -Force
+          $root = "$dst\JTDX_SUPERHOUND_MSI_FINAL"
+          if (-not (Test-Path "$root\BUILD_JTDX_SUPERHOUND_MSI.ps1")) { throw 'FINAL build script missing' }
+          Write-Host "FINAL_ROOT=$root"
+
+      - name: Setup MSYS2 MINGW64
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          location: C:\msys64
+          update: false
+
+      - name: Build JTDX SuperHound FINAL MSI
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = "$env:RUNNER_TEMP\jtdx-final\JTDX_SUPERHOUND_MSI_FINAL"
+          & powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$root\BUILD_JTDX_SUPERHOUND_MSI.ps1"
+          if ($LASTEXITCODE -ne 0) { throw "FINAL builder failed with exit code $LASTEXITCODE" }
+
+      - name: Validate FINAL MSI
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $root = "$env:RUNNER_TEMP\jtdx-final\JTDX_SUPERHOUND_MSI_FINAL"
+          $msi = Get-ChildItem "$root\OUTPUT\JTDX-SuperHound*.msi" -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $msi) { throw 'FINAL MSI not found' }
+          if ($msi.Length -lt 1000000) { throw "FINAL MSI too small: $($msi.Length) bytes" }
+          $hash = (Get-FileHash $msi.FullName -Algorithm SHA256).Hash.ToLower()
+          Write-Host "FINAL_MSI=$($msi.Name)"
+          Write-Host "FINAL_MSI_SIZE=$($msi.Length)"
+          Write-Host "FINAL_MSI_SHA256=$hash"
+          $meta = @(
+            "FINAL_MSI=$($msi.Name)",
+            "FINAL_MSI_SIZE=$($msi.Length)",
+            "FINAL_MSI_SHA256=$hash"
+          )
+          $meta | Set-Content "$root\OUTPUT\FINAL_BUILD_INFO.txt" -Encoding UTF8
+
+      - name: Upload FINAL artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: JTDX-SuperHound-FINAL
+          path: |
+            ${{ runner.temp }}\jtdx-final\JTDX_SUPERHOUND_MSI_FINAL\OUTPUT\*.msi
+            ${{ runner.temp }}\jtdx-final\JTDX_SUPERHOUND_MSI_FINAL\OUTPUT\FINAL_BUILD_INFO.txt
+            ${{ runner.temp }}\jtdx-final\JTDX_SUPERHOUND_MSI_FINAL\LOGS\*.log
+          if-no-files-found: error
