@@ -1,0 +1,98 @@
+name: Lock EU2AV 2.10.3.16 Final Source
+
+on:
+  push:
+    branches:
+      - reference/eu2av-2.10.3.16-final-decompiled
+    paths:
+      - .github/workflows/lock-eu2av-2.10.3.16-final-source.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  lock-source:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: reference/eu2av-2.10.3.16-final-decompiled
+          fetch-depth: 1
+          persist-credentials: true
+
+      - name: Download twice and verify immutable bytes
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $url = 'https://eu2av.net/download/file.php?id=2070'
+          $a = Join-Path $env:RUNNER_TEMP 'eu2av-a.bin'
+          $b = Join-Path $env:RUNNER_TEMP 'eu2av-b.bin'
+          foreach ($p in @($a,$b)) {
+            & curl.exe -L --fail-with-body --retry 5 --retry-all-errors --connect-timeout 30 --max-time 1200 -A 'Mozilla/5.0 SQ4KOU-SOURCE-LOCK/1.0' -e 'https://eu2av.net/' -o $p $url
+            if ($LASTEXITCODE -ne 0) { throw "download failed: $LASTEXITCODE" }
+            if ((Get-Item $p).Length -lt 10MB) { throw "download too small: $((Get-Item $p).Length)" }
+          }
+          $ha = (Get-FileHash $a -Algorithm SHA256).Hash.ToLowerInvariant()
+          $hb = (Get-FileHash $b -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($ha -ne $hb) { throw "independent downloads differ: $ha != $hb" }
+          if ((Get-Item $a).Length -ne (Get-Item $b).Length) { throw 'independent download sizes differ' }
+          & 7z t $a
+          if ($LASTEXITCODE -ne 0) { throw '7-Zip integrity test failed' }
+
+          $unpack = Join-Path $env:RUNNER_TEMP 'eu2av-lock-unpack'
+          $installed = Join-Path $env:RUNNER_TEMP 'eu2av-lock-installed'
+          New-Item -ItemType Directory -Force -Path $unpack,$installed | Out-Null
+          & 7z x $a "-o$unpack" -y
+          if ($LASTEXITCODE -ne 0) { throw 'outer extraction failed' }
+          $msi = Get-ChildItem $unpack -Recurse -File -Filter *.msi | Sort-Object Length -Descending | Select-Object -First 1
+          if (-not $msi) { throw 'MSI missing from official package' }
+
+          $installer = New-Object -ComObject WindowsInstaller.Installer
+          $db = $installer.GetType().InvokeMember('OpenDatabase','InvokeMethod',$null,$installer,@($msi.FullName,0))
+          $view = $db.GetType().InvokeMember('OpenView','InvokeMethod',$null,$db,@("SELECT `Value` FROM `Property` WHERE `Property`='ProductVersion'"))
+          [void]$view.GetType().InvokeMember('Execute','InvokeMethod',$null,$view,$null)
+          $record = $view.GetType().InvokeMember('Fetch','InvokeMethod',$null,$view,$null)
+          $msiVersion = [string]$record.GetType().InvokeMember('StringData','GetProperty',$null,$record,1)
+          if ($msiVersion -ne '2.10.3.16') { throw "MSI ProductVersion mismatch: $msiVersion" }
+
+          $p = Start-Process msiexec.exe -ArgumentList @('/a',"`"$($msi.FullName)`"",'/qn',"TARGETDIR=`"$installed`"") -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "MSI administrative extraction failed: $($p.ExitCode)" }
+          $exe = Get-ChildItem $installed -Recurse -File -Filter Thetis.exe | Sort-Object Length -Descending | Select-Object -First 1
+          if (-not $exe) { throw 'Thetis.exe missing after MSI extraction' }
+          $vi = [Diagnostics.FileVersionInfo]::GetVersionInfo($exe.FullName)
+          if ($vi.FileVersion -notmatch '^2\.10\.3\.16(?:\.|$)') { throw "Thetis FileVersion mismatch: $($vi.FileVersion)" }
+          if ($vi.ProductVersion -notmatch '^2\.10\.3\.16(?:\.|$)') { throw "Thetis ProductVersion mismatch: $($vi.ProductVersion)" }
+
+          $magicBytes = [IO.File]::ReadAllBytes($a)
+          $magic = (($magicBytes[0..15] | ForEach-Object { $_.ToString('X2') }) -join ' ')
+          $lock = [ordered]@{
+            locked_utc = [DateTime]::UtcNow.ToString('o')
+            source_url = $url
+            independent_downloads = 2
+            package_sha256 = $ha
+            package_size = (Get-Item $a).Length
+            package_magic = $magic
+            msi_name = $msi.Name
+            msi_sha256 = (Get-FileHash $msi.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            msi_product_version = $msiVersion
+            thetis_sha256 = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+            thetis_size = $exe.Length
+            thetis_file_version = $vi.FileVersion
+            thetis_product_version = $vi.ProductVersion
+          }
+          $lock | ConvertTo-Json | Set-Content tools/reverse-engineering/EU2AV_FINAL_SOURCE_LOCK.json -Encoding utf8
+          Get-Content tools/reverse-engineering/EU2AV_FINAL_SOURCE_LOCK.json
+
+      - name: Commit source lock
+        shell: pwsh
+        run: |
+          git config user.name 'SQ4KOU Source Verification Bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add -- tools/reverse-engineering/EU2AV_FINAL_SOURCE_LOCK.json
+          git diff --cached --quiet
+          if ($LASTEXITCODE -eq 0) { Write-Host 'Source lock unchanged'; exit 0 }
+          git commit -m 'Reference: lock verified EU2AV 2.10.3.16 Final package'
+          git pull --rebase origin reference/eu2av-2.10.3.16-final-decompiled
+          git push origin HEAD:reference/eu2av-2.10.3.16-final-decompiled
