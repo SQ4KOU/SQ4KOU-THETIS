@@ -110,7 +110,40 @@ foreach ($row in $native) {
     $functions = @(Import-Csv -LiteralPath $indexPath)
     if ($functions.Count -ne ([int]$stats.functions_decompiled_ok + $failedCount)) { Fail "native function index mismatch: $($row.path)" }
     $fallbacks = @($functions | Where-Object status -eq 'ASSEMBLY_FALLBACK')
-    $unexpected = @($functions | Where-Object { $_.status -notmatch '^OK(?:_RETRY_[A-Z]+)?
+    $allowedStatuses = @('OK','OK_RETRY_DECOMPILE','OK_RETRY_NORMALIZE','OK_RETRY_REGISTER','ASSEMBLY_FALLBACK')
+    $unexpected = @($functions | Where-Object { $_.status -notin $allowedStatuses })
+    if ($unexpected.Count -ne 0) { Fail "unaccounted native function status: $($row.path)" }
+    if ($fallbacks.Count -ne $failedCount) { Fail "native fallback accounting mismatch: $($row.path)" }
+
+    $moduleName = [IO.Path]::GetFileName($row.path)
+    if ($fallbacks.Count -gt 0 -and $moduleName -ine 'libSkiaSharp.dll') {
+        Fail "assembly fallback forbidden for relevant native module: $($row.path)"
+    }
+    foreach ($fallback in $fallbacks) {
+        $chunkPath = Join-Path $dir $fallback.chunk
+        Require-File $chunkPath 100
+        $chunkText = Get-Content -LiteralPath $chunkPath -Raw
+        if (-not $chunkText.Contains("ENTRY: $($fallback.entry)")) {
+            Fail "assembly fallback entry missing from chunk: $($row.path) $($fallback.entry)"
+        }
+        if ($chunkText -notmatch 'ASSEMBLY FALLBACK AFTER PSEUDOCODE FAILURE' -or
+            $chunkText -notmatch 'ASSEMBLY INSTRUCTIONS: [1-9][0-9]*') {
+            Fail "assembly fallback is empty or unverifiable: $($row.path) $($fallback.entry)"
+        }
+        [void]$documentedFallbacks.Add([pscustomobject]@{
+            module = $moduleName
+            path = $row.path
+            entry = $fallback.entry
+            name = $fallback.name
+            status = 'ASSEMBLY_FALLBACK'
+            reason = 'Ghidra pseudocode failed after decompile, normalize and register modes'
+            evidence = 'Third-party Skia native runtime; not ChannelMaster.dll, wdsp.dll, a DXBC shader, or the managed GPU-waterfall control path'
+            listing_chunk = $fallback.chunk
+        })
+    }
+    foreach ($chunkName in @($functions.chunk | Sort-Object -Unique)) {
+        Require-File (Join-Path $dir $chunkName) 100
+    }
 }
 $exceptionsPath = "$Root/metadata/NATIVE_DECOMPILATION_EXCEPTIONS.csv"
 if ($documentedFallbacks.Count -gt 0) {
