@@ -41,7 +41,15 @@ namespace Thetis
         public static bool AutoHighEnabledRX1 { get { return _autoHighEnabledRX1; } set { _autoHighEnabledRX1 = value; } }
         public static bool AutoHighEnabledRX2 { get { return _autoHighEnabledRX2; } set { _autoHighEnabledRX2 = value; } }
         public static float AutoHighMarginDb { get { return _autoHighMarginDb; } set { _autoHighMarginDb = value < 0f ? 0f : (value > 30f ? 30f : value); } }
-        public static bool TemporalEnabled { get { return _temporalEnabled; } set { _temporalEnabled = value; } }
+        public static bool TemporalEnabled
+        {
+            get { return _temporalEnabled; }
+            set
+            {
+                _temporalEnabled = value;
+                if (!value) ResetTemporalWaterfallState();
+            }
+        }
         public static float TemporalStrength { get { return _temporalAlpha; } set { _temporalAlpha = value < 0f ? 0f : (value > 0.5f ? 0.5f : value); } }
         public static bool AutoThresholdEnabled { get { return _autoThresholdEnabled; } set { _autoThresholdEnabled = value; } }
         public static float AutoThresholdFineOffset { get { return _autoThresholdFineOffset; } set { _autoThresholdFineOffset = value < -20f ? -20f : (value > 20f ? 20f : value); } }
@@ -59,14 +67,15 @@ namespace Thetis
                 {
                     _gpuRendererHasData[0] = false;
                     _gpuRendererHasData[1] = false;
+                    WaterfallEffect.Reset();
                 }
                 ResetGPUWaterfallState(1, false);
                 ResetGPUWaterfallState(2, false);
             }
         }
 
-        public static bool GPUEffectsAvailable { get { return GPUDetector.HasBuiltInEffects; } }
-        public static string GPUName { get { return GPUDetector.GPUName ?? "unknown"; } }
+        public static bool GPUEffectsAvailable { get { return WaterfallEffect.IsAvailable; } }
+        public static string GPUName { get { return _gpu ?? "unknown"; } }
         public static int GPUDetectionLevel { get { return (int)GPUDetector.Level; } }
     }
 }
