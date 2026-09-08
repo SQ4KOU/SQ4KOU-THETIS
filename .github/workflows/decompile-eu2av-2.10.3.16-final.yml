@@ -172,7 +172,15 @@ jobs:
           $notice | Set-Content "$root/README.md"
           git config user.name 'SQ4KOU Reverse Engineering Bot'
           git config user.email 'actions@users.noreply.github.com'
-          git add -- 'reverse-engineering/EU2AV-Thetis-2.10.3.16-Final'
+          # Export directories named *.dll/*.exe match global ignore rules.
+          git add --force -- 'reverse-engineering/EU2AV-Thetis-2.10.3.16-Final'
+          if ($LASTEXITCODE -ne 0) { throw 'Cannot stage complete export' }
+          $tracked = @(git ls-files -- 'reverse-engineering/EU2AV-Thetis-2.10.3.16-Final')
+          $disk = @(Get-ChildItem $root -Recurse -File)
+          if ($tracked.Count -ne $disk.Count) { throw "Export coverage mismatch: index=$($tracked.Count), disk=$($disk.Count)" }
+          $trackedCs = @($tracked | Where-Object { $_ -like '*/managed/*' -and $_ -like '*.cs' })
+          if ($trackedCs.Count -ne $syntax.files_checked) { throw 'Tracked CSharp count differs from validated count' }
+          Write-Host "TRACKED_EXPORT_FILES=$($tracked.Count) TRACKED_CSHARP=$($trackedCs.Count)"
           if (git diff --cached --quiet) {
             Write-Host 'No generated changes to commit.'
             exit 0
