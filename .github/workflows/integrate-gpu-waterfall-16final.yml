@@ -34,7 +34,6 @@ jobs:
           p = Path('tools/integrate_gpu_waterfall_16final.py')
           s = p.read_text(encoding='utf-8')
 
-          # Current SQ4KOU/ramdor cmaster.cs uses an explicit EntryPoint.
           pattern = r'''(marker\s*=\s*'\s*\[DllImport\("ChannelMaster\.dll",\s*)CallingConvention\s*=\s*CallingConvention\.Cdecl(\)\])'''
           repl = r'''\1EntryPoint = "SendpOutboundTCIRxIQ", CallingConvention = CallingConvention.Cdecl\2'''
           s2, n = re.subn(pattern, repl, s, count=1)
@@ -46,8 +45,6 @@ jobs:
           else:
               raise SystemExit(f'GPU16_PRECHECK_FAIL: cmaster marker regex matches={n}')
 
-          # CRITICAL: str.replace('</Project>', ...) corrupts nested <Project>{GUID}</Project>
-          # ProjectReference metadata. Insert shader ItemGroup only before the root closing tag.
           old = "    t = t.replace('</Project>', res + '</Project>')"
           new = "    root_close = t.rfind('</Project>')\n    if root_close < 0: die('Thetis.csproj root closing tag missing')\n    t = t[:root_close] + res + t[root_close:]"
           if old in s:
@@ -64,6 +61,26 @@ jobs:
       - name: Integrate recovered 16 Final GPU sources
         shell: pwsh
         run: python tools/integrate_gpu_waterfall_16final.py
+
+      - name: Adapt GPUDetector logging to SQ4KOU Display ABI
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          p = Path(r'Project Files/Source/Console/GPUDetector.cs')
+          s = p.read_text(encoding='utf-8-sig')
+          old = 'GPUName = Display.GPUName;'
+          new = 'GPUName = "unknown"; // SQ4KOU base Display has no GPUName; capability detection below remains unchanged.'
+          n = s.count(old)
+          if n == 1:
+              s = s.replace(old, new, 1)
+              p.write_text(s, encoding='utf-8-sig')
+              print('GPU16_GPUDETECTOR_ABI=PASS replaced Display.GPUName logging dependency')
+          elif new in s:
+              print('GPU16_GPUDETECTOR_ABI=PASS already adapted')
+          else:
+              raise SystemExit(f'GPU16_GPUDETECTOR_ABI_FAIL matches={n}')
+          '@ | python -
 
       - name: Verify recovered shader identity
         shell: pwsh
