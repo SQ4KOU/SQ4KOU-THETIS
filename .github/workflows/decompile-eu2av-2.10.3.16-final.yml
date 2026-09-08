@@ -73,6 +73,47 @@ jobs:
           Write-Host "MANAGED_DIAGNOSTIC_MATCHES=$($hits.Count)"
           $hits | Select-Object -First 30 | ForEach-Object { Write-Host $_ }
           
+      - name: Set up compiler for independent CSharp syntax validation
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Validate all recovered CSharp syntax using Roslyn
+        shell: pwsh
+        run: |
+          $root = 'reverse-engineering/EU2AV-Thetis-2.10.3.16-Final'
+          $sdkLine = @(dotnet --list-sdks | Where-Object { $_ -match '^8[.]' })[-1]
+          if ($sdkLine -notmatch '^(\S+) \[(.+)\]') { throw 'Cannot locate .NET 8 SDK' }
+          $roslyn = Join-Path (Join-Path $matches[2] $matches[1]) 'Roslyn/bincore'
+          Add-Type -Path (Join-Path $roslyn 'Microsoft.CodeAnalysis.dll')
+          Add-Type -Path (Join-Path $roslyn 'Microsoft.CodeAnalysis.CSharp.dll')
+          $options = [Microsoft.CodeAnalysis.CSharp.CSharpParseOptions]::Default.WithLanguageVersion(
+            [Microsoft.CodeAnalysis.CSharp.LanguageVersion]::Preview)
+          $errors = [System.Collections.Generic.List[object]]::new()
+          $files = @(Get-ChildItem "$root/managed" -Recurse -Filter *.cs)
+          foreach ($file in $files) {
+            $tree = [Microsoft.CodeAnalysis.CSharp.CSharpSyntaxTree]::ParseText(
+              [IO.File]::ReadAllText($file.FullName), $options, $file.FullName,
+              [Text.Encoding]::UTF8, [Threading.CancellationToken]::None)
+            foreach ($diagnostic in $tree.GetDiagnostics([Threading.CancellationToken]::None)) {
+              if ($diagnostic.Severity.ToString() -eq 'Error') {
+                $errors.Add([pscustomobject]@{
+                  file = [IO.Path]::GetRelativePath((Resolve-Path $root).Path, $file.FullName)
+                  diagnostic = $diagnostic.ToString()
+                })
+              }
+            }
+          }
+          $errors | Export-Csv "$root/metadata/CSHARP_SYNTAX_ERRORS.csv" -NoTypeInformation
+          [ordered]@{
+            scope = 'CSharp syntax only; not compilation or semantic equivalence'
+            result = $(if ($errors.Count -eq 0 -and $files.Count -gt 0) { 'PASS' } else { 'FAIL' })
+            files_checked = $files.Count
+            syntax_errors = $errors.Count
+          } | ConvertTo-Json | Set-Content "$root/metadata/CSHARP_SYNTAX_VERIFICATION.json"
+          Write-Host "CSHARP_FILES=$($files.Count) SYNTAX_ERRORS=$($errors.Count)"
+          $errors | Select-Object -First 20 | ForEach-Object { Write-Host $_.diagnostic }
+
       - name: Strict binary-grounded verification
         shell: pwsh
         run: |
