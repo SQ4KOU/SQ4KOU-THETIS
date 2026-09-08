@@ -170,6 +170,7 @@ jobs:
             Copy-Item "$root/README.md" "$root/EXPORT_README.md"
           }
           $notice | Set-Content "$root/README.md"
+          git config core.longpaths true
           git config user.name 'SQ4KOU Reverse Engineering Bot'
           git config user.email 'actions@users.noreply.github.com'
           # Export directories named *.dll/*.exe match global ignore rules.
