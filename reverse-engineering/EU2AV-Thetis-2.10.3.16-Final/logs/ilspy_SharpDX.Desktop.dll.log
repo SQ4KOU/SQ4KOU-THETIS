@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\SharpDX.Desktop.dll
+assembly_sha256=924c87f90b87b36fbb6dee401431abf7e2ffcf767fb773eb72771ea85a8d3a19
+csharp_files=9
+il_bytes=133674
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

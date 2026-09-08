@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\SharpDX.Direct2D1.dll
+assembly_sha256=9f4b5e240cb42ce903082f81633bba0c781c1e684fd5903bc3915e3805b5e83e
+csharp_files=733
+il_bytes=4358653
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

@@ -1,0 +1,135 @@
+INFO  Using log config file: jar:file:/D:/a/_temp/eu2av-final-re/tools/ghidra/ghidra_12.1.3_PUBLIC/Ghidra/Framework/Generic/lib/Generic.jar!/generic.log4j.xml (LoggingInitialization)  
+INFO  Using log file: C:\Users\runneradmin\AppData\Roaming\ghidra\ghidra_12.1.3_PUBLIC\application.log (LoggingInitialization)  
+INFO  Loading user preferences: C:\Users\runneradmin\AppData\Roaming\ghidra\ghidra_12.1.3_PUBLIC\preferences (Preferences)  
+INFO  Searching for classes... (ClassSearcher)  
+INFO  Class search complete (1283 ms) (ClassSearcher)  
+INFO  Initializing SSL Context (DefaultSSLContextInitializer)  
+INFO  Initializing Random Number Generator... (SecureRandomFactory)  
+INFO  Random Number Generator initialization complete: SHA1PRNG (SecureRandomFactory)  
+INFO  Trust manager disabled, cacerts have not been set (DefaultTrustManagerFactory)  
+INFO  Headless startup complete (3250 ms) (AnalyzeHeadless)  
+INFO  Class searcher loaded 59 extension points (20 false positives) (ClassSearcher)  
+INFO  HEADLESS Script Paths:
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\GnuDemangler\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\PDB\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\BytePatterns\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Debug\Debugger-rmi-trace\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\BSim\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Processors\DATA\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\MicrosoftCodeAnalyzer\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Processors\PIC\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\SwiftDemangler\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\Base\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\DecompilerDependent\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\SystemEmulation\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\Decompiler\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Debug\Debugger\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\FunctionID\ghidra_scripts
+    D:\a\SQ4KOU-THETIS\SQ4KOU-THETIS\tools\reverse-engineering
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\FileFormats\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\VersionTracking\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Processors\Atmel\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Processors\8051\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\PyGhidra\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Processors\JVM\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\WildcardAssembler\ghidra_scripts (HeadlessAnalyzer)  
+INFO  HEADLESS: execution starts (HeadlessAnalyzer)  
+INFO  Creating project: D:\a\_temp\eu2av-final-re\ghidra-projects\p3\EU2AV_3 (HeadlessAnalyzer)  
+INFO  Creating project: D:\a\_temp\eu2av-final-re\ghidra-projects\p3\EU2AV_3 (DefaultProject)  
+INFO  REPORT: Processing input files:  (HeadlessAnalyzer)  
+INFO       project: D:\a\_temp\eu2av-final-re\ghidra-projects\p3\EU2AV_3 (HeadlessAnalyzer)  
+INFO  IMPORTING: file:///D:/a/_temp/eu2av-final-re/installed/OpenHPSDR/Thetis/libfftw3-3.dll (HeadlessAnalyzer)  
+INFO  Using Loader: Portable Executable (PE) (ProgramLoader)  
+INFO  Using Language/Compiler: x86:LE:64:default:windows (ProgramLoader)  
+INFO  Using Library Search Path: [., C:\Windows\SysWOW64, C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64\bin, C:\Windows\Sun\Java\bin, C:\Windows\system32, C:\Windows, C:\Program Files\PowerShell\7, C:\Program Files\dotnet, C:\Program Files\MongoDB\Server\7.0\bin, C:\vcpkg, C:\tools\zstd, C:\hostedtoolcache\windows\stack\3.11.1\x64, C:\cabal\bin, C:\\ghcup\bin, C:\mingw64\bin, C:\Program Files\MySQL\MySQL Server 8.0\bin, C:\Program Files\R\R-4.6.1\bin\x64, C:\SeleniumWebDrivers\GeckoDriver, C:\SeleniumWebDrivers\EdgeDriver\, C:\SeleniumWebDrivers\ChromeDriver, C:\Program Files (x86)\sbt\bin, C:\Program Files (x86)\GitHub CLI, C:\Program Files\Git\bin, C:\Program Files (x86)\pipx_bin, C:\npm\prefix, C:\hostedtoolcache\windows\go\1.24.13\x64\bin, C:\hostedtoolcache\windows\Python\3.12.10\x64\Scripts, C:\hostedtoolcache\windows\Python\3.12.10\x64, C:\hostedtoolcache\windows\Ruby\3.3.12\x64\bin, C:\Program Files\OpenSSL\bin, C:\tools\kotlinc\bin, C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\17.0.20-101\x64\bin, C:\Program Files\ImageMagick-7.1.2-Q16-HDRI, C:\Program Files\Microsoft SDKs\Azure\CLI2\wbin, C:\ProgramData\kind, C:\ProgramData\Chocolatey\bin, C:\Windows\System32\Wbem, C:\Windows\System32\WindowsPowerShell\v1.0\, C:\Windows\System32\OpenSSH\, C:\Program Files\Microsoft\Web Platform Installer\, C:\Program Files\Microsoft SQL Server\170\Tools\Binn\, C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\, C:\Program Files\dotnet\, C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\, C:\Program Files (x86)\WiX Toolset v3.14\bin, C:\Program Files\Microsoft SQL Server\130\DTS\Binn\, C:\Program Files\Microsoft SQL Server\140\DTS\Binn\, C:\Program Files\Microsoft SQL Server\150\DTS\Binn\, C:\Program Files\Microsoft SQL Server\160\DTS\Binn\, C:\Program Files\Microsoft SQL Server\170\DTS\Binn\, C:\ProgramData\chocolatey\lib\pulumi\tools\Pulumi\bin, C:\Program Files\CMake\bin, C:\Strawberry\c\bin, C:\Strawberry\perl\site\bin, C:\Strawberry\perl\bin, C:\ProgramData\chocolatey\lib\maven\apache-maven-3.9.16\bin, C:\Program Files\Microsoft Service Fabric\bin\Fabric\Fabric.Code, C:\Program Files\Microsoft SDKs\Service Fabric\Tools\ServiceFabricLocalClusterManager, C:\Program Files\nodejs\, C:\Program Files\Git\cmd, C:\Program Files\Git\mingw64\bin, C:\Program Files\Git\usr\bin, C:\Program Files\GitHub CLI\, c:\tools\php, C:\Program Files\Amazon\AWSCLIV2\, C:\Program Files\Amazon\SessionManagerPlugin\bin\, C:\Program Files\Amazon\AWSSAMCLI\bin\, C:\Program Files\Microsoft SQL Server\130\Tools\Binn\, C:\Program Files\mongosh\, C:\Program Files\PowerShell\7\, C:\Program Files\LLVM\bin, C:\Program Files (x86)\LLVM\bin, C:\Users\runneradmin\.dotnet\tools, C:\Users\runneradmin\.cargo\bin, C:\Users\runneradmin\AppData\Local\Microsoft\WindowsApps] (ProgramLoader)  
+INFO  TLS callbacks at 708a2030 (TLSDirectory)  
+INFO  TLS callbacks at 180080708 (TLSDirectory)  
+INFO  Additional info:
+Loading file:///D:/a/_temp/eu2av-final-re/installed/OpenHPSDR/Thetis/libfftw3-3.dll?MD5=0eb68d6c938cb564b364d45cc966cfa7...
+------------------------------------------------
+
+Searching 67 paths for library KERNEL32.DLL...
+Skipping library which is the wrong architecture: file:///C:/Windows/SysWOW64/kernel32.dll
+Loading file:///C:/Windows/System32/kernel32.dll?MD5=20edea40009e24397fe2193d69932799...
+Using existing exports file: C:\Users\runneradmin\AppData\Roaming\ghidra\ghidra_12.1.3_PUBLIC\symbols\win64\kernel32.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 67 paths for library MSVCRT.DLL...
+Skipping library which is the wrong architecture: file:///C:/Windows/SysWOW64/msvcrt.dll
+Loading file:///C:/Windows/System32/msvcrt.dll?MD5=b3074f7ae21d15db6a07268d0be753a1...
+Created exports file: C:\Users\runneradmin\AppData\Roaming\ghidra\ghidra_12.1.3_PUBLIC\symbols\win64\msvcrt.exports
+Library not saved to project.
+------------------------------------------------
+
+Applying C:\Users\runneradmin\AppData\Roaming\ghidra\ghidra_12.1.3_PUBLIC\symbols\win64\kernel32.exports
+Applying cached symbols from MSVCRT.DLL
+Linking the External Programs of 'libfftw3-3.dll' to imported libraries...
+  [KERNEL32.DLL] -> not found in project
+  [MSVCRT.DLL] -> not found in project
+------------------------------------------------
+
+ (ProgramLoader)  
+INFO  IMPORTING: Loaded 0 additional files (HeadlessAnalyzer)  
+INFO  ANALYZING all memory and code: file:///D:/a/_temp/eu2av-final-re/installed/OpenHPSDR/Thetis/libfftw3-3.dll (HeadlessAnalyzer)  
+WARN  Ignoring leading '_' chars on no-return name '___raise_securityfailure' specified in file: D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\Base\data\PEFunctionsThatDoNotReturn (NoReturnFunctionAnalyzer)  
+WARN  Ignoring leading '_' chars on no-return name '___report_rangecheckfailure' specified in file: D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\Base\data\PEFunctionsThatDoNotReturn (NoReturnFunctionAnalyzer)  
+INFO  Added 15 source map entries (DWARFImporter)  
+INFO  DWARF ver[2, 4], 2 compUnits, 399 DIES, import - total elapsed: 125ms (DWARFImportSummary)  
+INFO  DWARF data type import - elapsed: 82ms (DWARFImportSummary)  
+INFO  DWARF func & symbol import - elapsed: 20ms (DWARFImportSummary)  
+INFO  DWARF types imported: 70 (DWARFImportSummary)  
+INFO  DWARF enums from macros - elapsed: 2ms (DWARFImportSummary)  
+INFO  DWARF compile dirs: [C:\mingw810\x86_64-810-win32-seh-rt_v6-rev0\build\gcc-8.1.0\x86_64-w64-mingw32\libgcc] (DWARFImportSummary)  
+INFO  DWARF producers: [GNU AS 2.30, GNU C17 8.1.0 -mtune=core2 -march=nocona -g -g -g -O2 -O2 -O2 -fno-ident -fbuilding-libgcc -fno-stack-protector] (DWARFImportSummary)  
+INFO  DWARF source languages: [DW_LANG_C99, DW_LANG_Mips_Assembler] (DWARFImportSummary)  
+INFO  DWARF compUnit: ../../../../../src/gcc-8.1.0/libgcc/config/i386/cygwin.S (DWARFImportSummary)  
+INFO  DWARF compUnit: ../../../../../src/gcc-8.1.0/libgcc/libgcc2.c (DWARFImportSummary)  
+INFO  Skipping PDB processing: missing PDB information in program metadata (PdbUniversalAnalyzer)  
+INFO  hit non-returning function, restarting decompiler switch analyzer later (DecompilerSwitchAnalyzer)  
+INFO  Packed database cache: C:\Users\runneradmin\AppData\Local\ghidra\packed-db-cache (PackedDatabaseCache)  
+INFO  Applied data type archive: windows_vs12_64 (ApplyDataArchiveAnalyzer)  
+INFO  -----------------------------------------------------
+    ASCII Strings                              0.594 secs
+    Apply Data Archives                        0.679 secs
+    Call Convention ID                         0.039 secs
+    Call-Fixup Installer                       0.022 secs
+    Create Address Tables                      0.370 secs
+    Create Address Tables - One Time           0.383 secs
+    Create Function                            0.024 secs
+    DWARF                                      0.249 secs
+    Data Reference                             0.298 secs
+    Decompiler Switch Analysis                 1.802 secs
+    Decompiler Switch Analysis - One Time      4.451 secs
+    Demangler GNU                              1.499 secs
+    Demangler Microsoft                        0.301 secs
+    Disassemble Entry Points                   8.470 secs
+    Disassemble Entry Points - One Time        0.008 secs
+    Embedded Media                             0.054 secs
+    External Entry References                  0.003 secs
+    Function ID                                2.171 secs
+    Function Start Search                      0.057 secs
+    MinGW Relocations                          0.001 secs
+    Non-Returning Functions - Discovered       0.171 secs
+    Non-Returning Functions - Known            0.053 secs
+    PDB Universal                              0.002 secs
+    Reference                                  0.333 secs
+    Scalar Operand References                  2.648 secs
+    Shared Return Calls                        0.290 secs
+    Stack                                     14.045 secs
+    Subroutine References                      0.124 secs
+    Subroutine References - One Time           0.008 secs
+    WindowsResourceReference                   0.399 secs
+    x86 Constant Reference Analyzer           12.966 secs
+-----------------------------------------------------
+     Total Time   52 secs
+-----------------------------------------------------
+ (AutoAnalysisManager)  
+INFO  REPORT: Analysis succeeded for file: file:///D:/a/_temp/eu2av-final-re/installed/OpenHPSDR/Thetis/libfftw3-3.dll (HeadlessAnalyzer)  
+INFO  REPORT: Execute script: ExportDecomp.java 'D:\a\SQ4KOU-THETIS\SQ4KOU-THETIS\reverse-engineering\EU2AV-Thetis-2.10.3.16-Final\native\libfftw3-3.dll'  (HeadlessAnalyzer)  
+INFO  SCRIPT: D:\a\SQ4KOU-THETIS\SQ4KOU-THETIS\tools\reverse-engineering\ExportDecomp.java (HeadlessAnalyzer)  
+INFO  ANALYZING changes made by post scripts: file:///D:/a/_temp/eu2av-final-re/installed/OpenHPSDR/Thetis/libfftw3-3.dll (HeadlessAnalyzer)  
+INFO  REPORT: Post-analysis succeeded for file: file:///D:/a/_temp/eu2av-final-re/installed/OpenHPSDR/Thetis/libfftw3-3.dll (HeadlessAnalyzer)  
+INFO  /libfftw3-3.dll: file created (runneradmin) (LocalFileSystem)  
+INFO  REPORT: Save succeeded for: /libfftw3-3.dll (EU2AV_3:/libfftw3-3.dll) (HeadlessAnalyzer)  
+INFO  REPORT: Import succeeded (HeadlessAnalyzer)  

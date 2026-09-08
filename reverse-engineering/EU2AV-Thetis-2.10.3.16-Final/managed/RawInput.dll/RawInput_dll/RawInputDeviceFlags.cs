@@ -1,0 +1,19 @@
+using System;
+
+namespace RawInput_dll;
+
+[Flags]
+internal enum RawInputDeviceFlags
+{
+	NONE = 0,
+	REMOVE = 1,
+	EXCLUDE = 0x10,
+	PAGEONLY = 0x20,
+	NOLEGACY = EXCLUDE | PAGEONLY,
+	INPUTSINK = 0x100,
+	CAPTUREMOUSE = 0x200,
+	NOHOTKEYS = CAPTUREMOUSE,
+	APPKEYS = 0x400,
+	EXINPUTSINK = 0x1000,
+	DEVNOTIFY = 0x2000
+}

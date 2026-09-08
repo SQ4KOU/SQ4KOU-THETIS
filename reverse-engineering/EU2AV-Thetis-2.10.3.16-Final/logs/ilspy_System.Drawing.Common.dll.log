@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\System.Drawing.Common.dll
+assembly_sha256=081e9102c7a296f63e6534195720587580d0cbc3b75647c416e8e1102d2a72bb
+csharp_files=14
+il_bytes=99888
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

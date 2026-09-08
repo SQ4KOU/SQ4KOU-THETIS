@@ -1,0 +1,252 @@
+Microsoft (R) COFF/PE Dumper Version 14.51.36256.0
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+Dump of file D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\PA19.dll
+
+File Type: DLL
+
+  Section contains the following imports:
+
+    KERNEL32.dll
+             180023040 Import Address Table
+             180029678 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                         5C8 Sleep
+                         2DD GetProcAddress
+                         3F4 LoadLibraryA
+                         263 GetEnvironmentVariableA
+                         481 QueryPerformanceCounter
+                         482 QueryPerformanceFrequency
+                         626 WaitForSingleObjectEx
+                         5C1 SetWaitableTimer
+                          8D CancelWaitableTimer
+                         5A7 SetThreadPriority
+                         3FD LocalAlloc
+                         402 LocalFree
+                         11B CreateWaitableTimerA
+                         64C WideCharToMultiByte
+                         1D4 FreeLibrary
+                         5C6 SignalObjectAndWait
+                         623 WaitForMultipleObjects
+                         241 GetCurrentProcess
+                          D6 CreateEventA
+                         335 GetThreadPriority
+                         2D2 GetPriorityClass
+                         2A2 GetModuleHandleA
+                          E6 CreateFileW
+                         141 DeviceIoControl
+                         624 WaitForMultipleObjectsEx
+                         5D9 TerminateThread
+                         268 GetExitCodeThread
+                         507 ResumeThread
+                          D9 CreateEventW
+                         246 GetCurrentThreadId
+                         364 GlobalAlloc
+                         36B GlobalFree
+                         1D0 FormatMessageW
+                         39A InitializeSListHead
+                         31A GetSystemTimeAsFileTime
+                         625 WaitForSingleObject
+                         500 ResetEvent
+                         55C SetEvent
+                         28D GetLastError
+                          9D CloseHandle
+                         423 MultiByteToWideChar
+                         245 GetCurrentThread
+                         434 OpenFile
+                         242 GetCurrentProcessId
+
+    USER32.dll
+             1800231E8 Import Address Table
+             180029820 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                          30 CharLowerBuffA
+                         14F GetDesktopWindow
+
+    ADVAPI32.dll
+             180023000 Import Address Table
+             180029638 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                         27C RegGetValueA
+                         294 RegQueryValueExA
+                         287 RegOpenKeyExA
+                         286 RegOpenKeyA
+                         274 RegEnumKeyA
+                         257 RegCloseKey
+                         295 RegQueryValueExW
+
+    ole32.dll
+             180023460 Import Address Table
+             180029A98 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                          60 CoInitialize
+                          2B CoCreateInstance
+                          8C CoTaskMemFree
+                         1D2 PropVariantClear
+                          91 CoUninitialize
+                          50 CoGetInterfaceAndReleaseStream
+                          6B CoMarshalInterThreadInterfaceInStream
+                          61 CoInitializeEx
+                          10 CLSIDFromString
+
+    WINMM.dll
+             180023260 Import Address Table
+             180029898 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                          B3 waveOutWrite
+                          90 waveInGetDevCapsW
+                          92 waveInGetErrorTextW
+                          97 waveInOpen
+                          8E waveInClose
+                          98 waveInPrepareHeader
+                          9C waveInUnprepareHeader
+                          8D waveInAddBuffer
+                          9A waveInStart
+                          99 waveInReset
+                          B2 waveOutUnprepareHeader
+                          A7 waveOutGetPosition
+                          9E waveOutClose
+                          AA waveOutOpen
+                          A2 waveOutGetErrorTextW
+                          A0 waveOutGetDevCapsW
+                          A4 waveOutGetNumDevs
+                          96 waveInMessage
+                          A9 waveOutMessage
+                          87 timeEndPeriod
+                          86 timeBeginPeriod
+                          AD waveOutReset
+                          88 timeGetDevCaps
+                          8A timeGetTime
+                          AE waveOutRestart
+                          AC waveOutPrepareHeader
+                          AB waveOutPause
+                          94 waveInGetNumDevs
+
+    SETUPAPI.dll
+             1800231A8 Import Address Table
+             1800297E0 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                         13D SetupDiDestroyDeviceInfoList
+                         16A SetupDiGetDeviceInterfaceAlias
+                         16C SetupDiGetDeviceInterfaceDetailW
+                         151 SetupDiGetClassDevsA
+                         195 SetupDiOpenDeviceInterfaceRegKey
+                         172 SetupDiGetDeviceRegistryPropertyW
+                         141 SetupDiEnumDeviceInterfaces
+
+    VCRUNTIME140.dll
+             180023200 Import Address Table
+             180029838 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                           8 __C_specific_handler
+                          21 __std_exception_copy
+                          3E memset
+                          3C memcpy
+                          3D memmove
+                          42 strstr
+                           1 _CxxThrowException
+                          25 __std_type_info_destroy_list
+                          22 __std_exception_destroy
+
+    VCRUNTIME140_1.dll
+             180023250 Import Address Table
+             180029888 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                           0 __CxxFrameHandler4
+
+    api-ms-win-crt-stdio-l1-1-0.dll
+             1800233D0 Import Address Table
+             180029A08 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                           D __stdio_common_vsprintf
+                          11 __stdio_common_vswprintf
+
+    api-ms-win-crt-string-l1-1-0.dll
+             1800233E8 Import Address Table
+             180029A20 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                          8E strncmp
+                          75 iswctype
+                          54 _wcsnicmp
+                          4A _wcsicmp
+                          A6 wcsncmp
+                          A3 wcslen
+                          A0 wcscpy
+                          A7 wcsncpy
+                          8B strlen
+                          88 strcpy
+                          86 strcmp
+                          8F strncpy
+
+    api-ms-win-crt-convert-l1-1-0.dll
+             180023348 Import Address Table
+             180029980 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                          50 atoi
+
+    api-ms-win-crt-runtime-l1-1-0.dll
+             180023380 Import Address Table
+             1800299B8 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                          16 _cexit
+                          36 _initterm
+                          22 _execute_onexit_table
+                          3F _seh_filter_dll
+                          37 _initterm_e
+                          14 _beginthreadex
+                          34 _initialize_onexit_table
+                          33 _initialize_narrow_environment
+                          18 _configure_narrow_argv
+
+    api-ms-win-crt-heap-l1-1-0.dll
+             180023358 Import Address Table
+             180029990 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                           8 _callnewh
+                          18 free
+                          19 malloc
+                          1A realloc
+
+    api-ms-win-crt-utility-l1-1-0.dll
+             180023450 Import Address Table
+             180029A88 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                          10 bsearch
+
+  Summary
+
+        1000 .data
+        3000 .pdata
+        8000 .rdata
+        1000 .reloc
+        1000 .rsrc
+       22000 .text

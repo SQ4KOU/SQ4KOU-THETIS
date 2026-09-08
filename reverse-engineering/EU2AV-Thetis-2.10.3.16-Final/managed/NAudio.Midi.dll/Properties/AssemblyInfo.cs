@@ -1,0 +1,14 @@
+using System.Diagnostics;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.Versioning;
+
+[assembly: AssemblyCompany("Mark Heath")]
+[assembly: AssemblyConfiguration("Release")]
+[assembly: AssemblyCopyright("© Mark Heath 2026")]
+[assembly: AssemblyFileVersion("2.3.0.0")]
+[assembly: AssemblyInformationalVersion("2.3.0+c89fee940ee6f8d7374d18714a6b85d8b7a18ab0")]
+[assembly: AssemblyProduct("NAudio.Midi")]
+[assembly: AssemblyTitle("NAudio.Midi")]
+[assembly: AssemblyMetadata("RepositoryUrl", "https://github.com/naudio/NAudio")]
+[assembly: AssemblyVersion("2.3.0.0")]

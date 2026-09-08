@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\Microsoft.Bcl.Memory.dll
+assembly_sha256=729fb9b12f92b31ccddf56fd628e167569463ccad1689bde897617f8a23222f7
+csharp_files=36
+il_bytes=594771
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

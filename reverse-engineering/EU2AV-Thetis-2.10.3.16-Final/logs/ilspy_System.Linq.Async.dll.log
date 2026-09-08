@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\System.Linq.Async.dll
+assembly_sha256=a6bcc3b113c94ae909fb61a2e72ee78308a10e3108efe6f60e64881d9f24e479
+csharp_files=47
+il_bytes=18658519
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

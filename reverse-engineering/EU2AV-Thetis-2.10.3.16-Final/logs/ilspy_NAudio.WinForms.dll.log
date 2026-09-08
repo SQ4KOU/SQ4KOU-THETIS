@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\NAudio.WinForms.dll
+assembly_sha256=82a92cb6b9001e013c653c65e4ae460346770ec7512856879e63018d9cafc41a
+csharp_files=18
+il_bytes=246798
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

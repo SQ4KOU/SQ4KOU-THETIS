@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+<resheader name="resmimetype"><value>text/microsoft-resx</value></resheader><resheader name="version"><value>1.3</value></resheader><resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader><resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader><data name="label7.Text" xml:space="preserve"><value>You can send midi commands to your controller when some events occur.
+
+When NOT in setup Buttons that are mapped to commands that toggle (i.e. command that have On or Off in their name ) the down event fires the first time the button is pressed, the up event fires the second time the button is pressed.
+
+Example. To turn Hercules RMX right cue LED on when the button is down you would enter in the Button Down Event box:  BX247F X=will be substituted with the correct channel value. All other values MUST be in hexedecimal. Only Midi short messages can be sent.
+
+SS=Status YY=ControlId VV=Value C=channel. SSYYVV will send the current command back to the controller.</value></data>
+  <data name="label5.Text" xml:space="preserve"><value>To get started press a button or move a slider, knob or wheel on your controller.
+
+Make sure you move sliders and knobs from end to end so that the full range of the control can be recorded.
+
+When Prompted enter meaningful names for your controls, it will make mapping much easier!</value></data>
+  </root>

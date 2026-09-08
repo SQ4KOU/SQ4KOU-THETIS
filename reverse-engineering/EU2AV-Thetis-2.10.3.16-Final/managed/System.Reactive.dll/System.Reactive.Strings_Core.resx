@@ -1,0 +1,39 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+<resheader name="resmimetype"><value>text/microsoft-resx</value></resheader><resheader name="version"><value>1.3</value></resheader><resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader><resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader><data name="HEAP_EMPTY" xml:space="preserve"><value>Heap is empty.</value></data>
+  <data name="REENTRANCY_DETECTED" xml:space="preserve"><value>Reentrancy has been detected.</value></data>
+  <data name="FAILED_CLOCK_MONITORING" xml:space="preserve"><value>Failed to start monitoring system clock changes.</value></data>
+  <data name="OBSERVER_TERMINATED" xml:space="preserve"><value>Observer has already terminated.</value></data>
+  <data name="COMPLETED_NO_VALUE" xml:space="preserve"><value>OnCompleted notification doesn't have a value.</value></data>
+  <data name="CANT_OBTAIN_SCHEDULER" xml:space="preserve"><value>Using the Scheduler.{0} property is no longer supported due to refactoring of the API surface and elimination of platform-specific dependencies. Please include System.Reactive.PlatformServices for your target platform and use the {0}Scheduler type instead. If you're building a Windows Store app, notice some schedulers are no longer supported. Consider using Scheduler.Default instead.</value></data>
+  <data name="DISPOSABLES_CANT_CONTAIN_NULL" xml:space="preserve"><value>Disposables collection can not contain null values.</value></data>
+  <data name="SCHEDULER_OPERATION_ALREADY_AWAITED" xml:space="preserve"><value>This scheduler operation has already been awaited.</value></data>
+  <data name="DISPOSABLE_ALREADY_ASSIGNED" xml:space="preserve"><value>Disposable has already been assigned.</value></data>
+  </root>

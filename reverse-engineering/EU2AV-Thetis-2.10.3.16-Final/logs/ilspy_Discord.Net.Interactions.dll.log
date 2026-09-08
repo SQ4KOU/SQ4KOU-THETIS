@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\Discord.Net.Interactions.dll
+assembly_sha256=1e1806f93d47e30836928cc45ee6a9bc17cb73d8ce2d200619a27d769553899f
+csharp_files=153
+il_bytes=3121405
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

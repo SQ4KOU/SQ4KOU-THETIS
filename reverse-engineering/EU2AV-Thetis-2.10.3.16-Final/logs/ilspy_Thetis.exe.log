@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\Thetis.exe
+assembly_sha256=e25bf32f10b1502c6d84dbb5423a41197117bab7904d03c7c945061ac71c7f76
+csharp_files=317
+il_bytes=69380944
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

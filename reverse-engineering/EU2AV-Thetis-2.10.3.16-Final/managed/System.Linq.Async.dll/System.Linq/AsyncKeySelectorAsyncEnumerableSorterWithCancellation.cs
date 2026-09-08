@@ -1,0 +1,34 @@
+using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace System.Linq;
+
+internal sealed class AsyncKeySelectorAsyncEnumerableSorterWithCancellation<TElement, TKey> : AsyncEnumerableSorterBase<TElement, TKey>
+{
+	private readonly Func<TElement, CancellationToken, ValueTask<TKey>> _keySelector;
+
+	private readonly CancellationToken _cancellationToken;
+
+	public AsyncKeySelectorAsyncEnumerableSorterWithCancellation(Func<TElement, CancellationToken, ValueTask<TKey>> keySelector, IComparer<TKey> comparer, bool descending, AsyncEnumerableSorter<TElement>? next, CancellationToken cancellationToken)
+		: base(comparer, descending, next)
+	{
+		_keySelector = keySelector;
+		_cancellationToken = cancellationToken;
+	}
+
+	internal override async ValueTask ComputeKeys(TElement[] elements, int count)
+	{
+		_keys = new TKey[count];
+		for (int i = 0; i < count; i++)
+		{
+			TKey[] keys = _keys;
+			int num = i;
+			keys[num] = await _keySelector(elements[i], _cancellationToken).ConfigureAwait(continueOnCapturedContext: false);
+		}
+		if (_next != null)
+		{
+			await _next.ComputeKeys(elements, count).ConfigureAwait(continueOnCapturedContext: false);
+		}
+	}
+}

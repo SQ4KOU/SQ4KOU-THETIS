@@ -1,0 +1,19 @@
+namespace Thetis;
+
+public enum DisplayMode
+{
+	FIRST = -1,
+	SPECTRUM,
+	PANADAPTER,
+	SCOPE,
+	SCOPE2,
+	PHASE,
+	PHASE2,
+	WATERFALL,
+	HISTOGRAM,
+	PANAFALL,
+	PANASCOPE,
+	SPECTRASCOPE,
+	OFF,
+	LAST
+}

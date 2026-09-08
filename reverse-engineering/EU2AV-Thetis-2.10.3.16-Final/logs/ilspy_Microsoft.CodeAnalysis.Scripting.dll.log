@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\Microsoft.CodeAnalysis.Scripting.dll
+assembly_sha256=fcda3f5ba04c2820ea186f91856f75fbfe07b0b92cae1aefdffcb56450623e9a
+csharp_files=57
+il_bytes=1290456
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

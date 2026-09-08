@@ -1,0 +1,193 @@
+INFO  Using log config file: jar:file:/D:/a/_temp/eu2av-final-re/tools/ghidra/ghidra_12.1.3_PUBLIC/Ghidra/Framework/Generic/lib/Generic.jar!/generic.log4j.xml (LoggingInitialization)  
+INFO  Using log file: C:\Users\runneradmin\AppData\Roaming\ghidra\ghidra_12.1.3_PUBLIC\application.log (LoggingInitialization)  
+INFO  Loading user preferences: C:\Users\runneradmin\AppData\Roaming\ghidra\ghidra_12.1.3_PUBLIC\preferences (Preferences)  
+INFO  Searching for classes... (ClassSearcher)  
+INFO  Class search complete (1269 ms) (ClassSearcher)  
+INFO  Initializing SSL Context (DefaultSSLContextInitializer)  
+INFO  Initializing Random Number Generator... (SecureRandomFactory)  
+INFO  Random Number Generator initialization complete: SHA1PRNG (SecureRandomFactory)  
+INFO  Trust manager disabled, cacerts have not been set (DefaultTrustManagerFactory)  
+INFO  Headless startup complete (3336 ms) (AnalyzeHeadless)  
+INFO  Class searcher loaded 59 extension points (20 false positives) (ClassSearcher)  
+INFO  HEADLESS Script Paths:
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\GnuDemangler\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\PDB\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\BytePatterns\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Debug\Debugger-rmi-trace\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\BSim\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Processors\DATA\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\MicrosoftCodeAnalyzer\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Processors\PIC\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\SwiftDemangler\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\Base\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\DecompilerDependent\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\SystemEmulation\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\Decompiler\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Debug\Debugger\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\FunctionID\ghidra_scripts
+    D:\a\SQ4KOU-THETIS\SQ4KOU-THETIS\tools\reverse-engineering
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\FileFormats\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\VersionTracking\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Processors\Atmel\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Processors\8051\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\PyGhidra\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Processors\JVM\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\WildcardAssembler\ghidra_scripts (HeadlessAnalyzer)  
+INFO  HEADLESS: execution starts (HeadlessAnalyzer)  
+INFO  Creating project: D:\a\_temp\eu2av-final-re\ghidra-projects\p2\EU2AV_2 (HeadlessAnalyzer)  
+INFO  Creating project: D:\a\_temp\eu2av-final-re\ghidra-projects\p2\EU2AV_2 (DefaultProject)  
+INFO  REPORT: Processing input files:  (HeadlessAnalyzer)  
+INFO       project: D:\a\_temp\eu2av-final-re\ghidra-projects\p2\EU2AV_2 (HeadlessAnalyzer)  
+INFO  IMPORTING: file:///D:/a/_temp/eu2av-final-re/installed/OpenHPSDR/Thetis/cmASIO.dll (HeadlessAnalyzer)  
+INFO  Using Loader: Portable Executable (PE) (ProgramLoader)  
+INFO  Using Language/Compiler: x86:LE:64:default:windows (ProgramLoader)  
+INFO  Using Library Search Path: [., C:\Windows\SysWOW64, C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64\bin, C:\Windows\Sun\Java\bin, C:\Windows\system32, C:\Windows, C:\Program Files\PowerShell\7, C:\Program Files\dotnet, C:\Program Files\MongoDB\Server\7.0\bin, C:\vcpkg, C:\tools\zstd, C:\hostedtoolcache\windows\stack\3.11.1\x64, C:\cabal\bin, C:\\ghcup\bin, C:\mingw64\bin, C:\Program Files\MySQL\MySQL Server 8.0\bin, C:\Program Files\R\R-4.6.1\bin\x64, C:\SeleniumWebDrivers\GeckoDriver, C:\SeleniumWebDrivers\EdgeDriver\, C:\SeleniumWebDrivers\ChromeDriver, C:\Program Files (x86)\sbt\bin, C:\Program Files (x86)\GitHub CLI, C:\Program Files\Git\bin, C:\Program Files (x86)\pipx_bin, C:\npm\prefix, C:\hostedtoolcache\windows\go\1.24.13\x64\bin, C:\hostedtoolcache\windows\Python\3.12.10\x64\Scripts, C:\hostedtoolcache\windows\Python\3.12.10\x64, C:\hostedtoolcache\windows\Ruby\3.3.12\x64\bin, C:\Program Files\OpenSSL\bin, C:\tools\kotlinc\bin, C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\17.0.20-101\x64\bin, C:\Program Files\ImageMagick-7.1.2-Q16-HDRI, C:\Program Files\Microsoft SDKs\Azure\CLI2\wbin, C:\ProgramData\kind, C:\ProgramData\Chocolatey\bin, C:\Windows\System32\Wbem, C:\Windows\System32\WindowsPowerShell\v1.0\, C:\Windows\System32\OpenSSH\, C:\Program Files\Microsoft\Web Platform Installer\, C:\Program Files\Microsoft SQL Server\170\Tools\Binn\, C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\, C:\Program Files\dotnet\, C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\, C:\Program Files (x86)\WiX Toolset v3.14\bin, C:\Program Files\Microsoft SQL Server\130\DTS\Binn\, C:\Program Files\Microsoft SQL Server\140\DTS\Binn\, C:\Program Files\Microsoft SQL Server\150\DTS\Binn\, C:\Program Files\Microsoft SQL Server\160\DTS\Binn\, C:\Program Files\Microsoft SQL Server\170\DTS\Binn\, C:\ProgramData\chocolatey\lib\pulumi\tools\Pulumi\bin, C:\Program Files\CMake\bin, C:\Strawberry\c\bin, C:\Strawberry\perl\site\bin, C:\Strawberry\perl\bin, C:\ProgramData\chocolatey\lib\maven\apache-maven-3.9.16\bin, C:\Program Files\Microsoft Service Fabric\bin\Fabric\Fabric.Code, C:\Program Files\Microsoft SDKs\Service Fabric\Tools\ServiceFabricLocalClusterManager, C:\Program Files\nodejs\, C:\Program Files\Git\cmd, C:\Program Files\Git\mingw64\bin, C:\Program Files\Git\usr\bin, C:\Program Files\GitHub CLI\, c:\tools\php, C:\Program Files\Amazon\AWSCLIV2\, C:\Program Files\Amazon\SessionManagerPlugin\bin\, C:\Program Files\Amazon\AWSSAMCLI\bin\, C:\Program Files\Microsoft SQL Server\130\Tools\Binn\, C:\Program Files\mongosh\, C:\Program Files\PowerShell\7\, C:\Program Files\LLVM\bin, C:\Program Files (x86)\LLVM\bin, C:\Users\runneradmin\.dotnet\tools, C:\Users\runneradmin\.cargo\bin, C:\Users\runneradmin\AppData\Local\Microsoft\WindowsApps] (ProgramLoader)  
+INFO  TLS callbacks at 1800e2880 (TLSDirectory)  
+WARN  Invalid or missing function at 1800be728 (ExportDataDirectory)  
+INFO  Additional info:
+Loading file:///D:/a/_temp/eu2av-final-re/installed/OpenHPSDR/Thetis/cmASIO.dll?MD5=3b9ec1b8b6ec7e0adc83857df2d46a1b...
+------------------------------------------------
+
+Searching 67 paths for library ADVAPI32.DLL...
+Skipping library which is the wrong architecture: file:///C:/Windows/SysWOW64/advapi32.dll
+Loading file:///C:/Windows/System32/advapi32.dll?MD5=9213642f8b7ee03eecad01ca997446e4...
+Created exports file: C:\Users\runneradmin\AppData\Roaming\ghidra\ghidra_12.1.3_PUBLIC\symbols\win64\advapi32.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 67 paths for library API-MS-WIN-CRT-HEAP-L1-1-0.DLL...
+Loading file:///C:/hostedtoolcache/windows/Java_Temurin-Hotspot_jdk/21.0.12-101.0/x64/bin/api-ms-win-crt-heap-l1-1-0.dll?MD5=527bbbfded529ea77ee798d94ce0f243...
+Using existing exports file: C:\Users\runneradmin\AppData\Roaming\ghidra\ghidra_12.1.3_PUBLIC\symbols\win64\api-ms-win-crt-heap-l1-1-0.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 67 paths for library API-MS-WIN-CRT-RUNTIME-L1-1-0.DLL...
+Loading file:///C:/hostedtoolcache/windows/Java_Temurin-Hotspot_jdk/21.0.12-101.0/x64/bin/api-ms-win-crt-runtime-l1-1-0.dll?MD5=bbaa58e9e1abdf7d8c4c69652d29d789...
+Using existing exports file: C:\Users\runneradmin\AppData\Roaming\ghidra\ghidra_12.1.3_PUBLIC\symbols\win64\api-ms-win-crt-runtime-l1-1-0.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 67 paths for library API-MS-WIN-CRT-STDIO-L1-1-0.DLL...
+Loading file:///C:/hostedtoolcache/windows/Java_Temurin-Hotspot_jdk/21.0.12-101.0/x64/bin/api-ms-win-crt-stdio-l1-1-0.dll?MD5=ef37235fc43157a4c93241d5e49e304b...
+Using existing exports file: C:\Users\runneradmin\AppData\Roaming\ghidra\ghidra_12.1.3_PUBLIC\symbols\win64\api-ms-win-crt-stdio-l1-1-0.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 67 paths for library API-MS-WIN-CRT-STRING-L1-1-0.DLL...
+Loading file:///C:/hostedtoolcache/windows/Java_Temurin-Hotspot_jdk/21.0.12-101.0/x64/bin/api-ms-win-crt-string-l1-1-0.dll?MD5=639b1fb35cb61ba633eb1791b750631f...
+Created exports file: C:\Users\runneradmin\AppData\Roaming\ghidra\ghidra_12.1.3_PUBLIC\symbols\win64\api-ms-win-crt-string-l1-1-0.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 67 paths for library KERNEL32.DLL...
+Skipping library which is the wrong architecture: file:///C:/Windows/SysWOW64/kernel32.dll
+Loading file:///C:/Windows/System32/kernel32.dll?MD5=20edea40009e24397fe2193d69932799...
+Using existing exports file: C:\Users\runneradmin\AppData\Roaming\ghidra\ghidra_12.1.3_PUBLIC\symbols\win64\kernel32.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 67 paths for library OLE32.DLL...
+Skipping library which is the wrong architecture: file:///C:/Windows/SysWOW64/ole32.dll
+Loading file:///C:/Windows/System32/ole32.dll?MD5=3b9586c03291bdb58fb1c00339396b12...
+[ole32.dll]: failed to create WEVTResource at 180181740: Failed to resolve data length for WEVTResource
+Created exports file: C:\Users\runneradmin\AppData\Roaming\ghidra\ghidra_12.1.3_PUBLIC\symbols\win64\ole32.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 67 paths for library USER32.DLL...
+Skipping library which is the wrong architecture: file:///C:/Windows/SysWOW64/user32.dll
+Loading file:///C:/Windows/System32/user32.dll?MD5=7adedf39d9d425df849a87309c3623d6...
+[user32.dll]: failed to create WEVTResource at 1800dda70: Failed to resolve data length for WEVTResource
+Created exports file: C:\Users\runneradmin\AppData\Roaming\ghidra\ghidra_12.1.3_PUBLIC\symbols\win64\user32.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 67 paths for library VCRUNTIME140.DLL...
+Skipping library which is the wrong architecture: file:///C:/Windows/SysWOW64/vcruntime140.dll
+Loading file:///C:/hostedtoolcache/windows/Java_Temurin-Hotspot_jdk/21.0.12-101.0/x64/bin/vcruntime140.dll?MD5=caf9edded91c1f6c0022b278c16679aa...
+Using existing exports file: C:\Users\runneradmin\AppData\Roaming\ghidra\ghidra_12.1.3_PUBLIC\symbols\win64\vcruntime140.exports
+Library not saved to project.
+------------------------------------------------
+
+Applying C:\Users\runneradmin\AppData\Roaming\ghidra\ghidra_12.1.3_PUBLIC\symbols\win64\kernel32.exports
+Applying cached symbols from USER32.DLL
+Applying cached symbols from ADVAPI32.DLL
+Applying cached symbols from OLE32.DLL
+Applying C:\Users\runneradmin\AppData\Roaming\ghidra\ghidra_12.1.3_PUBLIC\symbols\win64\vcruntime140.exports
+Applying C:\Users\runneradmin\AppData\Roaming\ghidra\ghidra_12.1.3_PUBLIC\symbols\win64\api-ms-win-crt-stdio-l1-1-0.exports
+Applying C:\Users\runneradmin\AppData\Roaming\ghidra\ghidra_12.1.3_PUBLIC\symbols\win64\api-ms-win-crt-heap-l1-1-0.exports
+Applying C:\Users\runneradmin\AppData\Roaming\ghidra\ghidra_12.1.3_PUBLIC\symbols\win64\api-ms-win-crt-runtime-l1-1-0.exports
+Applying cached symbols from API-MS-WIN-CRT-STRING-L1-1-0.DLL
+Linking the External Programs of 'cmASIO.dll' to imported libraries...
+  [KERNEL32.DLL] -> not found in project
+  [USER32.DLL] -> not found in project
+  [ADVAPI32.DLL] -> not found in project
+  [OLE32.DLL] -> not found in project
+  [VCRUNTIME140.DLL] -> not found in project
+  [API-MS-WIN-CRT-STDIO-L1-1-0.DLL] -> not found in project
+  [API-MS-WIN-CRT-HEAP-L1-1-0.DLL] -> not found in project
+  [API-MS-WIN-CRT-RUNTIME-L1-1-0.DLL] -> not found in project
+  [API-MS-WIN-CRT-STRING-L1-1-0.DLL] -> not found in project
+------------------------------------------------
+
+ (ProgramLoader)  
+INFO  IMPORTING: Loaded 0 additional files (HeadlessAnalyzer)  
+INFO  ANALYZING all memory and code: file:///D:/a/_temp/eu2av-final-re/installed/OpenHPSDR/Thetis/cmASIO.dll (HeadlessAnalyzer)  
+WARN  Ignoring leading '_' chars on no-return name '___raise_securityfailure' specified in file: D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\Base\data\PEFunctionsThatDoNotReturn (NoReturnFunctionAnalyzer)  
+WARN  Ignoring leading '_' chars on no-return name '___report_rangecheckfailure' specified in file: D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\Base\data\PEFunctionsThatDoNotReturn (NoReturnFunctionAnalyzer)  
+INFO  Skipping PDB processing: failed to locate PDB file in configured locations (PdbUniversalAnalyzer)  
+INFO  Use a script to set the PDB file location. I.e.,
+    PdbAnalyzer.setPdbFileOption(currentProgram, new File("/path/to/pdb/file.pdb")); or
+    PdbUniversalAnalyzer.setPdbFileOption(currentProgram, new File("/path/to/pdb/file.pdb"));
+Or set the symbol server search configuration using:    PdbPlugin.saveSymbolServerServiceConfig(...);
+ This must be done using a pre-script (prior to analysis). (PdbUniversalAnalyzer)  
+INFO  hit non-returning function, restarting decompiler switch analyzer later (DecompilerSwitchAnalyzer)  
+WARN  Decompiling 180003a80: Unable to read bytes at ram:180003e00 (DecompileCallback)  
+INFO  Packed database cache: C:\Users\runneradmin\AppData\Local\ghidra\packed-db-cache (PackedDatabaseCache)  
+INFO  Applied data type archive: windows_vs12_64 (ApplyDataArchiveAnalyzer)  
+WARN  Decompiling 180003a80: Unable to read bytes at ram:180003e00 (DecompileCallback)  
+INFO  -----------------------------------------------------
+    ASCII Strings                              0.436 secs
+    Apply Data Archives                        0.099 secs
+    Call Convention ID                         0.004 secs
+    Call-Fixup Installer                       0.027 secs
+    Create Address Tables                      0.011 secs
+    Create Address Tables - One Time           0.005 secs
+    Create Function                            0.017 secs
+    Data Reference                             0.014 secs
+    Decompiler Parameter ID                    1.953 secs
+    Decompiler Switch Analysis                 0.956 secs
+    Decompiler Switch Analysis - One Time      0.941 secs
+    Demangler Microsoft                        0.013 secs
+    Disassemble Entry Points                   0.191 secs
+    Embedded Media                             0.006 secs
+    External Entry References                  0.000 secs
+    Function ID                                0.174 secs
+    Function Start Search                      0.011 secs
+    Non-Returning Functions - Discovered       0.030 secs
+    Non-Returning Functions - Known            0.004 secs
+    PDB Universal                              0.023 secs
+    Reference                                  0.020 secs
+    Scalar Operand References                  0.036 secs
+    Shared Return Calls                        0.014 secs
+    Stack                                      0.250 secs
+    Subroutine References                      0.009 secs
+    Subroutine References - One Time           0.002 secs
+    Windows x86 PE Exception Handling          0.011 secs
+    Windows x86 PE RTTI Analyzer               1.815 secs
+    Windows x86 Thread Environment Block (TEB) Analyzer     0.017 secs
+    WindowsResourceReference                   0.429 secs
+    x86 Constant Reference Analyzer            0.368 secs
+-----------------------------------------------------
+     Total Time   7 secs
+-----------------------------------------------------
+ (AutoAnalysisManager)  
+INFO  REPORT: Analysis succeeded for file: file:///D:/a/_temp/eu2av-final-re/installed/OpenHPSDR/Thetis/cmASIO.dll (HeadlessAnalyzer)  
+INFO  REPORT: Execute script: ExportDecomp.java 'D:\a\SQ4KOU-THETIS\SQ4KOU-THETIS\reverse-engineering\EU2AV-Thetis-2.10.3.16-Final\native\cmASIO.dll'  (HeadlessAnalyzer)  
+INFO  SCRIPT: D:\a\SQ4KOU-THETIS\SQ4KOU-THETIS\tools\reverse-engineering\ExportDecomp.java (HeadlessAnalyzer)  
+WARN  Decompiling 180003a80: Unable to read bytes at ram:180003e00 (DecompileCallback)  
+INFO  ANALYZING changes made by post scripts: file:///D:/a/_temp/eu2av-final-re/installed/OpenHPSDR/Thetis/cmASIO.dll (HeadlessAnalyzer)  
+INFO  REPORT: Post-analysis succeeded for file: file:///D:/a/_temp/eu2av-final-re/installed/OpenHPSDR/Thetis/cmASIO.dll (HeadlessAnalyzer)  
+INFO  /cmASIO.dll: file created (runneradmin) (LocalFileSystem)  
+INFO  REPORT: Save succeeded for: /cmASIO.dll (EU2AV_2:/cmASIO.dll) (HeadlessAnalyzer)  
+INFO  REPORT: Import succeeded (HeadlessAnalyzer)  

@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>NAudio</AssemblyName>
+    <GenerateAssemblyInfo>False</GenerateAssemblyInfo>
+    <TargetFramework>net472</TargetFramework>
+  </PropertyGroup>
+  <PropertyGroup>
+    <LangVersion>14.0</LangVersion>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+    <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
+  </PropertyGroup>
+  <PropertyGroup />
+  <ItemGroup />
+  <ItemGroup>
+    <Reference Include="NAudio.Core">
+      <HintPath>..\..\..\..\..\..\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\NAudio.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="NAudio.WinMM">
+      <HintPath>..\..\..\..\..\..\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\NAudio.WinMM.dll</HintPath>
+    </Reference>
+    <Reference Include="NAudio.Wasapi">
+      <HintPath>..\..\..\..\..\..\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\NAudio.Wasapi.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+</Project>

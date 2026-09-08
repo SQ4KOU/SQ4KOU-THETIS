@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\Svg.dll
+assembly_sha256=47780873fd8313c620ea5c5fae74a253d69507c5aef76e882db06b4a18c5ae45
+csharp_files=265
+il_bytes=6064511
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

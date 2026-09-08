@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\System.Formats.Nrbf.dll
+assembly_sha256=4d02deafd354c1ee34a92b4a38987db44c292331800bec1b8b243efb025caefb
+csharp_files=64
+il_bytes=550755
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

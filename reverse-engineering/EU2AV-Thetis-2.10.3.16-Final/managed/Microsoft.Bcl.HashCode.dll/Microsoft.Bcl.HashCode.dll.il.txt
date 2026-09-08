@@ -1,0 +1,3044 @@
+// IL code: Microsoft.Bcl.HashCode
+.class private auto ansi '<Module>'
+{
+} // end of class <Module>
+
+.class private auto ansi sealed beforefieldinit Microsoft.CodeAnalysis.EmbeddedAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void Microsoft.CodeAnalysis.EmbeddedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x2050
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ret
+	} // end of method EmbeddedAttribute::.ctor
+
+} // end of class Microsoft.CodeAnalysis.EmbeddedAttribute
+
+.class private auto ansi sealed beforefieldinit System.Runtime.CompilerServices.NullableAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void Microsoft.CodeAnalysis.EmbeddedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 84 6b 00 00 02 00 54 02 0d 41 6c 6c 6f 77
+		4d 75 6c 74 69 70 6c 65 00 54 02 09 49 6e 68 65
+		72 69 74 65 64 00
+	)
+	// Fields
+	.field public initonly uint8[] NullableFlags
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			uint8 ''
+		) cil managed 
+	{
+		// Method begins at RVA 0x2058
+		// Header size: 1
+		// Code size: 23 (0x17)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldc.i4.1
+		IL_0008: newarr [mscorlib]System.Byte
+		IL_000d: dup
+		IL_000e: ldc.i4.0
+		IL_000f: ldarg.1
+		IL_0010: stelem.i1
+		IL_0011: stfld uint8[] System.Runtime.CompilerServices.NullableAttribute::NullableFlags
+		IL_0016: ret
+	} // end of method NullableAttribute::.ctor
+
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			uint8[] ''
+		) cil managed 
+	{
+		// Method begins at RVA 0x2070
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld uint8[] System.Runtime.CompilerServices.NullableAttribute::NullableFlags
+		IL_000d: ret
+	} // end of method NullableAttribute::.ctor
+
+} // end of class System.Runtime.CompilerServices.NullableAttribute
+
+.class private auto ansi sealed beforefieldinit System.Runtime.CompilerServices.NullableContextAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void Microsoft.CodeAnalysis.EmbeddedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 4c 14 00 00 02 00 54 02 0d 41 6c 6c 6f 77
+		4d 75 6c 74 69 70 6c 65 00 54 02 09 49 6e 68 65
+		72 69 74 65 64 00
+	)
+	// Fields
+	.field public initonly uint8 Flag
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			uint8 ''
+		) cil managed 
+	{
+		// Method begins at RVA 0x207f
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld uint8 System.Runtime.CompilerServices.NullableContextAttribute::Flag
+		IL_000d: ret
+	} // end of method NullableContextAttribute::.ctor
+
+} // end of class System.Runtime.CompilerServices.NullableContextAttribute
+
+.class private auto ansi sealed beforefieldinit System.Runtime.CompilerServices.RefSafetyRulesAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void Microsoft.CodeAnalysis.EmbeddedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 02 00 00 00 02 00 54 02 0d 41 6c 6c 6f 77
+		4d 75 6c 74 69 70 6c 65 00 54 02 09 49 6e 68 65
+		72 69 74 65 64 00
+	)
+	// Fields
+	.field public initonly int32 Version
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			int32 ''
+		) cil managed 
+	{
+		// Method begins at RVA 0x208e
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld int32 System.Runtime.CompilerServices.RefSafetyRulesAttribute::Version
+		IL_000d: ret
+	} // end of method RefSafetyRulesAttribute::.ctor
+
+} // end of class System.Runtime.CompilerServices.RefSafetyRulesAttribute
+
+.class private auto ansi beforefieldinit Interop
+	extends [mscorlib]System.Object
+{
+	// Methods
+	.method assembly hidebysig static 
+		void GetRandomBytes (
+			uint8* buffer,
+			int32 length
+		) cil managed 
+	{
+		// Method begins at RVA 0x20a0
+		// Header size: 12
+		// Code size: 54 (0x36)
+		.maxstack 4
+		.locals init (
+			[0] class [mscorlib]System.Security.Cryptography.RandomNumberGenerator,
+			[1] uint8[]
+		)
+
+		IL_0000: call bool System.LocalAppContextSwitches::get_UseNonRandomizedHashSeed()
+		IL_0005: brtrue.s IL_0035
+
+		IL_0007: call class [mscorlib]System.Security.Cryptography.RandomNumberGenerator [mscorlib]System.Security.Cryptography.RandomNumberGenerator::Create()
+		IL_000c: stloc.0
+		.try
+		{
+			IL_000d: ldarg.1
+			IL_000e: newarr [mscorlib]System.Byte
+			IL_0013: stloc.1
+			IL_0014: ldloc.0
+			IL_0015: ldloc.1
+			IL_0016: callvirt instance void [mscorlib]System.Security.Cryptography.RandomNumberGenerator::GetBytes(uint8[])
+			IL_001b: ldloc.1
+			IL_001c: ldc.i4.0
+			IL_001d: ldarg.0
+			IL_001e: call native int [mscorlib]System.IntPtr::op_Explicit(void*)
+			IL_0023: ldarg.1
+			IL_0024: call void [mscorlib]System.Runtime.InteropServices.Marshal::Copy(uint8[], int32, native int, int32)
+			IL_0029: leave.s IL_0035
+		} // end .try
+		finally
+		{
+			IL_002b: ldloc.0
+			IL_002c: brfalse.s IL_0034
+
+			IL_002e: ldloc.0
+			IL_002f: callvirt instance void [mscorlib]System.IDisposable::Dispose()
+
+			IL_0034: endfinally
+		} // end handler
+
+		IL_0035: ret
+	} // end of method Interop::GetRandomBytes
+
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x20f4
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Object::.ctor()
+		IL_0006: ret
+	} // end of method Interop::.ctor
+
+} // end of class Interop
+
+.class private auto ansi abstract sealed beforefieldinit FxResources.Microsoft.Bcl.HashCode.SR
+	extends [mscorlib]System.Object
+{
+} // end of class FxResources.Microsoft.Bcl.HashCode.SR
+
+.class public sequential ansi sealed beforefieldinit System.HashCode
+	extends [mscorlib]System.ValueType
+{
+	.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+		01 00 01 00 00
+	)
+	.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+		01 00 00 00 00
+	)
+	// Fields
+	.field private static initonly uint32 s_seed
+	.field private static literal uint32 Prime1 = uint32(2654435761)
+	.field private static literal uint32 Prime2 = uint32(2246822519)
+	.field private static literal uint32 Prime3 = uint32(3266489917)
+	.field private static literal uint32 Prime4 = uint32(668265263)
+	.field private static literal uint32 Prime5 = uint32(374761393)
+	.field private uint32 _v1
+	.field private uint32 _v2
+	.field private uint32 _v3
+	.field private uint32 _v4
+	.field private uint32 _queue1
+	.field private uint32 _queue2
+	.field private uint32 _queue3
+	.field private uint32 _length
+
+	// Methods
+	.method private hidebysig static 
+		uint32 GenerateGlobalSeed () cil managed 
+	{
+		// Method begins at RVA 0x20fc
+		// Header size: 12
+		// Code size: 11 (0xb)
+		.maxstack 2
+		.locals init (
+			[0] uint32
+		)
+
+		IL_0000: ldloca.s 0
+		IL_0002: conv.u
+		IL_0003: ldc.i4.4
+		IL_0004: call void Interop::GetRandomBytes(uint8*, int32)
+		IL_0009: ldloc.0
+		IL_000a: ret
+	} // end of method HashCode::GenerateGlobalSeed
+
+	.method public hidebysig static 
+		int32 Combine<T1> (
+			!!T1 value1
+		) cil managed 
+	{
+		.param type T1
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		// Method begins at RVA 0x2114
+		// Header size: 12
+		// Code size: 77 (0x4d)
+		.maxstack 2
+		.locals init (
+			[0] uint32,
+			[1] uint32,
+			[2] !!T1
+		)
+
+		IL_0000: ldarga.s value1
+		IL_0002: ldloca.s 2
+		IL_0004: initobj !!T1
+		IL_000a: ldloc.2
+		IL_000b: box !!T1
+		IL_0010: brtrue.s IL_0026
+
+		IL_0012: ldobj !!T1
+		IL_0017: stloc.2
+		IL_0018: ldloca.s 2
+		IL_001a: ldloc.2
+		IL_001b: box !!T1
+		IL_0020: brtrue.s IL_0026
+
+		IL_0022: pop
+		IL_0023: ldc.i4.0
+		IL_0024: br.s IL_0031
+
+		IL_0026: constrained. !!T1
+		IL_002c: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_0031: stloc.0
+		IL_0032: call uint32 System.HashCode::MixEmptyState()
+		IL_0037: stloc.1
+		IL_0038: ldloc.1
+		IL_0039: ldc.i4.4
+		IL_003a: add
+		IL_003b: stloc.1
+		IL_003c: ldloc.1
+		IL_003d: ldloc.0
+		IL_003e: call uint32 System.HashCode::QueueRound(uint32, uint32)
+		IL_0043: stloc.1
+		IL_0044: ldloc.1
+		IL_0045: call uint32 System.HashCode::MixFinal(uint32)
+		IL_004a: stloc.1
+		IL_004b: ldloc.1
+		IL_004c: ret
+	} // end of method HashCode::Combine
+
+	.method public hidebysig static 
+		int32 Combine<T1, T2> (
+			!!T1 value1,
+			!!T2 value2
+		) cil managed 
+	{
+		.param type T1
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param type T2
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		// Method begins at RVA 0x2170
+		// Header size: 12
+		// Code size: 138 (0x8a)
+		.maxstack 2
+		.locals init (
+			[0] uint32,
+			[1] uint32,
+			[2] uint32,
+			[3] !!T1,
+			[4] !!T2
+		)
+
+		IL_0000: ldarga.s value1
+		IL_0002: ldloca.s 3
+		IL_0004: initobj !!T1
+		IL_000a: ldloc.3
+		IL_000b: box !!T1
+		IL_0010: brtrue.s IL_0026
+
+		IL_0012: ldobj !!T1
+		IL_0017: stloc.3
+		IL_0018: ldloca.s 3
+		IL_001a: ldloc.3
+		IL_001b: box !!T1
+		IL_0020: brtrue.s IL_0026
+
+		IL_0022: pop
+		IL_0023: ldc.i4.0
+		IL_0024: br.s IL_0031
+
+		IL_0026: constrained. !!T1
+		IL_002c: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_0031: stloc.0
+		IL_0032: ldarga.s value2
+		IL_0034: ldloca.s 4
+		IL_0036: initobj !!T2
+		IL_003c: ldloc.s 4
+		IL_003e: box !!T2
+		IL_0043: brtrue.s IL_005b
+
+		IL_0045: ldobj !!T2
+		IL_004a: stloc.s 4
+		IL_004c: ldloca.s 4
+		IL_004e: ldloc.s 4
+		IL_0050: box !!T2
+		IL_0055: brtrue.s IL_005b
+
+		IL_0057: pop
+		IL_0058: ldc.i4.0
+		IL_0059: br.s IL_0066
+
+		IL_005b: constrained. !!T2
+		IL_0061: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_0066: stloc.1
+		IL_0067: call uint32 System.HashCode::MixEmptyState()
+		IL_006c: stloc.2
+		IL_006d: ldloc.2
+		IL_006e: ldc.i4.8
+		IL_006f: add
+		IL_0070: stloc.2
+		IL_0071: ldloc.2
+		IL_0072: ldloc.0
+		IL_0073: call uint32 System.HashCode::QueueRound(uint32, uint32)
+		IL_0078: stloc.2
+		IL_0079: ldloc.2
+		IL_007a: ldloc.1
+		IL_007b: call uint32 System.HashCode::QueueRound(uint32, uint32)
+		IL_0080: stloc.2
+		IL_0081: ldloc.2
+		IL_0082: call uint32 System.HashCode::MixFinal(uint32)
+		IL_0087: stloc.2
+		IL_0088: ldloc.2
+		IL_0089: ret
+	} // end of method HashCode::Combine
+
+	.method public hidebysig static 
+		int32 Combine<T1, T2, T3> (
+			!!T1 value1,
+			!!T2 value2,
+			!!T3 value3
+		) cil managed 
+	{
+		.param type T1
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param type T2
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param type T3
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		// Method begins at RVA 0x2208
+		// Header size: 12
+		// Code size: 203 (0xcb)
+		.maxstack 2
+		.locals init (
+			[0] uint32,
+			[1] uint32,
+			[2] uint32,
+			[3] uint32,
+			[4] !!T1,
+			[5] !!T2,
+			[6] !!T3
+		)
+
+		IL_0000: ldarga.s value1
+		IL_0002: ldloca.s 4
+		IL_0004: initobj !!T1
+		IL_000a: ldloc.s 4
+		IL_000c: box !!T1
+		IL_0011: brtrue.s IL_0029
+
+		IL_0013: ldobj !!T1
+		IL_0018: stloc.s 4
+		IL_001a: ldloca.s 4
+		IL_001c: ldloc.s 4
+		IL_001e: box !!T1
+		IL_0023: brtrue.s IL_0029
+
+		IL_0025: pop
+		IL_0026: ldc.i4.0
+		IL_0027: br.s IL_0034
+
+		IL_0029: constrained. !!T1
+		IL_002f: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_0034: stloc.0
+		IL_0035: ldarga.s value2
+		IL_0037: ldloca.s 5
+		IL_0039: initobj !!T2
+		IL_003f: ldloc.s 5
+		IL_0041: box !!T2
+		IL_0046: brtrue.s IL_005e
+
+		IL_0048: ldobj !!T2
+		IL_004d: stloc.s 5
+		IL_004f: ldloca.s 5
+		IL_0051: ldloc.s 5
+		IL_0053: box !!T2
+		IL_0058: brtrue.s IL_005e
+
+		IL_005a: pop
+		IL_005b: ldc.i4.0
+		IL_005c: br.s IL_0069
+
+		IL_005e: constrained. !!T2
+		IL_0064: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_0069: stloc.1
+		IL_006a: ldarga.s value3
+		IL_006c: ldloca.s 6
+		IL_006e: initobj !!T3
+		IL_0074: ldloc.s 6
+		IL_0076: box !!T3
+		IL_007b: brtrue.s IL_0093
+
+		IL_007d: ldobj !!T3
+		IL_0082: stloc.s 6
+		IL_0084: ldloca.s 6
+		IL_0086: ldloc.s 6
+		IL_0088: box !!T3
+		IL_008d: brtrue.s IL_0093
+
+		IL_008f: pop
+		IL_0090: ldc.i4.0
+		IL_0091: br.s IL_009e
+
+		IL_0093: constrained. !!T3
+		IL_0099: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_009e: stloc.2
+		IL_009f: call uint32 System.HashCode::MixEmptyState()
+		IL_00a4: stloc.3
+		IL_00a5: ldloc.3
+		IL_00a6: ldc.i4.s 12
+		IL_00a8: add
+		IL_00a9: stloc.3
+		IL_00aa: ldloc.3
+		IL_00ab: ldloc.0
+		IL_00ac: call uint32 System.HashCode::QueueRound(uint32, uint32)
+		IL_00b1: stloc.3
+		IL_00b2: ldloc.3
+		IL_00b3: ldloc.1
+		IL_00b4: call uint32 System.HashCode::QueueRound(uint32, uint32)
+		IL_00b9: stloc.3
+		IL_00ba: ldloc.3
+		IL_00bb: ldloc.2
+		IL_00bc: call uint32 System.HashCode::QueueRound(uint32, uint32)
+		IL_00c1: stloc.3
+		IL_00c2: ldloc.3
+		IL_00c3: call uint32 System.HashCode::MixFinal(uint32)
+		IL_00c8: stloc.3
+		IL_00c9: ldloc.3
+		IL_00ca: ret
+	} // end of method HashCode::Combine
+
+	.method public hidebysig static 
+		int32 Combine<T1, T2, T3, T4> (
+			!!T1 value1,
+			!!T2 value2,
+			!!T3 value3,
+			!!T4 value4
+		) cil managed 
+	{
+		.param type T1
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param type T2
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param type T3
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param type T4
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		// Method begins at RVA 0x22e0
+		// Header size: 12
+		// Code size: 299 (0x12b)
+		.maxstack 4
+		.locals init (
+			[0] uint32,
+			[1] uint32,
+			[2] uint32,
+			[3] uint32,
+			[4] uint32,
+			[5] uint32,
+			[6] uint32,
+			[7] uint32,
+			[8] uint32,
+			[9] !!T1,
+			[10] !!T2,
+			[11] !!T3,
+			[12] !!T4
+		)
+
+		IL_0000: ldarga.s value1
+		IL_0002: ldloca.s 9
+		IL_0004: initobj !!T1
+		IL_000a: ldloc.s 9
+		IL_000c: box !!T1
+		IL_0011: brtrue.s IL_0029
+
+		IL_0013: ldobj !!T1
+		IL_0018: stloc.s 9
+		IL_001a: ldloca.s 9
+		IL_001c: ldloc.s 9
+		IL_001e: box !!T1
+		IL_0023: brtrue.s IL_0029
+
+		IL_0025: pop
+		IL_0026: ldc.i4.0
+		IL_0027: br.s IL_0034
+
+		IL_0029: constrained. !!T1
+		IL_002f: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_0034: stloc.0
+		IL_0035: ldarga.s value2
+		IL_0037: ldloca.s 10
+		IL_0039: initobj !!T2
+		IL_003f: ldloc.s 10
+		IL_0041: box !!T2
+		IL_0046: brtrue.s IL_005e
+
+		IL_0048: ldobj !!T2
+		IL_004d: stloc.s 10
+		IL_004f: ldloca.s 10
+		IL_0051: ldloc.s 10
+		IL_0053: box !!T2
+		IL_0058: brtrue.s IL_005e
+
+		IL_005a: pop
+		IL_005b: ldc.i4.0
+		IL_005c: br.s IL_0069
+
+		IL_005e: constrained. !!T2
+		IL_0064: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_0069: stloc.1
+		IL_006a: ldarga.s value3
+		IL_006c: ldloca.s 11
+		IL_006e: initobj !!T3
+		IL_0074: ldloc.s 11
+		IL_0076: box !!T3
+		IL_007b: brtrue.s IL_0093
+
+		IL_007d: ldobj !!T3
+		IL_0082: stloc.s 11
+		IL_0084: ldloca.s 11
+		IL_0086: ldloc.s 11
+		IL_0088: box !!T3
+		IL_008d: brtrue.s IL_0093
+
+		IL_008f: pop
+		IL_0090: ldc.i4.0
+		IL_0091: br.s IL_009e
+
+		IL_0093: constrained. !!T3
+		IL_0099: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_009e: stloc.2
+		IL_009f: ldarga.s value4
+		IL_00a1: ldloca.s 12
+		IL_00a3: initobj !!T4
+		IL_00a9: ldloc.s 12
+		IL_00ab: box !!T4
+		IL_00b0: brtrue.s IL_00c8
+
+		IL_00b2: ldobj !!T4
+		IL_00b7: stloc.s 12
+		IL_00b9: ldloca.s 12
+		IL_00bb: ldloc.s 12
+		IL_00bd: box !!T4
+		IL_00c2: brtrue.s IL_00c8
+
+		IL_00c4: pop
+		IL_00c5: ldc.i4.0
+		IL_00c6: br.s IL_00d3
+
+		IL_00c8: constrained. !!T4
+		IL_00ce: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_00d3: stloc.3
+		IL_00d4: ldloca.s 4
+		IL_00d6: ldloca.s 5
+		IL_00d8: ldloca.s 6
+		IL_00da: ldloca.s 7
+		IL_00dc: call void System.HashCode::Initialize(uint32&, uint32&, uint32&, uint32&)
+		IL_00e1: ldloc.s 4
+		IL_00e3: ldloc.0
+		IL_00e4: call uint32 System.HashCode::Round(uint32, uint32)
+		IL_00e9: stloc.s 4
+		IL_00eb: ldloc.s 5
+		IL_00ed: ldloc.1
+		IL_00ee: call uint32 System.HashCode::Round(uint32, uint32)
+		IL_00f3: stloc.s 5
+		IL_00f5: ldloc.s 6
+		IL_00f7: ldloc.2
+		IL_00f8: call uint32 System.HashCode::Round(uint32, uint32)
+		IL_00fd: stloc.s 6
+		IL_00ff: ldloc.s 7
+		IL_0101: ldloc.3
+		IL_0102: call uint32 System.HashCode::Round(uint32, uint32)
+		IL_0107: stloc.s 7
+		IL_0109: ldloc.s 4
+		IL_010b: ldloc.s 5
+		IL_010d: ldloc.s 6
+		IL_010f: ldloc.s 7
+		IL_0111: call uint32 System.HashCode::MixState(uint32, uint32, uint32, uint32)
+		IL_0116: stloc.s 8
+		IL_0118: ldloc.s 8
+		IL_011a: ldc.i4.s 16
+		IL_011c: add
+		IL_011d: stloc.s 8
+		IL_011f: ldloc.s 8
+		IL_0121: call uint32 System.HashCode::MixFinal(uint32)
+		IL_0126: stloc.s 8
+		IL_0128: ldloc.s 8
+		IL_012a: ret
+	} // end of method HashCode::Combine
+
+	.method public hidebysig static 
+		int32 Combine<T1, T2, T3, T4, T5> (
+			!!T1 value1,
+			!!T2 value2,
+			!!T3 value3,
+			!!T4 value4,
+			!!T5 value5
+		) cil managed 
+	{
+		.param type T1
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param type T2
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param type T3
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param type T4
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param type T5
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		// Method begins at RVA 0x2418
+		// Header size: 12
+		// Code size: 364 (0x16c)
+		.maxstack 4
+		.locals init (
+			[0] uint32,
+			[1] uint32,
+			[2] uint32,
+			[3] uint32,
+			[4] uint32,
+			[5] uint32,
+			[6] uint32,
+			[7] uint32,
+			[8] uint32,
+			[9] uint32,
+			[10] !!T1,
+			[11] !!T2,
+			[12] !!T3,
+			[13] !!T4,
+			[14] !!T5
+		)
+
+		IL_0000: ldarga.s value1
+		IL_0002: ldloca.s 10
+		IL_0004: initobj !!T1
+		IL_000a: ldloc.s 10
+		IL_000c: box !!T1
+		IL_0011: brtrue.s IL_0029
+
+		IL_0013: ldobj !!T1
+		IL_0018: stloc.s 10
+		IL_001a: ldloca.s 10
+		IL_001c: ldloc.s 10
+		IL_001e: box !!T1
+		IL_0023: brtrue.s IL_0029
+
+		IL_0025: pop
+		IL_0026: ldc.i4.0
+		IL_0027: br.s IL_0034
+
+		IL_0029: constrained. !!T1
+		IL_002f: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_0034: stloc.0
+		IL_0035: ldarga.s value2
+		IL_0037: ldloca.s 11
+		IL_0039: initobj !!T2
+		IL_003f: ldloc.s 11
+		IL_0041: box !!T2
+		IL_0046: brtrue.s IL_005e
+
+		IL_0048: ldobj !!T2
+		IL_004d: stloc.s 11
+		IL_004f: ldloca.s 11
+		IL_0051: ldloc.s 11
+		IL_0053: box !!T2
+		IL_0058: brtrue.s IL_005e
+
+		IL_005a: pop
+		IL_005b: ldc.i4.0
+		IL_005c: br.s IL_0069
+
+		IL_005e: constrained. !!T2
+		IL_0064: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_0069: stloc.1
+		IL_006a: ldarga.s value3
+		IL_006c: ldloca.s 12
+		IL_006e: initobj !!T3
+		IL_0074: ldloc.s 12
+		IL_0076: box !!T3
+		IL_007b: brtrue.s IL_0093
+
+		IL_007d: ldobj !!T3
+		IL_0082: stloc.s 12
+		IL_0084: ldloca.s 12
+		IL_0086: ldloc.s 12
+		IL_0088: box !!T3
+		IL_008d: brtrue.s IL_0093
+
+		IL_008f: pop
+		IL_0090: ldc.i4.0
+		IL_0091: br.s IL_009e
+
+		IL_0093: constrained. !!T3
+		IL_0099: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_009e: stloc.2
+		IL_009f: ldarga.s value4
+		IL_00a1: ldloca.s 13
+		IL_00a3: initobj !!T4
+		IL_00a9: ldloc.s 13
+		IL_00ab: box !!T4
+		IL_00b0: brtrue.s IL_00c8
+
+		IL_00b2: ldobj !!T4
+		IL_00b7: stloc.s 13
+		IL_00b9: ldloca.s 13
+		IL_00bb: ldloc.s 13
+		IL_00bd: box !!T4
+		IL_00c2: brtrue.s IL_00c8
+
+		IL_00c4: pop
+		IL_00c5: ldc.i4.0
+		IL_00c6: br.s IL_00d3
+
+		IL_00c8: constrained. !!T4
+		IL_00ce: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_00d3: stloc.3
+		IL_00d4: ldarga.s value5
+		IL_00d6: ldloca.s 14
+		IL_00d8: initobj !!T5
+		IL_00de: ldloc.s 14
+		IL_00e0: box !!T5
+		IL_00e5: brtrue.s IL_00fd
+
+		IL_00e7: ldobj !!T5
+		IL_00ec: stloc.s 14
+		IL_00ee: ldloca.s 14
+		IL_00f0: ldloc.s 14
+		IL_00f2: box !!T5
+		IL_00f7: brtrue.s IL_00fd
+
+		IL_00f9: pop
+		IL_00fa: ldc.i4.0
+		IL_00fb: br.s IL_0108
+
+		IL_00fd: constrained. !!T5
+		IL_0103: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_0108: stloc.s 4
+		IL_010a: ldloca.s 5
+		IL_010c: ldloca.s 6
+		IL_010e: ldloca.s 7
+		IL_0110: ldloca.s 8
+		IL_0112: call void System.HashCode::Initialize(uint32&, uint32&, uint32&, uint32&)
+		IL_0117: ldloc.s 5
+		IL_0119: ldloc.0
+		IL_011a: call uint32 System.HashCode::Round(uint32, uint32)
+		IL_011f: stloc.s 5
+		IL_0121: ldloc.s 6
+		IL_0123: ldloc.1
+		IL_0124: call uint32 System.HashCode::Round(uint32, uint32)
+		IL_0129: stloc.s 6
+		IL_012b: ldloc.s 7
+		IL_012d: ldloc.2
+		IL_012e: call uint32 System.HashCode::Round(uint32, uint32)
+		IL_0133: stloc.s 7
+		IL_0135: ldloc.s 8
+		IL_0137: ldloc.3
+		IL_0138: call uint32 System.HashCode::Round(uint32, uint32)
+		IL_013d: stloc.s 8
+		IL_013f: ldloc.s 5
+		IL_0141: ldloc.s 6
+		IL_0143: ldloc.s 7
+		IL_0145: ldloc.s 8
+		IL_0147: call uint32 System.HashCode::MixState(uint32, uint32, uint32, uint32)
+		IL_014c: stloc.s 9
+		IL_014e: ldloc.s 9
+		IL_0150: ldc.i4.s 20
+		IL_0152: add
+		IL_0153: stloc.s 9
+		IL_0155: ldloc.s 9
+		IL_0157: ldloc.s 4
+		IL_0159: call uint32 System.HashCode::QueueRound(uint32, uint32)
+		IL_015e: stloc.s 9
+		IL_0160: ldloc.s 9
+		IL_0162: call uint32 System.HashCode::MixFinal(uint32)
+		IL_0167: stloc.s 9
+		IL_0169: ldloc.s 9
+		IL_016b: ret
+	} // end of method HashCode::Combine
+
+	.method public hidebysig static 
+		int32 Combine<T1, T2, T3, T4, T5, T6> (
+			!!T1 value1,
+			!!T2 value2,
+			!!T3 value3,
+			!!T4 value4,
+			!!T5 value5,
+			!!T6 value6
+		) cil managed 
+	{
+		.param type T1
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param type T2
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param type T3
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param type T4
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param type T5
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param type T6
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		// Method begins at RVA 0x2590
+		// Header size: 12
+		// Code size: 429 (0x1ad)
+		.maxstack 4
+		.locals init (
+			[0] uint32,
+			[1] uint32,
+			[2] uint32,
+			[3] uint32,
+			[4] uint32,
+			[5] uint32,
+			[6] uint32,
+			[7] uint32,
+			[8] uint32,
+			[9] uint32,
+			[10] uint32,
+			[11] !!T1,
+			[12] !!T2,
+			[13] !!T3,
+			[14] !!T4,
+			[15] !!T5,
+			[16] !!T6
+		)
+
+		IL_0000: ldarga.s value1
+		IL_0002: ldloca.s 11
+		IL_0004: initobj !!T1
+		IL_000a: ldloc.s 11
+		IL_000c: box !!T1
+		IL_0011: brtrue.s IL_0029
+
+		IL_0013: ldobj !!T1
+		IL_0018: stloc.s 11
+		IL_001a: ldloca.s 11
+		IL_001c: ldloc.s 11
+		IL_001e: box !!T1
+		IL_0023: brtrue.s IL_0029
+
+		IL_0025: pop
+		IL_0026: ldc.i4.0
+		IL_0027: br.s IL_0034
+
+		IL_0029: constrained. !!T1
+		IL_002f: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_0034: stloc.0
+		IL_0035: ldarga.s value2
+		IL_0037: ldloca.s 12
+		IL_0039: initobj !!T2
+		IL_003f: ldloc.s 12
+		IL_0041: box !!T2
+		IL_0046: brtrue.s IL_005e
+
+		IL_0048: ldobj !!T2
+		IL_004d: stloc.s 12
+		IL_004f: ldloca.s 12
+		IL_0051: ldloc.s 12
+		IL_0053: box !!T2
+		IL_0058: brtrue.s IL_005e
+
+		IL_005a: pop
+		IL_005b: ldc.i4.0
+		IL_005c: br.s IL_0069
+
+		IL_005e: constrained. !!T2
+		IL_0064: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_0069: stloc.1
+		IL_006a: ldarga.s value3
+		IL_006c: ldloca.s 13
+		IL_006e: initobj !!T3
+		IL_0074: ldloc.s 13
+		IL_0076: box !!T3
+		IL_007b: brtrue.s IL_0093
+
+		IL_007d: ldobj !!T3
+		IL_0082: stloc.s 13
+		IL_0084: ldloca.s 13
+		IL_0086: ldloc.s 13
+		IL_0088: box !!T3
+		IL_008d: brtrue.s IL_0093
+
+		IL_008f: pop
+		IL_0090: ldc.i4.0
+		IL_0091: br.s IL_009e
+
+		IL_0093: constrained. !!T3
+		IL_0099: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_009e: stloc.2
+		IL_009f: ldarga.s value4
+		IL_00a1: ldloca.s 14
+		IL_00a3: initobj !!T4
+		IL_00a9: ldloc.s 14
+		IL_00ab: box !!T4
+		IL_00b0: brtrue.s IL_00c8
+
+		IL_00b2: ldobj !!T4
+		IL_00b7: stloc.s 14
+		IL_00b9: ldloca.s 14
+		IL_00bb: ldloc.s 14
+		IL_00bd: box !!T4
+		IL_00c2: brtrue.s IL_00c8
+
+		IL_00c4: pop
+		IL_00c5: ldc.i4.0
+		IL_00c6: br.s IL_00d3
+
+		IL_00c8: constrained. !!T4
+		IL_00ce: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_00d3: stloc.3
+		IL_00d4: ldarga.s value5
+		IL_00d6: ldloca.s 15
+		IL_00d8: initobj !!T5
+		IL_00de: ldloc.s 15
+		IL_00e0: box !!T5
+		IL_00e5: brtrue.s IL_00fd
+
+		IL_00e7: ldobj !!T5
+		IL_00ec: stloc.s 15
+		IL_00ee: ldloca.s 15
+		IL_00f0: ldloc.s 15
+		IL_00f2: box !!T5
+		IL_00f7: brtrue.s IL_00fd
+
+		IL_00f9: pop
+		IL_00fa: ldc.i4.0
+		IL_00fb: br.s IL_0108
+
+		IL_00fd: constrained. !!T5
+		IL_0103: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_0108: stloc.s 4
+		IL_010a: ldarga.s value6
+		IL_010c: ldloca.s 16
+		IL_010e: initobj !!T6
+		IL_0114: ldloc.s 16
+		IL_0116: box !!T6
+		IL_011b: brtrue.s IL_0133
+
+		IL_011d: ldobj !!T6
+		IL_0122: stloc.s 16
+		IL_0124: ldloca.s 16
+		IL_0126: ldloc.s 16
+		IL_0128: box !!T6
+		IL_012d: brtrue.s IL_0133
+
+		IL_012f: pop
+		IL_0130: ldc.i4.0
+		IL_0131: br.s IL_013e
+
+		IL_0133: constrained. !!T6
+		IL_0139: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_013e: stloc.s 5
+		IL_0140: ldloca.s 6
+		IL_0142: ldloca.s 7
+		IL_0144: ldloca.s 8
+		IL_0146: ldloca.s 9
+		IL_0148: call void System.HashCode::Initialize(uint32&, uint32&, uint32&, uint32&)
+		IL_014d: ldloc.s 6
+		IL_014f: ldloc.0
+		IL_0150: call uint32 System.HashCode::Round(uint32, uint32)
+		IL_0155: stloc.s 6
+		IL_0157: ldloc.s 7
+		IL_0159: ldloc.1
+		IL_015a: call uint32 System.HashCode::Round(uint32, uint32)
+		IL_015f: stloc.s 7
+		IL_0161: ldloc.s 8
+		IL_0163: ldloc.2
+		IL_0164: call uint32 System.HashCode::Round(uint32, uint32)
+		IL_0169: stloc.s 8
+		IL_016b: ldloc.s 9
+		IL_016d: ldloc.3
+		IL_016e: call uint32 System.HashCode::Round(uint32, uint32)
+		IL_0173: stloc.s 9
+		IL_0175: ldloc.s 6
+		IL_0177: ldloc.s 7
+		IL_0179: ldloc.s 8
+		IL_017b: ldloc.s 9
+		IL_017d: call uint32 System.HashCode::MixState(uint32, uint32, uint32, uint32)
+		IL_0182: stloc.s 10
+		IL_0184: ldloc.s 10
+		IL_0186: ldc.i4.s 24
+		IL_0188: add
+		IL_0189: stloc.s 10
+		IL_018b: ldloc.s 10
+		IL_018d: ldloc.s 4
+		IL_018f: call uint32 System.HashCode::QueueRound(uint32, uint32)
+		IL_0194: stloc.s 10
+		IL_0196: ldloc.s 10
+		IL_0198: ldloc.s 5
+		IL_019a: call uint32 System.HashCode::QueueRound(uint32, uint32)
+		IL_019f: stloc.s 10
+		IL_01a1: ldloc.s 10
+		IL_01a3: call uint32 System.HashCode::MixFinal(uint32)
+		IL_01a8: stloc.s 10
+		IL_01aa: ldloc.s 10
+		IL_01ac: ret
+	} // end of method HashCode::Combine
+
+	.method public hidebysig static 
+		int32 Combine<T1, T2, T3, T4, T5, T6, T7> (
+			!!T1 value1,
+			!!T2 value2,
+			!!T3 value3,
+			!!T4 value4,
+			!!T5 value5,
+			!!T6 value6,
+			!!T7 value7
+		) cil managed 
+	{
+		.param type T1
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param type T2
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param type T3
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param type T4
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param type T5
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param type T6
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param type T7
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		// Method begins at RVA 0x274c
+		// Header size: 12
+		// Code size: 494 (0x1ee)
+		.maxstack 4
+		.locals init (
+			[0] uint32,
+			[1] uint32,
+			[2] uint32,
+			[3] uint32,
+			[4] uint32,
+			[5] uint32,
+			[6] uint32,
+			[7] uint32,
+			[8] uint32,
+			[9] uint32,
+			[10] uint32,
+			[11] uint32,
+			[12] !!T1,
+			[13] !!T2,
+			[14] !!T3,
+			[15] !!T4,
+			[16] !!T5,
+			[17] !!T6,
+			[18] !!T7
+		)
+
+		IL_0000: ldarga.s value1
+		IL_0002: ldloca.s 12
+		IL_0004: initobj !!T1
+		IL_000a: ldloc.s 12
+		IL_000c: box !!T1
+		IL_0011: brtrue.s IL_0029
+
+		IL_0013: ldobj !!T1
+		IL_0018: stloc.s 12
+		IL_001a: ldloca.s 12
+		IL_001c: ldloc.s 12
+		IL_001e: box !!T1
+		IL_0023: brtrue.s IL_0029
+
+		IL_0025: pop
+		IL_0026: ldc.i4.0
+		IL_0027: br.s IL_0034
+
+		IL_0029: constrained. !!T1
+		IL_002f: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_0034: stloc.0
+		IL_0035: ldarga.s value2
+		IL_0037: ldloca.s 13
+		IL_0039: initobj !!T2
+		IL_003f: ldloc.s 13
+		IL_0041: box !!T2
+		IL_0046: brtrue.s IL_005e
+
+		IL_0048: ldobj !!T2
+		IL_004d: stloc.s 13
+		IL_004f: ldloca.s 13
+		IL_0051: ldloc.s 13
+		IL_0053: box !!T2
+		IL_0058: brtrue.s IL_005e
+
+		IL_005a: pop
+		IL_005b: ldc.i4.0
+		IL_005c: br.s IL_0069
+
+		IL_005e: constrained. !!T2
+		IL_0064: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_0069: stloc.1
+		IL_006a: ldarga.s value3
+		IL_006c: ldloca.s 14
+		IL_006e: initobj !!T3
+		IL_0074: ldloc.s 14
+		IL_0076: box !!T3
+		IL_007b: brtrue.s IL_0093
+
+		IL_007d: ldobj !!T3
+		IL_0082: stloc.s 14
+		IL_0084: ldloca.s 14
+		IL_0086: ldloc.s 14
+		IL_0088: box !!T3
+		IL_008d: brtrue.s IL_0093
+
+		IL_008f: pop
+		IL_0090: ldc.i4.0
+		IL_0091: br.s IL_009e
+
+		IL_0093: constrained. !!T3
+		IL_0099: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_009e: stloc.2
+		IL_009f: ldarga.s value4
+		IL_00a1: ldloca.s 15
+		IL_00a3: initobj !!T4
+		IL_00a9: ldloc.s 15
+		IL_00ab: box !!T4
+		IL_00b0: brtrue.s IL_00c8
+
+		IL_00b2: ldobj !!T4
+		IL_00b7: stloc.s 15
+		IL_00b9: ldloca.s 15
+		IL_00bb: ldloc.s 15
+		IL_00bd: box !!T4
+		IL_00c2: brtrue.s IL_00c8
+
+		IL_00c4: pop
+		IL_00c5: ldc.i4.0
+		IL_00c6: br.s IL_00d3
+
+		IL_00c8: constrained. !!T4
+		IL_00ce: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_00d3: stloc.3
+		IL_00d4: ldarga.s value5
+		IL_00d6: ldloca.s 16
+		IL_00d8: initobj !!T5
+		IL_00de: ldloc.s 16
+		IL_00e0: box !!T5
+		IL_00e5: brtrue.s IL_00fd
+
+		IL_00e7: ldobj !!T5
+		IL_00ec: stloc.s 16
+		IL_00ee: ldloca.s 16
+		IL_00f0: ldloc.s 16
+		IL_00f2: box !!T5
+		IL_00f7: brtrue.s IL_00fd
+
+		IL_00f9: pop
+		IL_00fa: ldc.i4.0
+		IL_00fb: br.s IL_0108
+
+		IL_00fd: constrained. !!T5
+		IL_0103: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_0108: stloc.s 4
+		IL_010a: ldarga.s value6
+		IL_010c: ldloca.s 17
+		IL_010e: initobj !!T6
+		IL_0114: ldloc.s 17
+		IL_0116: box !!T6
+		IL_011b: brtrue.s IL_0133
+
+		IL_011d: ldobj !!T6
+		IL_0122: stloc.s 17
+		IL_0124: ldloca.s 17
+		IL_0126: ldloc.s 17
+		IL_0128: box !!T6
+		IL_012d: brtrue.s IL_0133
+
+		IL_012f: pop
+		IL_0130: ldc.i4.0
+		IL_0131: br.s IL_013e
+
+		IL_0133: constrained. !!T6
+		IL_0139: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_013e: stloc.s 5
+		IL_0140: ldarga.s value7
+		IL_0142: ldloca.s 18
+		IL_0144: initobj !!T7
+		IL_014a: ldloc.s 18
+		IL_014c: box !!T7
+		IL_0151: brtrue.s IL_0169
+
+		IL_0153: ldobj !!T7
+		IL_0158: stloc.s 18
+		IL_015a: ldloca.s 18
+		IL_015c: ldloc.s 18
+		IL_015e: box !!T7
+		IL_0163: brtrue.s IL_0169
+
+		IL_0165: pop
+		IL_0166: ldc.i4.0
+		IL_0167: br.s IL_0174
+
+		IL_0169: constrained. !!T7
+		IL_016f: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_0174: stloc.s 6
+		IL_0176: ldloca.s 7
+		IL_0178: ldloca.s 8
+		IL_017a: ldloca.s 9
+		IL_017c: ldloca.s 10
+		IL_017e: call void System.HashCode::Initialize(uint32&, uint32&, uint32&, uint32&)
+		IL_0183: ldloc.s 7
+		IL_0185: ldloc.0
+		IL_0186: call uint32 System.HashCode::Round(uint32, uint32)
+		IL_018b: stloc.s 7
+		IL_018d: ldloc.s 8
+		IL_018f: ldloc.1
+		IL_0190: call uint32 System.HashCode::Round(uint32, uint32)
+		IL_0195: stloc.s 8
+		IL_0197: ldloc.s 9
+		IL_0199: ldloc.2
+		IL_019a: call uint32 System.HashCode::Round(uint32, uint32)
+		IL_019f: stloc.s 9
+		IL_01a1: ldloc.s 10
+		IL_01a3: ldloc.3
+		IL_01a4: call uint32 System.HashCode::Round(uint32, uint32)
+		IL_01a9: stloc.s 10
+		IL_01ab: ldloc.s 7
+		IL_01ad: ldloc.s 8
+		IL_01af: ldloc.s 9
+		IL_01b1: ldloc.s 10
+		IL_01b3: call uint32 System.HashCode::MixState(uint32, uint32, uint32, uint32)
+		IL_01b8: stloc.s 11
+		IL_01ba: ldloc.s 11
+		IL_01bc: ldc.i4.s 28
+		IL_01be: add
+		IL_01bf: stloc.s 11
+		IL_01c1: ldloc.s 11
+		IL_01c3: ldloc.s 4
+		IL_01c5: call uint32 System.HashCode::QueueRound(uint32, uint32)
+		IL_01ca: stloc.s 11
+		IL_01cc: ldloc.s 11
+		IL_01ce: ldloc.s 5
+		IL_01d0: call uint32 System.HashCode::QueueRound(uint32, uint32)
+		IL_01d5: stloc.s 11
+		IL_01d7: ldloc.s 11
+		IL_01d9: ldloc.s 6
+		IL_01db: call uint32 System.HashCode::QueueRound(uint32, uint32)
+		IL_01e0: stloc.s 11
+		IL_01e2: ldloc.s 11
+		IL_01e4: call uint32 System.HashCode::MixFinal(uint32)
+		IL_01e9: stloc.s 11
+		IL_01eb: ldloc.s 11
+		IL_01ed: ret
+	} // end of method HashCode::Combine
+
+	.method public hidebysig static 
+		int32 Combine<T1, T2, T3, T4, T5, T6, T7, T8> (
+			!!T1 value1,
+			!!T2 value2,
+			!!T3 value3,
+			!!T4 value4,
+			!!T5 value5,
+			!!T6 value6,
+			!!T7 value7,
+			!!T8 value8
+		) cil managed 
+	{
+		.param type T1
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param type T2
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param type T3
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param type T4
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param type T5
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param type T6
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param type T7
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param type T8
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		// Method begins at RVA 0x2948
+		// Header size: 12
+		// Code size: 559 (0x22f)
+		.maxstack 4
+		.locals init (
+			[0] uint32,
+			[1] uint32,
+			[2] uint32,
+			[3] uint32,
+			[4] uint32,
+			[5] uint32,
+			[6] uint32,
+			[7] uint32,
+			[8] uint32,
+			[9] uint32,
+			[10] uint32,
+			[11] uint32,
+			[12] uint32,
+			[13] !!T1,
+			[14] !!T2,
+			[15] !!T3,
+			[16] !!T4,
+			[17] !!T5,
+			[18] !!T6,
+			[19] !!T7,
+			[20] !!T8
+		)
+
+		IL_0000: ldarga.s value1
+		IL_0002: ldloca.s 13
+		IL_0004: initobj !!T1
+		IL_000a: ldloc.s 13
+		IL_000c: box !!T1
+		IL_0011: brtrue.s IL_0029
+
+		IL_0013: ldobj !!T1
+		IL_0018: stloc.s 13
+		IL_001a: ldloca.s 13
+		IL_001c: ldloc.s 13
+		IL_001e: box !!T1
+		IL_0023: brtrue.s IL_0029
+
+		IL_0025: pop
+		IL_0026: ldc.i4.0
+		IL_0027: br.s IL_0034
+
+		IL_0029: constrained. !!T1
+		IL_002f: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_0034: stloc.0
+		IL_0035: ldarga.s value2
+		IL_0037: ldloca.s 14
+		IL_0039: initobj !!T2
+		IL_003f: ldloc.s 14
+		IL_0041: box !!T2
+		IL_0046: brtrue.s IL_005e
+
+		IL_0048: ldobj !!T2
+		IL_004d: stloc.s 14
+		IL_004f: ldloca.s 14
+		IL_0051: ldloc.s 14
+		IL_0053: box !!T2
+		IL_0058: brtrue.s IL_005e
+
+		IL_005a: pop
+		IL_005b: ldc.i4.0
+		IL_005c: br.s IL_0069
+
+		IL_005e: constrained. !!T2
+		IL_0064: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_0069: stloc.1
+		IL_006a: ldarga.s value3
+		IL_006c: ldloca.s 15
+		IL_006e: initobj !!T3
+		IL_0074: ldloc.s 15
+		IL_0076: box !!T3
+		IL_007b: brtrue.s IL_0093
+
+		IL_007d: ldobj !!T3
+		IL_0082: stloc.s 15
+		IL_0084: ldloca.s 15
+		IL_0086: ldloc.s 15
+		IL_0088: box !!T3
+		IL_008d: brtrue.s IL_0093
+
+		IL_008f: pop
+		IL_0090: ldc.i4.0
+		IL_0091: br.s IL_009e
+
+		IL_0093: constrained. !!T3
+		IL_0099: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_009e: stloc.2
+		IL_009f: ldarga.s value4
+		IL_00a1: ldloca.s 16
+		IL_00a3: initobj !!T4
+		IL_00a9: ldloc.s 16
+		IL_00ab: box !!T4
+		IL_00b0: brtrue.s IL_00c8
+
+		IL_00b2: ldobj !!T4
+		IL_00b7: stloc.s 16
+		IL_00b9: ldloca.s 16
+		IL_00bb: ldloc.s 16
+		IL_00bd: box !!T4
+		IL_00c2: brtrue.s IL_00c8
+
+		IL_00c4: pop
+		IL_00c5: ldc.i4.0
+		IL_00c6: br.s IL_00d3
+
+		IL_00c8: constrained. !!T4
+		IL_00ce: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_00d3: stloc.3
+		IL_00d4: ldarga.s value5
+		IL_00d6: ldloca.s 17
+		IL_00d8: initobj !!T5
+		IL_00de: ldloc.s 17
+		IL_00e0: box !!T5
+		IL_00e5: brtrue.s IL_00fd
+
+		IL_00e7: ldobj !!T5
+		IL_00ec: stloc.s 17
+		IL_00ee: ldloca.s 17
+		IL_00f0: ldloc.s 17
+		IL_00f2: box !!T5
+		IL_00f7: brtrue.s IL_00fd
+
+		IL_00f9: pop
+		IL_00fa: ldc.i4.0
+		IL_00fb: br.s IL_0108
+
+		IL_00fd: constrained. !!T5
+		IL_0103: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_0108: stloc.s 4
+		IL_010a: ldarga.s value6
+		IL_010c: ldloca.s 18
+		IL_010e: initobj !!T6
+		IL_0114: ldloc.s 18
+		IL_0116: box !!T6
+		IL_011b: brtrue.s IL_0133
+
+		IL_011d: ldobj !!T6
+		IL_0122: stloc.s 18
+		IL_0124: ldloca.s 18
+		IL_0126: ldloc.s 18
+		IL_0128: box !!T6
+		IL_012d: brtrue.s IL_0133
+
+		IL_012f: pop
+		IL_0130: ldc.i4.0
+		IL_0131: br.s IL_013e
+
+		IL_0133: constrained. !!T6
+		IL_0139: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_013e: stloc.s 5
+		IL_0140: ldarga.s value7
+		IL_0142: ldloca.s 19
+		IL_0144: initobj !!T7
+		IL_014a: ldloc.s 19
+		IL_014c: box !!T7
+		IL_0151: brtrue.s IL_0169
+
+		IL_0153: ldobj !!T7
+		IL_0158: stloc.s 19
+		IL_015a: ldloca.s 19
+		IL_015c: ldloc.s 19
+		IL_015e: box !!T7
+		IL_0163: brtrue.s IL_0169
+
+		IL_0165: pop
+		IL_0166: ldc.i4.0
+		IL_0167: br.s IL_0174
+
+		IL_0169: constrained. !!T7
+		IL_016f: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_0174: stloc.s 6
+		IL_0176: ldarga.s value8
+		IL_0178: ldloca.s 20
+		IL_017a: initobj !!T8
+		IL_0180: ldloc.s 20
+		IL_0182: box !!T8
+		IL_0187: brtrue.s IL_019f
+
+		IL_0189: ldobj !!T8
+		IL_018e: stloc.s 20
+		IL_0190: ldloca.s 20
+		IL_0192: ldloc.s 20
+		IL_0194: box !!T8
+		IL_0199: brtrue.s IL_019f
+
+		IL_019b: pop
+		IL_019c: ldc.i4.0
+		IL_019d: br.s IL_01aa
+
+		IL_019f: constrained. !!T8
+		IL_01a5: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_01aa: stloc.s 7
+		IL_01ac: ldloca.s 8
+		IL_01ae: ldloca.s 9
+		IL_01b0: ldloca.s 10
+		IL_01b2: ldloca.s 11
+		IL_01b4: call void System.HashCode::Initialize(uint32&, uint32&, uint32&, uint32&)
+		IL_01b9: ldloc.s 8
+		IL_01bb: ldloc.0
+		IL_01bc: call uint32 System.HashCode::Round(uint32, uint32)
+		IL_01c1: stloc.s 8
+		IL_01c3: ldloc.s 9
+		IL_01c5: ldloc.1
+		IL_01c6: call uint32 System.HashCode::Round(uint32, uint32)
+		IL_01cb: stloc.s 9
+		IL_01cd: ldloc.s 10
+		IL_01cf: ldloc.2
+		IL_01d0: call uint32 System.HashCode::Round(uint32, uint32)
+		IL_01d5: stloc.s 10
+		IL_01d7: ldloc.s 11
+		IL_01d9: ldloc.3
+		IL_01da: call uint32 System.HashCode::Round(uint32, uint32)
+		IL_01df: stloc.s 11
+		IL_01e1: ldloc.s 8
+		IL_01e3: ldloc.s 4
+		IL_01e5: call uint32 System.HashCode::Round(uint32, uint32)
+		IL_01ea: stloc.s 8
+		IL_01ec: ldloc.s 9
+		IL_01ee: ldloc.s 5
+		IL_01f0: call uint32 System.HashCode::Round(uint32, uint32)
+		IL_01f5: stloc.s 9
+		IL_01f7: ldloc.s 10
+		IL_01f9: ldloc.s 6
+		IL_01fb: call uint32 System.HashCode::Round(uint32, uint32)
+		IL_0200: stloc.s 10
+		IL_0202: ldloc.s 11
+		IL_0204: ldloc.s 7
+		IL_0206: call uint32 System.HashCode::Round(uint32, uint32)
+		IL_020b: stloc.s 11
+		IL_020d: ldloc.s 8
+		IL_020f: ldloc.s 9
+		IL_0211: ldloc.s 10
+		IL_0213: ldloc.s 11
+		IL_0215: call uint32 System.HashCode::MixState(uint32, uint32, uint32, uint32)
+		IL_021a: stloc.s 12
+		IL_021c: ldloc.s 12
+		IL_021e: ldc.i4.s 32
+		IL_0220: add
+		IL_0221: stloc.s 12
+		IL_0223: ldloc.s 12
+		IL_0225: call uint32 System.HashCode::MixFinal(uint32)
+		IL_022a: stloc.s 12
+		IL_022c: ldloc.s 12
+		IL_022e: ret
+	} // end of method HashCode::Combine
+
+	.method private hidebysig static 
+		void Initialize (
+			[out] uint32& v1,
+			[out] uint32& v2,
+			[out] uint32& v3,
+			[out] uint32& v4
+		) cil managed aggressiveinlining 
+	{
+		// Method begins at RVA 0x2b83
+		// Header size: 1
+		// Code size: 53 (0x35)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldsfld uint32 System.HashCode::s_seed
+		IL_0006: ldc.i4 -1640531535
+		IL_000b: add
+		IL_000c: ldc.i4 -2048144777
+		IL_0011: add
+		IL_0012: stind.i4
+		IL_0013: ldarg.1
+		IL_0014: ldsfld uint32 System.HashCode::s_seed
+		IL_0019: ldc.i4 -2048144777
+		IL_001e: add
+		IL_001f: stind.i4
+		IL_0020: ldarg.2
+		IL_0021: ldsfld uint32 System.HashCode::s_seed
+		IL_0026: stind.i4
+		IL_0027: ldarg.3
+		IL_0028: ldsfld uint32 System.HashCode::s_seed
+		IL_002d: ldc.i4 -1640531535
+		IL_0032: sub
+		IL_0033: stind.i4
+		IL_0034: ret
+	} // end of method HashCode::Initialize
+
+	.method private hidebysig static 
+		uint32 Round (
+			uint32 hash,
+			uint32 input
+		) cil managed aggressiveinlining 
+	{
+		// Method begins at RVA 0x2bb9
+		// Header size: 1
+		// Code size: 23 (0x17)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: ldc.i4 -2048144777
+		IL_0007: mul
+		IL_0008: add
+		IL_0009: ldc.i4.s 13
+		IL_000b: call uint32 System.Numerics.BitOperations::RotateLeft(uint32, int32)
+		IL_0010: ldc.i4 -1640531535
+		IL_0015: mul
+		IL_0016: ret
+	} // end of method HashCode::Round
+
+	.method private hidebysig static 
+		uint32 QueueRound (
+			uint32 hash,
+			uint32 queuedValue
+		) cil managed aggressiveinlining 
+	{
+		// Method begins at RVA 0x2bd1
+		// Header size: 1
+		// Code size: 23 (0x17)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: ldc.i4 -1028477379
+		IL_0007: mul
+		IL_0008: add
+		IL_0009: ldc.i4.s 17
+		IL_000b: call uint32 System.Numerics.BitOperations::RotateLeft(uint32, int32)
+		IL_0010: ldc.i4 668265263
+		IL_0015: mul
+		IL_0016: ret
+	} // end of method HashCode::QueueRound
+
+	.method private hidebysig static 
+		uint32 MixState (
+			uint32 v1,
+			uint32 v2,
+			uint32 v3,
+			uint32 v4
+		) cil managed aggressiveinlining 
+	{
+		// Method begins at RVA 0x2be9
+		// Header size: 1
+		// Code size: 34 (0x22)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldc.i4.1
+		IL_0002: call uint32 System.Numerics.BitOperations::RotateLeft(uint32, int32)
+		IL_0007: ldarg.1
+		IL_0008: ldc.i4.7
+		IL_0009: call uint32 System.Numerics.BitOperations::RotateLeft(uint32, int32)
+		IL_000e: add
+		IL_000f: ldarg.2
+		IL_0010: ldc.i4.s 12
+		IL_0012: call uint32 System.Numerics.BitOperations::RotateLeft(uint32, int32)
+		IL_0017: add
+		IL_0018: ldarg.3
+		IL_0019: ldc.i4.s 18
+		IL_001b: call uint32 System.Numerics.BitOperations::RotateLeft(uint32, int32)
+		IL_0020: add
+		IL_0021: ret
+	} // end of method HashCode::MixState
+
+	.method private hidebysig static 
+		uint32 MixEmptyState () cil managed 
+	{
+		// Method begins at RVA 0x2c0c
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldsfld uint32 System.HashCode::s_seed
+		IL_0005: ldc.i4 374761393
+		IL_000a: add
+		IL_000b: ret
+	} // end of method HashCode::MixEmptyState
+
+	.method private hidebysig static 
+		uint32 MixFinal (
+			uint32 hash
+		) cil managed aggressiveinlining 
+	{
+		// Method begins at RVA 0x2c19
+		// Header size: 1
+		// Code size: 44 (0x2c)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.0
+		IL_0002: ldc.i4.s 15
+		IL_0004: shr.un
+		IL_0005: xor
+		IL_0006: starg.s hash
+		IL_0008: ldarg.0
+		IL_0009: ldc.i4 -2048144777
+		IL_000e: mul
+		IL_000f: starg.s hash
+		IL_0011: ldarg.0
+		IL_0012: ldarg.0
+		IL_0013: ldc.i4.s 13
+		IL_0015: shr.un
+		IL_0016: xor
+		IL_0017: starg.s hash
+		IL_0019: ldarg.0
+		IL_001a: ldc.i4 -1028477379
+		IL_001f: mul
+		IL_0020: starg.s hash
+		IL_0022: ldarg.0
+		IL_0023: ldarg.0
+		IL_0024: ldc.i4.s 16
+		IL_0026: shr.un
+		IL_0027: xor
+		IL_0028: starg.s hash
+		IL_002a: ldarg.0
+		IL_002b: ret
+	} // end of method HashCode::MixFinal
+
+	.method public hidebysig 
+		instance void Add<T> (
+			!!T 'value'
+		) cil managed 
+	{
+		.param type T
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		// Method begins at RVA 0x2c48
+		// Header size: 12
+		// Code size: 56 (0x38)
+		.maxstack 3
+		.locals init (
+			[0] !!T
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldarga.s 'value'
+		IL_0003: ldloca.s 0
+		IL_0005: initobj !!T
+		IL_000b: ldloc.0
+		IL_000c: box !!T
+		IL_0011: brtrue.s IL_0027
+
+		IL_0013: ldobj !!T
+		IL_0018: stloc.0
+		IL_0019: ldloca.s 0
+		IL_001b: ldloc.0
+		IL_001c: box !!T
+		IL_0021: brtrue.s IL_0027
+
+		IL_0023: pop
+		IL_0024: ldc.i4.0
+		IL_0025: br.s IL_0032
+
+		IL_0027: constrained. !!T
+		IL_002d: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+
+		IL_0032: call instance void System.HashCode::Add(int32)
+		IL_0037: ret
+	} // end of method HashCode::Add
+
+	.method public hidebysig 
+		instance void Add<T> (
+			!!T 'value',
+			class [mscorlib]System.Collections.Generic.IEqualityComparer`1<!!T> comparer
+		) cil managed 
+	{
+		.param type T
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param [2]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8[]) = (
+				01 00 02 00 00 00 02 01 00 00
+			)
+		// Method begins at RVA 0x2c8c
+		// Header size: 12
+		// Code size: 68 (0x44)
+		.maxstack 3
+		.locals init (
+			[0] !!T
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.2
+		IL_0002: brtrue.s IL_0037
+
+		IL_0004: ldarga.s 'value'
+		IL_0006: ldloca.s 0
+		IL_0008: initobj !!T
+		IL_000e: ldloc.0
+		IL_000f: box !!T
+		IL_0014: brtrue.s IL_002a
+
+		IL_0016: ldobj !!T
+		IL_001b: stloc.0
+		IL_001c: ldloca.s 0
+		IL_001e: ldloc.0
+		IL_001f: box !!T
+		IL_0024: brtrue.s IL_002a
+
+		IL_0026: pop
+		IL_0027: ldc.i4.0
+		IL_0028: br.s IL_003e
+
+		IL_002a: constrained. !!T
+		IL_0030: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+		IL_0035: br.s IL_003e
+
+		IL_0037: ldarg.2
+		IL_0038: ldarg.1
+		IL_0039: callvirt instance int32 class [mscorlib]System.Collections.Generic.IEqualityComparer`1<!!T>::GetHashCode(!0)
+
+		IL_003e: call instance void System.HashCode::Add(int32)
+		IL_0043: ret
+	} // end of method HashCode::Add
+
+	.method private hidebysig 
+		instance void Add (
+			int32 'value'
+		) cil managed 
+	{
+		// Method begins at RVA 0x2cdc
+		// Header size: 12
+		// Code size: 180 (0xb4)
+		.maxstack 4
+		.locals init (
+			[0] uint32,
+			[1] uint32,
+			[2] uint32,
+			[3] uint32
+		)
+
+		IL_0000: ldarg.1
+		IL_0001: stloc.0
+		IL_0002: ldarg.0
+		IL_0003: ldarg.0
+		IL_0004: ldfld uint32 System.HashCode::_length
+		IL_0009: stloc.3
+		IL_000a: ldloc.3
+		IL_000b: ldc.i4.1
+		IL_000c: add
+		IL_000d: stfld uint32 System.HashCode::_length
+		IL_0012: ldloc.3
+		IL_0013: stloc.1
+		IL_0014: ldloc.1
+		IL_0015: ldc.i4.4
+		IL_0016: rem.un
+		IL_0017: stloc.2
+		IL_0018: ldloc.2
+		IL_0019: brtrue.s IL_0023
+
+		IL_001b: ldarg.0
+		IL_001c: ldloc.0
+		IL_001d: stfld uint32 System.HashCode::_queue1
+		IL_0022: ret
+
+		IL_0023: ldloc.2
+		IL_0024: ldc.i4.1
+		IL_0025: bne.un.s IL_002f
+
+		IL_0027: ldarg.0
+		IL_0028: ldloc.0
+		IL_0029: stfld uint32 System.HashCode::_queue2
+		IL_002e: ret
+
+		IL_002f: ldloc.2
+		IL_0030: ldc.i4.2
+		IL_0031: bne.un.s IL_003b
+
+		IL_0033: ldarg.0
+		IL_0034: ldloc.0
+		IL_0035: stfld uint32 System.HashCode::_queue3
+		IL_003a: ret
+
+		IL_003b: ldloc.1
+		IL_003c: ldc.i4.3
+		IL_003d: bne.un.s IL_005c
+
+		IL_003f: ldarg.0
+		IL_0040: ldflda uint32 System.HashCode::_v1
+		IL_0045: ldarg.0
+		IL_0046: ldflda uint32 System.HashCode::_v2
+		IL_004b: ldarg.0
+		IL_004c: ldflda uint32 System.HashCode::_v3
+		IL_0051: ldarg.0
+		IL_0052: ldflda uint32 System.HashCode::_v4
+		IL_0057: call void System.HashCode::Initialize(uint32&, uint32&, uint32&, uint32&)
+
+		IL_005c: ldarg.0
+		IL_005d: ldarg.0
+		IL_005e: ldfld uint32 System.HashCode::_v1
+		IL_0063: ldarg.0
+		IL_0064: ldfld uint32 System.HashCode::_queue1
+		IL_0069: call uint32 System.HashCode::Round(uint32, uint32)
+		IL_006e: stfld uint32 System.HashCode::_v1
+		IL_0073: ldarg.0
+		IL_0074: ldarg.0
+		IL_0075: ldfld uint32 System.HashCode::_v2
+		IL_007a: ldarg.0
+		IL_007b: ldfld uint32 System.HashCode::_queue2
+		IL_0080: call uint32 System.HashCode::Round(uint32, uint32)
+		IL_0085: stfld uint32 System.HashCode::_v2
+		IL_008a: ldarg.0
+		IL_008b: ldarg.0
+		IL_008c: ldfld uint32 System.HashCode::_v3
+		IL_0091: ldarg.0
+		IL_0092: ldfld uint32 System.HashCode::_queue3
+		IL_0097: call uint32 System.HashCode::Round(uint32, uint32)
+		IL_009c: stfld uint32 System.HashCode::_v3
+		IL_00a1: ldarg.0
+		IL_00a2: ldarg.0
+		IL_00a3: ldfld uint32 System.HashCode::_v4
+		IL_00a8: ldloc.0
+		IL_00a9: call uint32 System.HashCode::Round(uint32, uint32)
+		IL_00ae: stfld uint32 System.HashCode::_v4
+		IL_00b3: ret
+	} // end of method HashCode::Add
+
+	.method public hidebysig 
+		instance int32 ToHashCode () cil managed 
+	{
+		// Method begins at RVA 0x2d9c
+		// Header size: 12
+		// Code size: 118 (0x76)
+		.maxstack 4
+		.locals init (
+			[0] uint32,
+			[1] uint32,
+			[2] uint32
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld uint32 System.HashCode::_length
+		IL_0006: stloc.0
+		IL_0007: ldloc.0
+		IL_0008: ldc.i4.4
+		IL_0009: rem.un
+		IL_000a: stloc.1
+		IL_000b: ldloc.0
+		IL_000c: ldc.i4.4
+		IL_000d: blt.un.s IL_002e
+
+		IL_000f: ldarg.0
+		IL_0010: ldfld uint32 System.HashCode::_v1
+		IL_0015: ldarg.0
+		IL_0016: ldfld uint32 System.HashCode::_v2
+		IL_001b: ldarg.0
+		IL_001c: ldfld uint32 System.HashCode::_v3
+		IL_0021: ldarg.0
+		IL_0022: ldfld uint32 System.HashCode::_v4
+		IL_0027: call uint32 System.HashCode::MixState(uint32, uint32, uint32, uint32)
+		IL_002c: br.s IL_0033
+
+		IL_002e: call uint32 System.HashCode::MixEmptyState()
+
+		IL_0033: stloc.2
+		IL_0034: ldloc.2
+		IL_0035: ldloc.0
+		IL_0036: ldc.i4.4
+		IL_0037: mul
+		IL_0038: add
+		IL_0039: stloc.2
+		IL_003a: ldloc.1
+		IL_003b: ldc.i4.0
+		IL_003c: ble.un.s IL_006d
+
+		IL_003e: ldloc.2
+		IL_003f: ldarg.0
+		IL_0040: ldfld uint32 System.HashCode::_queue1
+		IL_0045: call uint32 System.HashCode::QueueRound(uint32, uint32)
+		IL_004a: stloc.2
+		IL_004b: ldloc.1
+		IL_004c: ldc.i4.1
+		IL_004d: ble.un.s IL_006d
+
+		IL_004f: ldloc.2
+		IL_0050: ldarg.0
+		IL_0051: ldfld uint32 System.HashCode::_queue2
+		IL_0056: call uint32 System.HashCode::QueueRound(uint32, uint32)
+		IL_005b: stloc.2
+		IL_005c: ldloc.1
+		IL_005d: ldc.i4.2
+		IL_005e: ble.un.s IL_006d
+
+		IL_0060: ldloc.2
+		IL_0061: ldarg.0
+		IL_0062: ldfld uint32 System.HashCode::_queue3
+		IL_0067: call uint32 System.HashCode::QueueRound(uint32, uint32)
+		IL_006c: stloc.2
+
+		IL_006d: ldloc.2
+		IL_006e: call uint32 System.HashCode::MixFinal(uint32)
+		IL_0073: stloc.2
+		IL_0074: ldloc.2
+		IL_0075: ret
+	} // end of method HashCode::ToHashCode
+
+	.method public hidebysig virtual 
+		instance int32 GetHashCode () cil managed 
+	{
+		.custom instance void [mscorlib]System.ObsoleteAttribute::.ctor(string, bool) = (
+			01 00 80 80 48 61 73 68 43 6f 64 65 20 69 73 20
+			61 20 6d 75 74 61 62 6c 65 20 73 74 72 75 63 74
+			20 61 6e 64 20 73 68 6f 75 6c 64 20 6e 6f 74 20
+			62 65 20 63 6f 6d 70 61 72 65 64 20 77 69 74 68
+			20 6f 74 68 65 72 20 48 61 73 68 43 6f 64 65 73
+			2e 20 55 73 65 20 54 6f 48 61 73 68 43 6f 64 65
+			20 74 6f 20 72 65 74 72 69 65 76 65 20 74 68 65
+			20 63 6f 6d 70 75 74 65 64 20 68 61 73 68 20 63
+			6f 64 65 2e 01 00 00
+		)
+		.custom instance void [System]System.ComponentModel.EditorBrowsableAttribute::.ctor(valuetype [System]System.ComponentModel.EditorBrowsableState) = (
+			01 00 01 00 00 00 00 00
+		)
+		// Method begins at RVA 0x2e1e
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: call string System.SR::get_HashCode_HashCodeNotSupported()
+		IL_0005: newobj instance void [mscorlib]System.NotSupportedException::.ctor(string)
+		IL_000a: throw
+	} // end of method HashCode::GetHashCode
+
+	.method public hidebysig virtual 
+		instance bool Equals (
+			object obj
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 02 00 00
+		)
+		.custom instance void [mscorlib]System.ObsoleteAttribute::.ctor(string, bool) = (
+			01 00 4d 48 61 73 68 43 6f 64 65 20 69 73 20 61
+			20 6d 75 74 61 62 6c 65 20 73 74 72 75 63 74 20
+			61 6e 64 20 73 68 6f 75 6c 64 20 6e 6f 74 20 62
+			65 20 63 6f 6d 70 61 72 65 64 20 77 69 74 68 20
+			6f 74 68 65 72 20 48 61 73 68 43 6f 64 65 73 2e
+			01 00 00
+		)
+		.custom instance void [System]System.ComponentModel.EditorBrowsableAttribute::.ctor(valuetype [System]System.ComponentModel.EditorBrowsableState) = (
+			01 00 01 00 00 00 00 00
+		)
+		// Method begins at RVA 0x2e2a
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: call string System.SR::get_HashCode_EqualityNotSupported()
+		IL_0005: newobj instance void [mscorlib]System.NotSupportedException::.ctor(string)
+		IL_000a: throw
+	} // end of method HashCode::Equals
+
+	.method private hidebysig specialname rtspecialname static 
+		void .cctor () cil managed 
+	{
+		// Method begins at RVA 0x2e36
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: call uint32 System.HashCode::GenerateGlobalSeed()
+		IL_0005: stsfld uint32 System.HashCode::s_seed
+		IL_000a: ret
+	} // end of method HashCode::.cctor
+
+} // end of class System.HashCode
+
+.class private auto ansi abstract sealed beforefieldinit System.LocalAppContextSwitches
+	extends [mscorlib]System.Object
+{
+	.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+		01 00 01 00 00
+	)
+	.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+		01 00 00 00 00
+	)
+	// Fields
+	.field private static int32 s_useNonRandomizedHashSeed
+
+	// Methods
+	.method public hidebysig specialname static 
+		bool get_UseNonRandomizedHashSeed () cil managed aggressiveinlining 
+	{
+		// Method begins at RVA 0x2e42
+		// Header size: 1
+		// Code size: 16 (0x10)
+		.maxstack 8
+
+		IL_0000: ldstr "Switch.System.Data.UseNonRandomizedHashSeed"
+		IL_0005: ldsflda int32 System.LocalAppContextSwitches::s_useNonRandomizedHashSeed
+		IL_000a: call bool System.LocalAppContextSwitches::GetCachedSwitchValue(string, int32&)
+		IL_000f: ret
+	} // end of method LocalAppContextSwitches::get_UseNonRandomizedHashSeed
+
+	.method assembly hidebysig static 
+		bool GetCachedSwitchValue (
+			string switchName,
+			int32& cachedSwitchValue
+		) cil managed aggressiveinlining 
+	{
+		// Method begins at RVA 0x2e53
+		// Header size: 1
+		// Code size: 22 (0x16)
+		.maxstack 8
+
+		IL_0000: ldarg.1
+		IL_0001: ldind.i4
+		IL_0002: ldc.i4.0
+		IL_0003: bge.s IL_0007
+
+		IL_0005: ldc.i4.0
+		IL_0006: ret
+
+		IL_0007: ldarg.1
+		IL_0008: ldind.i4
+		IL_0009: ldc.i4.0
+		IL_000a: ble.s IL_000e
+
+		IL_000c: ldc.i4.1
+		IL_000d: ret
+
+		IL_000e: ldarg.0
+		IL_000f: ldarg.1
+		IL_0010: call bool System.LocalAppContextSwitches::GetCachedSwitchValueInternal(string, int32&)
+		IL_0015: ret
+	} // end of method LocalAppContextSwitches::GetCachedSwitchValue
+
+	.method private hidebysig static 
+		bool GetCachedSwitchValueInternal (
+			string switchName,
+			int32& cachedSwitchValue
+		) cil managed 
+	{
+		// Method begins at RVA 0x2e6c
+		// Header size: 12
+		// Code size: 46 (0x2e)
+		.maxstack 2
+		.locals init (
+			[0] bool,
+			[1] bool,
+			[2] bool
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldloca.s 0
+		IL_0003: call bool [mscorlib]System.AppContext::TryGetSwitch(string, bool&)
+		IL_0008: stloc.1
+		IL_0009: ldloc.1
+		IL_000a: brtrue.s IL_0013
+
+		IL_000c: ldarg.0
+		IL_000d: call bool System.LocalAppContextSwitches::GetSwitchDefaultValue(string)
+		IL_0012: stloc.0
+
+		IL_0013: ldstr "TestSwitch.LocalAppContext.DisableCaching"
+		IL_0018: ldloca.s 2
+		IL_001a: call bool [mscorlib]System.AppContext::TryGetSwitch(string, bool&)
+		IL_001f: pop
+		IL_0020: ldloc.2
+		IL_0021: brtrue.s IL_002c
+
+		IL_0023: ldarg.1
+		IL_0024: ldloc.0
+		IL_0025: brtrue.s IL_002a
+
+		IL_0027: ldc.i4.m1
+		IL_0028: br.s IL_002b
+
+		IL_002a: ldc.i4.1
+
+		IL_002b: stind.i4
+
+		IL_002c: ldloc.0
+		IL_002d: ret
+	} // end of method LocalAppContextSwitches::GetCachedSwitchValueInternal
+
+	.method private hidebysig static 
+		bool GetSwitchDefaultValue (
+			string switchName
+		) cil managed 
+	{
+		// Method begins at RVA 0x2ea6
+		// Header size: 1
+		// Code size: 17 (0x11)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldstr "Switch.System.Runtime.Serialization.SerializationGuard"
+		IL_0006: call bool [mscorlib]System.String::op_Equality(string, string)
+		IL_000b: brfalse.s IL_000f
+
+		IL_000d: ldc.i4.1
+		IL_000e: ret
+
+		IL_000f: ldc.i4.0
+		IL_0010: ret
+	} // end of method LocalAppContextSwitches::GetSwitchDefaultValue
+
+	// Properties
+	.property bool UseNonRandomizedHashSeed()
+	{
+		.get bool System.LocalAppContextSwitches::get_UseNonRandomizedHashSeed()
+	}
+
+} // end of class System.LocalAppContextSwitches
+
+.class private auto ansi abstract sealed beforefieldinit System.SR
+	extends [mscorlib]System.Object
+{
+	// Fields
+	.field private static initonly bool s_usingResourceKeys
+	.field private static class [mscorlib]System.Resources.ResourceManager s_resourceManager
+
+	// Methods
+	.method private hidebysig static 
+		bool UsingResourceKeys () cil managed 
+	{
+		// Method begins at RVA 0x2eb8
+		// Header size: 1
+		// Code size: 6 (0x6)
+		.maxstack 8
+
+		IL_0000: ldsfld bool System.SR::s_usingResourceKeys
+		IL_0005: ret
+	} // end of method SR::UsingResourceKeys
+
+	.method assembly hidebysig static 
+		string GetResourceString (
+			string resourceKey
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 01 00 00
+		)
+		// Method begins at RVA 0x2ec0
+		// Header size: 12
+		// Code size: 30 (0x1e)
+		.maxstack 2
+		.locals init (
+			[0] string
+		)
+
+		IL_0000: call bool System.SR::UsingResourceKeys()
+		IL_0005: brfalse.s IL_0009
+
+		IL_0007: ldarg.0
+		IL_0008: ret
+
+		IL_0009: ldnull
+		IL_000a: stloc.0
+		.try
+		{
+			IL_000b: call class [mscorlib]System.Resources.ResourceManager System.SR::get_ResourceManager()
+			IL_0010: ldarg.0
+			IL_0011: callvirt instance string [mscorlib]System.Resources.ResourceManager::GetString(string)
+			IL_0016: stloc.0
+			IL_0017: leave.s IL_001c
+		} // end .try
+		catch [mscorlib]System.Resources.MissingManifestResourceException
+		{
+			IL_0019: pop
+			IL_001a: leave.s IL_001c
+		} // end handler
+
+		IL_001c: ldloc.0
+		IL_001d: ret
+	} // end of method SR::GetResourceString
+
+	.method assembly hidebysig static 
+		string GetResourceString (
+			string resourceKey,
+			string defaultString
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 01 00 00
+		)
+		// Method begins at RVA 0x2efc
+		// Header size: 12
+		// Code size: 23 (0x17)
+		.maxstack 2
+		.locals init (
+			[0] string
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: call string System.SR::GetResourceString(string)
+		IL_0006: stloc.0
+		IL_0007: ldarg.0
+		IL_0008: ldloc.0
+		IL_0009: call bool [mscorlib]System.String::op_Equality(string, string)
+		IL_000e: brtrue.s IL_0015
+
+		IL_0010: ldloc.0
+		IL_0011: brfalse.s IL_0015
+
+		IL_0013: ldloc.0
+		IL_0014: ret
+
+		IL_0015: ldarg.1
+		IL_0016: ret
+	} // end of method SR::GetResourceString
+
+	.method assembly hidebysig static 
+		string Format (
+			string resourceFormat,
+			object p1
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 01 00 00
+		)
+		.param [2]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		// Method begins at RVA 0x2f1f
+		// Header size: 1
+		// Code size: 40 (0x28)
+		.maxstack 8
+
+		IL_0000: call bool System.SR::UsingResourceKeys()
+		IL_0005: brfalse.s IL_0020
+
+		IL_0007: ldstr ", "
+		IL_000c: ldc.i4.2
+		IL_000d: newarr [mscorlib]System.Object
+		IL_0012: dup
+		IL_0013: ldc.i4.0
+		IL_0014: ldarg.0
+		IL_0015: stelem.ref
+		IL_0016: dup
+		IL_0017: ldc.i4.1
+		IL_0018: ldarg.1
+		IL_0019: stelem.ref
+		IL_001a: call string [mscorlib]System.String::Join(string, object[])
+		IL_001f: ret
+
+		IL_0020: ldarg.0
+		IL_0021: ldarg.1
+		IL_0022: call string [mscorlib]System.String::Format(string, object)
+		IL_0027: ret
+	} // end of method SR::Format
+
+	.method assembly hidebysig static 
+		string Format (
+			string resourceFormat,
+			object p1,
+			object p2
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 01 00 00
+		)
+		.param [2]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param [3]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		// Method begins at RVA 0x2f48
+		// Header size: 1
+		// Code size: 45 (0x2d)
+		.maxstack 8
+
+		IL_0000: call bool System.SR::UsingResourceKeys()
+		IL_0005: brfalse.s IL_0024
+
+		IL_0007: ldstr ", "
+		IL_000c: ldc.i4.3
+		IL_000d: newarr [mscorlib]System.Object
+		IL_0012: dup
+		IL_0013: ldc.i4.0
+		IL_0014: ldarg.0
+		IL_0015: stelem.ref
+		IL_0016: dup
+		IL_0017: ldc.i4.1
+		IL_0018: ldarg.1
+		IL_0019: stelem.ref
+		IL_001a: dup
+		IL_001b: ldc.i4.2
+		IL_001c: ldarg.2
+		IL_001d: stelem.ref
+		IL_001e: call string [mscorlib]System.String::Join(string, object[])
+		IL_0023: ret
+
+		IL_0024: ldarg.0
+		IL_0025: ldarg.1
+		IL_0026: ldarg.2
+		IL_0027: call string [mscorlib]System.String::Format(string, object, object)
+		IL_002c: ret
+	} // end of method SR::Format
+
+	.method assembly hidebysig static 
+		string Format (
+			string resourceFormat,
+			object p1,
+			object p2,
+			object p3
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 02 00 00
+		)
+		.param [0]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 01 00 00
+			)
+		.param [1]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 01 00 00
+			)
+		// Method begins at RVA 0x2f76
+		// Header size: 1
+		// Code size: 50 (0x32)
+		.maxstack 8
+
+		IL_0000: call bool System.SR::UsingResourceKeys()
+		IL_0005: brfalse.s IL_0028
+
+		IL_0007: ldstr ", "
+		IL_000c: ldc.i4.4
+		IL_000d: newarr [mscorlib]System.Object
+		IL_0012: dup
+		IL_0013: ldc.i4.0
+		IL_0014: ldarg.0
+		IL_0015: stelem.ref
+		IL_0016: dup
+		IL_0017: ldc.i4.1
+		IL_0018: ldarg.1
+		IL_0019: stelem.ref
+		IL_001a: dup
+		IL_001b: ldc.i4.2
+		IL_001c: ldarg.2
+		IL_001d: stelem.ref
+		IL_001e: dup
+		IL_001f: ldc.i4.3
+		IL_0020: ldarg.3
+		IL_0021: stelem.ref
+		IL_0022: call string [mscorlib]System.String::Join(string, object[])
+		IL_0027: ret
+
+		IL_0028: ldarg.0
+		IL_0029: ldarg.1
+		IL_002a: ldarg.2
+		IL_002b: ldarg.3
+		IL_002c: call string [mscorlib]System.String::Format(string, object, object, object)
+		IL_0031: ret
+	} // end of method SR::Format
+
+	.method assembly hidebysig static 
+		string Format (
+			string resourceFormat,
+			object[] args
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 01 00 00
+		)
+		.param [2]
+			.custom instance void [mscorlib]System.ParamArrayAttribute::.ctor() = (
+				01 00 00 00
+			)
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		// Method begins at RVA 0x2fa9
+		// Header size: 1
+		// Code size: 43 (0x2b)
+		.maxstack 8
+
+		IL_0000: ldarg.1
+		IL_0001: brfalse.s IL_0029
+
+		IL_0003: call bool System.SR::UsingResourceKeys()
+		IL_0008: brfalse.s IL_0021
+
+		IL_000a: ldarg.0
+		IL_000b: ldstr ", "
+		IL_0010: ldstr ", "
+		IL_0015: ldarg.1
+		IL_0016: call string [mscorlib]System.String::Join(string, object[])
+		IL_001b: call string [mscorlib]System.String::Concat(string, string, string)
+		IL_0020: ret
+
+		IL_0021: ldarg.0
+		IL_0022: ldarg.1
+		IL_0023: call string [mscorlib]System.String::Format(string, object[])
+		IL_0028: ret
+
+		IL_0029: ldarg.0
+		IL_002a: ret
+	} // end of method SR::Format
+
+	.method assembly hidebysig static 
+		string Format (
+			class [mscorlib]System.IFormatProvider provider,
+			string resourceFormat,
+			object p1
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 01 00 00
+		)
+		.param [1]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param [3]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		// Method begins at RVA 0x2fd5
+		// Header size: 1
+		// Code size: 41 (0x29)
+		.maxstack 8
+
+		IL_0000: call bool System.SR::UsingResourceKeys()
+		IL_0005: brfalse.s IL_0020
+
+		IL_0007: ldstr ", "
+		IL_000c: ldc.i4.2
+		IL_000d: newarr [mscorlib]System.Object
+		IL_0012: dup
+		IL_0013: ldc.i4.0
+		IL_0014: ldarg.1
+		IL_0015: stelem.ref
+		IL_0016: dup
+		IL_0017: ldc.i4.1
+		IL_0018: ldarg.2
+		IL_0019: stelem.ref
+		IL_001a: call string [mscorlib]System.String::Join(string, object[])
+		IL_001f: ret
+
+		IL_0020: ldarg.0
+		IL_0021: ldarg.1
+		IL_0022: ldarg.2
+		IL_0023: call string [mscorlib]System.String::Format(class [mscorlib]System.IFormatProvider, string, object)
+		IL_0028: ret
+	} // end of method SR::Format
+
+	.method assembly hidebysig static 
+		string Format (
+			class [mscorlib]System.IFormatProvider provider,
+			string resourceFormat,
+			object p1,
+			object p2
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 02 00 00
+		)
+		.param [0]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 01 00 00
+			)
+		.param [2]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 01 00 00
+			)
+		// Method begins at RVA 0x2fff
+		// Header size: 1
+		// Code size: 46 (0x2e)
+		.maxstack 8
+
+		IL_0000: call bool System.SR::UsingResourceKeys()
+		IL_0005: brfalse.s IL_0024
+
+		IL_0007: ldstr ", "
+		IL_000c: ldc.i4.3
+		IL_000d: newarr [mscorlib]System.Object
+		IL_0012: dup
+		IL_0013: ldc.i4.0
+		IL_0014: ldarg.1
+		IL_0015: stelem.ref
+		IL_0016: dup
+		IL_0017: ldc.i4.1
+		IL_0018: ldarg.2
+		IL_0019: stelem.ref
+		IL_001a: dup
+		IL_001b: ldc.i4.2
+		IL_001c: ldarg.3
+		IL_001d: stelem.ref
+		IL_001e: call string [mscorlib]System.String::Join(string, object[])
+		IL_0023: ret
+
+		IL_0024: ldarg.0
+		IL_0025: ldarg.1
+		IL_0026: ldarg.2
+		IL_0027: ldarg.3
+		IL_0028: call string [mscorlib]System.String::Format(class [mscorlib]System.IFormatProvider, string, object, object)
+		IL_002d: ret
+	} // end of method SR::Format
+
+	.method assembly hidebysig static 
+		string Format (
+			class [mscorlib]System.IFormatProvider provider,
+			string resourceFormat,
+			object p1,
+			object p2,
+			object p3
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 02 00 00
+		)
+		.param [0]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 01 00 00
+			)
+		.param [2]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 01 00 00
+			)
+		// Method begins at RVA 0x302e
+		// Header size: 1
+		// Code size: 53 (0x35)
+		.maxstack 8
+
+		IL_0000: call bool System.SR::UsingResourceKeys()
+		IL_0005: brfalse.s IL_0029
+
+		IL_0007: ldstr ", "
+		IL_000c: ldc.i4.4
+		IL_000d: newarr [mscorlib]System.Object
+		IL_0012: dup
+		IL_0013: ldc.i4.0
+		IL_0014: ldarg.1
+		IL_0015: stelem.ref
+		IL_0016: dup
+		IL_0017: ldc.i4.1
+		IL_0018: ldarg.2
+		IL_0019: stelem.ref
+		IL_001a: dup
+		IL_001b: ldc.i4.2
+		IL_001c: ldarg.3
+		IL_001d: stelem.ref
+		IL_001e: dup
+		IL_001f: ldc.i4.3
+		IL_0020: ldarg.s p3
+		IL_0022: stelem.ref
+		IL_0023: call string [mscorlib]System.String::Join(string, object[])
+		IL_0028: ret
+
+		IL_0029: ldarg.0
+		IL_002a: ldarg.1
+		IL_002b: ldarg.2
+		IL_002c: ldarg.3
+		IL_002d: ldarg.s p3
+		IL_002f: call string [mscorlib]System.String::Format(class [mscorlib]System.IFormatProvider, string, object, object, object)
+		IL_0034: ret
+	} // end of method SR::Format
+
+	.method assembly hidebysig static 
+		string Format (
+			class [mscorlib]System.IFormatProvider provider,
+			string resourceFormat,
+			object[] args
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 01 00 00
+		)
+		.param [1]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param [3]
+			.custom instance void [mscorlib]System.ParamArrayAttribute::.ctor() = (
+				01 00 00 00
+			)
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		// Method begins at RVA 0x3064
+		// Header size: 1
+		// Code size: 44 (0x2c)
+		.maxstack 8
+
+		IL_0000: ldarg.2
+		IL_0001: brfalse.s IL_002a
+
+		IL_0003: call bool System.SR::UsingResourceKeys()
+		IL_0008: brfalse.s IL_0021
+
+		IL_000a: ldarg.1
+		IL_000b: ldstr ", "
+		IL_0010: ldstr ", "
+		IL_0015: ldarg.2
+		IL_0016: call string [mscorlib]System.String::Join(string, object[])
+		IL_001b: call string [mscorlib]System.String::Concat(string, string, string)
+		IL_0020: ret
+
+		IL_0021: ldarg.0
+		IL_0022: ldarg.1
+		IL_0023: ldarg.2
+		IL_0024: call string [mscorlib]System.String::Format(class [mscorlib]System.IFormatProvider, string, object[])
+		IL_0029: ret
+
+		IL_002a: ldarg.1
+		IL_002b: ret
+	} // end of method SR::Format
+
+	.method assembly hidebysig specialname static 
+		class [mscorlib]System.Resources.ResourceManager get_ResourceManager () cil managed 
+	{
+		// Method begins at RVA 0x3091
+		// Header size: 1
+		// Code size: 31 (0x1f)
+		.maxstack 8
+
+		IL_0000: ldsfld class [mscorlib]System.Resources.ResourceManager System.SR::s_resourceManager
+		IL_0005: dup
+		IL_0006: brtrue.s IL_001e
+
+		IL_0008: pop
+		IL_0009: ldtoken FxResources.Microsoft.Bcl.HashCode.SR
+		IL_000e: call class [mscorlib]System.Type [mscorlib]System.Type::GetTypeFromHandle(valuetype [mscorlib]System.RuntimeTypeHandle)
+		IL_0013: newobj instance void [mscorlib]System.Resources.ResourceManager::.ctor(class [mscorlib]System.Type)
+		IL_0018: dup
+		IL_0019: stsfld class [mscorlib]System.Resources.ResourceManager System.SR::s_resourceManager
+
+		IL_001e: ret
+	} // end of method SR::get_ResourceManager
+
+	.method assembly hidebysig specialname static 
+		string get_HashCode_EqualityNotSupported () cil managed 
+	{
+		// Method begins at RVA 0x30b1
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "HashCode_EqualityNotSupported"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_HashCode_EqualityNotSupported
+
+	.method assembly hidebysig specialname static 
+		string get_HashCode_HashCodeNotSupported () cil managed 
+	{
+		// Method begins at RVA 0x30bd
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "HashCode_HashCodeNotSupported"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_HashCode_HashCodeNotSupported
+
+	.method private hidebysig specialname rtspecialname static 
+		void .cctor () cil managed 
+	{
+		// Method begins at RVA 0x30cc
+		// Header size: 12
+		// Code size: 24 (0x18)
+		.maxstack 2
+		.locals init (
+			[0] bool
+		)
+
+		IL_0000: ldstr "System.Resources.UseSystemResourceKeys"
+		IL_0005: ldloca.s 0
+		IL_0007: call bool [mscorlib]System.AppContext::TryGetSwitch(string, bool&)
+		IL_000c: brtrue.s IL_0011
+
+		IL_000e: ldc.i4.0
+		IL_000f: br.s IL_0012
+
+		IL_0011: ldloc.0
+
+		IL_0012: stsfld bool System.SR::s_usingResourceKeys
+		IL_0017: ret
+	} // end of method SR::.cctor
+
+	// Properties
+	.property class [mscorlib]System.Resources.ResourceManager ResourceManager()
+	{
+		.get class [mscorlib]System.Resources.ResourceManager System.SR::get_ResourceManager()
+	}
+	.property string HashCode_EqualityNotSupported()
+	{
+		.get string System.SR::get_HashCode_EqualityNotSupported()
+	}
+	.property string HashCode_HashCodeNotSupported()
+	{
+		.get string System.SR::get_HashCode_HashCodeNotSupported()
+	}
+
+} // end of class System.SR
+
+.class private auto ansi abstract sealed beforefieldinit System.Numerics.BitOperations
+	extends [mscorlib]System.Object
+{
+	// Methods
+	.method public hidebysig static 
+		uint32 RotateLeft (
+			uint32 'value',
+			int32 offset
+		) cil managed aggressiveinlining 
+	{
+		// Method begins at RVA 0x30f0
+		// Header size: 1
+		// Code size: 17 (0x11)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: ldc.i4.s 31
+		IL_0004: and
+		IL_0005: shl
+		IL_0006: ldarg.0
+		IL_0007: ldc.i4.s 32
+		IL_0009: ldarg.1
+		IL_000a: sub
+		IL_000b: ldc.i4.s 31
+		IL_000d: and
+		IL_000e: shr.un
+		IL_000f: or
+		IL_0010: ret
+	} // end of method BitOperations::RotateLeft
+
+	.method public hidebysig static 
+		uint64 RotateLeft (
+			uint64 'value',
+			int32 offset
+		) cil managed aggressiveinlining 
+	{
+		// Method begins at RVA 0x3102
+		// Header size: 1
+		// Code size: 17 (0x11)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: ldc.i4.s 63
+		IL_0004: and
+		IL_0005: shl
+		IL_0006: ldarg.0
+		IL_0007: ldc.i4.s 64
+		IL_0009: ldarg.1
+		IL_000a: sub
+		IL_000b: ldc.i4.s 63
+		IL_000d: and
+		IL_000e: shr.un
+		IL_000f: or
+		IL_0010: ret
+	} // end of method BitOperations::RotateLeft
+
+} // end of class System.Numerics.BitOperations
+

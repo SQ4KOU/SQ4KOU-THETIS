@@ -1,0 +1,4307 @@
+// IL code: RawInput
+.class private auto ansi '<Module>'
+{
+} // end of class <Module>
+
+.class public explicit ansi sealed beforefieldinit RawInput_dll.DeviceInfo
+	extends [mscorlib]System.ValueType
+{
+	// Fields
+	.field [0] public int32 Size
+	.field [4] public int32 Type
+	.field [8] public valuetype RawInput_dll.DeviceInfoMouse MouseInfo
+	.field [8] public valuetype RawInput_dll.DeviceInfoKeyboard KeyboardInfo
+	.field [8] public valuetype RawInput_dll.DeviceInfoHid HIDInfo
+
+	// Methods
+	.method public hidebysig virtual 
+		instance string ToString () cil managed 
+	{
+		// Method begins at RVA 0x2048
+		// Header size: 1
+		// Code size: 33 (0x21)
+		.maxstack 8
+
+		IL_0000: ldstr "DeviceInfo\n Size: {0}\n Type: {1}\n"
+		IL_0005: ldarg.0
+		IL_0006: ldfld int32 RawInput_dll.DeviceInfo::Size
+		IL_000b: box [mscorlib]System.Int32
+		IL_0010: ldarg.0
+		IL_0011: ldfld int32 RawInput_dll.DeviceInfo::Type
+		IL_0016: box [mscorlib]System.Int32
+		IL_001b: call string [mscorlib]System.String::Format(string, object, object)
+		IL_0020: ret
+	} // end of method DeviceInfo::ToString
+
+} // end of class RawInput_dll.DeviceInfo
+
+.class public sequential ansi sealed beforefieldinit RawInput_dll.DeviceInfoMouse
+	extends [mscorlib]System.ValueType
+{
+	// Fields
+	.field public uint32 Id
+	.field public uint32 NumberOfButtons
+	.field public uint32 SampleRate
+	.field public bool HasHorizontalWheel
+
+	// Methods
+	.method public hidebysig virtual 
+		instance string ToString () cil managed 
+	{
+		// Method begins at RVA 0x206c
+		// Header size: 12
+		// Code size: 73 (0x49)
+		.maxstack 5
+
+		IL_0000: ldstr "MouseInfo\n Id: {0}\n NumberOfButtons: {1}\n SampleRate: {2}\n HorizontalWheel: {3}\n"
+		IL_0005: ldc.i4.4
+		IL_0006: newarr [mscorlib]System.Object
+		IL_000b: dup
+		IL_000c: ldc.i4.0
+		IL_000d: ldarg.0
+		IL_000e: ldfld uint32 RawInput_dll.DeviceInfoMouse::Id
+		IL_0013: box [mscorlib]System.UInt32
+		IL_0018: stelem.ref
+		IL_0019: dup
+		IL_001a: ldc.i4.1
+		IL_001b: ldarg.0
+		IL_001c: ldfld uint32 RawInput_dll.DeviceInfoMouse::NumberOfButtons
+		IL_0021: box [mscorlib]System.UInt32
+		IL_0026: stelem.ref
+		IL_0027: dup
+		IL_0028: ldc.i4.2
+		IL_0029: ldarg.0
+		IL_002a: ldfld uint32 RawInput_dll.DeviceInfoMouse::SampleRate
+		IL_002f: box [mscorlib]System.UInt32
+		IL_0034: stelem.ref
+		IL_0035: dup
+		IL_0036: ldc.i4.3
+		IL_0037: ldarg.0
+		IL_0038: ldfld bool RawInput_dll.DeviceInfoMouse::HasHorizontalWheel
+		IL_003d: box [mscorlib]System.Boolean
+		IL_0042: stelem.ref
+		IL_0043: call string [mscorlib]System.String::Format(string, object[])
+		IL_0048: ret
+	} // end of method DeviceInfoMouse::ToString
+
+} // end of class RawInput_dll.DeviceInfoMouse
+
+.class public sequential ansi sealed beforefieldinit RawInput_dll.DeviceInfoKeyboard
+	extends [mscorlib]System.ValueType
+{
+	// Fields
+	.field public uint32 Type
+	.field public uint32 SubType
+	.field public uint32 KeyboardMode
+	.field public uint32 NumberOfFunctionKeys
+	.field public uint32 NumberOfIndicators
+	.field public uint32 NumberOfKeysTotal
+
+	// Methods
+	.method public hidebysig virtual 
+		instance string ToString () cil managed 
+	{
+		// Method begins at RVA 0x20c4
+		// Header size: 12
+		// Code size: 101 (0x65)
+		.maxstack 5
+
+		IL_0000: ldstr "DeviceInfoKeyboard\n Type: {0}\n SubType: {1}\n KeyboardMode: {2}\n NumberOfFunctionKeys: {3}\n NumberOfIndicators {4}\n NumberOfKeysTotal: {5}\n"
+		IL_0005: ldc.i4.6
+		IL_0006: newarr [mscorlib]System.Object
+		IL_000b: dup
+		IL_000c: ldc.i4.0
+		IL_000d: ldarg.0
+		IL_000e: ldfld uint32 RawInput_dll.DeviceInfoKeyboard::Type
+		IL_0013: box [mscorlib]System.UInt32
+		IL_0018: stelem.ref
+		IL_0019: dup
+		IL_001a: ldc.i4.1
+		IL_001b: ldarg.0
+		IL_001c: ldfld uint32 RawInput_dll.DeviceInfoKeyboard::SubType
+		IL_0021: box [mscorlib]System.UInt32
+		IL_0026: stelem.ref
+		IL_0027: dup
+		IL_0028: ldc.i4.2
+		IL_0029: ldarg.0
+		IL_002a: ldfld uint32 RawInput_dll.DeviceInfoKeyboard::KeyboardMode
+		IL_002f: box [mscorlib]System.UInt32
+		IL_0034: stelem.ref
+		IL_0035: dup
+		IL_0036: ldc.i4.3
+		IL_0037: ldarg.0
+		IL_0038: ldfld uint32 RawInput_dll.DeviceInfoKeyboard::NumberOfFunctionKeys
+		IL_003d: box [mscorlib]System.UInt32
+		IL_0042: stelem.ref
+		IL_0043: dup
+		IL_0044: ldc.i4.4
+		IL_0045: ldarg.0
+		IL_0046: ldfld uint32 RawInput_dll.DeviceInfoKeyboard::NumberOfIndicators
+		IL_004b: box [mscorlib]System.UInt32
+		IL_0050: stelem.ref
+		IL_0051: dup
+		IL_0052: ldc.i4.5
+		IL_0053: ldarg.0
+		IL_0054: ldfld uint32 RawInput_dll.DeviceInfoKeyboard::NumberOfKeysTotal
+		IL_0059: box [mscorlib]System.UInt32
+		IL_005e: stelem.ref
+		IL_005f: call string [mscorlib]System.String::Format(string, object[])
+		IL_0064: ret
+	} // end of method DeviceInfoKeyboard::ToString
+
+} // end of class RawInput_dll.DeviceInfoKeyboard
+
+.class public sequential ansi sealed beforefieldinit RawInput_dll.DeviceInfoHid
+	extends [mscorlib]System.ValueType
+{
+	// Fields
+	.field public uint32 VendorID
+	.field public uint32 ProductID
+	.field public uint32 VersionNumber
+	.field public uint16 UsagePage
+	.field public uint16 Usage
+
+	// Methods
+	.method public hidebysig virtual 
+		instance string ToString () cil managed 
+	{
+		// Method begins at RVA 0x2138
+		// Header size: 12
+		// Code size: 87 (0x57)
+		.maxstack 5
+
+		IL_0000: ldstr "HidInfo\n VendorID: {0}\n ProductID: {1}\n VersionNumber: {2}\n UsagePage: {3}\n Usage: {4}\n"
+		IL_0005: ldc.i4.5
+		IL_0006: newarr [mscorlib]System.Object
+		IL_000b: dup
+		IL_000c: ldc.i4.0
+		IL_000d: ldarg.0
+		IL_000e: ldfld uint32 RawInput_dll.DeviceInfoHid::VendorID
+		IL_0013: box [mscorlib]System.UInt32
+		IL_0018: stelem.ref
+		IL_0019: dup
+		IL_001a: ldc.i4.1
+		IL_001b: ldarg.0
+		IL_001c: ldfld uint32 RawInput_dll.DeviceInfoHid::ProductID
+		IL_0021: box [mscorlib]System.UInt32
+		IL_0026: stelem.ref
+		IL_0027: dup
+		IL_0028: ldc.i4.2
+		IL_0029: ldarg.0
+		IL_002a: ldfld uint32 RawInput_dll.DeviceInfoHid::VersionNumber
+		IL_002f: box [mscorlib]System.UInt32
+		IL_0034: stelem.ref
+		IL_0035: dup
+		IL_0036: ldc.i4.3
+		IL_0037: ldarg.0
+		IL_0038: ldfld uint16 RawInput_dll.DeviceInfoHid::UsagePage
+		IL_003d: box [mscorlib]System.UInt16
+		IL_0042: stelem.ref
+		IL_0043: dup
+		IL_0044: ldc.i4.4
+		IL_0045: ldarg.0
+		IL_0046: ldfld uint16 RawInput_dll.DeviceInfoHid::Usage
+		IL_004b: box [mscorlib]System.UInt16
+		IL_0050: stelem.ref
+		IL_0051: call string [mscorlib]System.String::Format(string, object[])
+		IL_0056: ret
+	} // end of method DeviceInfoHid::ToString
+
+} // end of class RawInput_dll.DeviceInfoHid
+
+.class private sequential ansi sealed beforefieldinit RawInput_dll.BroadcastDeviceInterface
+	extends [mscorlib]System.ValueType
+{
+	// Fields
+	.field public int32 DbccSize
+	.field public valuetype RawInput_dll.BroadcastDeviceType BroadcastDeviceType
+	.field public int32 DbccReserved
+	.field public valuetype [mscorlib]System.Guid DbccClassguid
+	.field public char DbccName
+
+} // end of class RawInput_dll.BroadcastDeviceInterface
+
+.class private sequential ansi sealed beforefieldinit RawInput_dll.Rawinputdevicelist
+	extends [mscorlib]System.ValueType
+{
+	// Fields
+	.field public native int hDevice
+	.field public uint32 dwType
+
+} // end of class RawInput_dll.Rawinputdevicelist
+
+.class public explicit ansi sealed beforefieldinit RawInput_dll.RawData
+	extends [mscorlib]System.ValueType
+{
+	// Fields
+	.field [0] assembly valuetype RawInput_dll.Rawmouse mouse
+	.field [0] assembly valuetype RawInput_dll.Rawkeyboard keyboard
+	.field [0] assembly valuetype RawInput_dll.Rawhid hid
+
+} // end of class RawInput_dll.RawData
+
+.class public sequential ansi sealed beforefieldinit RawInput_dll.InputData
+	extends [mscorlib]System.ValueType
+{
+	// Fields
+	.field public valuetype RawInput_dll.Rawinputheader header
+	.field public valuetype RawInput_dll.RawData data
+
+} // end of class RawInput_dll.InputData
+
+.class public sequential ansi sealed beforefieldinit RawInput_dll.Rawinputheader
+	extends [mscorlib]System.ValueType
+{
+	// Fields
+	.field public uint32 dwType
+	.field public uint32 dwSize
+	.field public native int hDevice
+	.field public native int wParam
+
+	// Methods
+	.method public hidebysig virtual 
+		instance string ToString () cil managed 
+	{
+		// Method begins at RVA 0x219c
+		// Header size: 12
+		// Code size: 73 (0x49)
+		.maxstack 5
+
+		IL_0000: ldstr "RawInputHeader\n dwType : {0}\n dwSize : {1}\n hDevice : {2}\n wParam : {3}"
+		IL_0005: ldc.i4.4
+		IL_0006: newarr [mscorlib]System.Object
+		IL_000b: dup
+		IL_000c: ldc.i4.0
+		IL_000d: ldarg.0
+		IL_000e: ldfld uint32 RawInput_dll.Rawinputheader::dwType
+		IL_0013: box [mscorlib]System.UInt32
+		IL_0018: stelem.ref
+		IL_0019: dup
+		IL_001a: ldc.i4.1
+		IL_001b: ldarg.0
+		IL_001c: ldfld uint32 RawInput_dll.Rawinputheader::dwSize
+		IL_0021: box [mscorlib]System.UInt32
+		IL_0026: stelem.ref
+		IL_0027: dup
+		IL_0028: ldc.i4.2
+		IL_0029: ldarg.0
+		IL_002a: ldfld native int RawInput_dll.Rawinputheader::hDevice
+		IL_002f: box [mscorlib]System.IntPtr
+		IL_0034: stelem.ref
+		IL_0035: dup
+		IL_0036: ldc.i4.3
+		IL_0037: ldarg.0
+		IL_0038: ldfld native int RawInput_dll.Rawinputheader::wParam
+		IL_003d: box [mscorlib]System.IntPtr
+		IL_0042: stelem.ref
+		IL_0043: call string [mscorlib]System.String::Format(string, object[])
+		IL_0048: ret
+	} // end of method Rawinputheader::ToString
+
+} // end of class RawInput_dll.Rawinputheader
+
+.class private sequential ansi sealed beforefieldinit RawInput_dll.Rawhid
+	extends [mscorlib]System.ValueType
+{
+	// Fields
+	.field public uint32 dwSizHid
+	.field public uint32 dwCount
+	.field public uint8 bRawData
+
+	// Methods
+	.method public hidebysig virtual 
+		instance string ToString () cil managed 
+	{
+		// Method begins at RVA 0x21f1
+		// Header size: 1
+		// Code size: 44 (0x2c)
+		.maxstack 8
+
+		IL_0000: ldstr "Rawhib\n dwSizeHid : {0}\n dwCount : {1}\n bRawData : {2}\n"
+		IL_0005: ldarg.0
+		IL_0006: ldfld uint32 RawInput_dll.Rawhid::dwSizHid
+		IL_000b: box [mscorlib]System.UInt32
+		IL_0010: ldarg.0
+		IL_0011: ldfld uint32 RawInput_dll.Rawhid::dwCount
+		IL_0016: box [mscorlib]System.UInt32
+		IL_001b: ldarg.0
+		IL_001c: ldfld uint8 RawInput_dll.Rawhid::bRawData
+		IL_0021: box [mscorlib]System.Byte
+		IL_0026: call string [mscorlib]System.String::Format(string, object, object, object)
+		IL_002b: ret
+	} // end of method Rawhid::ToString
+
+} // end of class RawInput_dll.Rawhid
+
+.class private explicit ansi sealed beforefieldinit RawInput_dll.Rawmouse
+	extends [mscorlib]System.ValueType
+{
+	// Fields
+	.field [0] public uint16 usFlags
+	.field [4] public uint32 ulButtons
+	.field [4] public uint16 usButtonFlags
+	.field [6] public uint16 usButtonData
+	.field [8] public uint32 ulRawButtons
+	.field [12] public int32 lLastX
+	.field [16] public int32 lLastY
+	.field [20] public uint32 ulExtraInformation
+
+} // end of class RawInput_dll.Rawmouse
+
+.class private sequential ansi sealed beforefieldinit RawInput_dll.Rawkeyboard
+	extends [mscorlib]System.ValueType
+{
+	// Fields
+	.field public uint16 Makecode
+	.field public uint16 Flags
+	.field private initonly uint16 Reserved
+	.field public uint16 VKey
+	.field public uint32 Message
+	.field public uint32 ExtraInformation
+
+	// Methods
+	.method public hidebysig virtual 
+		instance string ToString () cil managed 
+	{
+		// Method begins at RVA 0x2220
+		// Header size: 12
+		// Code size: 101 (0x65)
+		.maxstack 5
+
+		IL_0000: ldstr "Rawkeyboard\n Makecode: {0}\n Makecode(hex) : {0:X}\n Flags: {1}\n Reserved: {2}\n VKeyName: {3}\n Message: {4}\n ExtraInformation {5}\n"
+		IL_0005: ldc.i4.6
+		IL_0006: newarr [mscorlib]System.Object
+		IL_000b: dup
+		IL_000c: ldc.i4.0
+		IL_000d: ldarg.0
+		IL_000e: ldfld uint16 RawInput_dll.Rawkeyboard::Makecode
+		IL_0013: box [mscorlib]System.UInt16
+		IL_0018: stelem.ref
+		IL_0019: dup
+		IL_001a: ldc.i4.1
+		IL_001b: ldarg.0
+		IL_001c: ldfld uint16 RawInput_dll.Rawkeyboard::Flags
+		IL_0021: box [mscorlib]System.UInt16
+		IL_0026: stelem.ref
+		IL_0027: dup
+		IL_0028: ldc.i4.2
+		IL_0029: ldarg.0
+		IL_002a: ldfld uint16 RawInput_dll.Rawkeyboard::Reserved
+		IL_002f: box [mscorlib]System.UInt16
+		IL_0034: stelem.ref
+		IL_0035: dup
+		IL_0036: ldc.i4.3
+		IL_0037: ldarg.0
+		IL_0038: ldfld uint16 RawInput_dll.Rawkeyboard::VKey
+		IL_003d: box [mscorlib]System.UInt16
+		IL_0042: stelem.ref
+		IL_0043: dup
+		IL_0044: ldc.i4.4
+		IL_0045: ldarg.0
+		IL_0046: ldfld uint32 RawInput_dll.Rawkeyboard::Message
+		IL_004b: box [mscorlib]System.UInt32
+		IL_0050: stelem.ref
+		IL_0051: dup
+		IL_0052: ldc.i4.5
+		IL_0053: ldarg.0
+		IL_0054: ldfld uint32 RawInput_dll.Rawkeyboard::ExtraInformation
+		IL_0059: box [mscorlib]System.UInt32
+		IL_005e: stelem.ref
+		IL_005f: call string [mscorlib]System.String::Format(string, object[])
+		IL_0064: ret
+	} // end of method Rawkeyboard::ToString
+
+} // end of class RawInput_dll.Rawkeyboard
+
+.class private sequential ansi sealed beforefieldinit RawInput_dll.RawInputDevice
+	extends [mscorlib]System.ValueType
+{
+	// Fields
+	.field assembly valuetype RawInput_dll.HidUsagePage UsagePage
+	.field assembly valuetype RawInput_dll.HidUsage Usage
+	.field assembly valuetype RawInput_dll.RawInputDeviceFlags Flags
+	.field assembly native int Target
+
+	// Methods
+	.method public hidebysig virtual 
+		instance string ToString () cil managed 
+	{
+		// Method begins at RVA 0x2294
+		// Header size: 12
+		// Code size: 73 (0x49)
+		.maxstack 5
+
+		IL_0000: ldstr "{0}/{1}, flags: {2}, target: {3}"
+		IL_0005: ldc.i4.4
+		IL_0006: newarr [mscorlib]System.Object
+		IL_000b: dup
+		IL_000c: ldc.i4.0
+		IL_000d: ldarg.0
+		IL_000e: ldfld valuetype RawInput_dll.HidUsagePage RawInput_dll.RawInputDevice::UsagePage
+		IL_0013: box RawInput_dll.HidUsagePage
+		IL_0018: stelem.ref
+		IL_0019: dup
+		IL_001a: ldc.i4.1
+		IL_001b: ldarg.0
+		IL_001c: ldfld valuetype RawInput_dll.HidUsage RawInput_dll.RawInputDevice::Usage
+		IL_0021: box RawInput_dll.HidUsage
+		IL_0026: stelem.ref
+		IL_0027: dup
+		IL_0028: ldc.i4.2
+		IL_0029: ldarg.0
+		IL_002a: ldfld valuetype RawInput_dll.RawInputDeviceFlags RawInput_dll.RawInputDevice::Flags
+		IL_002f: box RawInput_dll.RawInputDeviceFlags
+		IL_0034: stelem.ref
+		IL_0035: dup
+		IL_0036: ldc.i4.3
+		IL_0037: ldarg.0
+		IL_0038: ldfld native int RawInput_dll.RawInputDevice::Target
+		IL_003d: box [mscorlib]System.IntPtr
+		IL_0042: stelem.ref
+		IL_0043: call string [mscorlib]System.String::Format(string, object[])
+		IL_0048: ret
+	} // end of method RawInputDevice::ToString
+
+} // end of class RawInput_dll.RawInputDevice
+
+.class public auto ansi abstract sealed beforefieldinit RawInput_dll.KeyMapper
+	extends [mscorlib]System.Object
+{
+	// Methods
+	.method public hidebysig static 
+		string GetKeyName (
+			int32 'value'
+		) cil managed 
+	{
+		// Method begins at RVA 0x22ec
+		// Header size: 12
+		// Code size: 2147 (0x863)
+		.maxstack 2
+
+		IL_0000: ldarg.0
+		IL_0001: ldc.i4 65535
+		IL_0006: bgt IL_041d
+
+		IL_000b: ldarg.0
+		IL_000c: switch (IL_06bf, IL_0653, IL_079d, IL_0497, IL_0683, IL_0833, IL_0839, IL_0851, IL_0461, IL_07fd, IL_0665, IL_0851, IL_04a3, IL_0521, IL_0851, IL_0851, IL_07e5, IL_04af, IL_06a1, IL_076d, IL_049d, IL_05e7, IL_0851, IL_0629, IL_05d5, IL_05ed, IL_0851, IL_052d, IL_060b, IL_0617, IL_0605, IL_0611, IL_07eb, IL_0785, IL_06b3, IL_051b, IL_05f9, IL_065f, IL_0809, IL_07a9, IL_050f, IL_07cd, IL_0779, IL_0533, IL_077f, IL_061d, IL_0503, IL_05f3, IL_04c1, IL_04c7, IL_04cd, IL_04d3, IL_04d9, IL_04df, IL_04e5, IL_04eb, IL_04f1, IL_04f7, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_043d, IL_045b, IL_0491, IL_04bb, IL_0515, IL_053f, IL_05db, IL_05e1, IL_05ff, IL_0623, IL_062f, IL_063b, IL_067d, IL_06ad, IL_0707, IL_0761, IL_0791, IL_0797, IL_07c1, IL_07f7, IL_0803, IL_080f, IL_0827, IL_082d, IL_083f, IL_0845, IL_0677, IL_07bb, IL_044f, IL_0851, IL_0851, IL_06cb, IL_06d1, IL_06d7, IL_06dd, IL_06e3, IL_06e9, IL_06ef, IL_06f5, IL_06fb, IL_0701, IL_06a7, IL_0443, IL_07d9, IL_07f1, IL_04fd, IL_0509, IL_0545, IL_0587, IL_05ab, IL_05b1, IL_05b7, IL_05bd, IL_05c3, IL_05c9, IL_05cf, IL_054b, IL_0551, IL_0557, IL_055d, IL_0563, IL_0569, IL_056f, IL_0575, IL_057b, IL_0581, IL_058d, IL_0593, IL_0599, IL_059f, IL_05a5, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_06c5, IL_07c7, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0671, IL_07b5, IL_0659, IL_07a3, IL_066b, IL_07af, IL_0467, IL_0473, IL_047f, IL_048b, IL_0485, IL_046d, IL_0479, IL_081b, IL_0815, IL_0821, IL_0689, IL_0695, IL_069b, IL_068f, IL_064d, IL_07d3, IL_0641, IL_0647, IL_0851, IL_0851, IL_0755, IL_0743, IL_0725, IL_072b, IL_0737, IL_0749, IL_075b, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0731, IL_073d, IL_071f, IL_074f, IL_070d, IL_0851, IL_0851, IL_0713, IL_0851, IL_0851, IL_078b, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0851, IL_0455, IL_04b5, IL_0539, IL_0527, IL_0773, IL_084b, IL_06b9, IL_0767, IL_0719)
+
+		IL_040d: ldarg.0
+		IL_040e: ldc.i4 65535
+		IL_0413: beq IL_0635
+
+		IL_0418: br IL_0851
+
+		IL_041d: ldarg.0
+		IL_041e: ldc.i4 65536
+		IL_0423: beq IL_07df
+
+		IL_0428: ldarg.0
+		IL_0429: ldc.i4 131072
+		IL_042e: beq.s IL_04a9
+
+		IL_0430: ldarg.0
+		IL_0431: ldc.i4 262144
+		IL_0436: beq.s IL_0449
+
+		IL_0438: br IL_0851
+
+		IL_043d: ldstr "A"
+		IL_0442: ret
+
+		IL_0443: ldstr "Add"
+		IL_0448: ret
+
+		IL_0449: ldstr "Alt"
+		IL_044e: ret
+
+		IL_044f: ldstr "Apps"
+		IL_0454: ret
+
+		IL_0455: ldstr "Attn"
+		IL_045a: ret
+
+		IL_045b: ldstr "B"
+		IL_0460: ret
+
+		IL_0461: ldstr "Back"
+		IL_0466: ret
+
+		IL_0467: ldstr "BrowserBack"
+		IL_046c: ret
+
+		IL_046d: ldstr "BrowserFavorites"
+		IL_0472: ret
+
+		IL_0473: ldstr "BrowserForward"
+		IL_0478: ret
+
+		IL_0479: ldstr "BrowserHome"
+		IL_047e: ret
+
+		IL_047f: ldstr "BrowserRefresh"
+		IL_0484: ret
+
+		IL_0485: ldstr "BrowserSearch"
+		IL_048a: ret
+
+		IL_048b: ldstr "BrowserStop"
+		IL_0490: ret
+
+		IL_0491: ldstr "C"
+		IL_0496: ret
+
+		IL_0497: ldstr "Cancel"
+		IL_049c: ret
+
+		IL_049d: ldstr "Capital"
+		IL_04a2: ret
+
+		IL_04a3: ldstr "Clear"
+		IL_04a8: ret
+
+		IL_04a9: ldstr "Control"
+		IL_04ae: ret
+
+		IL_04af: ldstr "ControlKey"
+		IL_04b4: ret
+
+		IL_04b5: ldstr "Crsel"
+		IL_04ba: ret
+
+		IL_04bb: ldstr "D"
+		IL_04c0: ret
+
+		IL_04c1: ldstr "D0"
+		IL_04c6: ret
+
+		IL_04c7: ldstr "D1"
+		IL_04cc: ret
+
+		IL_04cd: ldstr "D2"
+		IL_04d2: ret
+
+		IL_04d3: ldstr "D3"
+		IL_04d8: ret
+
+		IL_04d9: ldstr "D4"
+		IL_04de: ret
+
+		IL_04df: ldstr "D5"
+		IL_04e4: ret
+
+		IL_04e5: ldstr "D6"
+		IL_04ea: ret
+
+		IL_04eb: ldstr "D7"
+		IL_04f0: ret
+
+		IL_04f1: ldstr "D8"
+		IL_04f6: ret
+
+		IL_04f7: ldstr "D9"
+		IL_04fc: ret
+
+		IL_04fd: ldstr "Decimal"
+		IL_0502: ret
+
+		IL_0503: ldstr "Delete"
+		IL_0508: ret
+
+		IL_0509: ldstr "Divide"
+		IL_050e: ret
+
+		IL_050f: ldstr "Down"
+		IL_0514: ret
+
+		IL_0515: ldstr "E"
+		IL_051a: ret
+
+		IL_051b: ldstr "End"
+		IL_0520: ret
+
+		IL_0521: ldstr "Enter"
+		IL_0526: ret
+
+		IL_0527: ldstr "EraseEof"
+		IL_052c: ret
+
+		IL_052d: ldstr "Escape"
+		IL_0532: ret
+
+		IL_0533: ldstr "Execute"
+		IL_0538: ret
+
+		IL_0539: ldstr "Exsel"
+		IL_053e: ret
+
+		IL_053f: ldstr "F"
+		IL_0544: ret
+
+		IL_0545: ldstr "F1"
+		IL_054a: ret
+
+		IL_054b: ldstr "F10"
+		IL_0550: ret
+
+		IL_0551: ldstr "F11"
+		IL_0556: ret
+
+		IL_0557: ldstr "F12"
+		IL_055c: ret
+
+		IL_055d: ldstr "F13"
+		IL_0562: ret
+
+		IL_0563: ldstr "F14"
+		IL_0568: ret
+
+		IL_0569: ldstr "F15"
+		IL_056e: ret
+
+		IL_056f: ldstr "F16"
+		IL_0574: ret
+
+		IL_0575: ldstr "F17"
+		IL_057a: ret
+
+		IL_057b: ldstr "F18"
+		IL_0580: ret
+
+		IL_0581: ldstr "F19"
+		IL_0586: ret
+
+		IL_0587: ldstr "F2"
+		IL_058c: ret
+
+		IL_058d: ldstr "F20"
+		IL_0592: ret
+
+		IL_0593: ldstr "F21"
+		IL_0598: ret
+
+		IL_0599: ldstr "F22"
+		IL_059e: ret
+
+		IL_059f: ldstr "F23"
+		IL_05a4: ret
+
+		IL_05a5: ldstr "F24"
+		IL_05aa: ret
+
+		IL_05ab: ldstr "F3"
+		IL_05b0: ret
+
+		IL_05b1: ldstr "F4"
+		IL_05b6: ret
+
+		IL_05b7: ldstr "F5"
+		IL_05bc: ret
+
+		IL_05bd: ldstr "F6"
+		IL_05c2: ret
+
+		IL_05c3: ldstr "F7"
+		IL_05c8: ret
+
+		IL_05c9: ldstr "F8"
+		IL_05ce: ret
+
+		IL_05cf: ldstr "F9"
+		IL_05d4: ret
+
+		IL_05d5: ldstr "FinalMode"
+		IL_05da: ret
+
+		IL_05db: ldstr "G"
+		IL_05e0: ret
+
+		IL_05e1: ldstr "H"
+		IL_05e6: ret
+
+		IL_05e7: ldstr "HanguelMode"
+		IL_05ec: ret
+
+		IL_05ed: ldstr "HanjaMode"
+		IL_05f2: ret
+
+		IL_05f3: ldstr "Help"
+		IL_05f8: ret
+
+		IL_05f9: ldstr "Home"
+		IL_05fe: ret
+
+		IL_05ff: ldstr "I"
+		IL_0604: ret
+
+		IL_0605: ldstr "IMEAceept"
+		IL_060a: ret
+
+		IL_060b: ldstr "IMEConvert"
+		IL_0610: ret
+
+		IL_0611: ldstr "IMEModeChange"
+		IL_0616: ret
+
+		IL_0617: ldstr "IMENonconvert"
+		IL_061c: ret
+
+		IL_061d: ldstr "Insert"
+		IL_0622: ret
+
+		IL_0623: ldstr "J"
+		IL_0628: ret
+
+		IL_0629: ldstr "JunjaMode"
+		IL_062e: ret
+
+		IL_062f: ldstr "K"
+		IL_0634: ret
+
+		IL_0635: ldstr "KeyCode"
+		IL_063a: ret
+
+		IL_063b: ldstr "L"
+		IL_0640: ret
+
+		IL_0641: ldstr "LaunchApplication1"
+		IL_0646: ret
+
+		IL_0647: ldstr "LaunchApplication2"
+		IL_064c: ret
+
+		IL_064d: ldstr "LaunchMail"
+		IL_0652: ret
+
+		IL_0653: ldstr "LButton"
+		IL_0658: ret
+
+		IL_0659: ldstr "LControl"
+		IL_065e: ret
+
+		IL_065f: ldstr "Left"
+		IL_0664: ret
+
+		IL_0665: ldstr "LineFeed"
+		IL_066a: ret
+
+		IL_066b: ldstr "LMenu"
+		IL_0670: ret
+
+		IL_0671: ldstr "LShift"
+		IL_0676: ret
+
+		IL_0677: ldstr "LWin"
+		IL_067c: ret
+
+		IL_067d: ldstr "M"
+		IL_0682: ret
+
+		IL_0683: ldstr "MButton"
+		IL_0688: ret
+
+		IL_0689: ldstr "MediaNextTrack"
+		IL_068e: ret
+
+		IL_068f: ldstr "MediaPlayPause"
+		IL_0694: ret
+
+		IL_0695: ldstr "MediaPreviousTrack"
+		IL_069a: ret
+
+		IL_069b: ldstr "MediaStop"
+		IL_06a0: ret
+
+		IL_06a1: ldstr "Menu"
+		IL_06a6: ret
+
+		IL_06a7: ldstr "Multiply"
+		IL_06ac: ret
+
+		IL_06ad: ldstr "N"
+		IL_06b2: ret
+
+		IL_06b3: ldstr "Next"
+		IL_06b8: ret
+
+		IL_06b9: ldstr "NoName"
+		IL_06be: ret
+
+		IL_06bf: ldstr "None"
+		IL_06c4: ret
+
+		IL_06c5: ldstr "NumLock"
+		IL_06ca: ret
+
+		IL_06cb: ldstr "NumPad0"
+		IL_06d0: ret
+
+		IL_06d1: ldstr "NumPad1"
+		IL_06d6: ret
+
+		IL_06d7: ldstr "NumPad2"
+		IL_06dc: ret
+
+		IL_06dd: ldstr "NumPad3"
+		IL_06e2: ret
+
+		IL_06e3: ldstr "NumPad4"
+		IL_06e8: ret
+
+		IL_06e9: ldstr "NumPad5"
+		IL_06ee: ret
+
+		IL_06ef: ldstr "NumPad6"
+		IL_06f4: ret
+
+		IL_06f5: ldstr "NumPad7"
+		IL_06fa: ret
+
+		IL_06fb: ldstr "NumPad8"
+		IL_0700: ret
+
+		IL_0701: ldstr "NumPad9"
+		IL_0706: ret
+
+		IL_0707: ldstr "O"
+		IL_070c: ret
+
+		IL_070d: ldstr "Oem8"
+		IL_0712: ret
+
+		IL_0713: ldstr "OemBackslash"
+		IL_0718: ret
+
+		IL_0719: ldstr "OemClear"
+		IL_071e: ret
+
+		IL_071f: ldstr "OemCloseBrackets"
+		IL_0724: ret
+
+		IL_0725: ldstr "OemComma"
+		IL_072a: ret
+
+		IL_072b: ldstr "OemMinus"
+		IL_0730: ret
+
+		IL_0731: ldstr "OemOpenBrackets"
+		IL_0736: ret
+
+		IL_0737: ldstr "OemPeriod"
+		IL_073c: ret
+
+		IL_073d: ldstr "OemPipe"
+		IL_0742: ret
+
+		IL_0743: ldstr "Oemplus"
+		IL_0748: ret
+
+		IL_0749: ldstr "OemQuestion"
+		IL_074e: ret
+
+		IL_074f: ldstr "OemQuotes"
+		IL_0754: ret
+
+		IL_0755: ldstr "OemSemicolon"
+		IL_075a: ret
+
+		IL_075b: ldstr "Oemtilde"
+		IL_0760: ret
+
+		IL_0761: ldstr "P"
+		IL_0766: ret
+
+		IL_0767: ldstr "Pa1"
+		IL_076c: ret
+
+		IL_076d: ldstr "Pause"
+		IL_0772: ret
+
+		IL_0773: ldstr "Play"
+		IL_0778: ret
+
+		IL_0779: ldstr "Print"
+		IL_077e: ret
+
+		IL_077f: ldstr "PrintScreen"
+		IL_0784: ret
+
+		IL_0785: ldstr "Prior"
+		IL_078a: ret
+
+		IL_078b: ldstr "ProcessKey"
+		IL_0790: ret
+
+		IL_0791: ldstr "Q"
+		IL_0796: ret
+
+		IL_0797: ldstr "R"
+		IL_079c: ret
+
+		IL_079d: ldstr "RButton"
+		IL_07a2: ret
+
+		IL_07a3: ldstr "RControl"
+		IL_07a8: ret
+
+		IL_07a9: ldstr "Right"
+		IL_07ae: ret
+
+		IL_07af: ldstr "RMenu"
+		IL_07b4: ret
+
+		IL_07b5: ldstr "RShift"
+		IL_07ba: ret
+
+		IL_07bb: ldstr "RWin"
+		IL_07c0: ret
+
+		IL_07c1: ldstr "S"
+		IL_07c6: ret
+
+		IL_07c7: ldstr "Scroll"
+		IL_07cc: ret
+
+		IL_07cd: ldstr "Select"
+		IL_07d2: ret
+
+		IL_07d3: ldstr "SelectMedia"
+		IL_07d8: ret
+
+		IL_07d9: ldstr "Separator"
+		IL_07de: ret
+
+		IL_07df: ldstr "Shift"
+		IL_07e4: ret
+
+		IL_07e5: ldstr "ShiftKey"
+		IL_07ea: ret
+
+		IL_07eb: ldstr "Space"
+		IL_07f0: ret
+
+		IL_07f1: ldstr "Subtract"
+		IL_07f6: ret
+
+		IL_07f7: ldstr "T"
+		IL_07fc: ret
+
+		IL_07fd: ldstr "Tab"
+		IL_0802: ret
+
+		IL_0803: ldstr "U"
+		IL_0808: ret
+
+		IL_0809: ldstr "Up"
+		IL_080e: ret
+
+		IL_080f: ldstr "V"
+		IL_0814: ret
+
+		IL_0815: ldstr "VolumeDown"
+		IL_081a: ret
+
+		IL_081b: ldstr "VolumeMute"
+		IL_0820: ret
+
+		IL_0821: ldstr "VolumeUp"
+		IL_0826: ret
+
+		IL_0827: ldstr "W"
+		IL_082c: ret
+
+		IL_082d: ldstr "X"
+		IL_0832: ret
+
+		IL_0833: ldstr "XButton1"
+		IL_0838: ret
+
+		IL_0839: ldstr "XButton2"
+		IL_083e: ret
+
+		IL_083f: ldstr "Y"
+		IL_0844: ret
+
+		IL_0845: ldstr "Z"
+		IL_084a: ret
+
+		IL_084b: ldstr "Zoom"
+		IL_0850: ret
+
+		IL_0851: ldarga.s 'value'
+		IL_0853: call class [mscorlib]System.Globalization.CultureInfo [mscorlib]System.Globalization.CultureInfo::get_InvariantCulture()
+		IL_0858: call instance string [mscorlib]System.Int32::ToString(class [mscorlib]System.IFormatProvider)
+		IL_085d: callvirt instance string [mscorlib]System.String::ToUpper()
+		IL_0862: ret
+	} // end of method KeyMapper::GetKeyName
+
+	.method public hidebysig static 
+		string GetMicrosoftKeyName (
+			int32 virtualKey
+		) cil managed 
+	{
+		// Method begins at RVA 0x2b5b
+		// Header size: 1
+		// Code size: 17 (0x11)
+		.maxstack 8
+
+		IL_0000: newobj instance void [System.Windows.Forms]System.Windows.Forms.KeysConverter::.ctor()
+		IL_0005: ldarg.0
+		IL_0006: box [mscorlib]System.Int32
+		IL_000b: call instance string [System]System.ComponentModel.TypeConverter::ConvertToString(object)
+		IL_0010: ret
+	} // end of method KeyMapper::GetMicrosoftKeyName
+
+} // end of class RawInput_dll.KeyMapper
+
+.class public auto ansi beforefieldinit RawInput_dll.MouseEvent
+	extends [mscorlib]System.Object
+{
+	// Fields
+	.field public string DeviceName
+	.field public string DeviceType
+	.field public native int DeviceHandle
+	.field public string Name
+	.field private string _source
+	.field public int32 lastX
+	.field public int32 lastY
+	.field public uint32 buttons
+	.field public uint16 buttonFlags
+	.field public int16 buttonData
+	.field public string ID
+
+	// Methods
+	.method public hidebysig specialname 
+		instance string get_Source () cil managed 
+	{
+		// Method begins at RVA 0x2b6d
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld string RawInput_dll.MouseEvent::_source
+		IL_0006: ret
+	} // end of method MouseEvent::get_Source
+
+	.method public hidebysig specialname 
+		instance void set_Source (
+			string 'value'
+		) cil managed 
+	{
+		// Method begins at RVA 0x2b75
+		// Header size: 1
+		// Code size: 26 (0x1a)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldstr "Mouse_{0}"
+		IL_0006: ldarg.1
+		IL_0007: ldc.i4.2
+		IL_0008: ldc.i4.s 48
+		IL_000a: callvirt instance string [mscorlib]System.String::PadLeft(int32, char)
+		IL_000f: call string [mscorlib]System.String::Format(string, object)
+		IL_0014: stfld string RawInput_dll.MouseEvent::_source
+		IL_0019: ret
+	} // end of method MouseEvent::set_Source
+
+	.method public hidebysig virtual 
+		instance string ToString () cil managed 
+	{
+		// Method begins at RVA 0x2b90
+		// Header size: 12
+		// Code size: 71 (0x47)
+		.maxstack 6
+		.locals init (
+			[0] int64
+		)
+
+		IL_0000: ldstr "Device\n DeviceName: {0}\n DeviceType: {1}\n DeviceHandle: {2}\n Name: {3}\n"
+		IL_0005: ldc.i4.4
+		IL_0006: newarr [mscorlib]System.Object
+		IL_000b: dup
+		IL_000c: ldc.i4.0
+		IL_000d: ldarg.0
+		IL_000e: ldfld string RawInput_dll.MouseEvent::DeviceName
+		IL_0013: stelem.ref
+		IL_0014: dup
+		IL_0015: ldc.i4.1
+		IL_0016: ldarg.0
+		IL_0017: ldfld string RawInput_dll.MouseEvent::DeviceType
+		IL_001c: stelem.ref
+		IL_001d: dup
+		IL_001e: ldc.i4.2
+		IL_001f: ldarg.0
+		IL_0020: ldflda native int RawInput_dll.MouseEvent::DeviceHandle
+		IL_0025: call instance int64 [mscorlib]System.IntPtr::ToInt64()
+		IL_002a: stloc.0
+		IL_002b: ldloca.s 0
+		IL_002d: ldstr "X"
+		IL_0032: call instance string [mscorlib]System.Int64::ToString(string)
+		IL_0037: stelem.ref
+		IL_0038: dup
+		IL_0039: ldc.i4.3
+		IL_003a: ldarg.0
+		IL_003b: ldfld string RawInput_dll.MouseEvent::Name
+		IL_0040: stelem.ref
+		IL_0041: call string [mscorlib]System.String::Format(string, object[])
+		IL_0046: ret
+	} // end of method MouseEvent::ToString
+
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x2be3
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Object::.ctor()
+		IL_0006: ret
+	} // end of method MouseEvent::.ctor
+
+	// Properties
+	.property instance string Source()
+	{
+		.get instance string RawInput_dll.MouseEvent::get_Source()
+		.set instance void RawInput_dll.MouseEvent::set_Source(string)
+	}
+
+} // end of class RawInput_dll.MouseEvent
+
+.class public auto ansi beforefieldinit RawInput_dll.KeyPressEvent
+	extends [mscorlib]System.Object
+{
+	// Fields
+	.field public string DeviceName
+	.field public string DeviceType
+	.field public native int DeviceHandle
+	.field public string Name
+	.field private string _source
+	.field public int32 VKey
+	.field public string VKeyName
+	.field public uint32 Message
+	.field public bool KeyPressState
+	.field public string ID
+
+	// Methods
+	.method public hidebysig specialname 
+		instance string get_Source () cil managed 
+	{
+		// Method begins at RVA 0x2beb
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld string RawInput_dll.KeyPressEvent::_source
+		IL_0006: ret
+	} // end of method KeyPressEvent::get_Source
+
+	.method public hidebysig specialname 
+		instance void set_Source (
+			string 'value'
+		) cil managed 
+	{
+		// Method begins at RVA 0x2bf3
+		// Header size: 1
+		// Code size: 26 (0x1a)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldstr "Keyboard_{0}"
+		IL_0006: ldarg.1
+		IL_0007: ldc.i4.2
+		IL_0008: ldc.i4.s 48
+		IL_000a: callvirt instance string [mscorlib]System.String::PadLeft(int32, char)
+		IL_000f: call string [mscorlib]System.String::Format(string, object)
+		IL_0014: stfld string RawInput_dll.KeyPressEvent::_source
+		IL_0019: ret
+	} // end of method KeyPressEvent::set_Source
+
+	.method public hidebysig virtual 
+		instance string ToString () cil managed 
+	{
+		// Method begins at RVA 0x2c10
+		// Header size: 12
+		// Code size: 71 (0x47)
+		.maxstack 6
+		.locals init (
+			[0] int64
+		)
+
+		IL_0000: ldstr "Device\n DeviceName: {0}\n DeviceType: {1}\n DeviceHandle: {2}\n Name: {3}\n"
+		IL_0005: ldc.i4.4
+		IL_0006: newarr [mscorlib]System.Object
+		IL_000b: dup
+		IL_000c: ldc.i4.0
+		IL_000d: ldarg.0
+		IL_000e: ldfld string RawInput_dll.KeyPressEvent::DeviceName
+		IL_0013: stelem.ref
+		IL_0014: dup
+		IL_0015: ldc.i4.1
+		IL_0016: ldarg.0
+		IL_0017: ldfld string RawInput_dll.KeyPressEvent::DeviceType
+		IL_001c: stelem.ref
+		IL_001d: dup
+		IL_001e: ldc.i4.2
+		IL_001f: ldarg.0
+		IL_0020: ldflda native int RawInput_dll.KeyPressEvent::DeviceHandle
+		IL_0025: call instance int64 [mscorlib]System.IntPtr::ToInt64()
+		IL_002a: stloc.0
+		IL_002b: ldloca.s 0
+		IL_002d: ldstr "X"
+		IL_0032: call instance string [mscorlib]System.Int64::ToString(string)
+		IL_0037: stelem.ref
+		IL_0038: dup
+		IL_0039: ldc.i4.3
+		IL_003a: ldarg.0
+		IL_003b: ldfld string RawInput_dll.KeyPressEvent::Name
+		IL_0040: stelem.ref
+		IL_0041: call string [mscorlib]System.String::Format(string, object[])
+		IL_0046: ret
+	} // end of method KeyPressEvent::ToString
+
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x2be3
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Object::.ctor()
+		IL_0006: ret
+	} // end of method KeyPressEvent::.ctor
+
+	// Properties
+	.property instance string Source()
+	{
+		.get instance string RawInput_dll.KeyPressEvent::get_Source()
+		.set instance void RawInput_dll.KeyPressEvent::set_Source(string)
+	}
+
+} // end of class RawInput_dll.KeyPressEvent
+
+.class public auto ansi sealed RawInput_dll.DataCommand
+	extends [mscorlib]System.Enum
+{
+	// Fields
+	.field public specialname rtspecialname uint32 value__
+	.field public static literal valuetype RawInput_dll.DataCommand RID_HEADER = uint32(268435461)
+	.field public static literal valuetype RawInput_dll.DataCommand RID_INPUT = uint32(268435459)
+
+} // end of class RawInput_dll.DataCommand
+
+.class public auto ansi abstract sealed beforefieldinit RawInput_dll.DeviceType
+	extends [mscorlib]System.Object
+{
+	// Fields
+	.field public static literal int32 RimTypemouse = int32(0)
+	.field public static literal int32 RimTypekeyboard = int32(1)
+	.field public static literal int32 RimTypeHid = int32(2)
+
+} // end of class RawInput_dll.DeviceType
+
+.class private auto ansi sealed RawInput_dll.RawInputDeviceInfo
+	extends [mscorlib]System.Enum
+{
+	// Fields
+	.field public specialname rtspecialname uint32 value__
+	.field public static literal valuetype RawInput_dll.RawInputDeviceInfo RIDI_DEVICENAME = uint32(536870919)
+	.field public static literal valuetype RawInput_dll.RawInputDeviceInfo RIDI_DEVICEINFO = uint32(536870923)
+	.field public static literal valuetype RawInput_dll.RawInputDeviceInfo PREPARSEDDATA = uint32(536870917)
+
+} // end of class RawInput_dll.RawInputDeviceInfo
+
+.class private auto ansi sealed RawInput_dll.BroadcastDeviceType
+	extends [mscorlib]System.Enum
+{
+	// Fields
+	.field public specialname rtspecialname int32 value__
+	.field public static literal valuetype RawInput_dll.BroadcastDeviceType DBT_DEVTYP_OEM = int32(0)
+	.field public static literal valuetype RawInput_dll.BroadcastDeviceType DBT_DEVTYP_DEVNODE = int32(1)
+	.field public static literal valuetype RawInput_dll.BroadcastDeviceType DBT_DEVTYP_VOLUME = int32(2)
+	.field public static literal valuetype RawInput_dll.BroadcastDeviceType DBT_DEVTYP_PORT = int32(3)
+	.field public static literal valuetype RawInput_dll.BroadcastDeviceType DBT_DEVTYP_NET = int32(4)
+	.field public static literal valuetype RawInput_dll.BroadcastDeviceType DBT_DEVTYP_DEVICEINTERFACE = int32(5)
+	.field public static literal valuetype RawInput_dll.BroadcastDeviceType DBT_DEVTYP_HANDLE = int32(6)
+
+} // end of class RawInput_dll.BroadcastDeviceType
+
+.class private auto ansi sealed RawInput_dll.DeviceNotification
+	extends [mscorlib]System.Enum
+{
+	// Fields
+	.field public specialname rtspecialname int32 value__
+	.field public static literal valuetype RawInput_dll.DeviceNotification DEVICE_NOTIFY_WINDOW_HANDLE = int32(0)
+	.field public static literal valuetype RawInput_dll.DeviceNotification DEVICE_NOTIFY_SERVICE_HANDLE = int32(1)
+	.field public static literal valuetype RawInput_dll.DeviceNotification DEVICE_NOTIFY_ALL_INTERFACE_CLASSES = int32(4)
+
+} // end of class RawInput_dll.DeviceNotification
+
+.class private auto ansi sealed RawInput_dll.RawInputDeviceFlags
+	extends [mscorlib]System.Enum
+{
+	.custom instance void [mscorlib]System.FlagsAttribute::.ctor() = (
+		01 00 00 00
+	)
+	// Fields
+	.field public specialname rtspecialname int32 value__
+	.field public static literal valuetype RawInput_dll.RawInputDeviceFlags NONE = int32(0)
+	.field public static literal valuetype RawInput_dll.RawInputDeviceFlags REMOVE = int32(1)
+	.field public static literal valuetype RawInput_dll.RawInputDeviceFlags EXCLUDE = int32(16)
+	.field public static literal valuetype RawInput_dll.RawInputDeviceFlags PAGEONLY = int32(32)
+	.field public static literal valuetype RawInput_dll.RawInputDeviceFlags NOLEGACY = int32(48)
+	.field public static literal valuetype RawInput_dll.RawInputDeviceFlags INPUTSINK = int32(256)
+	.field public static literal valuetype RawInput_dll.RawInputDeviceFlags CAPTUREMOUSE = int32(512)
+	.field public static literal valuetype RawInput_dll.RawInputDeviceFlags NOHOTKEYS = int32(512)
+	.field public static literal valuetype RawInput_dll.RawInputDeviceFlags APPKEYS = int32(1024)
+	.field public static literal valuetype RawInput_dll.RawInputDeviceFlags EXINPUTSINK = int32(4096)
+	.field public static literal valuetype RawInput_dll.RawInputDeviceFlags DEVNOTIFY = int32(8192)
+
+} // end of class RawInput_dll.RawInputDeviceFlags
+
+.class public auto ansi sealed RawInput_dll.HidUsagePage
+	extends [mscorlib]System.Enum
+{
+	// Fields
+	.field public specialname rtspecialname uint16 value__
+	.field public static literal valuetype RawInput_dll.HidUsagePage UNDEFINED = uint16(0)
+	.field public static literal valuetype RawInput_dll.HidUsagePage GENERIC = uint16(1)
+	.field public static literal valuetype RawInput_dll.HidUsagePage SIMULATION = uint16(2)
+	.field public static literal valuetype RawInput_dll.HidUsagePage VR = uint16(3)
+	.field public static literal valuetype RawInput_dll.HidUsagePage SPORT = uint16(4)
+	.field public static literal valuetype RawInput_dll.HidUsagePage GAME = uint16(5)
+	.field public static literal valuetype RawInput_dll.HidUsagePage KEYBOARD = uint16(7)
+
+} // end of class RawInput_dll.HidUsagePage
+
+.class public auto ansi sealed RawInput_dll.HidUsage
+	extends [mscorlib]System.Enum
+{
+	// Fields
+	.field public specialname rtspecialname uint16 value__
+	.field public static literal valuetype RawInput_dll.HidUsage Undefined = uint16(0)
+	.field public static literal valuetype RawInput_dll.HidUsage Pointer = uint16(1)
+	.field public static literal valuetype RawInput_dll.HidUsage Mouse = uint16(2)
+	.field public static literal valuetype RawInput_dll.HidUsage Joystick = uint16(4)
+	.field public static literal valuetype RawInput_dll.HidUsage Gamepad = uint16(5)
+	.field public static literal valuetype RawInput_dll.HidUsage Keyboard = uint16(6)
+	.field public static literal valuetype RawInput_dll.HidUsage Keypad = uint16(7)
+	.field public static literal valuetype RawInput_dll.HidUsage SystemControl = uint16(128)
+	.field public static literal valuetype RawInput_dll.HidUsage Tablet = uint16(128)
+	.field public static literal valuetype RawInput_dll.HidUsage Consumer = uint16(12)
+
+} // end of class RawInput_dll.HidUsage
+
+.class public auto ansi beforefieldinit RawInput_dll.PreMessageFilter
+	extends [mscorlib]System.Object
+	implements [System.Windows.Forms]System.Windows.Forms.IMessageFilter
+{
+	// Fields
+	.field private bool m_bIgnoreNextWheelEvent
+
+	// Methods
+	.method public hidebysig specialname 
+		instance bool get_IgnoreNextWheelEvent () cil managed 
+	{
+		// Method begins at RVA 0x2c63
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld bool RawInput_dll.PreMessageFilter::m_bIgnoreNextWheelEvent
+		IL_0006: ret
+	} // end of method PreMessageFilter::get_IgnoreNextWheelEvent
+
+	.method public hidebysig specialname 
+		instance void set_IgnoreNextWheelEvent (
+			bool 'value'
+		) cil managed 
+	{
+		// Method begins at RVA 0x2c6b
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: stfld bool RawInput_dll.PreMessageFilter::m_bIgnoreNextWheelEvent
+		IL_0007: ret
+	} // end of method PreMessageFilter::set_IgnoreNextWheelEvent
+
+	.method public final hidebysig newslot virtual 
+		instance bool PreFilterMessage (
+			valuetype [System.Windows.Forms]System.Windows.Forms.Message& m
+		) cil managed 
+	{
+		// Method begins at RVA 0x2c74
+		// Header size: 1
+		// Code size: 32 (0x20)
+		.maxstack 8
+
+		IL_0000: ldarg.1
+		IL_0001: call instance int32 [System.Windows.Forms]System.Windows.Forms.Message::get_Msg()
+		IL_0006: ldc.i4 522
+		IL_000b: bne.un.s IL_001e
+
+		IL_000d: ldarg.0
+		IL_000e: ldfld bool RawInput_dll.PreMessageFilter::m_bIgnoreNextWheelEvent
+		IL_0013: brfalse.s IL_001e
+
+		IL_0015: ldarg.0
+		IL_0016: ldc.i4.0
+		IL_0017: stfld bool RawInput_dll.PreMessageFilter::m_bIgnoreNextWheelEvent
+		IL_001c: ldc.i4.1
+		IL_001d: ret
+
+		IL_001e: ldc.i4.0
+		IL_001f: ret
+	} // end of method PreMessageFilter::PreFilterMessage
+
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x2be3
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Object::.ctor()
+		IL_0006: ret
+	} // end of method PreMessageFilter::.ctor
+
+	// Properties
+	.property instance bool IgnoreNextWheelEvent()
+	{
+		.get instance bool RawInput_dll.PreMessageFilter::get_IgnoreNextWheelEvent()
+		.set instance void RawInput_dll.PreMessageFilter::set_IgnoreNextWheelEvent(bool)
+	}
+
+} // end of class RawInput_dll.PreMessageFilter
+
+.class public auto ansi sealed beforefieldinit RawInput_dll.RawMouse
+	extends [mscorlib]System.Object
+{
+	// Nested Types
+	.class nested public auto ansi sealed DeviceEventHandler
+		extends [mscorlib]System.MulticastDelegate
+	{
+		// Methods
+		.method public hidebysig specialname rtspecialname 
+			instance void .ctor (
+				object 'object',
+				native int 'method'
+			) runtime managed 
+		{
+		} // end of method DeviceEventHandler::.ctor
+
+		.method public hidebysig newslot virtual 
+			instance void Invoke (
+				object sender,
+				class RawInput_dll.RawInputEventArg e
+			) runtime managed 
+		{
+		} // end of method DeviceEventHandler::Invoke
+
+		.method public hidebysig newslot virtual 
+			instance class [mscorlib]System.IAsyncResult BeginInvoke (
+				object sender,
+				class RawInput_dll.RawInputEventArg e,
+				class [mscorlib]System.AsyncCallback callback,
+				object 'object'
+			) runtime managed 
+		{
+		} // end of method DeviceEventHandler::BeginInvoke
+
+		.method public hidebysig newslot virtual 
+			instance void EndInvoke (
+				class [mscorlib]System.IAsyncResult result
+			) runtime managed 
+		{
+		} // end of method DeviceEventHandler::EndInvoke
+
+	} // end of class DeviceEventHandler
+
+
+	// Fields
+	.field public initonly class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.MouseEvent> _deviceList
+	.field private class RawInput_dll.RawMouse/DeviceEventHandler MouseMoved
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.field private initonly object _padLock
+	.field private int32 '<NumberOfMice>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.field private static valuetype RawInput_dll.InputData _rawBuffer
+
+	// Methods
+	.method public hidebysig specialname 
+		instance void add_MouseMoved (
+			class RawInput_dll.RawMouse/DeviceEventHandler 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2c98
+		// Header size: 12
+		// Code size: 41 (0x29)
+		.maxstack 3
+		.locals init (
+			[0] class RawInput_dll.RawMouse/DeviceEventHandler,
+			[1] class RawInput_dll.RawMouse/DeviceEventHandler,
+			[2] class RawInput_dll.RawMouse/DeviceEventHandler
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class RawInput_dll.RawMouse/DeviceEventHandler RawInput_dll.RawMouse::MouseMoved
+		IL_0006: stloc.0
+		// loop start (head: IL_0007)
+			IL_0007: ldloc.0
+			IL_0008: stloc.1
+			IL_0009: ldloc.1
+			IL_000a: ldarg.1
+			IL_000b: call class [mscorlib]System.Delegate [mscorlib]System.Delegate::Combine(class [mscorlib]System.Delegate, class [mscorlib]System.Delegate)
+			IL_0010: castclass RawInput_dll.RawMouse/DeviceEventHandler
+			IL_0015: stloc.2
+			IL_0016: ldarg.0
+			IL_0017: ldflda class RawInput_dll.RawMouse/DeviceEventHandler RawInput_dll.RawMouse::MouseMoved
+			IL_001c: ldloc.2
+			IL_001d: ldloc.1
+			IL_001e: call !!0 [mscorlib]System.Threading.Interlocked::CompareExchange<class RawInput_dll.RawMouse/DeviceEventHandler>(!!0&, !!0, !!0)
+			IL_0023: stloc.0
+			IL_0024: ldloc.0
+			IL_0025: ldloc.1
+			IL_0026: bne.un.s IL_0007
+		// end loop
+		IL_0028: ret
+	} // end of method RawMouse::add_MouseMoved
+
+	.method public hidebysig specialname 
+		instance void remove_MouseMoved (
+			class RawInput_dll.RawMouse/DeviceEventHandler 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2cd0
+		// Header size: 12
+		// Code size: 41 (0x29)
+		.maxstack 3
+		.locals init (
+			[0] class RawInput_dll.RawMouse/DeviceEventHandler,
+			[1] class RawInput_dll.RawMouse/DeviceEventHandler,
+			[2] class RawInput_dll.RawMouse/DeviceEventHandler
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class RawInput_dll.RawMouse/DeviceEventHandler RawInput_dll.RawMouse::MouseMoved
+		IL_0006: stloc.0
+		// loop start (head: IL_0007)
+			IL_0007: ldloc.0
+			IL_0008: stloc.1
+			IL_0009: ldloc.1
+			IL_000a: ldarg.1
+			IL_000b: call class [mscorlib]System.Delegate [mscorlib]System.Delegate::Remove(class [mscorlib]System.Delegate, class [mscorlib]System.Delegate)
+			IL_0010: castclass RawInput_dll.RawMouse/DeviceEventHandler
+			IL_0015: stloc.2
+			IL_0016: ldarg.0
+			IL_0017: ldflda class RawInput_dll.RawMouse/DeviceEventHandler RawInput_dll.RawMouse::MouseMoved
+			IL_001c: ldloc.2
+			IL_001d: ldloc.1
+			IL_001e: call !!0 [mscorlib]System.Threading.Interlocked::CompareExchange<class RawInput_dll.RawMouse/DeviceEventHandler>(!!0&, !!0, !!0)
+			IL_0023: stloc.0
+			IL_0024: ldloc.0
+			IL_0025: ldloc.1
+			IL_0026: bne.un.s IL_0007
+		// end loop
+		IL_0028: ret
+	} // end of method RawMouse::remove_MouseMoved
+
+	.method public hidebysig specialname 
+		instance int32 get_NumberOfMice () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2d05
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld int32 RawInput_dll.RawMouse::'<NumberOfMice>k__BackingField'
+		IL_0006: ret
+	} // end of method RawMouse::get_NumberOfMice
+
+	.method private hidebysig specialname 
+		instance void set_NumberOfMice (
+			int32 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2d0d
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: stfld int32 RawInput_dll.RawMouse::'<NumberOfMice>k__BackingField'
+		IL_0007: ret
+	} // end of method RawMouse::set_NumberOfMice
+
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			native int hwnd,
+			bool captureOnlyInForeground
+		) cil managed 
+	{
+		// Method begins at RVA 0x2d18
+		// Header size: 12
+		// Code size: 138 (0x8a)
+		.maxstack 4
+		.locals init (
+			[0] valuetype RawInput_dll.RawInputDevice[]
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: newobj instance void class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.MouseEvent>::.ctor()
+		IL_0006: stfld class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.MouseEvent> RawInput_dll.RawMouse::_deviceList
+		IL_000b: ldarg.0
+		IL_000c: newobj instance void [mscorlib]System.Object::.ctor()
+		IL_0011: stfld object RawInput_dll.RawMouse::_padLock
+		IL_0016: ldarg.0
+		IL_0017: call instance void [mscorlib]System.Object::.ctor()
+		IL_001c: ldc.i4.1
+		IL_001d: newarr RawInput_dll.RawInputDevice
+		IL_0022: stloc.0
+		IL_0023: ldloc.0
+		IL_0024: ldc.i4.0
+		IL_0025: ldelema RawInput_dll.RawInputDevice
+		IL_002a: ldc.i4.1
+		IL_002b: stfld valuetype RawInput_dll.HidUsagePage RawInput_dll.RawInputDevice::UsagePage
+		IL_0030: ldloc.0
+		IL_0031: ldc.i4.0
+		IL_0032: ldelema RawInput_dll.RawInputDevice
+		IL_0037: ldc.i4.2
+		IL_0038: stfld valuetype RawInput_dll.HidUsage RawInput_dll.RawInputDevice::Usage
+		IL_003d: ldloc.0
+		IL_003e: ldc.i4.0
+		IL_003f: ldelema RawInput_dll.RawInputDevice
+		IL_0044: ldarg.2
+		IL_0045: brtrue.s IL_004e
+
+		IL_0047: ldc.i4 256
+		IL_004c: br.s IL_004f
+
+		IL_004e: ldc.i4.0
+
+		IL_004f: ldc.i4 8192
+		IL_0054: or
+		IL_0055: stfld valuetype RawInput_dll.RawInputDeviceFlags RawInput_dll.RawInputDevice::Flags
+		IL_005a: ldloc.0
+		IL_005b: ldc.i4.0
+		IL_005c: ldelema RawInput_dll.RawInputDevice
+		IL_0061: ldarg.1
+		IL_0062: stfld native int RawInput_dll.RawInputDevice::Target
+		IL_0067: ldloc.0
+		IL_0068: ldloc.0
+		IL_0069: ldlen
+		IL_006a: conv.i4
+		IL_006b: ldloc.0
+		IL_006c: ldc.i4.0
+		IL_006d: ldelem RawInput_dll.RawInputDevice
+		IL_0072: call int32 [mscorlib]System.Runtime.InteropServices.Marshal::SizeOf<valuetype RawInput_dll.RawInputDevice>(!!0)
+		IL_0077: call bool RawInput_dll.Win32::RegisterRawInputDevices(valuetype RawInput_dll.RawInputDevice[], uint32, uint32)
+		IL_007c: brtrue.s IL_0089
+
+		IL_007e: ldstr "Failed to register raw mouse input device(s)."
+		IL_0083: newobj instance void [mscorlib]System.ApplicationException::.ctor(string)
+		IL_0088: throw
+
+		IL_0089: ret
+	} // end of method RawMouse::.ctor
+
+	.method public hidebysig 
+		instance void EnumerateDevices (
+			string id
+		) cil managed 
+	{
+		// Method begins at RVA 0x2db0
+		// Header size: 12
+		// Code size: 548 (0x224)
+		.maxstack 5
+		.locals init (
+			[0] object,
+			[1] bool,
+			[2] int32,
+			[3] class RawInput_dll.MouseEvent,
+			[4] int32,
+			[5] uint32,
+			[6] int32,
+			[7] int32,
+			[8] native int,
+			[9] int32,
+			[10] uint32,
+			[11] valuetype RawInput_dll.Rawinputdevicelist,
+			[12] native int,
+			[13] string,
+			[14] string,
+			[15] class RawInput_dll.MouseEvent
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld object RawInput_dll.RawMouse::_padLock
+		IL_0006: stloc.0
+		IL_0007: ldc.i4.0
+		IL_0008: stloc.1
+		.try
+		{
+			IL_0009: ldloc.0
+			IL_000a: ldloca.s 1
+			IL_000c: call void [mscorlib]System.Threading.Monitor::Enter(object, bool&)
+			IL_0011: ldarg.0
+			IL_0012: ldfld class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.MouseEvent> RawInput_dll.RawMouse::_deviceList
+			IL_0017: callvirt instance void class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.MouseEvent>::Clear()
+			IL_001c: ldc.i4.0
+			IL_001d: stloc.2
+			IL_001e: newobj instance void RawInput_dll.MouseEvent::.ctor()
+			IL_0023: dup
+			IL_0024: ldstr "Global Mouse"
+			IL_0029: stfld string RawInput_dll.MouseEvent::DeviceName
+			IL_002e: dup
+			IL_002f: ldsfld native int [mscorlib]System.IntPtr::Zero
+			IL_0034: stfld native int RawInput_dll.MouseEvent::DeviceHandle
+			IL_0039: dup
+			IL_003a: ldc.i4.1
+			IL_003b: call string RawInput_dll.Win32::GetDeviceType(uint32)
+			IL_0040: stfld string RawInput_dll.MouseEvent::DeviceType
+			IL_0045: dup
+			IL_0046: ldstr "Fake Mouse"
+			IL_004b: stfld string RawInput_dll.MouseEvent::Name
+			IL_0050: dup
+			IL_0051: ldloc.2
+			IL_0052: dup
+			IL_0053: ldc.i4.1
+			IL_0054: add
+			IL_0055: stloc.2
+			IL_0056: stloc.s 7
+			IL_0058: ldloca.s 7
+			IL_005a: call class [mscorlib]System.Globalization.CultureInfo [mscorlib]System.Globalization.CultureInfo::get_InvariantCulture()
+			IL_005f: call instance string [mscorlib]System.Int32::ToString(class [mscorlib]System.IFormatProvider)
+			IL_0064: callvirt instance void RawInput_dll.MouseEvent::set_Source(string)
+			IL_0069: dup
+			IL_006a: ldarg.1
+			IL_006b: stfld string RawInput_dll.MouseEvent::ID
+			IL_0070: stloc.3
+			IL_0071: ldarg.0
+			IL_0072: ldfld class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.MouseEvent> RawInput_dll.RawMouse::_deviceList
+			IL_0077: ldloc.3
+			IL_0078: ldfld native int RawInput_dll.MouseEvent::DeviceHandle
+			IL_007d: ldloc.3
+			IL_007e: callvirt instance void class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.MouseEvent>::Add(!0, !1)
+			IL_0083: ldc.i4.0
+			IL_0084: stloc.s 4
+			IL_0086: ldc.i4.0
+			IL_0087: stloc.s 5
+			IL_0089: ldtoken RawInput_dll.Rawinputdevicelist
+			IL_008e: call class [mscorlib]System.Type [mscorlib]System.Type::GetTypeFromHandle(valuetype [mscorlib]System.RuntimeTypeHandle)
+			IL_0093: call int32 [mscorlib]System.Runtime.InteropServices.Marshal::SizeOf(class [mscorlib]System.Type)
+			IL_0098: stloc.s 6
+			IL_009a: ldsfld native int [mscorlib]System.IntPtr::Zero
+			IL_009f: ldloca.s 5
+			IL_00a1: ldloc.s 6
+			IL_00a3: call uint32 RawInput_dll.Win32::GetRawInputDeviceList(native int, uint32&, uint32)
+			IL_00a8: brtrue IL_020c
+
+			IL_00ad: ldloc.s 6
+			IL_00af: conv.i8
+			IL_00b0: ldloc.s 5
+			IL_00b2: conv.u8
+			IL_00b3: mul
+			IL_00b4: conv.i4
+			IL_00b5: call native int [mscorlib]System.Runtime.InteropServices.Marshal::AllocHGlobal(int32)
+			IL_00ba: stloc.s 8
+			IL_00bc: ldloc.s 8
+			IL_00be: ldloca.s 5
+			IL_00c0: ldloc.s 6
+			IL_00c2: call uint32 RawInput_dll.Win32::GetRawInputDeviceList(native int, uint32&, uint32)
+			IL_00c7: pop
+			IL_00c8: ldc.i4.0
+			IL_00c9: stloc.s 9
+			IL_00cb: br IL_01f0
+			// loop start (head: IL_01f0)
+				IL_00d0: ldc.i4.0
+				IL_00d1: stloc.s 10
+				IL_00d3: ldloca.s 8
+				IL_00d5: call instance int64 [mscorlib]System.IntPtr::ToInt64()
+				IL_00da: ldloc.s 6
+				IL_00dc: ldloc.s 9
+				IL_00de: mul
+				IL_00df: conv.i8
+				IL_00e0: add
+				IL_00e1: newobj instance void [mscorlib]System.IntPtr::.ctor(int64)
+				IL_00e6: ldtoken RawInput_dll.Rawinputdevicelist
+				IL_00eb: call class [mscorlib]System.Type [mscorlib]System.Type::GetTypeFromHandle(valuetype [mscorlib]System.RuntimeTypeHandle)
+				IL_00f0: call object [mscorlib]System.Runtime.InteropServices.Marshal::PtrToStructure(native int, class [mscorlib]System.Type)
+				IL_00f5: unbox.any RawInput_dll.Rawinputdevicelist
+				IL_00fa: stloc.s 11
+				IL_00fc: ldloc.s 11
+				IL_00fe: ldfld native int RawInput_dll.Rawinputdevicelist::hDevice
+				IL_0103: ldc.i4 536870919
+				IL_0108: ldsfld native int [mscorlib]System.IntPtr::Zero
+				IL_010d: ldloca.s 10
+				IL_010f: call uint32 RawInput_dll.Win32::GetRawInputDeviceInfo(native int, valuetype RawInput_dll.RawInputDeviceInfo, native int, uint32&)
+				IL_0114: pop
+				IL_0115: ldloc.s 10
+				IL_0117: ldc.i4.0
+				IL_0118: ble.un IL_01ea
+
+				IL_011d: ldloc.s 10
+				IL_011f: call native int [mscorlib]System.Runtime.InteropServices.Marshal::AllocHGlobal(int32)
+				IL_0124: stloc.s 12
+				IL_0126: ldloc.s 11
+				IL_0128: ldfld native int RawInput_dll.Rawinputdevicelist::hDevice
+				IL_012d: ldc.i4 536870919
+				IL_0132: ldloc.s 12
+				IL_0134: ldloca.s 10
+				IL_0136: call uint32 RawInput_dll.Win32::GetRawInputDeviceInfo(native int, valuetype RawInput_dll.RawInputDeviceInfo, native int, uint32&)
+				IL_013b: pop
+				IL_013c: ldloc.s 12
+				IL_013e: call string [mscorlib]System.Runtime.InteropServices.Marshal::PtrToStringAnsi(native int)
+				IL_0143: stloc.s 13
+				IL_0145: ldloc.s 11
+				IL_0147: ldfld uint32 RawInput_dll.Rawinputdevicelist::dwType
+				IL_014c: brtrue IL_01e3
+
+				IL_0151: ldloc.s 13
+				IL_0153: call string RawInput_dll.Win32::GetDeviceDescription(string)
+				IL_0158: stloc.s 14
+				IL_015a: newobj instance void RawInput_dll.MouseEvent::.ctor()
+				IL_015f: dup
+				IL_0160: ldloc.s 12
+				IL_0162: call string [mscorlib]System.Runtime.InteropServices.Marshal::PtrToStringAnsi(native int)
+				IL_0167: stfld string RawInput_dll.MouseEvent::DeviceName
+				IL_016c: dup
+				IL_016d: ldloc.s 11
+				IL_016f: ldfld native int RawInput_dll.Rawinputdevicelist::hDevice
+				IL_0174: stfld native int RawInput_dll.MouseEvent::DeviceHandle
+				IL_0179: dup
+				IL_017a: ldloc.s 11
+				IL_017c: ldfld uint32 RawInput_dll.Rawinputdevicelist::dwType
+				IL_0181: call string RawInput_dll.Win32::GetDeviceType(uint32)
+				IL_0186: stfld string RawInput_dll.MouseEvent::DeviceType
+				IL_018b: dup
+				IL_018c: ldloc.s 14
+				IL_018e: stfld string RawInput_dll.MouseEvent::Name
+				IL_0193: dup
+				IL_0194: ldloc.2
+				IL_0195: dup
+				IL_0196: ldc.i4.1
+				IL_0197: add
+				IL_0198: stloc.2
+				IL_0199: stloc.s 7
+				IL_019b: ldloca.s 7
+				IL_019d: call class [mscorlib]System.Globalization.CultureInfo [mscorlib]System.Globalization.CultureInfo::get_InvariantCulture()
+				IL_01a2: call instance string [mscorlib]System.Int32::ToString(class [mscorlib]System.IFormatProvider)
+				IL_01a7: callvirt instance void RawInput_dll.MouseEvent::set_Source(string)
+				IL_01ac: dup
+				IL_01ad: ldarg.1
+				IL_01ae: stfld string RawInput_dll.MouseEvent::ID
+				IL_01b3: stloc.s 15
+				IL_01b5: ldarg.0
+				IL_01b6: ldfld class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.MouseEvent> RawInput_dll.RawMouse::_deviceList
+				IL_01bb: ldloc.s 11
+				IL_01bd: ldfld native int RawInput_dll.Rawinputdevicelist::hDevice
+				IL_01c2: callvirt instance bool class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.MouseEvent>::ContainsKey(!0)
+				IL_01c7: brtrue.s IL_01e3
+
+				IL_01c9: ldloc.s 4
+				IL_01cb: ldc.i4.1
+				IL_01cc: add
+				IL_01cd: stloc.s 4
+				IL_01cf: ldarg.0
+				IL_01d0: ldfld class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.MouseEvent> RawInput_dll.RawMouse::_deviceList
+				IL_01d5: ldloc.s 11
+				IL_01d7: ldfld native int RawInput_dll.Rawinputdevicelist::hDevice
+				IL_01dc: ldloc.s 15
+				IL_01de: callvirt instance void class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.MouseEvent>::Add(!0, !1)
+
+				IL_01e3: ldloc.s 12
+				IL_01e5: call void [mscorlib]System.Runtime.InteropServices.Marshal::FreeHGlobal(native int)
+
+				IL_01ea: ldloc.s 9
+				IL_01ec: ldc.i4.1
+				IL_01ed: add
+				IL_01ee: stloc.s 9
+
+				IL_01f0: ldloc.s 9
+				IL_01f2: conv.i8
+				IL_01f3: ldloc.s 5
+				IL_01f5: conv.u8
+				IL_01f6: blt IL_00d0
+			// end loop
+
+			IL_01fb: ldloc.s 8
+			IL_01fd: call void [mscorlib]System.Runtime.InteropServices.Marshal::FreeHGlobal(native int)
+			IL_0202: ldarg.0
+			IL_0203: ldloc.s 4
+			IL_0205: call instance void RawInput_dll.RawMouse::set_NumberOfMice(int32)
+			IL_020a: leave.s IL_0223
+
+			IL_020c: leave.s IL_0218
+		} // end .try
+		finally
+		{
+			IL_020e: ldloc.1
+			IL_020f: brfalse.s IL_0217
+
+			IL_0211: ldloc.0
+			IL_0212: call void [mscorlib]System.Threading.Monitor::Exit(object)
+
+			IL_0217: endfinally
+		} // end handler
+
+		IL_0218: call int32 [mscorlib]System.Runtime.InteropServices.Marshal::GetLastWin32Error()
+		IL_021d: newobj instance void [System]System.ComponentModel.Win32Exception::.ctor(int32)
+		IL_0222: throw
+
+		IL_0223: ret
+	} // end of method RawMouse::EnumerateDevices
+
+	.method public hidebysig 
+		instance void ProcessRawInput (
+			native int hdevice
+		) cil managed 
+	{
+		// Method begins at RVA 0x2ffc
+		// Header size: 12
+		// Code size: 389 (0x185)
+		.maxstack 6
+		.locals init (
+			[0] int32,
+			[1] int32,
+			[2] int32,
+			[3] uint32,
+			[4] uint16,
+			[5] int16,
+			[6] class RawInput_dll.MouseEvent,
+			[7] object,
+			[8] bool
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.MouseEvent> RawInput_dll.RawMouse::_deviceList
+		IL_0006: callvirt instance int32 class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.MouseEvent>::get_Count()
+		IL_000b: brtrue.s IL_000e
+
+		IL_000d: ret
+
+		IL_000e: ldc.i4.0
+		IL_000f: stloc.0
+		IL_0010: ldarg.1
+		IL_0011: ldc.i4 268435459
+		IL_0016: ldsfld native int [mscorlib]System.IntPtr::Zero
+		IL_001b: ldloca.s 0
+		IL_001d: ldtoken RawInput_dll.Rawinputheader
+		IL_0022: call class [mscorlib]System.Type [mscorlib]System.Type::GetTypeFromHandle(valuetype [mscorlib]System.RuntimeTypeHandle)
+		IL_0027: call int32 [mscorlib]System.Runtime.InteropServices.Marshal::SizeOf(class [mscorlib]System.Type)
+		IL_002c: call int32 RawInput_dll.Win32::GetRawInputData(native int, valuetype RawInput_dll.DataCommand, native int, int32&, int32)
+		IL_0031: pop
+		IL_0032: ldloc.0
+		IL_0033: ldarg.1
+		IL_0034: ldc.i4 268435459
+		IL_0039: ldsflda valuetype RawInput_dll.InputData RawInput_dll.RawMouse::_rawBuffer
+		IL_003e: ldloca.s 0
+		IL_0040: ldtoken RawInput_dll.Rawinputheader
+		IL_0045: call class [mscorlib]System.Type [mscorlib]System.Type::GetTypeFromHandle(valuetype [mscorlib]System.RuntimeTypeHandle)
+		IL_004a: call int32 [mscorlib]System.Runtime.InteropServices.Marshal::SizeOf(class [mscorlib]System.Type)
+		IL_004f: call int32 RawInput_dll.Win32::GetRawInputData(native int, valuetype RawInput_dll.DataCommand, valuetype RawInput_dll.InputData&, int32&, int32)
+		IL_0054: beq.s IL_0057
+
+		IL_0056: ret
+
+		IL_0057: ldsflda valuetype RawInput_dll.InputData RawInput_dll.RawMouse::_rawBuffer
+		IL_005c: ldflda valuetype RawInput_dll.Rawinputheader RawInput_dll.InputData::header
+		IL_0061: ldfld uint32 RawInput_dll.Rawinputheader::dwType
+		IL_0066: brfalse.s IL_0069
+
+		IL_0068: ret
+
+		IL_0069: ldsflda valuetype RawInput_dll.InputData RawInput_dll.RawMouse::_rawBuffer
+		IL_006e: ldflda valuetype RawInput_dll.RawData RawInput_dll.InputData::data
+		IL_0073: ldflda valuetype RawInput_dll.Rawmouse RawInput_dll.RawData::mouse
+		IL_0078: ldfld int32 RawInput_dll.Rawmouse::lLastX
+		IL_007d: stloc.1
+		IL_007e: ldsflda valuetype RawInput_dll.InputData RawInput_dll.RawMouse::_rawBuffer
+		IL_0083: ldflda valuetype RawInput_dll.RawData RawInput_dll.InputData::data
+		IL_0088: ldflda valuetype RawInput_dll.Rawmouse RawInput_dll.RawData::mouse
+		IL_008d: ldfld int32 RawInput_dll.Rawmouse::lLastY
+		IL_0092: stloc.2
+		IL_0093: ldsflda valuetype RawInput_dll.InputData RawInput_dll.RawMouse::_rawBuffer
+		IL_0098: ldflda valuetype RawInput_dll.RawData RawInput_dll.InputData::data
+		IL_009d: ldflda valuetype RawInput_dll.Rawmouse RawInput_dll.RawData::mouse
+		IL_00a2: ldfld uint32 RawInput_dll.Rawmouse::ulButtons
+		IL_00a7: stloc.3
+		IL_00a8: ldsflda valuetype RawInput_dll.InputData RawInput_dll.RawMouse::_rawBuffer
+		IL_00ad: ldflda valuetype RawInput_dll.RawData RawInput_dll.InputData::data
+		IL_00b2: ldflda valuetype RawInput_dll.Rawmouse RawInput_dll.RawData::mouse
+		IL_00b7: ldfld uint16 RawInput_dll.Rawmouse::usButtonFlags
+		IL_00bc: stloc.s 4
+		IL_00be: ldsflda valuetype RawInput_dll.InputData RawInput_dll.RawMouse::_rawBuffer
+		IL_00c3: ldflda valuetype RawInput_dll.RawData RawInput_dll.InputData::data
+		IL_00c8: ldflda valuetype RawInput_dll.Rawmouse RawInput_dll.RawData::mouse
+		IL_00cd: ldfld uint16 RawInput_dll.Rawmouse::usButtonData
+		IL_00d2: conv.i2
+		IL_00d3: stloc.s 5
+		IL_00d5: ldarg.0
+		IL_00d6: ldfld class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.MouseEvent> RawInput_dll.RawMouse::_deviceList
+		IL_00db: ldsflda valuetype RawInput_dll.InputData RawInput_dll.RawMouse::_rawBuffer
+		IL_00e0: ldflda valuetype RawInput_dll.Rawinputheader RawInput_dll.InputData::header
+		IL_00e5: ldfld native int RawInput_dll.Rawinputheader::hDevice
+		IL_00ea: callvirt instance bool class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.MouseEvent>::ContainsKey(!0)
+		IL_00ef: brfalse.s IL_012f
+
+		IL_00f1: ldarg.0
+		IL_00f2: ldfld object RawInput_dll.RawMouse::_padLock
+		IL_00f7: stloc.s 7
+		IL_00f9: ldc.i4.0
+		IL_00fa: stloc.s 8
+		.try
+		{
+			IL_00fc: ldloc.s 7
+			IL_00fe: ldloca.s 8
+			IL_0100: call void [mscorlib]System.Threading.Monitor::Enter(object, bool&)
+			IL_0105: ldarg.0
+			IL_0106: ldfld class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.MouseEvent> RawInput_dll.RawMouse::_deviceList
+			IL_010b: ldsflda valuetype RawInput_dll.InputData RawInput_dll.RawMouse::_rawBuffer
+			IL_0110: ldflda valuetype RawInput_dll.Rawinputheader RawInput_dll.InputData::header
+			IL_0115: ldfld native int RawInput_dll.Rawinputheader::hDevice
+			IL_011a: callvirt instance !1 class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.MouseEvent>::get_Item(!0)
+			IL_011f: stloc.s 6
+			IL_0121: leave.s IL_0130
+		} // end .try
+		finally
+		{
+			IL_0123: ldloc.s 8
+			IL_0125: brfalse.s IL_012e
+
+			IL_0127: ldloc.s 7
+			IL_0129: call void [mscorlib]System.Threading.Monitor::Exit(object)
+
+			IL_012e: endfinally
+		} // end handler
+
+		IL_012f: ret
+
+		IL_0130: ldloc.s 6
+		IL_0132: ldloc.1
+		IL_0133: stfld int32 RawInput_dll.MouseEvent::lastX
+		IL_0138: ldloc.s 6
+		IL_013a: ldloc.2
+		IL_013b: stfld int32 RawInput_dll.MouseEvent::lastY
+		IL_0140: ldloc.s 6
+		IL_0142: ldloc.3
+		IL_0143: stfld uint32 RawInput_dll.MouseEvent::buttons
+		IL_0148: ldloc.s 6
+		IL_014a: ldloc.s 4
+		IL_014c: stfld uint16 RawInput_dll.MouseEvent::buttonFlags
+		IL_0151: ldloc.s 6
+		IL_0153: ldloc.s 5
+		IL_0155: stfld int16 RawInput_dll.MouseEvent::buttonData
+		IL_015a: ldarg.0
+		IL_015b: ldfld class RawInput_dll.RawMouse/DeviceEventHandler RawInput_dll.RawMouse::MouseMoved
+		IL_0160: brfalse.s IL_0184
+
+		IL_0162: ldloc.s 4
+		IL_0164: ldc.i4 1024
+		IL_0169: and
+		IL_016a: ldc.i4 1024
+		IL_016f: bne.un.s IL_0184
+
+		IL_0171: ldarg.0
+		IL_0172: ldfld class RawInput_dll.RawMouse/DeviceEventHandler RawInput_dll.RawMouse::MouseMoved
+		IL_0177: ldarg.0
+		IL_0178: ldloc.s 6
+		IL_017a: newobj instance void RawInput_dll.RawInputEventArg::.ctor(class RawInput_dll.MouseEvent)
+		IL_017f: callvirt instance void RawInput_dll.RawMouse/DeviceEventHandler::Invoke(object, class RawInput_dll.RawInputEventArg)
+
+		IL_0184: ret
+	} // end of method RawMouse::ProcessRawInput
+
+	// Events
+	.event RawInput_dll.RawMouse/DeviceEventHandler MouseMoved
+	{
+		.addon instance void RawInput_dll.RawMouse::add_MouseMoved(class RawInput_dll.RawMouse/DeviceEventHandler)
+		.removeon instance void RawInput_dll.RawMouse::remove_MouseMoved(class RawInput_dll.RawMouse/DeviceEventHandler)
+	}
+
+
+	// Properties
+	.property instance int32 NumberOfMice()
+	{
+		.get instance int32 RawInput_dll.RawMouse::get_NumberOfMice()
+		.set instance void RawInput_dll.RawMouse::set_NumberOfMice(int32)
+	}
+
+} // end of class RawInput_dll.RawMouse
+
+.class public auto ansi sealed beforefieldinit RawInput_dll.RawKeyboard
+	extends [mscorlib]System.Object
+{
+	// Nested Types
+	.class nested public auto ansi sealed DeviceEventHandler
+		extends [mscorlib]System.MulticastDelegate
+	{
+		// Methods
+		.method public hidebysig specialname rtspecialname 
+			instance void .ctor (
+				object 'object',
+				native int 'method'
+			) runtime managed 
+		{
+		} // end of method DeviceEventHandler::.ctor
+
+		.method public hidebysig newslot virtual 
+			instance void Invoke (
+				object sender,
+				class RawInput_dll.RawInputEventArg e
+			) runtime managed 
+		{
+		} // end of method DeviceEventHandler::Invoke
+
+		.method public hidebysig newslot virtual 
+			instance class [mscorlib]System.IAsyncResult BeginInvoke (
+				object sender,
+				class RawInput_dll.RawInputEventArg e,
+				class [mscorlib]System.AsyncCallback callback,
+				object 'object'
+			) runtime managed 
+		{
+		} // end of method DeviceEventHandler::BeginInvoke
+
+		.method public hidebysig newslot virtual 
+			instance void EndInvoke (
+				class [mscorlib]System.IAsyncResult result
+			) runtime managed 
+		{
+		} // end of method DeviceEventHandler::EndInvoke
+
+	} // end of class DeviceEventHandler
+
+
+	// Fields
+	.field public initonly class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.KeyPressEvent> _deviceList
+	.field private class RawInput_dll.RawKeyboard/DeviceEventHandler KeyPressed
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.field private initonly object _padLock
+	.field private int32 '<NumberOfKeyboards>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.field private static valuetype RawInput_dll.InputData _rawBuffer
+
+	// Methods
+	.method public hidebysig specialname 
+		instance void add_KeyPressed (
+			class RawInput_dll.RawKeyboard/DeviceEventHandler 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x31a0
+		// Header size: 12
+		// Code size: 41 (0x29)
+		.maxstack 3
+		.locals init (
+			[0] class RawInput_dll.RawKeyboard/DeviceEventHandler,
+			[1] class RawInput_dll.RawKeyboard/DeviceEventHandler,
+			[2] class RawInput_dll.RawKeyboard/DeviceEventHandler
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class RawInput_dll.RawKeyboard/DeviceEventHandler RawInput_dll.RawKeyboard::KeyPressed
+		IL_0006: stloc.0
+		// loop start (head: IL_0007)
+			IL_0007: ldloc.0
+			IL_0008: stloc.1
+			IL_0009: ldloc.1
+			IL_000a: ldarg.1
+			IL_000b: call class [mscorlib]System.Delegate [mscorlib]System.Delegate::Combine(class [mscorlib]System.Delegate, class [mscorlib]System.Delegate)
+			IL_0010: castclass RawInput_dll.RawKeyboard/DeviceEventHandler
+			IL_0015: stloc.2
+			IL_0016: ldarg.0
+			IL_0017: ldflda class RawInput_dll.RawKeyboard/DeviceEventHandler RawInput_dll.RawKeyboard::KeyPressed
+			IL_001c: ldloc.2
+			IL_001d: ldloc.1
+			IL_001e: call !!0 [mscorlib]System.Threading.Interlocked::CompareExchange<class RawInput_dll.RawKeyboard/DeviceEventHandler>(!!0&, !!0, !!0)
+			IL_0023: stloc.0
+			IL_0024: ldloc.0
+			IL_0025: ldloc.1
+			IL_0026: bne.un.s IL_0007
+		// end loop
+		IL_0028: ret
+	} // end of method RawKeyboard::add_KeyPressed
+
+	.method public hidebysig specialname 
+		instance void remove_KeyPressed (
+			class RawInput_dll.RawKeyboard/DeviceEventHandler 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x31d8
+		// Header size: 12
+		// Code size: 41 (0x29)
+		.maxstack 3
+		.locals init (
+			[0] class RawInput_dll.RawKeyboard/DeviceEventHandler,
+			[1] class RawInput_dll.RawKeyboard/DeviceEventHandler,
+			[2] class RawInput_dll.RawKeyboard/DeviceEventHandler
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class RawInput_dll.RawKeyboard/DeviceEventHandler RawInput_dll.RawKeyboard::KeyPressed
+		IL_0006: stloc.0
+		// loop start (head: IL_0007)
+			IL_0007: ldloc.0
+			IL_0008: stloc.1
+			IL_0009: ldloc.1
+			IL_000a: ldarg.1
+			IL_000b: call class [mscorlib]System.Delegate [mscorlib]System.Delegate::Remove(class [mscorlib]System.Delegate, class [mscorlib]System.Delegate)
+			IL_0010: castclass RawInput_dll.RawKeyboard/DeviceEventHandler
+			IL_0015: stloc.2
+			IL_0016: ldarg.0
+			IL_0017: ldflda class RawInput_dll.RawKeyboard/DeviceEventHandler RawInput_dll.RawKeyboard::KeyPressed
+			IL_001c: ldloc.2
+			IL_001d: ldloc.1
+			IL_001e: call !!0 [mscorlib]System.Threading.Interlocked::CompareExchange<class RawInput_dll.RawKeyboard/DeviceEventHandler>(!!0&, !!0, !!0)
+			IL_0023: stloc.0
+			IL_0024: ldloc.0
+			IL_0025: ldloc.1
+			IL_0026: bne.un.s IL_0007
+		// end loop
+		IL_0028: ret
+	} // end of method RawKeyboard::remove_KeyPressed
+
+	.method public hidebysig specialname 
+		instance int32 get_NumberOfKeyboards () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x320d
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld int32 RawInput_dll.RawKeyboard::'<NumberOfKeyboards>k__BackingField'
+		IL_0006: ret
+	} // end of method RawKeyboard::get_NumberOfKeyboards
+
+	.method private hidebysig specialname 
+		instance void set_NumberOfKeyboards (
+			int32 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x3215
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: stfld int32 RawInput_dll.RawKeyboard::'<NumberOfKeyboards>k__BackingField'
+		IL_0007: ret
+	} // end of method RawKeyboard::set_NumberOfKeyboards
+
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			native int hwnd,
+			bool captureOnlyInForeground
+		) cil managed 
+	{
+		// Method begins at RVA 0x3220
+		// Header size: 12
+		// Code size: 138 (0x8a)
+		.maxstack 4
+		.locals init (
+			[0] valuetype RawInput_dll.RawInputDevice[]
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: newobj instance void class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.KeyPressEvent>::.ctor()
+		IL_0006: stfld class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.KeyPressEvent> RawInput_dll.RawKeyboard::_deviceList
+		IL_000b: ldarg.0
+		IL_000c: newobj instance void [mscorlib]System.Object::.ctor()
+		IL_0011: stfld object RawInput_dll.RawKeyboard::_padLock
+		IL_0016: ldarg.0
+		IL_0017: call instance void [mscorlib]System.Object::.ctor()
+		IL_001c: ldc.i4.1
+		IL_001d: newarr RawInput_dll.RawInputDevice
+		IL_0022: stloc.0
+		IL_0023: ldloc.0
+		IL_0024: ldc.i4.0
+		IL_0025: ldelema RawInput_dll.RawInputDevice
+		IL_002a: ldc.i4.1
+		IL_002b: stfld valuetype RawInput_dll.HidUsagePage RawInput_dll.RawInputDevice::UsagePage
+		IL_0030: ldloc.0
+		IL_0031: ldc.i4.0
+		IL_0032: ldelema RawInput_dll.RawInputDevice
+		IL_0037: ldc.i4.6
+		IL_0038: stfld valuetype RawInput_dll.HidUsage RawInput_dll.RawInputDevice::Usage
+		IL_003d: ldloc.0
+		IL_003e: ldc.i4.0
+		IL_003f: ldelema RawInput_dll.RawInputDevice
+		IL_0044: ldarg.2
+		IL_0045: brtrue.s IL_004e
+
+		IL_0047: ldc.i4 256
+		IL_004c: br.s IL_004f
+
+		IL_004e: ldc.i4.0
+
+		IL_004f: ldc.i4 8192
+		IL_0054: or
+		IL_0055: stfld valuetype RawInput_dll.RawInputDeviceFlags RawInput_dll.RawInputDevice::Flags
+		IL_005a: ldloc.0
+		IL_005b: ldc.i4.0
+		IL_005c: ldelema RawInput_dll.RawInputDevice
+		IL_0061: ldarg.1
+		IL_0062: stfld native int RawInput_dll.RawInputDevice::Target
+		IL_0067: ldloc.0
+		IL_0068: ldloc.0
+		IL_0069: ldlen
+		IL_006a: conv.i4
+		IL_006b: ldloc.0
+		IL_006c: ldc.i4.0
+		IL_006d: ldelem RawInput_dll.RawInputDevice
+		IL_0072: call int32 [mscorlib]System.Runtime.InteropServices.Marshal::SizeOf<valuetype RawInput_dll.RawInputDevice>(!!0)
+		IL_0077: call bool RawInput_dll.Win32::RegisterRawInputDevices(valuetype RawInput_dll.RawInputDevice[], uint32, uint32)
+		IL_007c: brtrue.s IL_0089
+
+		IL_007e: ldstr "Failed to register raw input device(s)."
+		IL_0083: newobj instance void [mscorlib]System.ApplicationException::.ctor(string)
+		IL_0088: throw
+
+		IL_0089: ret
+	} // end of method RawKeyboard::.ctor
+
+	.method public hidebysig 
+		instance void EnumerateDevices (
+			string id
+		) cil managed 
+	{
+		// Method begins at RVA 0x32b8
+		// Header size: 12
+		// Code size: 559 (0x22f)
+		.maxstack 5
+		.locals init (
+			[0] object,
+			[1] bool,
+			[2] int32,
+			[3] class RawInput_dll.KeyPressEvent,
+			[4] int32,
+			[5] uint32,
+			[6] int32,
+			[7] int32,
+			[8] native int,
+			[9] int32,
+			[10] uint32,
+			[11] valuetype RawInput_dll.Rawinputdevicelist,
+			[12] native int,
+			[13] string,
+			[14] string,
+			[15] class RawInput_dll.KeyPressEvent
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld object RawInput_dll.RawKeyboard::_padLock
+		IL_0006: stloc.0
+		IL_0007: ldc.i4.0
+		IL_0008: stloc.1
+		.try
+		{
+			IL_0009: ldloc.0
+			IL_000a: ldloca.s 1
+			IL_000c: call void [mscorlib]System.Threading.Monitor::Enter(object, bool&)
+			IL_0011: ldarg.0
+			IL_0012: ldfld class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.KeyPressEvent> RawInput_dll.RawKeyboard::_deviceList
+			IL_0017: callvirt instance void class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.KeyPressEvent>::Clear()
+			IL_001c: ldc.i4.0
+			IL_001d: stloc.2
+			IL_001e: newobj instance void RawInput_dll.KeyPressEvent::.ctor()
+			IL_0023: dup
+			IL_0024: ldstr "Global Keyboard"
+			IL_0029: stfld string RawInput_dll.KeyPressEvent::DeviceName
+			IL_002e: dup
+			IL_002f: ldsfld native int [mscorlib]System.IntPtr::Zero
+			IL_0034: stfld native int RawInput_dll.KeyPressEvent::DeviceHandle
+			IL_0039: dup
+			IL_003a: ldc.i4.1
+			IL_003b: call string RawInput_dll.Win32::GetDeviceType(uint32)
+			IL_0040: stfld string RawInput_dll.KeyPressEvent::DeviceType
+			IL_0045: dup
+			IL_0046: ldstr "Fake Keyboard. Some keys (ZOOM, MUTE, VOLUMEUP, VOLUMEDOWN) are sent to rawinput with a handle of zero."
+			IL_004b: stfld string RawInput_dll.KeyPressEvent::Name
+			IL_0050: dup
+			IL_0051: ldloc.2
+			IL_0052: dup
+			IL_0053: ldc.i4.1
+			IL_0054: add
+			IL_0055: stloc.2
+			IL_0056: stloc.s 7
+			IL_0058: ldloca.s 7
+			IL_005a: call class [mscorlib]System.Globalization.CultureInfo [mscorlib]System.Globalization.CultureInfo::get_InvariantCulture()
+			IL_005f: call instance string [mscorlib]System.Int32::ToString(class [mscorlib]System.IFormatProvider)
+			IL_0064: callvirt instance void RawInput_dll.KeyPressEvent::set_Source(string)
+			IL_0069: dup
+			IL_006a: ldarg.1
+			IL_006b: stfld string RawInput_dll.KeyPressEvent::ID
+			IL_0070: stloc.3
+			IL_0071: ldarg.0
+			IL_0072: ldfld class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.KeyPressEvent> RawInput_dll.RawKeyboard::_deviceList
+			IL_0077: ldloc.3
+			IL_0078: ldfld native int RawInput_dll.KeyPressEvent::DeviceHandle
+			IL_007d: ldloc.3
+			IL_007e: callvirt instance void class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.KeyPressEvent>::Add(!0, !1)
+			IL_0083: ldc.i4.0
+			IL_0084: stloc.s 4
+			IL_0086: ldc.i4.0
+			IL_0087: stloc.s 5
+			IL_0089: ldtoken RawInput_dll.Rawinputdevicelist
+			IL_008e: call class [mscorlib]System.Type [mscorlib]System.Type::GetTypeFromHandle(valuetype [mscorlib]System.RuntimeTypeHandle)
+			IL_0093: call int32 [mscorlib]System.Runtime.InteropServices.Marshal::SizeOf(class [mscorlib]System.Type)
+			IL_0098: stloc.s 6
+			IL_009a: ldsfld native int [mscorlib]System.IntPtr::Zero
+			IL_009f: ldloca.s 5
+			IL_00a1: ldloc.s 6
+			IL_00a3: call uint32 RawInput_dll.Win32::GetRawInputDeviceList(native int, uint32&, uint32)
+			IL_00a8: brtrue IL_0217
+
+			IL_00ad: ldloc.s 6
+			IL_00af: conv.i8
+			IL_00b0: ldloc.s 5
+			IL_00b2: conv.u8
+			IL_00b3: mul
+			IL_00b4: conv.i4
+			IL_00b5: call native int [mscorlib]System.Runtime.InteropServices.Marshal::AllocHGlobal(int32)
+			IL_00ba: stloc.s 8
+			IL_00bc: ldloc.s 8
+			IL_00be: ldloca.s 5
+			IL_00c0: ldloc.s 6
+			IL_00c2: call uint32 RawInput_dll.Win32::GetRawInputDeviceList(native int, uint32&, uint32)
+			IL_00c7: pop
+			IL_00c8: ldc.i4.0
+			IL_00c9: stloc.s 9
+			IL_00cb: br IL_01fb
+			// loop start (head: IL_01fb)
+				IL_00d0: ldc.i4.0
+				IL_00d1: stloc.s 10
+				IL_00d3: ldloca.s 8
+				IL_00d5: call instance int64 [mscorlib]System.IntPtr::ToInt64()
+				IL_00da: ldloc.s 6
+				IL_00dc: ldloc.s 9
+				IL_00de: mul
+				IL_00df: conv.i8
+				IL_00e0: add
+				IL_00e1: newobj instance void [mscorlib]System.IntPtr::.ctor(int64)
+				IL_00e6: ldtoken RawInput_dll.Rawinputdevicelist
+				IL_00eb: call class [mscorlib]System.Type [mscorlib]System.Type::GetTypeFromHandle(valuetype [mscorlib]System.RuntimeTypeHandle)
+				IL_00f0: call object [mscorlib]System.Runtime.InteropServices.Marshal::PtrToStructure(native int, class [mscorlib]System.Type)
+				IL_00f5: unbox.any RawInput_dll.Rawinputdevicelist
+				IL_00fa: stloc.s 11
+				IL_00fc: ldloc.s 11
+				IL_00fe: ldfld native int RawInput_dll.Rawinputdevicelist::hDevice
+				IL_0103: ldc.i4 536870919
+				IL_0108: ldsfld native int [mscorlib]System.IntPtr::Zero
+				IL_010d: ldloca.s 10
+				IL_010f: call uint32 RawInput_dll.Win32::GetRawInputDeviceInfo(native int, valuetype RawInput_dll.RawInputDeviceInfo, native int, uint32&)
+				IL_0114: pop
+				IL_0115: ldloc.s 10
+				IL_0117: ldc.i4.0
+				IL_0118: ble.un IL_01f5
+
+				IL_011d: ldloc.s 10
+				IL_011f: call native int [mscorlib]System.Runtime.InteropServices.Marshal::AllocHGlobal(int32)
+				IL_0124: stloc.s 12
+				IL_0126: ldloc.s 11
+				IL_0128: ldfld native int RawInput_dll.Rawinputdevicelist::hDevice
+				IL_012d: ldc.i4 536870919
+				IL_0132: ldloc.s 12
+				IL_0134: ldloca.s 10
+				IL_0136: call uint32 RawInput_dll.Win32::GetRawInputDeviceInfo(native int, valuetype RawInput_dll.RawInputDeviceInfo, native int, uint32&)
+				IL_013b: pop
+				IL_013c: ldloc.s 12
+				IL_013e: call string [mscorlib]System.Runtime.InteropServices.Marshal::PtrToStringAnsi(native int)
+				IL_0143: stloc.s 13
+				IL_0145: ldloc.s 11
+				IL_0147: ldfld uint32 RawInput_dll.Rawinputdevicelist::dwType
+				IL_014c: ldc.i4.1
+				IL_014d: beq.s IL_015c
+
+				IL_014f: ldloc.s 11
+				IL_0151: ldfld uint32 RawInput_dll.Rawinputdevicelist::dwType
+				IL_0156: ldc.i4.2
+				IL_0157: bne.un IL_01ee
+
+				IL_015c: ldloc.s 13
+				IL_015e: call string RawInput_dll.Win32::GetDeviceDescription(string)
+				IL_0163: stloc.s 14
+				IL_0165: newobj instance void RawInput_dll.KeyPressEvent::.ctor()
+				IL_016a: dup
+				IL_016b: ldloc.s 12
+				IL_016d: call string [mscorlib]System.Runtime.InteropServices.Marshal::PtrToStringAnsi(native int)
+				IL_0172: stfld string RawInput_dll.KeyPressEvent::DeviceName
+				IL_0177: dup
+				IL_0178: ldloc.s 11
+				IL_017a: ldfld native int RawInput_dll.Rawinputdevicelist::hDevice
+				IL_017f: stfld native int RawInput_dll.KeyPressEvent::DeviceHandle
+				IL_0184: dup
+				IL_0185: ldloc.s 11
+				IL_0187: ldfld uint32 RawInput_dll.Rawinputdevicelist::dwType
+				IL_018c: call string RawInput_dll.Win32::GetDeviceType(uint32)
+				IL_0191: stfld string RawInput_dll.KeyPressEvent::DeviceType
+				IL_0196: dup
+				IL_0197: ldloc.s 14
+				IL_0199: stfld string RawInput_dll.KeyPressEvent::Name
+				IL_019e: dup
+				IL_019f: ldloc.2
+				IL_01a0: dup
+				IL_01a1: ldc.i4.1
+				IL_01a2: add
+				IL_01a3: stloc.2
+				IL_01a4: stloc.s 7
+				IL_01a6: ldloca.s 7
+				IL_01a8: call class [mscorlib]System.Globalization.CultureInfo [mscorlib]System.Globalization.CultureInfo::get_InvariantCulture()
+				IL_01ad: call instance string [mscorlib]System.Int32::ToString(class [mscorlib]System.IFormatProvider)
+				IL_01b2: callvirt instance void RawInput_dll.KeyPressEvent::set_Source(string)
+				IL_01b7: dup
+				IL_01b8: ldarg.1
+				IL_01b9: stfld string RawInput_dll.KeyPressEvent::ID
+				IL_01be: stloc.s 15
+				IL_01c0: ldarg.0
+				IL_01c1: ldfld class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.KeyPressEvent> RawInput_dll.RawKeyboard::_deviceList
+				IL_01c6: ldloc.s 11
+				IL_01c8: ldfld native int RawInput_dll.Rawinputdevicelist::hDevice
+				IL_01cd: callvirt instance bool class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.KeyPressEvent>::ContainsKey(!0)
+				IL_01d2: brtrue.s IL_01ee
+
+				IL_01d4: ldloc.s 4
+				IL_01d6: ldc.i4.1
+				IL_01d7: add
+				IL_01d8: stloc.s 4
+				IL_01da: ldarg.0
+				IL_01db: ldfld class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.KeyPressEvent> RawInput_dll.RawKeyboard::_deviceList
+				IL_01e0: ldloc.s 11
+				IL_01e2: ldfld native int RawInput_dll.Rawinputdevicelist::hDevice
+				IL_01e7: ldloc.s 15
+				IL_01e9: callvirt instance void class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.KeyPressEvent>::Add(!0, !1)
+
+				IL_01ee: ldloc.s 12
+				IL_01f0: call void [mscorlib]System.Runtime.InteropServices.Marshal::FreeHGlobal(native int)
+
+				IL_01f5: ldloc.s 9
+				IL_01f7: ldc.i4.1
+				IL_01f8: add
+				IL_01f9: stloc.s 9
+
+				IL_01fb: ldloc.s 9
+				IL_01fd: conv.i8
+				IL_01fe: ldloc.s 5
+				IL_0200: conv.u8
+				IL_0201: blt IL_00d0
+			// end loop
+
+			IL_0206: ldloc.s 8
+			IL_0208: call void [mscorlib]System.Runtime.InteropServices.Marshal::FreeHGlobal(native int)
+			IL_020d: ldarg.0
+			IL_020e: ldloc.s 4
+			IL_0210: call instance void RawInput_dll.RawKeyboard::set_NumberOfKeyboards(int32)
+			IL_0215: leave.s IL_022e
+
+			IL_0217: leave.s IL_0223
+		} // end .try
+		finally
+		{
+			IL_0219: ldloc.1
+			IL_021a: brfalse.s IL_0222
+
+			IL_021c: ldloc.0
+			IL_021d: call void [mscorlib]System.Threading.Monitor::Exit(object)
+
+			IL_0222: endfinally
+		} // end handler
+
+		IL_0223: call int32 [mscorlib]System.Runtime.InteropServices.Marshal::GetLastWin32Error()
+		IL_0228: newobj instance void [System]System.ComponentModel.Win32Exception::.ctor(int32)
+		IL_022d: throw
+
+		IL_022e: ret
+	} // end of method RawKeyboard::EnumerateDevices
+
+	.method public hidebysig 
+		instance void ProcessRawInput (
+			native int hdevice
+		) cil managed 
+	{
+		// Method begins at RVA 0x3510
+		// Header size: 12
+		// Code size: 386 (0x182)
+		.maxstack 6
+		.locals init (
+			[0] int32,
+			[1] int32,
+			[2] int32,
+			[3] int32,
+			[4] bool,
+			[5] class RawInput_dll.KeyPressEvent,
+			[6] bool,
+			[7] object,
+			[8] bool
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.KeyPressEvent> RawInput_dll.RawKeyboard::_deviceList
+		IL_0006: callvirt instance int32 class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.KeyPressEvent>::get_Count()
+		IL_000b: brtrue.s IL_000e
+
+		IL_000d: ret
+
+		IL_000e: ldc.i4.0
+		IL_000f: stloc.0
+		IL_0010: ldarg.1
+		IL_0011: ldc.i4 268435459
+		IL_0016: ldsfld native int [mscorlib]System.IntPtr::Zero
+		IL_001b: ldloca.s 0
+		IL_001d: ldtoken RawInput_dll.Rawinputheader
+		IL_0022: call class [mscorlib]System.Type [mscorlib]System.Type::GetTypeFromHandle(valuetype [mscorlib]System.RuntimeTypeHandle)
+		IL_0027: call int32 [mscorlib]System.Runtime.InteropServices.Marshal::SizeOf(class [mscorlib]System.Type)
+		IL_002c: call int32 RawInput_dll.Win32::GetRawInputData(native int, valuetype RawInput_dll.DataCommand, native int, int32&, int32)
+		IL_0031: pop
+		IL_0032: ldloc.0
+		IL_0033: ldarg.1
+		IL_0034: ldc.i4 268435459
+		IL_0039: ldsflda valuetype RawInput_dll.InputData RawInput_dll.RawKeyboard::_rawBuffer
+		IL_003e: ldloca.s 0
+		IL_0040: ldtoken RawInput_dll.Rawinputheader
+		IL_0045: call class [mscorlib]System.Type [mscorlib]System.Type::GetTypeFromHandle(valuetype [mscorlib]System.RuntimeTypeHandle)
+		IL_004a: call int32 [mscorlib]System.Runtime.InteropServices.Marshal::SizeOf(class [mscorlib]System.Type)
+		IL_004f: call int32 RawInput_dll.Win32::GetRawInputData(native int, valuetype RawInput_dll.DataCommand, valuetype RawInput_dll.InputData&, int32&, int32)
+		IL_0054: beq.s IL_0057
+
+		IL_0056: ret
+
+		IL_0057: ldsflda valuetype RawInput_dll.InputData RawInput_dll.RawKeyboard::_rawBuffer
+		IL_005c: ldflda valuetype RawInput_dll.Rawinputheader RawInput_dll.InputData::header
+		IL_0061: ldfld uint32 RawInput_dll.Rawinputheader::dwType
+		IL_0066: ldc.i4.1
+		IL_0067: beq.s IL_006a
+
+		IL_0069: ret
+
+		IL_006a: ldsflda valuetype RawInput_dll.InputData RawInput_dll.RawKeyboard::_rawBuffer
+		IL_006f: ldflda valuetype RawInput_dll.RawData RawInput_dll.InputData::data
+		IL_0074: ldflda valuetype RawInput_dll.Rawkeyboard RawInput_dll.RawData::keyboard
+		IL_0079: ldfld uint16 RawInput_dll.Rawkeyboard::VKey
+		IL_007e: stloc.1
+		IL_007f: ldsflda valuetype RawInput_dll.InputData RawInput_dll.RawKeyboard::_rawBuffer
+		IL_0084: ldflda valuetype RawInput_dll.RawData RawInput_dll.InputData::data
+		IL_0089: ldflda valuetype RawInput_dll.Rawkeyboard RawInput_dll.RawData::keyboard
+		IL_008e: ldfld uint16 RawInput_dll.Rawkeyboard::Makecode
+		IL_0093: stloc.2
+		IL_0094: ldsflda valuetype RawInput_dll.InputData RawInput_dll.RawKeyboard::_rawBuffer
+		IL_0099: ldflda valuetype RawInput_dll.RawData RawInput_dll.InputData::data
+		IL_009e: ldflda valuetype RawInput_dll.Rawkeyboard RawInput_dll.RawData::keyboard
+		IL_00a3: ldfld uint16 RawInput_dll.Rawkeyboard::Flags
+		IL_00a8: stloc.3
+		IL_00a9: ldloc.1
+		IL_00aa: ldc.i4 255
+		IL_00af: bne.un.s IL_00b2
+
+		IL_00b1: ret
+
+		IL_00b2: ldloc.3
+		IL_00b3: ldc.i4.2
+		IL_00b4: and
+		IL_00b5: ldc.i4.0
+		IL_00b6: cgt.un
+		IL_00b8: stloc.s 4
+		IL_00ba: ldarg.0
+		IL_00bb: ldfld class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.KeyPressEvent> RawInput_dll.RawKeyboard::_deviceList
+		IL_00c0: ldsflda valuetype RawInput_dll.InputData RawInput_dll.RawKeyboard::_rawBuffer
+		IL_00c5: ldflda valuetype RawInput_dll.Rawinputheader RawInput_dll.InputData::header
+		IL_00ca: ldfld native int RawInput_dll.Rawinputheader::hDevice
+		IL_00cf: callvirt instance bool class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.KeyPressEvent>::ContainsKey(!0)
+		IL_00d4: brfalse.s IL_0114
+
+		IL_00d6: ldarg.0
+		IL_00d7: ldfld object RawInput_dll.RawKeyboard::_padLock
+		IL_00dc: stloc.s 7
+		IL_00de: ldc.i4.0
+		IL_00df: stloc.s 8
+		.try
+		{
+			IL_00e1: ldloc.s 7
+			IL_00e3: ldloca.s 8
+			IL_00e5: call void [mscorlib]System.Threading.Monitor::Enter(object, bool&)
+			IL_00ea: ldarg.0
+			IL_00eb: ldfld class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.KeyPressEvent> RawInput_dll.RawKeyboard::_deviceList
+			IL_00f0: ldsflda valuetype RawInput_dll.InputData RawInput_dll.RawKeyboard::_rawBuffer
+			IL_00f5: ldflda valuetype RawInput_dll.Rawinputheader RawInput_dll.InputData::header
+			IL_00fa: ldfld native int RawInput_dll.Rawinputheader::hDevice
+			IL_00ff: callvirt instance !1 class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.KeyPressEvent>::get_Item(!0)
+			IL_0104: stloc.s 5
+			IL_0106: leave.s IL_0115
+		} // end .try
+		finally
+		{
+			IL_0108: ldloc.s 8
+			IL_010a: brfalse.s IL_0113
+
+			IL_010c: ldloc.s 7
+			IL_010e: call void [mscorlib]System.Threading.Monitor::Exit(object)
+
+			IL_0113: endfinally
+		} // end handler
+
+		IL_0114: ret
+
+		IL_0115: ldloc.3
+		IL_0116: ldc.i4.1
+		IL_0117: and
+		IL_0118: ldc.i4.0
+		IL_0119: cgt.un
+		IL_011b: stloc.s 6
+		IL_011d: ldloc.s 5
+		IL_011f: ldloc.s 6
+		IL_0121: ldc.i4.0
+		IL_0122: ceq
+		IL_0124: stfld bool RawInput_dll.KeyPressEvent::KeyPressState
+		IL_0129: ldloc.s 5
+		IL_012b: ldsflda valuetype RawInput_dll.InputData RawInput_dll.RawKeyboard::_rawBuffer
+		IL_0130: ldflda valuetype RawInput_dll.RawData RawInput_dll.InputData::data
+		IL_0135: ldflda valuetype RawInput_dll.Rawkeyboard RawInput_dll.RawData::keyboard
+		IL_013a: ldfld uint32 RawInput_dll.Rawkeyboard::Message
+		IL_013f: stfld uint32 RawInput_dll.KeyPressEvent::Message
+		IL_0144: ldloc.s 5
+		IL_0146: ldloc.1
+		IL_0147: ldloc.s 4
+		IL_0149: ldloc.2
+		IL_014a: call int32 RawInput_dll.RawKeyboard::VirtualKeyCorrection(int32, bool, int32)
+		IL_014f: call string RawInput_dll.KeyMapper::GetKeyName(int32)
+		IL_0154: callvirt instance string [mscorlib]System.String::ToUpper()
+		IL_0159: stfld string RawInput_dll.KeyPressEvent::VKeyName
+		IL_015e: ldloc.s 5
+		IL_0160: ldloc.1
+		IL_0161: stfld int32 RawInput_dll.KeyPressEvent::VKey
+		IL_0166: ldarg.0
+		IL_0167: ldfld class RawInput_dll.RawKeyboard/DeviceEventHandler RawInput_dll.RawKeyboard::KeyPressed
+		IL_016c: brfalse.s IL_0181
+
+		IL_016e: ldarg.0
+		IL_016f: ldfld class RawInput_dll.RawKeyboard/DeviceEventHandler RawInput_dll.RawKeyboard::KeyPressed
+		IL_0174: ldarg.0
+		IL_0175: ldloc.s 5
+		IL_0177: newobj instance void RawInput_dll.RawInputEventArg::.ctor(class RawInput_dll.KeyPressEvent)
+		IL_017c: callvirt instance void RawInput_dll.RawKeyboard/DeviceEventHandler::Invoke(object, class RawInput_dll.RawInputEventArg)
+
+		IL_0181: ret
+	} // end of method RawKeyboard::ProcessRawInput
+
+	.method private hidebysig static 
+		int32 VirtualKeyCorrection (
+			int32 virtualKey,
+			bool isE0BitSet,
+			int32 makeCode
+		) cil managed 
+	{
+		// Method begins at RVA 0x36b0
+		// Header size: 12
+		// Code size: 144 (0x90)
+		.maxstack 2
+		.locals init (
+			[0] int32
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: stloc.0
+		IL_0002: ldsflda valuetype RawInput_dll.InputData RawInput_dll.RawKeyboard::_rawBuffer
+		IL_0007: ldflda valuetype RawInput_dll.Rawinputheader RawInput_dll.InputData::header
+		IL_000c: ldfld native int RawInput_dll.Rawinputheader::hDevice
+		IL_0011: ldsfld native int [mscorlib]System.IntPtr::Zero
+		IL_0016: call bool [mscorlib]System.IntPtr::op_Equality(native int, native int)
+		IL_001b: brfalse.s IL_003d
+
+		IL_001d: ldsflda valuetype RawInput_dll.InputData RawInput_dll.RawKeyboard::_rawBuffer
+		IL_0022: ldflda valuetype RawInput_dll.RawData RawInput_dll.InputData::data
+		IL_0027: ldflda valuetype RawInput_dll.Rawkeyboard RawInput_dll.RawData::keyboard
+		IL_002c: ldfld uint16 RawInput_dll.Rawkeyboard::VKey
+		IL_0031: ldc.i4.s 17
+		IL_0033: bne.un.s IL_008e
+
+		IL_0035: ldc.i4 251
+		IL_003a: stloc.0
+		IL_003b: br.s IL_008e
+
+		IL_003d: ldarg.0
+		IL_003e: ldc.i4.s 16
+		IL_0040: sub
+		IL_0041: switch (IL_0078, IL_0054, IL_0066)
+
+		IL_0052: br.s IL_008c
+
+		IL_0054: ldarg.1
+		IL_0055: brtrue.s IL_005e
+
+		IL_0057: ldc.i4 162
+		IL_005c: br.s IL_0063
+
+		IL_005e: ldc.i4 163
+
+		IL_0063: stloc.0
+		IL_0064: br.s IL_008e
+
+		IL_0066: ldarg.1
+		IL_0067: brtrue.s IL_0070
+
+		IL_0069: ldc.i4 164
+		IL_006e: br.s IL_0075
+
+		IL_0070: ldc.i4 165
+
+		IL_0075: stloc.0
+		IL_0076: br.s IL_008e
+
+		IL_0078: ldarg.2
+		IL_0079: ldc.i4.s 54
+		IL_007b: beq.s IL_0084
+
+		IL_007d: ldc.i4 160
+		IL_0082: br.s IL_0089
+
+		IL_0084: ldc.i4 161
+
+		IL_0089: stloc.0
+		IL_008a: br.s IL_008e
+
+		IL_008c: ldarg.0
+		IL_008d: stloc.0
+
+		IL_008e: ldloc.0
+		IL_008f: ret
+	} // end of method RawKeyboard::VirtualKeyCorrection
+
+	// Events
+	.event RawInput_dll.RawKeyboard/DeviceEventHandler KeyPressed
+	{
+		.addon instance void RawInput_dll.RawKeyboard::add_KeyPressed(class RawInput_dll.RawKeyboard/DeviceEventHandler)
+		.removeon instance void RawInput_dll.RawKeyboard::remove_KeyPressed(class RawInput_dll.RawKeyboard/DeviceEventHandler)
+	}
+
+
+	// Properties
+	.property instance int32 NumberOfKeyboards()
+	{
+		.get instance int32 RawInput_dll.RawKeyboard::get_NumberOfKeyboards()
+		.set instance void RawInput_dll.RawKeyboard::set_NumberOfKeyboards(int32)
+	}
+
+} // end of class RawInput_dll.RawKeyboard
+
+.class public auto ansi beforefieldinit RawInput_dll.RawInputEventArg
+	extends [mscorlib]System.EventArgs
+{
+	// Fields
+	.field private class RawInput_dll.KeyPressEvent '<KeyPressEvent>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.field private class RawInput_dll.MouseEvent '<MouseEvent>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			class RawInput_dll.KeyPressEvent arg
+		) cil managed 
+	{
+		// Method begins at RVA 0x374c
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.EventArgs::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: call instance void RawInput_dll.RawInputEventArg::set_KeyPressEvent(class RawInput_dll.KeyPressEvent)
+		IL_000d: ret
+	} // end of method RawInputEventArg::.ctor
+
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			class RawInput_dll.MouseEvent arg
+		) cil managed 
+	{
+		// Method begins at RVA 0x375b
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.EventArgs::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: call instance void RawInput_dll.RawInputEventArg::set_MouseEvent(class RawInput_dll.MouseEvent)
+		IL_000d: ret
+	} // end of method RawInputEventArg::.ctor
+
+	.method public hidebysig specialname 
+		instance class RawInput_dll.KeyPressEvent get_KeyPressEvent () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x376a
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class RawInput_dll.KeyPressEvent RawInput_dll.RawInputEventArg::'<KeyPressEvent>k__BackingField'
+		IL_0006: ret
+	} // end of method RawInputEventArg::get_KeyPressEvent
+
+	.method private hidebysig specialname 
+		instance void set_KeyPressEvent (
+			class RawInput_dll.KeyPressEvent 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x3772
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: stfld class RawInput_dll.KeyPressEvent RawInput_dll.RawInputEventArg::'<KeyPressEvent>k__BackingField'
+		IL_0007: ret
+	} // end of method RawInputEventArg::set_KeyPressEvent
+
+	.method public hidebysig specialname 
+		instance class RawInput_dll.MouseEvent get_MouseEvent () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x377b
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class RawInput_dll.MouseEvent RawInput_dll.RawInputEventArg::'<MouseEvent>k__BackingField'
+		IL_0006: ret
+	} // end of method RawInputEventArg::get_MouseEvent
+
+	.method private hidebysig specialname 
+		instance void set_MouseEvent (
+			class RawInput_dll.MouseEvent 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x3783
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: stfld class RawInput_dll.MouseEvent RawInput_dll.RawInputEventArg::'<MouseEvent>k__BackingField'
+		IL_0007: ret
+	} // end of method RawInputEventArg::set_MouseEvent
+
+	// Properties
+	.property instance class RawInput_dll.KeyPressEvent KeyPressEvent()
+	{
+		.get instance class RawInput_dll.KeyPressEvent RawInput_dll.RawInputEventArg::get_KeyPressEvent()
+		.set instance void RawInput_dll.RawInputEventArg::set_KeyPressEvent(class RawInput_dll.KeyPressEvent)
+	}
+	.property instance class RawInput_dll.MouseEvent MouseEvent()
+	{
+		.get instance class RawInput_dll.MouseEvent RawInput_dll.RawInputEventArg::get_MouseEvent()
+		.set instance void RawInput_dll.RawInputEventArg::set_MouseEvent(class RawInput_dll.MouseEvent)
+	}
+
+} // end of class RawInput_dll.RawInputEventArg
+
+.class public auto ansi beforefieldinit RawInput_dll.RawInput
+	extends [System.Windows.Forms]System.Windows.Forms.NativeWindow
+{
+	// Nested Types
+	.class nested public auto ansi sealed DevicesEventHandler
+		extends [mscorlib]System.MulticastDelegate
+	{
+		// Methods
+		.method public hidebysig specialname rtspecialname 
+			instance void .ctor (
+				object 'object',
+				native int 'method'
+			) runtime managed 
+		{
+		} // end of method DevicesEventHandler::.ctor
+
+		.method public hidebysig newslot virtual 
+			instance void Invoke (
+				object sender
+			) runtime managed 
+		{
+		} // end of method DevicesEventHandler::Invoke
+
+		.method public hidebysig newslot virtual 
+			instance class [mscorlib]System.IAsyncResult BeginInvoke (
+				object sender,
+				class [mscorlib]System.AsyncCallback callback,
+				object 'object'
+			) runtime managed 
+		{
+		} // end of method DevicesEventHandler::BeginInvoke
+
+		.method public hidebysig newslot virtual 
+			instance void EndInvoke (
+				class [mscorlib]System.IAsyncResult result
+			) runtime managed 
+		{
+		} // end of method DevicesEventHandler::EndInvoke
+
+	} // end of class DevicesEventHandler
+
+
+	// Fields
+	.field private class RawInput_dll.RawKeyboard _keyboardDriver
+	.field private class RawInput_dll.RawMouse _mouseDriver
+	.field private string _id
+	.field private initonly native int _devNotifyHandle
+	.field private static initonly valuetype [mscorlib]System.Guid DeviceInterfaceHid
+	.field private class RawInput_dll.PreMessageFilter _filter
+	.field private class RawInput_dll.RawInput/DevicesEventHandler DevicesChanged
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+
+	// Methods
+	.method public hidebysig specialname 
+		instance void add_DevicesChanged (
+			class RawInput_dll.RawInput/DevicesEventHandler 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x378c
+		// Header size: 12
+		// Code size: 41 (0x29)
+		.maxstack 3
+		.locals init (
+			[0] class RawInput_dll.RawInput/DevicesEventHandler,
+			[1] class RawInput_dll.RawInput/DevicesEventHandler,
+			[2] class RawInput_dll.RawInput/DevicesEventHandler
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class RawInput_dll.RawInput/DevicesEventHandler RawInput_dll.RawInput::DevicesChanged
+		IL_0006: stloc.0
+		// loop start (head: IL_0007)
+			IL_0007: ldloc.0
+			IL_0008: stloc.1
+			IL_0009: ldloc.1
+			IL_000a: ldarg.1
+			IL_000b: call class [mscorlib]System.Delegate [mscorlib]System.Delegate::Combine(class [mscorlib]System.Delegate, class [mscorlib]System.Delegate)
+			IL_0010: castclass RawInput_dll.RawInput/DevicesEventHandler
+			IL_0015: stloc.2
+			IL_0016: ldarg.0
+			IL_0017: ldflda class RawInput_dll.RawInput/DevicesEventHandler RawInput_dll.RawInput::DevicesChanged
+			IL_001c: ldloc.2
+			IL_001d: ldloc.1
+			IL_001e: call !!0 [mscorlib]System.Threading.Interlocked::CompareExchange<class RawInput_dll.RawInput/DevicesEventHandler>(!!0&, !!0, !!0)
+			IL_0023: stloc.0
+			IL_0024: ldloc.0
+			IL_0025: ldloc.1
+			IL_0026: bne.un.s IL_0007
+		// end loop
+		IL_0028: ret
+	} // end of method RawInput::add_DevicesChanged
+
+	.method public hidebysig specialname 
+		instance void remove_DevicesChanged (
+			class RawInput_dll.RawInput/DevicesEventHandler 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x37c4
+		// Header size: 12
+		// Code size: 41 (0x29)
+		.maxstack 3
+		.locals init (
+			[0] class RawInput_dll.RawInput/DevicesEventHandler,
+			[1] class RawInput_dll.RawInput/DevicesEventHandler,
+			[2] class RawInput_dll.RawInput/DevicesEventHandler
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class RawInput_dll.RawInput/DevicesEventHandler RawInput_dll.RawInput::DevicesChanged
+		IL_0006: stloc.0
+		// loop start (head: IL_0007)
+			IL_0007: ldloc.0
+			IL_0008: stloc.1
+			IL_0009: ldloc.1
+			IL_000a: ldarg.1
+			IL_000b: call class [mscorlib]System.Delegate [mscorlib]System.Delegate::Remove(class [mscorlib]System.Delegate, class [mscorlib]System.Delegate)
+			IL_0010: castclass RawInput_dll.RawInput/DevicesEventHandler
+			IL_0015: stloc.2
+			IL_0016: ldarg.0
+			IL_0017: ldflda class RawInput_dll.RawInput/DevicesEventHandler RawInput_dll.RawInput::DevicesChanged
+			IL_001c: ldloc.2
+			IL_001d: ldloc.1
+			IL_001e: call !!0 [mscorlib]System.Threading.Interlocked::CompareExchange<class RawInput_dll.RawInput/DevicesEventHandler>(!!0&, !!0, !!0)
+			IL_0023: stloc.0
+			IL_0024: ldloc.0
+			IL_0025: ldloc.1
+			IL_0026: bne.un.s IL_0007
+		// end loop
+		IL_0028: ret
+	} // end of method RawInput::remove_DevicesChanged
+
+	.method public hidebysig specialname 
+		instance void add_KeyPressed (
+			class RawInput_dll.RawKeyboard/DeviceEventHandler 'value'
+		) cil managed 
+	{
+		// Method begins at RVA 0x37f9
+		// Header size: 1
+		// Code size: 13 (0xd)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class RawInput_dll.RawKeyboard RawInput_dll.RawInput::_keyboardDriver
+		IL_0006: ldarg.1
+		IL_0007: callvirt instance void RawInput_dll.RawKeyboard::add_KeyPressed(class RawInput_dll.RawKeyboard/DeviceEventHandler)
+		IL_000c: ret
+	} // end of method RawInput::add_KeyPressed
+
+	.method public hidebysig specialname 
+		instance void remove_KeyPressed (
+			class RawInput_dll.RawKeyboard/DeviceEventHandler 'value'
+		) cil managed 
+	{
+		// Method begins at RVA 0x3807
+		// Header size: 1
+		// Code size: 13 (0xd)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class RawInput_dll.RawKeyboard RawInput_dll.RawInput::_keyboardDriver
+		IL_0006: ldarg.1
+		IL_0007: callvirt instance void RawInput_dll.RawKeyboard::remove_KeyPressed(class RawInput_dll.RawKeyboard/DeviceEventHandler)
+		IL_000c: ret
+	} // end of method RawInput::remove_KeyPressed
+
+	.method public hidebysig specialname 
+		instance void add_MouseMoved (
+			class RawInput_dll.RawMouse/DeviceEventHandler 'value'
+		) cil managed 
+	{
+		// Method begins at RVA 0x3815
+		// Header size: 1
+		// Code size: 13 (0xd)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class RawInput_dll.RawMouse RawInput_dll.RawInput::_mouseDriver
+		IL_0006: ldarg.1
+		IL_0007: callvirt instance void RawInput_dll.RawMouse::add_MouseMoved(class RawInput_dll.RawMouse/DeviceEventHandler)
+		IL_000c: ret
+	} // end of method RawInput::add_MouseMoved
+
+	.method public hidebysig specialname 
+		instance void remove_MouseMoved (
+			class RawInput_dll.RawMouse/DeviceEventHandler 'value'
+		) cil managed 
+	{
+		// Method begins at RVA 0x3823
+		// Header size: 1
+		// Code size: 13 (0xd)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class RawInput_dll.RawMouse RawInput_dll.RawInput::_mouseDriver
+		IL_0006: ldarg.1
+		IL_0007: callvirt instance void RawInput_dll.RawMouse::remove_MouseMoved(class RawInput_dll.RawMouse/DeviceEventHandler)
+		IL_000c: ret
+	} // end of method RawInput::remove_MouseMoved
+
+	.method public hidebysig specialname 
+		instance int32 get_NumberOfMice () cil managed 
+	{
+		// Method begins at RVA 0x3831
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class RawInput_dll.RawMouse RawInput_dll.RawInput::_mouseDriver
+		IL_0006: callvirt instance int32 RawInput_dll.RawMouse::get_NumberOfMice()
+		IL_000b: ret
+	} // end of method RawInput::get_NumberOfMice
+
+	.method public hidebysig specialname 
+		instance int32 get_NumberOfKeyboards () cil managed 
+	{
+		// Method begins at RVA 0x383e
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class RawInput_dll.RawKeyboard RawInput_dll.RawInput::_keyboardDriver
+		IL_0006: callvirt instance int32 RawInput_dll.RawKeyboard::get_NumberOfKeyboards()
+		IL_000b: ret
+	} // end of method RawInput::get_NumberOfKeyboards
+
+	.method public hidebysig 
+		instance class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.MouseEvent> MouseDevices () cil managed 
+	{
+		// Method begins at RVA 0x384b
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class RawInput_dll.RawMouse RawInput_dll.RawInput::_mouseDriver
+		IL_0006: ldfld class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class RawInput_dll.MouseEvent> RawInput_dll.RawMouse::_deviceList
+		IL_000b: ret
+	} // end of method RawInput::MouseDevices
+
+	.method public hidebysig specialname 
+		instance bool get_IgnoreNextWheelEvent () cil managed 
+	{
+		// Method begins at RVA 0x3858
+		// Header size: 1
+		// Code size: 22 (0x16)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class RawInput_dll.PreMessageFilter RawInput_dll.RawInput::_filter
+		IL_0006: brtrue.s IL_000a
+
+		IL_0008: ldc.i4.0
+		IL_0009: ret
+
+		IL_000a: ldarg.0
+		IL_000b: ldfld class RawInput_dll.PreMessageFilter RawInput_dll.RawInput::_filter
+		IL_0010: callvirt instance bool RawInput_dll.PreMessageFilter::get_IgnoreNextWheelEvent()
+		IL_0015: ret
+	} // end of method RawInput::get_IgnoreNextWheelEvent
+
+	.method public hidebysig specialname 
+		instance void set_IgnoreNextWheelEvent (
+			bool 'value'
+		) cil managed 
+	{
+		// Method begins at RVA 0x386f
+		// Header size: 1
+		// Code size: 21 (0x15)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class RawInput_dll.PreMessageFilter RawInput_dll.RawInput::_filter
+		IL_0006: brfalse.s IL_0014
+
+		IL_0008: ldarg.0
+		IL_0009: ldfld class RawInput_dll.PreMessageFilter RawInput_dll.RawInput::_filter
+		IL_000e: ldarg.1
+		IL_000f: callvirt instance void RawInput_dll.PreMessageFilter::set_IgnoreNextWheelEvent(bool)
+
+		IL_0014: ret
+	} // end of method RawInput::set_IgnoreNextWheelEvent
+
+	.method public hidebysig 
+		instance void AddMessageFilter () cil managed 
+	{
+		// Method begins at RVA 0x3885
+		// Header size: 1
+		// Code size: 32 (0x20)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class RawInput_dll.PreMessageFilter RawInput_dll.RawInput::_filter
+		IL_0006: brfalse.s IL_0009
+
+		IL_0008: ret
+
+		IL_0009: ldarg.0
+		IL_000a: newobj instance void RawInput_dll.PreMessageFilter::.ctor()
+		IL_000f: stfld class RawInput_dll.PreMessageFilter RawInput_dll.RawInput::_filter
+		IL_0014: ldarg.0
+		IL_0015: ldfld class RawInput_dll.PreMessageFilter RawInput_dll.RawInput::_filter
+		IL_001a: call void [System.Windows.Forms]System.Windows.Forms.Application::AddMessageFilter(class [System.Windows.Forms]System.Windows.Forms.IMessageFilter)
+		IL_001f: ret
+	} // end of method RawInput::AddMessageFilter
+
+	.method public hidebysig 
+		instance void RemoveMessageFilter () cil managed 
+	{
+		// Method begins at RVA 0x38a6
+		// Header size: 1
+		// Code size: 28 (0x1c)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class RawInput_dll.PreMessageFilter RawInput_dll.RawInput::_filter
+		IL_0006: brtrue.s IL_0009
+
+		IL_0008: ret
+
+		IL_0009: ldarg.0
+		IL_000a: ldfld class RawInput_dll.PreMessageFilter RawInput_dll.RawInput::_filter
+		IL_000f: call void [System.Windows.Forms]System.Windows.Forms.Application::RemoveMessageFilter(class [System.Windows.Forms]System.Windows.Forms.IMessageFilter)
+		IL_0014: ldarg.0
+		IL_0015: ldnull
+		IL_0016: stfld class RawInput_dll.PreMessageFilter RawInput_dll.RawInput::_filter
+		IL_001b: ret
+	} // end of method RawInput::RemoveMessageFilter
+
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			native int parentHandle,
+			bool captureOnlyInForegroundMouse,
+			bool captureOnlyInForegroundKeyboard,
+			[opt] string id
+		) cil managed 
+	{
+		.param [4] = ""
+		// Method begins at RVA 0x38c4
+		// Header size: 12
+		// Code size: 86 (0x56)
+		.maxstack 3
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [System.Windows.Forms]System.Windows.Forms.NativeWindow::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.s id
+		IL_0009: stfld string RawInput_dll.RawInput::_id
+		IL_000e: ldarg.0
+		IL_000f: ldarg.1
+		IL_0010: call instance void [System.Windows.Forms]System.Windows.Forms.NativeWindow::AssignHandle(native int)
+		IL_0015: ldarg.0
+		IL_0016: ldarg.1
+		IL_0017: ldarg.3
+		IL_0018: newobj instance void RawInput_dll.RawKeyboard::.ctor(native int, bool)
+		IL_001d: stfld class RawInput_dll.RawKeyboard RawInput_dll.RawInput::_keyboardDriver
+		IL_0022: ldarg.0
+		IL_0023: ldfld class RawInput_dll.RawKeyboard RawInput_dll.RawInput::_keyboardDriver
+		IL_0028: ldarg.s id
+		IL_002a: callvirt instance void RawInput_dll.RawKeyboard::EnumerateDevices(string)
+		IL_002f: ldarg.0
+		IL_0030: ldarg.1
+		IL_0031: ldarg.2
+		IL_0032: newobj instance void RawInput_dll.RawMouse::.ctor(native int, bool)
+		IL_0037: stfld class RawInput_dll.RawMouse RawInput_dll.RawInput::_mouseDriver
+		IL_003c: ldarg.0
+		IL_003d: ldfld class RawInput_dll.RawMouse RawInput_dll.RawInput::_mouseDriver
+		IL_0042: ldarg.s id
+		IL_0044: callvirt instance void RawInput_dll.RawMouse::EnumerateDevices(string)
+		IL_0049: ldarg.0
+		IL_004a: ldarg.1
+		IL_004b: call native int RawInput_dll.RawInput::RegisterForDeviceNotifications(native int)
+		IL_0050: stfld native int RawInput_dll.RawInput::_devNotifyHandle
+		IL_0055: ret
+	} // end of method RawInput::.ctor
+
+	.method private hidebysig static 
+		native int RegisterForDeviceNotifications (
+			native int parent
+		) cil managed 
+	{
+		// Method begins at RVA 0x3928
+		// Header size: 12
+		// Code size: 117 (0x75)
+		.maxstack 3
+		.locals init (
+			[0] native int,
+			[1] valuetype RawInput_dll.BroadcastDeviceInterface,
+			[2] native int
+		)
+
+		IL_0000: ldsfld native int [mscorlib]System.IntPtr::Zero
+		IL_0005: stloc.0
+		IL_0006: ldloca.s 1
+		IL_0008: initobj RawInput_dll.BroadcastDeviceInterface
+		IL_000e: ldloca.s 1
+		IL_0010: ldloc.1
+		IL_0011: call int32 [mscorlib]System.Runtime.InteropServices.Marshal::SizeOf<valuetype RawInput_dll.BroadcastDeviceInterface>(!!0)
+		IL_0016: stfld int32 RawInput_dll.BroadcastDeviceInterface::DbccSize
+		IL_001b: ldloca.s 1
+		IL_001d: ldc.i4.5
+		IL_001e: stfld valuetype RawInput_dll.BroadcastDeviceType RawInput_dll.BroadcastDeviceInterface::BroadcastDeviceType
+		IL_0023: ldloca.s 1
+		IL_0025: ldsfld valuetype [mscorlib]System.Guid RawInput_dll.RawInput::DeviceInterfaceHid
+		IL_002a: stfld valuetype [mscorlib]System.Guid RawInput_dll.BroadcastDeviceInterface::DbccClassguid
+		IL_002f: ldsfld native int [mscorlib]System.IntPtr::Zero
+		IL_0034: stloc.2
+		.try
+		{
+			.try
+			{
+				IL_0035: ldtoken RawInput_dll.BroadcastDeviceInterface
+				IL_003a: call class [mscorlib]System.Type [mscorlib]System.Type::GetTypeFromHandle(valuetype [mscorlib]System.RuntimeTypeHandle)
+				IL_003f: call int32 [mscorlib]System.Runtime.InteropServices.Marshal::SizeOf(class [mscorlib]System.Type)
+				IL_0044: call native int [mscorlib]System.Runtime.InteropServices.Marshal::AllocHGlobal(int32)
+				IL_0049: stloc.2
+				IL_004a: ldloc.1
+				IL_004b: ldloc.2
+				IL_004c: ldc.i4.0
+				IL_004d: call void [mscorlib]System.Runtime.InteropServices.Marshal::StructureToPtr<valuetype RawInput_dll.BroadcastDeviceInterface>(!!0, native int, bool)
+				IL_0052: ldarg.0
+				IL_0053: ldloc.2
+				IL_0054: ldc.i4.0
+				IL_0055: call native int RawInput_dll.Win32::RegisterDeviceNotification(native int, native int, valuetype RawInput_dll.DeviceNotification)
+				IL_005a: stloc.0
+				IL_005b: leave.s IL_0067
+			} // end .try
+			catch [mscorlib]System.Exception
+			{
+				IL_005d: pop
+				IL_005e: leave.s IL_0067
+			} // end handler
+		} // end .try
+		finally
+		{
+			IL_0060: ldloc.2
+			IL_0061: call void [mscorlib]System.Runtime.InteropServices.Marshal::FreeHGlobal(native int)
+			IL_0066: endfinally
+		} // end handler
+
+		IL_0067: ldloc.0
+		IL_0068: ldsfld native int [mscorlib]System.IntPtr::Zero
+		IL_006d: call bool [mscorlib]System.IntPtr::op_Equality(native int, native int)
+		IL_0072: pop
+		IL_0073: ldloc.0
+		IL_0074: ret
+	} // end of method RawInput::RegisterForDeviceNotifications
+
+	.method family hidebysig virtual 
+		instance void WndProc (
+			valuetype [System.Windows.Forms]System.Windows.Forms.Message& message
+		) cil managed 
+	{
+		// Method begins at RVA 0x39c8
+		// Header size: 12
+		// Code size: 227 (0xe3)
+		.maxstack 2
+		.locals init (
+			[0] int32
+		)
+
+		IL_0000: ldarg.1
+		IL_0001: call instance int32 [System.Windows.Forms]System.Windows.Forms.Message::get_Msg()
+		IL_0006: stloc.0
+		IL_0007: ldloc.0
+		IL_0008: ldc.i4 255
+		IL_000d: beq.s IL_001c
+
+		IL_000f: ldloc.0
+		IL_0010: ldc.i4 537
+		IL_0015: beq.s IL_0043
+
+		IL_0017: br IL_00db
+
+		IL_001c: ldarg.0
+		IL_001d: ldfld class RawInput_dll.RawKeyboard RawInput_dll.RawInput::_keyboardDriver
+		IL_0022: ldarg.1
+		IL_0023: call instance native int [System.Windows.Forms]System.Windows.Forms.Message::get_LParam()
+		IL_0028: callvirt instance void RawInput_dll.RawKeyboard::ProcessRawInput(native int)
+		IL_002d: ldarg.0
+		IL_002e: ldfld class RawInput_dll.RawMouse RawInput_dll.RawInput::_mouseDriver
+		IL_0033: ldarg.1
+		IL_0034: call instance native int [System.Windows.Forms]System.Windows.Forms.Message::get_LParam()
+		IL_0039: callvirt instance void RawInput_dll.RawMouse::ProcessRawInput(native int)
+		IL_003e: br IL_00db
+
+		IL_0043: ldarg.1
+		IL_0044: call instance native int [System.Windows.Forms]System.Windows.Forms.Message::get_WParam()
+		IL_0049: call int32 [mscorlib]System.IntPtr::op_Explicit(native int)
+		IL_004e: ldc.i4 32768
+		IL_0053: and
+		IL_0054: ldc.i4 32768
+		IL_0059: bne.un.s IL_008f
+
+		IL_005b: ldarg.0
+		IL_005c: ldfld class RawInput_dll.RawKeyboard RawInput_dll.RawInput::_keyboardDriver
+		IL_0061: ldarg.0
+		IL_0062: ldfld string RawInput_dll.RawInput::_id
+		IL_0067: callvirt instance void RawInput_dll.RawKeyboard::EnumerateDevices(string)
+		IL_006c: ldarg.0
+		IL_006d: ldfld class RawInput_dll.RawMouse RawInput_dll.RawInput::_mouseDriver
+		IL_0072: ldarg.0
+		IL_0073: ldfld string RawInput_dll.RawInput::_id
+		IL_0078: callvirt instance void RawInput_dll.RawMouse::EnumerateDevices(string)
+		IL_007d: ldarg.0
+		IL_007e: ldfld class RawInput_dll.RawInput/DevicesEventHandler RawInput_dll.RawInput::DevicesChanged
+		IL_0083: dup
+		IL_0084: brtrue.s IL_0089
+
+		IL_0086: pop
+		IL_0087: br.s IL_008f
+
+		IL_0089: ldarg.0
+		IL_008a: callvirt instance void RawInput_dll.RawInput/DevicesEventHandler::Invoke(object)
+
+		IL_008f: ldarg.1
+		IL_0090: call instance native int [System.Windows.Forms]System.Windows.Forms.Message::get_WParam()
+		IL_0095: call int32 [mscorlib]System.IntPtr::op_Explicit(native int)
+		IL_009a: ldc.i4 32772
+		IL_009f: and
+		IL_00a0: ldc.i4 32772
+		IL_00a5: bne.un.s IL_00db
+
+		IL_00a7: ldarg.0
+		IL_00a8: ldfld class RawInput_dll.RawKeyboard RawInput_dll.RawInput::_keyboardDriver
+		IL_00ad: ldarg.0
+		IL_00ae: ldfld string RawInput_dll.RawInput::_id
+		IL_00b3: callvirt instance void RawInput_dll.RawKeyboard::EnumerateDevices(string)
+		IL_00b8: ldarg.0
+		IL_00b9: ldfld class RawInput_dll.RawMouse RawInput_dll.RawInput::_mouseDriver
+		IL_00be: ldarg.0
+		IL_00bf: ldfld string RawInput_dll.RawInput::_id
+		IL_00c4: callvirt instance void RawInput_dll.RawMouse::EnumerateDevices(string)
+		IL_00c9: ldarg.0
+		IL_00ca: ldfld class RawInput_dll.RawInput/DevicesEventHandler RawInput_dll.RawInput::DevicesChanged
+		IL_00cf: dup
+		IL_00d0: brtrue.s IL_00d5
+
+		IL_00d2: pop
+		IL_00d3: br.s IL_00db
+
+		IL_00d5: ldarg.0
+		IL_00d6: callvirt instance void RawInput_dll.RawInput/DevicesEventHandler::Invoke(object)
+
+		IL_00db: ldarg.0
+		IL_00dc: ldarg.1
+		IL_00dd: call instance void [System.Windows.Forms]System.Windows.Forms.NativeWindow::WndProc(valuetype [System.Windows.Forms]System.Windows.Forms.Message&)
+		IL_00e2: ret
+	} // end of method RawInput::WndProc
+
+	.method family hidebysig virtual 
+		instance void Finalize () cil managed 
+	{
+		.override method instance void [mscorlib]System.Object::Finalize()
+		// Method begins at RVA 0x3ab8
+		// Header size: 12
+		// Code size: 28 (0x1c)
+		.maxstack 1
+
+		.try
+		{
+			IL_0000: ldarg.0
+			IL_0001: ldfld native int RawInput_dll.RawInput::_devNotifyHandle
+			IL_0006: call bool RawInput_dll.Win32::UnregisterDeviceNotification(native int)
+			IL_000b: pop
+			IL_000c: ldarg.0
+			IL_000d: call instance void RawInput_dll.RawInput::RemoveMessageFilter()
+			IL_0012: leave.s IL_001b
+		} // end .try
+		finally
+		{
+			IL_0014: ldarg.0
+			IL_0015: call instance void [System.Windows.Forms]System.Windows.Forms.NativeWindow::Finalize()
+			IL_001a: endfinally
+		} // end handler
+
+		IL_001b: ret
+	} // end of method RawInput::Finalize
+
+	.method private hidebysig specialname rtspecialname static 
+		void .cctor () cil managed 
+	{
+		// Method begins at RVA 0x3af0
+		// Header size: 1
+		// Code size: 16 (0x10)
+		.maxstack 8
+
+		IL_0000: ldstr "4D1E55B2-F16F-11CF-88CB-001111000030"
+		IL_0005: newobj instance void [mscorlib]System.Guid::.ctor(string)
+		IL_000a: stsfld valuetype [mscorlib]System.Guid RawInput_dll.RawInput::DeviceInterfaceHid
+		IL_000f: ret
+	} // end of method RawInput::.cctor
+
+	// Events
+	.event RawInput_dll.RawInput/DevicesEventHandler DevicesChanged
+	{
+		.addon instance void RawInput_dll.RawInput::add_DevicesChanged(class RawInput_dll.RawInput/DevicesEventHandler)
+		.removeon instance void RawInput_dll.RawInput::remove_DevicesChanged(class RawInput_dll.RawInput/DevicesEventHandler)
+	}
+
+	.event RawInput_dll.RawKeyboard/DeviceEventHandler KeyPressed
+	{
+		.addon instance void RawInput_dll.RawInput::add_KeyPressed(class RawInput_dll.RawKeyboard/DeviceEventHandler)
+		.removeon instance void RawInput_dll.RawInput::remove_KeyPressed(class RawInput_dll.RawKeyboard/DeviceEventHandler)
+	}
+
+	.event RawInput_dll.RawMouse/DeviceEventHandler MouseMoved
+	{
+		.addon instance void RawInput_dll.RawInput::add_MouseMoved(class RawInput_dll.RawMouse/DeviceEventHandler)
+		.removeon instance void RawInput_dll.RawInput::remove_MouseMoved(class RawInput_dll.RawMouse/DeviceEventHandler)
+	}
+
+
+	// Properties
+	.property instance int32 NumberOfMice()
+	{
+		.get instance int32 RawInput_dll.RawInput::get_NumberOfMice()
+	}
+	.property instance int32 NumberOfKeyboards()
+	{
+		.get instance int32 RawInput_dll.RawInput::get_NumberOfKeyboards()
+	}
+	.property instance bool IgnoreNextWheelEvent()
+	{
+		.get instance bool RawInput_dll.RawInput::get_IgnoreNextWheelEvent()
+		.set instance void RawInput_dll.RawInput::set_IgnoreNextWheelEvent(bool)
+	}
+
+} // end of class RawInput_dll.RawInput
+
+.class private auto ansi abstract sealed beforefieldinit RawInput_dll.RegistryAccess
+	extends [mscorlib]System.Object
+{
+	// Methods
+	.method assembly hidebysig static 
+		class [mscorlib]Microsoft.Win32.RegistryKey GetDeviceKey (
+			string device
+		) cil managed 
+	{
+		// Method begins at RVA 0x3b04
+		// Header size: 12
+		// Code size: 58 (0x3a)
+		.maxstack 5
+		.locals init (
+			[0] string,
+			[1] string,
+			[2] string
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldc.i4.4
+		IL_0002: callvirt instance string [mscorlib]System.String::Substring(int32)
+		IL_0007: ldc.i4.1
+		IL_0008: newarr [mscorlib]System.Char
+		IL_000d: dup
+		IL_000e: ldc.i4.0
+		IL_000f: ldc.i4.s 35
+		IL_0011: stelem.i2
+		IL_0012: callvirt instance string[] [mscorlib]System.String::Split(char[])
+		IL_0017: dup
+		IL_0018: ldc.i4.0
+		IL_0019: ldelem.ref
+		IL_001a: stloc.0
+		IL_001b: dup
+		IL_001c: ldc.i4.1
+		IL_001d: ldelem.ref
+		IL_001e: stloc.1
+		IL_001f: ldc.i4.2
+		IL_0020: ldelem.ref
+		IL_0021: stloc.2
+		IL_0022: ldsfld class [mscorlib]Microsoft.Win32.RegistryKey [mscorlib]Microsoft.Win32.Registry::LocalMachine
+		IL_0027: ldstr "System\\CurrentControlSet\\Enum\\{0}\\{1}\\{2}"
+		IL_002c: ldloc.0
+		IL_002d: ldloc.1
+		IL_002e: ldloc.2
+		IL_002f: call string [mscorlib]System.String::Format(string, object, object, object)
+		IL_0034: callvirt instance class [mscorlib]Microsoft.Win32.RegistryKey [mscorlib]Microsoft.Win32.RegistryKey::OpenSubKey(string)
+		IL_0039: ret
+	} // end of method RegistryAccess::GetDeviceKey
+
+	.method assembly hidebysig static 
+		string GetClassType (
+			string classGuid
+		) cil managed 
+	{
+		// Method begins at RVA 0x3b4c
+		// Header size: 12
+		// Code size: 48 (0x30)
+		.maxstack 3
+		.locals init (
+			[0] class [mscorlib]Microsoft.Win32.RegistryKey
+		)
+
+		IL_0000: ldsfld class [mscorlib]Microsoft.Win32.RegistryKey [mscorlib]Microsoft.Win32.Registry::LocalMachine
+		IL_0005: ldstr "SYSTEM\\CurrentControlSet\\Control\\Class\\"
+		IL_000a: ldarg.0
+		IL_000b: call string [mscorlib]System.String::Concat(string, string)
+		IL_0010: callvirt instance class [mscorlib]Microsoft.Win32.RegistryKey [mscorlib]Microsoft.Win32.RegistryKey::OpenSubKey(string)
+		IL_0015: stloc.0
+		IL_0016: ldloc.0
+		IL_0017: brtrue.s IL_001f
+
+		IL_0019: ldsfld string [mscorlib]System.String::Empty
+		IL_001e: ret
+
+		IL_001f: ldloc.0
+		IL_0020: ldstr "Class"
+		IL_0025: callvirt instance object [mscorlib]Microsoft.Win32.RegistryKey::GetValue(string)
+		IL_002a: castclass [mscorlib]System.String
+		IL_002f: ret
+	} // end of method RegistryAccess::GetClassType
+
+} // end of class RawInput_dll.RegistryAccess
+
+.class public auto ansi abstract sealed beforefieldinit RawInput_dll.Win32
+	extends [mscorlib]System.Object
+{
+	// Fields
+	.field public static literal int32 KEYBOARD_OVERRUN_MAKE_CODE = int32(255)
+	.field public static literal int32 WM_APPCOMMAND = int32(793)
+	.field private static literal int32 FAPPCOMMANDMASK = int32(61440)
+	.field assembly static literal int32 FAPPCOMMANDMOUSE = int32(32768)
+	.field assembly static literal int32 FAPPCOMMANDOEM = int32(4096)
+	.field public static literal int32 WM_KEYDOWN = int32(256)
+	.field public static literal int32 WM_KEYUP = int32(257)
+	.field assembly static literal int32 WM_SYSKEYDOWN = int32(260)
+	.field assembly static literal int32 WM_INPUT = int32(255)
+	.field assembly static literal int32 WM_USB_DEVICECHANGE = int32(537)
+	.field assembly static literal int32 DBT_DEVICEARRIVAL = int32(32768)
+	.field assembly static literal int32 DBT_DEVICEREMOVECOMPLETE = int32(32772)
+	.field assembly static literal int32 DBT_DEVNODES_CHANGED = int32(7)
+	.field assembly static literal int32 WM_MOUSEWHEEL = int32(522)
+	.field assembly static literal int32 VK_SHIFT = int32(16)
+	.field assembly static literal int32 RI_KEY_MAKE = int32(0)
+	.field assembly static literal int32 RI_KEY_BREAK = int32(1)
+	.field assembly static literal int32 RI_KEY_E0 = int32(2)
+	.field assembly static literal int32 RI_KEY_E1 = int32(4)
+	.field assembly static literal int32 VK_CONTROL = int32(17)
+	.field assembly static literal int32 VK_MENU = int32(18)
+	.field assembly static literal int32 VK_ZOOM = int32(251)
+	.field assembly static literal int32 VK_LSHIFT = int32(160)
+	.field assembly static literal int32 VK_RSHIFT = int32(161)
+	.field assembly static literal int32 VK_LCONTROL = int32(162)
+	.field assembly static literal int32 VK_RCONTROL = int32(163)
+	.field assembly static literal int32 VK_LMENU = int32(164)
+	.field assembly static literal int32 VK_RMENU = int32(165)
+	.field assembly static literal int32 SC_SHIFT_R = int32(54)
+	.field assembly static literal int32 SC_SHIFT_L = int32(42)
+	.field assembly static literal int32 RIM_INPUT = int32(0)
+
+	// Methods
+	.method public hidebysig static 
+		int32 LoWord (
+			int32 dwValue
+		) cil managed 
+	{
+		// Method begins at RVA 0x3b88
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldc.i4 65535
+		IL_0006: and
+		IL_0007: ret
+	} // end of method Win32::LoWord
+
+	.method public hidebysig static 
+		int32 HiWord (
+			int64 dwValue
+		) cil managed 
+	{
+		// Method begins at RVA 0x3b91
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldc.i4.s 16
+		IL_0003: shr
+		IL_0004: conv.i4
+		IL_0005: ldc.i4 -61441
+		IL_000a: and
+		IL_000b: ret
+	} // end of method Win32::HiWord
+
+	.method public hidebysig static 
+		uint16 LowWord (
+			uint32 val
+		) cil managed 
+	{
+		// Method begins at RVA 0x3b9e
+		// Header size: 1
+		// Code size: 3 (0x3)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: conv.u2
+		IL_0002: ret
+	} // end of method Win32::LowWord
+
+	.method public hidebysig static 
+		uint16 HighWord (
+			uint32 val
+		) cil managed 
+	{
+		// Method begins at RVA 0x3ba2
+		// Header size: 1
+		// Code size: 6 (0x6)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldc.i4.s 16
+		IL_0003: shr.un
+		IL_0004: conv.u2
+		IL_0005: ret
+	} // end of method Win32::HighWord
+
+	.method public hidebysig static 
+		uint32 BuildWParam (
+			uint16 low,
+			uint16 high
+		) cil managed 
+	{
+		// Method begins at RVA 0x3ba9
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.1
+		IL_0001: ldc.i4.s 16
+		IL_0003: shl
+		IL_0004: ldarg.0
+		IL_0005: or
+		IL_0006: ret
+	} // end of method Win32::BuildWParam
+
+	.method assembly hidebysig static pinvokeimpl("User32.dll" lasterr winapi) 
+		int32 GetRawInputData (
+			native int hRawInput,
+			valuetype RawInput_dll.DataCommand command,
+			[out] valuetype RawInput_dll.InputData& buffer,
+			[in] [out] int32& size,
+			int32 cbSizeHeader
+		) cil managed preservesig 
+	{
+	} // end of method Win32::GetRawInputData
+
+	.method assembly hidebysig static pinvokeimpl("User32.dll" lasterr winapi) 
+		int32 GetRawInputData (
+			native int hRawInput,
+			valuetype RawInput_dll.DataCommand command,
+			[out] native int pData,
+			[in] [out] int32& size,
+			int32 sizeHeader
+		) cil managed preservesig 
+	{
+	} // end of method Win32::GetRawInputData
+
+	.method assembly hidebysig static pinvokeimpl("User32.dll" lasterr winapi) 
+		uint32 GetRawInputDeviceInfo (
+			native int hDevice,
+			valuetype RawInput_dll.RawInputDeviceInfo command,
+			native int pData,
+			uint32& size
+		) cil managed preservesig 
+	{
+	} // end of method Win32::GetRawInputDeviceInfo
+
+	.method private hidebysig static pinvokeimpl("user32.dll" winapi) 
+		uint32 GetRawInputDeviceInfo (
+			native int hDevice,
+			uint32 command,
+			valuetype RawInput_dll.DeviceInfo& data,
+			uint32& dataSize
+		) cil managed preservesig 
+	{
+	} // end of method Win32::GetRawInputDeviceInfo
+
+	.method assembly hidebysig static pinvokeimpl("User32.dll" lasterr winapi) 
+		uint32 GetRawInputDeviceList (
+			native int pRawInputDeviceList,
+			uint32& numberDevices,
+			uint32 size
+		) cil managed preservesig 
+	{
+	} // end of method Win32::GetRawInputDeviceList
+
+	.method assembly hidebysig static pinvokeimpl("User32.dll" lasterr winapi) 
+		bool RegisterRawInputDevices (
+			valuetype RawInput_dll.RawInputDevice[] pRawInputDevice,
+			uint32 numberDevices,
+			uint32 size
+		) cil managed preservesig 
+	{
+	} // end of method Win32::RegisterRawInputDevices
+
+	.method assembly hidebysig static pinvokeimpl("user32.dll" lasterr winapi) 
+		native int RegisterDeviceNotification (
+			native int hRecipient,
+			native int notificationFilter,
+			valuetype RawInput_dll.DeviceNotification 'flags'
+		) cil managed preservesig 
+	{
+	} // end of method Win32::RegisterDeviceNotification
+
+	.method assembly hidebysig static pinvokeimpl("user32.dll" lasterr winapi) 
+		bool UnregisterDeviceNotification (
+			native int handle
+		) cil managed preservesig 
+	{
+	} // end of method Win32::UnregisterDeviceNotification
+
+	.method public hidebysig static 
+		void DeviceAudit () cil managed 
+	{
+		// Method begins at RVA 0x3bb4
+		// Header size: 12
+		// Code size: 597 (0x255)
+		.maxstack 5
+		.locals init (
+			[0] class [mscorlib]System.IO.FileStream,
+			[1] class [mscorlib]System.IO.StreamWriter,
+			[2] int32,
+			[3] uint32,
+			[4] int32,
+			[5] native int,
+			[6] int32,
+			[7] uint32,
+			[8] valuetype RawInput_dll.Rawinputdevicelist,
+			[9] uint32,
+			[10] valuetype RawInput_dll.DeviceInfo,
+			[11] native int,
+			[12] string,
+			[13] valuetype RawInput_dll.DeviceInfo,
+			[14] string,
+			[15] class RawInput_dll.KeyPressEvent,
+			[16] int32
+		)
+
+		IL_0000: ldstr "DeviceAudit.txt"
+		IL_0005: ldc.i4.2
+		IL_0006: ldc.i4.2
+		IL_0007: newobj instance void [mscorlib]System.IO.FileStream::.ctor(string, valuetype [mscorlib]System.IO.FileMode, valuetype [mscorlib]System.IO.FileAccess)
+		IL_000c: stloc.0
+		IL_000d: ldloc.0
+		IL_000e: newobj instance void [mscorlib]System.IO.StreamWriter::.ctor(class [mscorlib]System.IO.Stream)
+		IL_0013: stloc.1
+		IL_0014: ldc.i4.0
+		IL_0015: stloc.2
+		IL_0016: ldc.i4.0
+		IL_0017: stloc.3
+		IL_0018: ldtoken RawInput_dll.Rawinputdevicelist
+		IL_001d: call class [mscorlib]System.Type [mscorlib]System.Type::GetTypeFromHandle(valuetype [mscorlib]System.RuntimeTypeHandle)
+		IL_0022: call int32 [mscorlib]System.Runtime.InteropServices.Marshal::SizeOf(class [mscorlib]System.Type)
+		IL_0027: stloc.s 4
+		IL_0029: ldsfld native int [mscorlib]System.IntPtr::Zero
+		IL_002e: ldloca.s 3
+		IL_0030: ldloc.s 4
+		IL_0032: call uint32 RawInput_dll.Win32::GetRawInputDeviceList(native int, uint32&, uint32)
+		IL_0037: brtrue IL_024a
+
+		IL_003c: ldloc.s 4
+		IL_003e: conv.i8
+		IL_003f: ldloc.3
+		IL_0040: conv.u8
+		IL_0041: mul
+		IL_0042: conv.i4
+		IL_0043: call native int [mscorlib]System.Runtime.InteropServices.Marshal::AllocHGlobal(int32)
+		IL_0048: stloc.s 5
+		IL_004a: ldloc.s 5
+		IL_004c: ldloca.s 3
+		IL_004e: ldloc.s 4
+		IL_0050: call uint32 RawInput_dll.Win32::GetRawInputDeviceList(native int, uint32&, uint32)
+		IL_0055: pop
+		IL_0056: ldc.i4.0
+		IL_0057: stloc.s 6
+		IL_0059: br IL_0226
+		// loop start (head: IL_0226)
+			IL_005e: ldc.i4.0
+			IL_005f: stloc.s 7
+			IL_0061: ldloca.s 5
+			IL_0063: call instance int64 [mscorlib]System.IntPtr::ToInt64()
+			IL_0068: ldloc.s 4
+			IL_006a: ldloc.s 6
+			IL_006c: mul
+			IL_006d: conv.i8
+			IL_006e: add
+			IL_006f: newobj instance void [mscorlib]System.IntPtr::.ctor(int64)
+			IL_0074: ldtoken RawInput_dll.Rawinputdevicelist
+			IL_0079: call class [mscorlib]System.Type [mscorlib]System.Type::GetTypeFromHandle(valuetype [mscorlib]System.RuntimeTypeHandle)
+			IL_007e: call object [mscorlib]System.Runtime.InteropServices.Marshal::PtrToStructure(native int, class [mscorlib]System.Type)
+			IL_0083: unbox.any RawInput_dll.Rawinputdevicelist
+			IL_0088: stloc.s 8
+			IL_008a: ldloc.s 8
+			IL_008c: ldfld native int RawInput_dll.Rawinputdevicelist::hDevice
+			IL_0091: ldc.i4 536870919
+			IL_0096: ldsfld native int [mscorlib]System.IntPtr::Zero
+			IL_009b: ldloca.s 7
+			IL_009d: call uint32 RawInput_dll.Win32::GetRawInputDeviceInfo(native int, valuetype RawInput_dll.RawInputDeviceInfo, native int, uint32&)
+			IL_00a2: pop
+			IL_00a3: ldloc.s 7
+			IL_00a5: ldc.i4.0
+			IL_00a6: bgt.un.s IL_00cb
+
+			IL_00a8: ldloc.1
+			IL_00a9: ldstr "pcbSize: "
+			IL_00ae: ldloca.s 7
+			IL_00b0: call instance string [mscorlib]System.UInt32::ToString()
+			IL_00b5: call string [mscorlib]System.String::Concat(string, string)
+			IL_00ba: callvirt instance void [mscorlib]System.IO.TextWriter::WriteLine(string)
+			IL_00bf: ldloc.1
+			IL_00c0: call int32 [mscorlib]System.Runtime.InteropServices.Marshal::GetLastWin32Error()
+			IL_00c5: callvirt instance void [mscorlib]System.IO.TextWriter::WriteLine(int32)
+			IL_00ca: ret
+
+			IL_00cb: ldtoken RawInput_dll.DeviceInfo
+			IL_00d0: call class [mscorlib]System.Type [mscorlib]System.Type::GetTypeFromHandle(valuetype [mscorlib]System.RuntimeTypeHandle)
+			IL_00d5: call int32 [mscorlib]System.Runtime.InteropServices.Marshal::SizeOf(class [mscorlib]System.Type)
+			IL_00da: stloc.s 9
+			IL_00dc: ldloca.s 13
+			IL_00de: initobj RawInput_dll.DeviceInfo
+			IL_00e4: ldloca.s 13
+			IL_00e6: ldtoken RawInput_dll.DeviceInfo
+			IL_00eb: call class [mscorlib]System.Type [mscorlib]System.Type::GetTypeFromHandle(valuetype [mscorlib]System.RuntimeTypeHandle)
+			IL_00f0: call int32 [mscorlib]System.Runtime.InteropServices.Marshal::SizeOf(class [mscorlib]System.Type)
+			IL_00f5: stfld int32 RawInput_dll.DeviceInfo::Size
+			IL_00fa: ldloc.s 13
+			IL_00fc: stloc.s 10
+			IL_00fe: ldloc.s 8
+			IL_0100: ldfld native int RawInput_dll.Rawinputdevicelist::hDevice
+			IL_0105: ldc.i4 536870923
+			IL_010a: ldloca.s 10
+			IL_010c: ldloca.s 9
+			IL_010e: call uint32 RawInput_dll.Win32::GetRawInputDeviceInfo(native int, uint32, valuetype RawInput_dll.DeviceInfo&, uint32&)
+			IL_0113: ldc.i4.0
+			IL_0114: bgt.un.s IL_0122
+
+			IL_0116: ldloc.1
+			IL_0117: call int32 [mscorlib]System.Runtime.InteropServices.Marshal::GetLastWin32Error()
+			IL_011c: callvirt instance void [mscorlib]System.IO.TextWriter::WriteLine(int32)
+			IL_0121: ret
+
+			IL_0122: ldloc.s 7
+			IL_0124: call native int [mscorlib]System.Runtime.InteropServices.Marshal::AllocHGlobal(int32)
+			IL_0129: stloc.s 11
+			IL_012b: ldloc.s 8
+			IL_012d: ldfld native int RawInput_dll.Rawinputdevicelist::hDevice
+			IL_0132: ldc.i4 536870919
+			IL_0137: ldloc.s 11
+			IL_0139: ldloca.s 7
+			IL_013b: call uint32 RawInput_dll.Win32::GetRawInputDeviceInfo(native int, valuetype RawInput_dll.RawInputDeviceInfo, native int, uint32&)
+			IL_0140: pop
+			IL_0141: ldloc.s 11
+			IL_0143: call string [mscorlib]System.Runtime.InteropServices.Marshal::PtrToStringAnsi(native int)
+			IL_0148: stloc.s 12
+			IL_014a: ldloc.s 8
+			IL_014c: ldfld uint32 RawInput_dll.Rawinputdevicelist::dwType
+			IL_0151: ldc.i4.1
+			IL_0152: beq.s IL_0161
+
+			IL_0154: ldloc.s 8
+			IL_0156: ldfld uint32 RawInput_dll.Rawinputdevicelist::dwType
+			IL_015b: ldc.i4.2
+			IL_015c: bne.un IL_0219
+
+			IL_0161: ldloc.s 12
+			IL_0163: call string RawInput_dll.Win32::GetDeviceDescription(string)
+			IL_0168: stloc.s 14
+			IL_016a: newobj instance void RawInput_dll.KeyPressEvent::.ctor()
+			IL_016f: dup
+			IL_0170: ldloc.s 11
+			IL_0172: call string [mscorlib]System.Runtime.InteropServices.Marshal::PtrToStringAnsi(native int)
+			IL_0177: stfld string RawInput_dll.KeyPressEvent::DeviceName
+			IL_017c: dup
+			IL_017d: ldloc.s 8
+			IL_017f: ldfld native int RawInput_dll.Rawinputdevicelist::hDevice
+			IL_0184: stfld native int RawInput_dll.KeyPressEvent::DeviceHandle
+			IL_0189: dup
+			IL_018a: ldloc.s 8
+			IL_018c: ldfld uint32 RawInput_dll.Rawinputdevicelist::dwType
+			IL_0191: call string RawInput_dll.Win32::GetDeviceType(uint32)
+			IL_0196: stfld string RawInput_dll.KeyPressEvent::DeviceType
+			IL_019b: dup
+			IL_019c: ldloc.s 14
+			IL_019e: stfld string RawInput_dll.KeyPressEvent::Name
+			IL_01a3: dup
+			IL_01a4: ldloc.2
+			IL_01a5: dup
+			IL_01a6: ldc.i4.1
+			IL_01a7: add
+			IL_01a8: stloc.2
+			IL_01a9: stloc.s 16
+			IL_01ab: ldloca.s 16
+			IL_01ad: call class [mscorlib]System.Globalization.CultureInfo [mscorlib]System.Globalization.CultureInfo::get_InvariantCulture()
+			IL_01b2: call instance string [mscorlib]System.Int32::ToString(class [mscorlib]System.IFormatProvider)
+			IL_01b7: callvirt instance void RawInput_dll.KeyPressEvent::set_Source(string)
+			IL_01bc: stloc.s 15
+			IL_01be: ldloc.1
+			IL_01bf: ldloc.s 15
+			IL_01c1: callvirt instance string [mscorlib]System.Object::ToString()
+			IL_01c6: callvirt instance void [mscorlib]System.IO.TextWriter::WriteLine(string)
+			IL_01cb: ldloc.1
+			IL_01cc: ldloca.s 10
+			IL_01ce: constrained. RawInput_dll.DeviceInfo
+			IL_01d4: callvirt instance string [mscorlib]System.Object::ToString()
+			IL_01d9: callvirt instance void [mscorlib]System.IO.TextWriter::WriteLine(string)
+			IL_01de: ldloc.1
+			IL_01df: ldloca.s 10
+			IL_01e1: ldflda valuetype RawInput_dll.DeviceInfoKeyboard RawInput_dll.DeviceInfo::KeyboardInfo
+			IL_01e6: constrained. RawInput_dll.DeviceInfoKeyboard
+			IL_01ec: callvirt instance string [mscorlib]System.Object::ToString()
+			IL_01f1: callvirt instance void [mscorlib]System.IO.TextWriter::WriteLine(string)
+			IL_01f6: ldloc.1
+			IL_01f7: ldloca.s 10
+			IL_01f9: ldflda valuetype RawInput_dll.DeviceInfoHid RawInput_dll.DeviceInfo::HIDInfo
+			IL_01fe: constrained. RawInput_dll.DeviceInfoHid
+			IL_0204: callvirt instance string [mscorlib]System.Object::ToString()
+			IL_0209: callvirt instance void [mscorlib]System.IO.TextWriter::WriteLine(string)
+			IL_020e: ldloc.1
+			IL_020f: ldstr "========================================================================================================="
+			IL_0214: callvirt instance void [mscorlib]System.IO.TextWriter::WriteLine(string)
+
+			IL_0219: ldloc.s 11
+			IL_021b: call void [mscorlib]System.Runtime.InteropServices.Marshal::FreeHGlobal(native int)
+			IL_0220: ldloc.s 6
+			IL_0222: ldc.i4.1
+			IL_0223: add
+			IL_0224: stloc.s 6
+
+			IL_0226: ldloc.s 6
+			IL_0228: conv.i8
+			IL_0229: ldloc.3
+			IL_022a: conv.u8
+			IL_022b: blt IL_005e
+		// end loop
+
+		IL_0230: ldloc.s 5
+		IL_0232: call void [mscorlib]System.Runtime.InteropServices.Marshal::FreeHGlobal(native int)
+		IL_0237: ldloc.1
+		IL_0238: callvirt instance void [mscorlib]System.IO.TextWriter::Flush()
+		IL_023d: ldloc.1
+		IL_023e: callvirt instance void [mscorlib]System.IO.TextWriter::Close()
+		IL_0243: ldloc.0
+		IL_0244: callvirt instance void [mscorlib]System.IO.Stream::Close()
+		IL_0249: ret
+
+		IL_024a: call int32 [mscorlib]System.Runtime.InteropServices.Marshal::GetLastWin32Error()
+		IL_024f: newobj instance void [System]System.ComponentModel.Win32Exception::.ctor(int32)
+		IL_0254: throw
+	} // end of method Win32::DeviceAudit
+
+	.method public hidebysig static 
+		string GetDeviceType (
+			uint32 device
+		) cil managed 
+	{
+		// Method begins at RVA 0x3e18
+		// Header size: 12
+		// Code size: 52 (0x34)
+		.maxstack 1
+		.locals init (
+			[0] string
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: switch (IL_0014, IL_001c, IL_0024)
+
+		IL_0012: br.s IL_002c
+
+		IL_0014: ldstr "MOUSE"
+		IL_0019: stloc.0
+		IL_001a: br.s IL_0032
+
+		IL_001c: ldstr "KEYBOARD"
+		IL_0021: stloc.0
+		IL_0022: br.s IL_0032
+
+		IL_0024: ldstr "HID"
+		IL_0029: stloc.0
+		IL_002a: br.s IL_0032
+
+		IL_002c: ldstr "UNKNOWN"
+		IL_0031: stloc.0
+
+		IL_0032: ldloc.0
+		IL_0033: ret
+	} // end of method Win32::GetDeviceType
+
+	.method public hidebysig static 
+		string GetDeviceDescription (
+			string device
+		) cil managed 
+	{
+		// Method begins at RVA 0x3e58
+		// Header size: 12
+		// Code size: 52 (0x34)
+		.maxstack 3
+		.locals init (
+			[0] string
+		)
+
+		.try
+		{
+			IL_0000: ldarg.0
+			IL_0001: call class [mscorlib]Microsoft.Win32.RegistryKey RawInput_dll.RegistryAccess::GetDeviceKey(string)
+			IL_0006: ldstr "DeviceDesc"
+			IL_000b: callvirt instance object [mscorlib]Microsoft.Win32.RegistryKey::GetValue(string)
+			IL_0010: callvirt instance string [mscorlib]System.Object::ToString()
+			IL_0015: stloc.0
+			IL_0016: ldloc.0
+			IL_0017: ldloc.0
+			IL_0018: ldc.i4.s 59
+			IL_001a: callvirt instance int32 [mscorlib]System.String::IndexOf(char)
+			IL_001f: ldc.i4.1
+			IL_0020: add
+			IL_0021: callvirt instance string [mscorlib]System.String::Substring(int32)
+			IL_0026: stloc.0
+			IL_0027: leave.s IL_0032
+		} // end .try
+		catch [mscorlib]System.Exception
+		{
+			IL_0029: pop
+			IL_002a: ldstr "Device is malformed unable to look up in the registry"
+			IL_002f: stloc.0
+			IL_0030: leave.s IL_0032
+		} // end handler
+
+		IL_0032: ldloc.0
+		IL_0033: ret
+	} // end of method Win32::GetDeviceDescription
+
+} // end of class RawInput_dll.Win32
+

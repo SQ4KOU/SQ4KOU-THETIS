@@ -1,0 +1,1014 @@
+// IL code: System.Runtime.CompilerServices.Unsafe
+.class private auto ansi '<Module>'
+{
+} // end of class <Module>
+
+.class public auto ansi abstract sealed beforefieldinit System.Runtime.CompilerServices.Unsafe
+	extends [mscorlib]System.Object
+{
+	// Methods
+	.method public hidebysig static 
+		!!T Read<T> (
+			void* source
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x20d0
+		// Header size: 12
+		// Code size: 7 (0x7)
+		.maxstack 1
+
+		IL_0000: ldarg.0
+		IL_0001: ldobj !!T
+		IL_0006: ret
+	} // end of method Unsafe::Read
+
+	.method public hidebysig static 
+		!!T ReadUnaligned<T> (
+			void* source
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x20e4
+		// Header size: 12
+		// Code size: 10 (0xa)
+		.maxstack 1
+
+		IL_0000: ldarg.0
+		IL_0001: unaligned. 1
+		IL_0004: ldobj !!T
+		IL_0009: ret
+	} // end of method Unsafe::ReadUnaligned
+
+	.method public hidebysig static 
+		!!T ReadUnaligned<T> (
+			uint8& source
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x20fc
+		// Header size: 12
+		// Code size: 10 (0xa)
+		.maxstack 1
+
+		IL_0000: ldarg.0
+		IL_0001: unaligned. 1
+		IL_0004: ldobj !!T
+		IL_0009: ret
+	} // end of method Unsafe::ReadUnaligned
+
+	.method public hidebysig static 
+		void Write<T> (
+			void* destination,
+			!!T 'value'
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2114
+		// Header size: 12
+		// Code size: 8 (0x8)
+		.maxstack 2
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: stobj !!T
+		IL_0007: ret
+	} // end of method Unsafe::Write
+
+	.method public hidebysig static 
+		void WriteUnaligned<T> (
+			void* destination,
+			!!T 'value'
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2128
+		// Header size: 12
+		// Code size: 11 (0xb)
+		.maxstack 2
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: unaligned. 1
+		IL_0005: stobj !!T
+		IL_000a: ret
+	} // end of method Unsafe::WriteUnaligned
+
+	.method public hidebysig static 
+		void WriteUnaligned<T> (
+			uint8& destination,
+			!!T 'value'
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2140
+		// Header size: 12
+		// Code size: 11 (0xb)
+		.maxstack 2
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: unaligned. 1
+		IL_0005: stobj !!T
+		IL_000a: ret
+	} // end of method Unsafe::WriteUnaligned
+
+	.method public hidebysig static 
+		void Copy<T> (
+			void* destination,
+			!!T& source
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2158
+		// Header size: 12
+		// Code size: 13 (0xd)
+		.maxstack 2
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: ldobj !!T
+		IL_0007: stobj !!T
+		IL_000c: ret
+	} // end of method Unsafe::Copy
+
+	.method public hidebysig static 
+		void Copy<T> (
+			!!T& destination,
+			void* source
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2174
+		// Header size: 12
+		// Code size: 13 (0xd)
+		.maxstack 2
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: ldobj !!T
+		IL_0007: stobj !!T
+		IL_000c: ret
+	} // end of method Unsafe::Copy
+
+	.method public hidebysig static 
+		void* AsPointer<T> (
+			!!T& 'value'
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2190
+		// Header size: 12
+		// Code size: 3 (0x3)
+		.maxstack 1
+
+		IL_0000: ldarg.0
+		IL_0001: conv.u
+		IL_0002: ret
+	} // end of method Unsafe::AsPointer
+
+	.method public hidebysig static 
+		void SkipInit<T> (
+			[out] !!T& 'value'
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x21a0
+		// Header size: 12
+		// Code size: 1 (0x1)
+		.maxstack 0
+
+		IL_0000: ret
+	} // end of method Unsafe::SkipInit
+
+	.method public hidebysig static 
+		int32 SizeOf<T> () cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x21b0
+		// Header size: 12
+		// Code size: 7 (0x7)
+		.maxstack 1
+
+		IL_0000: sizeof !!T
+		IL_0006: ret
+	} // end of method Unsafe::SizeOf
+
+	.method public hidebysig static 
+		void CopyBlock (
+			void* destination,
+			void* source,
+			uint32 byteCount
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x21c4
+		// Header size: 12
+		// Code size: 6 (0x6)
+		.maxstack 3
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: ldarg.2
+		IL_0003: cpblk
+		IL_0005: ret
+	} // end of method Unsafe::CopyBlock
+
+	.method public hidebysig static 
+		void CopyBlock (
+			uint8& destination,
+			uint8& source,
+			uint32 byteCount
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x21d8
+		// Header size: 12
+		// Code size: 6 (0x6)
+		.maxstack 3
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: ldarg.2
+		IL_0003: cpblk
+		IL_0005: ret
+	} // end of method Unsafe::CopyBlock
+
+	.method public hidebysig static 
+		void CopyBlockUnaligned (
+			void* destination,
+			void* source,
+			uint32 byteCount
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x21ec
+		// Header size: 12
+		// Code size: 9 (0x9)
+		.maxstack 3
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: ldarg.2
+		IL_0003: unaligned. 1
+		IL_0006: cpblk
+		IL_0008: ret
+	} // end of method Unsafe::CopyBlockUnaligned
+
+	.method public hidebysig static 
+		void CopyBlockUnaligned (
+			uint8& destination,
+			uint8& source,
+			uint32 byteCount
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2204
+		// Header size: 12
+		// Code size: 9 (0x9)
+		.maxstack 3
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: ldarg.2
+		IL_0003: unaligned. 1
+		IL_0006: cpblk
+		IL_0008: ret
+	} // end of method Unsafe::CopyBlockUnaligned
+
+	.method public hidebysig static 
+		void InitBlock (
+			void* startAddress,
+			uint8 'value',
+			uint32 byteCount
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x221c
+		// Header size: 12
+		// Code size: 6 (0x6)
+		.maxstack 3
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: ldarg.2
+		IL_0003: initblk
+		IL_0005: ret
+	} // end of method Unsafe::InitBlock
+
+	.method public hidebysig static 
+		void InitBlock (
+			uint8& startAddress,
+			uint8 'value',
+			uint32 byteCount
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2230
+		// Header size: 12
+		// Code size: 6 (0x6)
+		.maxstack 3
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: ldarg.2
+		IL_0003: initblk
+		IL_0005: ret
+	} // end of method Unsafe::InitBlock
+
+	.method public hidebysig static 
+		void InitBlockUnaligned (
+			void* startAddress,
+			uint8 'value',
+			uint32 byteCount
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2244
+		// Header size: 12
+		// Code size: 9 (0x9)
+		.maxstack 3
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: ldarg.2
+		IL_0003: unaligned. 1
+		IL_0006: initblk
+		IL_0008: ret
+	} // end of method Unsafe::InitBlockUnaligned
+
+	.method public hidebysig static 
+		void InitBlockUnaligned (
+			uint8& startAddress,
+			uint8 'value',
+			uint32 byteCount
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x225c
+		// Header size: 12
+		// Code size: 9 (0x9)
+		.maxstack 3
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: ldarg.2
+		IL_0003: unaligned. 1
+		IL_0006: initblk
+		IL_0008: ret
+	} // end of method Unsafe::InitBlockUnaligned
+
+	.method public hidebysig static 
+		!!T As<class T> (
+			object o
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2274
+		// Header size: 12
+		// Code size: 2 (0x2)
+		.maxstack 1
+
+		IL_0000: ldarg.0
+		IL_0001: ret
+	} // end of method Unsafe::As
+
+	.method public hidebysig static 
+		!!T& AsRef<T> (
+			void* source
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2284
+		// Header size: 12
+		// Code size: 4 (0x4)
+		.maxstack 1
+		.locals (
+			[0] int32&
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: stloc.0
+		IL_0002: ldloc.0
+		IL_0003: ret
+	} // end of method Unsafe::AsRef
+
+	.method public hidebysig static 
+		!!T& AsRef<T> (
+			!!T& source
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		.param [1]
+			.custom instance void System.Runtime.CompilerServices.IsReadOnlyAttribute::.ctor() = (
+				01 00 00 00
+			)
+		// Method begins at RVA 0x2294
+		// Header size: 12
+		// Code size: 2 (0x2)
+		.maxstack 1
+
+		IL_0000: ldarg.0
+		IL_0001: ret
+	} // end of method Unsafe::AsRef
+
+	.method public hidebysig static 
+		!!TTo& As<TFrom, TTo> (
+			!!TFrom& source
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x22a4
+		// Header size: 12
+		// Code size: 2 (0x2)
+		.maxstack 1
+
+		IL_0000: ldarg.0
+		IL_0001: ret
+	} // end of method Unsafe::As
+
+	.method public hidebysig static 
+		!!T& Unbox<valuetype .ctor ([mscorlib]System.ValueType) T> (
+			object 'box'
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x22b4
+		// Header size: 12
+		// Code size: 7 (0x7)
+		.maxstack 1
+
+		IL_0000: ldarg.0
+		IL_0001: unbox !!T
+		IL_0006: ret
+	} // end of method Unsafe::Unbox
+
+	.method public hidebysig static 
+		!!T& Add<T> (
+			!!T& source,
+			int32 elementOffset
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x22c8
+		// Header size: 12
+		// Code size: 12 (0xc)
+		.maxstack 3
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: sizeof !!T
+		IL_0008: conv.i
+		IL_0009: mul
+		IL_000a: add
+		IL_000b: ret
+	} // end of method Unsafe::Add
+
+	.method public hidebysig static 
+		void* Add<T> (
+			void* source,
+			int32 elementOffset
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x22e0
+		// Header size: 12
+		// Code size: 12 (0xc)
+		.maxstack 3
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: sizeof !!T
+		IL_0008: conv.i
+		IL_0009: mul
+		IL_000a: add
+		IL_000b: ret
+	} // end of method Unsafe::Add
+
+	.method public hidebysig static 
+		!!T& Add<T> (
+			!!T& source,
+			native int elementOffset
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x22f8
+		// Header size: 12
+		// Code size: 11 (0xb)
+		.maxstack 3
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: sizeof !!T
+		IL_0008: mul
+		IL_0009: add
+		IL_000a: ret
+	} // end of method Unsafe::Add
+
+	.method public hidebysig static 
+		!!T& Add<T> (
+			!!T& source,
+			native uint elementOffset
+		) cil managed aggressiveinlining 
+	{
+		.param [2]
+			.custom instance void System.Runtime.CompilerServices.NativeIntegerAttribute::.ctor() = (
+				01 00 00 00
+			)
+			.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+				01 00 00 00
+			)
+		// Method begins at RVA 0x2310
+		// Header size: 12
+		// Code size: 11 (0xb)
+		.maxstack 3
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: sizeof !!T
+		IL_0008: mul
+		IL_0009: add
+		IL_000a: ret
+	} // end of method Unsafe::Add
+
+	.method public hidebysig static 
+		!!T& AddByteOffset<T> (
+			!!T& source,
+			native int byteOffset
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2328
+		// Header size: 12
+		// Code size: 4 (0x4)
+		.maxstack 2
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: add
+		IL_0003: ret
+	} // end of method Unsafe::AddByteOffset
+
+	.method public hidebysig static 
+		!!T& AddByteOffset<T> (
+			!!T& source,
+			native uint byteOffset
+		) cil managed aggressiveinlining 
+	{
+		.param [2]
+			.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+				01 00 00 00
+			)
+			.custom instance void System.Runtime.CompilerServices.NativeIntegerAttribute::.ctor() = (
+				01 00 00 00
+			)
+		// Method begins at RVA 0x2338
+		// Header size: 12
+		// Code size: 4 (0x4)
+		.maxstack 2
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: add
+		IL_0003: ret
+	} // end of method Unsafe::AddByteOffset
+
+	.method public hidebysig static 
+		!!T& Subtract<T> (
+			!!T& source,
+			int32 elementOffset
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2348
+		// Header size: 12
+		// Code size: 12 (0xc)
+		.maxstack 3
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: sizeof !!T
+		IL_0008: conv.i
+		IL_0009: mul
+		IL_000a: sub
+		IL_000b: ret
+	} // end of method Unsafe::Subtract
+
+	.method public hidebysig static 
+		void* Subtract<T> (
+			void* source,
+			int32 elementOffset
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2360
+		// Header size: 12
+		// Code size: 12 (0xc)
+		.maxstack 3
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: sizeof !!T
+		IL_0008: conv.i
+		IL_0009: mul
+		IL_000a: sub
+		IL_000b: ret
+	} // end of method Unsafe::Subtract
+
+	.method public hidebysig static 
+		!!T& Subtract<T> (
+			!!T& source,
+			native int elementOffset
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2378
+		// Header size: 12
+		// Code size: 11 (0xb)
+		.maxstack 3
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: sizeof !!T
+		IL_0008: mul
+		IL_0009: sub
+		IL_000a: ret
+	} // end of method Unsafe::Subtract
+
+	.method public hidebysig static 
+		!!T& Subtract<T> (
+			!!T& source,
+			native uint elementOffset
+		) cil managed aggressiveinlining 
+	{
+		.param [2]
+			.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+				01 00 00 00
+			)
+			.custom instance void System.Runtime.CompilerServices.NativeIntegerAttribute::.ctor() = (
+				01 00 00 00
+			)
+		// Method begins at RVA 0x2390
+		// Header size: 12
+		// Code size: 11 (0xb)
+		.maxstack 3
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: sizeof !!T
+		IL_0008: mul
+		IL_0009: sub
+		IL_000a: ret
+	} // end of method Unsafe::Subtract
+
+	.method public hidebysig static 
+		!!T& SubtractByteOffset<T> (
+			!!T& source,
+			native int byteOffset
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x23a8
+		// Header size: 12
+		// Code size: 4 (0x4)
+		.maxstack 2
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: sub
+		IL_0003: ret
+	} // end of method Unsafe::SubtractByteOffset
+
+	.method public hidebysig static 
+		!!T& SubtractByteOffset<T> (
+			!!T& source,
+			native uint byteOffset
+		) cil managed aggressiveinlining 
+	{
+		.param [2]
+			.custom instance void System.Runtime.CompilerServices.NativeIntegerAttribute::.ctor() = (
+				01 00 00 00
+			)
+			.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+				01 00 00 00
+			)
+		// Method begins at RVA 0x23b8
+		// Header size: 12
+		// Code size: 4 (0x4)
+		.maxstack 2
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: sub
+		IL_0003: ret
+	} // end of method Unsafe::SubtractByteOffset
+
+	.method public hidebysig static 
+		native int ByteOffset<T> (
+			!!T& origin,
+			!!T& target
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x23c8
+		// Header size: 12
+		// Code size: 4 (0x4)
+		.maxstack 2
+
+		IL_0000: ldarg.1
+		IL_0001: ldarg.0
+		IL_0002: sub
+		IL_0003: ret
+	} // end of method Unsafe::ByteOffset
+
+	.method public hidebysig static 
+		bool AreSame<T> (
+			!!T& left,
+			!!T& right
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x23d8
+		// Header size: 12
+		// Code size: 5 (0x5)
+		.maxstack 2
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: ceq
+		IL_0004: ret
+	} // end of method Unsafe::AreSame
+
+	.method public hidebysig static 
+		bool IsAddressGreaterThan<T> (
+			!!T& left,
+			!!T& right
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x23ec
+		// Header size: 12
+		// Code size: 5 (0x5)
+		.maxstack 2
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: cgt.un
+		IL_0004: ret
+	} // end of method Unsafe::IsAddressGreaterThan
+
+	.method public hidebysig static 
+		bool IsAddressLessThan<T> (
+			!!T& left,
+			!!T& right
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2400
+		// Header size: 12
+		// Code size: 5 (0x5)
+		.maxstack 2
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: clt.un
+		IL_0004: ret
+	} // end of method Unsafe::IsAddressLessThan
+
+	.method public hidebysig static 
+		bool IsNullRef<T> (
+			!!T& source
+		) cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2414
+		// Header size: 12
+		// Code size: 6 (0x6)
+		.maxstack 2
+
+		IL_0000: ldarg.0
+		IL_0001: ldc.i4.0
+		IL_0002: conv.u
+		IL_0003: ceq
+		IL_0005: ret
+	} // end of method Unsafe::IsNullRef
+
+	.method public hidebysig static 
+		!!T& NullRef<T> () cil managed aggressiveinlining 
+	{
+		.custom instance void System.Runtime.Versioning.NonVersionableAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2428
+		// Header size: 12
+		// Code size: 3 (0x3)
+		.maxstack 1
+
+		IL_0000: ldc.i4.0
+		IL_0001: conv.u
+		IL_0002: ret
+	} // end of method Unsafe::NullRef
+
+} // end of class System.Runtime.CompilerServices.Unsafe
+
+.class private auto ansi sealed beforefieldinit System.Runtime.Versioning.NonVersionableAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 6c 00 00 00 02 00 54 02 0d 41 6c 6c 6f 77
+		4d 75 6c 74 69 70 6c 65 00 54 02 09 49 6e 68 65
+		72 69 74 65 64 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x2438
+		// Header size: 12
+		// Code size: 7 (0x7)
+		.maxstack 1
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ret
+	} // end of method NonVersionableAttribute::.ctor
+
+} // end of class System.Runtime.Versioning.NonVersionableAttribute
+
+.class private auto ansi sealed beforefieldinit System.Runtime.CompilerServices.IsReadOnlyAttribute
+	extends [mscorlib]System.Attribute
+{
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x244c
+		// Header size: 12
+		// Code size: 7 (0x7)
+		.maxstack 1
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ret
+	} // end of method IsReadOnlyAttribute::.ctor
+
+} // end of class System.Runtime.CompilerServices.IsReadOnlyAttribute
+
+.class private auto ansi sealed beforefieldinit System.Runtime.CompilerServices.NativeIntegerAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 84 6b 00 00 02 00 54 02 0d 41 6c 6c 6f 77
+		4d 75 6c 74 69 70 6c 65 00 54 02 09 49 6e 68 65
+		72 69 74 65 64 00
+	)
+	.custom instance void Microsoft.CodeAnalysis.EmbeddedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	// Fields
+	.field public initonly bool[] TransformFlags
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x245f
+		// Header size: 1
+		// Code size: 23 (0x17)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldc.i4.1
+		IL_0008: newarr [mscorlib]System.Boolean
+		IL_000d: dup
+		IL_000e: ldc.i4.0
+		IL_000f: ldc.i4.1
+		IL_0010: stelem.i1
+		IL_0011: stfld bool[] System.Runtime.CompilerServices.NativeIntegerAttribute::TransformFlags
+		IL_0016: ret
+	} // end of method NativeIntegerAttribute::.ctor
+
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			bool[] A_0
+		) cil managed 
+	{
+		// Method begins at RVA 0x2477
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld bool[] System.Runtime.CompilerServices.NativeIntegerAttribute::TransformFlags
+		IL_000d: ret
+	} // end of method NativeIntegerAttribute::.ctor
+
+} // end of class System.Runtime.CompilerServices.NativeIntegerAttribute
+
+.class private auto ansi sealed beforefieldinit Microsoft.CodeAnalysis.EmbeddedAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void Microsoft.CodeAnalysis.EmbeddedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x2486
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ret
+	} // end of method EmbeddedAttribute::.ctor
+
+} // end of class Microsoft.CodeAnalysis.EmbeddedAttribute
+

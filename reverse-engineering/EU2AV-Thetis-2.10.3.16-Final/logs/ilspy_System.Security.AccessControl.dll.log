@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\System.Security.AccessControl.dll
+assembly_sha256=8e71e09c1a2706704333d3ad20e286ace441c8b512dd2dbb6dc69540daec54c8
+csharp_files=20
+il_bytes=61468
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

@@ -1,0 +1,13 @@
+namespace ExCSS;
+
+internal sealed class MarginProperty : ShorthandProperty
+{
+	private static readonly IValueConverter StyleConverter = Converters.AutoLengthOrPercentConverter.Periodic(PropertyNames.MarginTop, PropertyNames.MarginRight, PropertyNames.MarginBottom, PropertyNames.MarginLeft).OrDefault(Length.Zero);
+
+	internal override IValueConverter Converter => StyleConverter;
+
+	internal MarginProperty()
+		: base(PropertyNames.Margin)
+	{
+	}
+}

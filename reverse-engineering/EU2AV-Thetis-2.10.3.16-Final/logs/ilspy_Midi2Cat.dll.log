@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\Midi2Cat.dll
+assembly_sha256=221a950e643a0fde1c5cdfdca05ea5ae62eb4f1365bd0d363a6bcbb17e54e513
+csharp_files=37
+il_bytes=968163
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

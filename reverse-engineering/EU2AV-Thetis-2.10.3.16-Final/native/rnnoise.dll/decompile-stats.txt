@@ -1,0 +1,9 @@
+program=rnnoise.dll
+language=x86:LE:64:default
+compiler=clangwindows
+functions_total=111
+functions_external_skipped=0
+functions_decompiled_ok=111
+functions_failed=0
+chunks=1
+cancelled=false

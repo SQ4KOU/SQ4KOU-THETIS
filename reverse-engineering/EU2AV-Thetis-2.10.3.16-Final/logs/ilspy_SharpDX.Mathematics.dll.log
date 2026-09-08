@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\SharpDX.Mathematics.dll
+assembly_sha256=4c9615496970ea84320e2a6e99f8fb828e3c7790384df5585d93fc368885d94e
+csharp_files=42
+il_bytes=2257880
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

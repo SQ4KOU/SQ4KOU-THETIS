@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\Discord.Net.Core.dll
+assembly_sha256=243da37b0d33f6f24b1e45afc75e2d6a424fa2c04c171b2344a63f66c1a7a122
+csharp_files=449
+il_bytes=5517804
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

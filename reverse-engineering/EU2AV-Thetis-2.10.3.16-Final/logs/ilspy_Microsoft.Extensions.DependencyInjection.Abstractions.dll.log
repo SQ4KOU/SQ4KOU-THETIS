@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\Microsoft.Extensions.DependencyInjection.Abstractions.dll
+assembly_sha256=30675dcc4e875cd25a3140108600c3b562421f67f9b773cdffe61f35b3021a78
+csharp_files=50
+il_bytes=515819
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

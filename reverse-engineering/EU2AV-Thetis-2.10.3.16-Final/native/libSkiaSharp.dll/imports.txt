@@ -1,0 +1,181 @@
+Microsoft (R) COFF/PE Dumper Version 14.51.36256.0
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+Dump of file D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\libSkiaSharp.dll
+
+File Type: DLL
+
+  Section contains the following imports:
+
+    ole32.dll
+             180966108 Import Address Table
+             180965D20 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                          2A CoCreateGuid
+                          2B CoCreateInstance
+
+    FONTSUB.dll
+             180966120 Import Address Table
+             180965D38 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                           0 CreateFontPackage
+
+    USER32.dll
+             180966130 Import Address Table
+             180965D48 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                         39F SystemParametersInfoW
+
+    d3d12.dll
+             180966140 Import Address Table
+             180965D58 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                           D D3D12SerializeRootSignature
+
+    D3DCOMPILER_47.dll
+             180966150 Import Address Table
+             180965D68 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                           1 D3DCompile
+
+    KERNEL32.dll
+             180966160 Import Address Table
+             180965D78 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                           0 AcquireSRWLockExclusive
+                           1 AcquireSRWLockShared
+                          86 CloseHandle
+                          9B CompareStringW
+                          BC CreateEventA
+                          C4 CreateFileMappingA
+                          CB CreateFileW
+                          E9 CreateSemaphoreA
+                         10A DecodePointer
+                         111 DeleteCriticalSection
+                         131 EncodePointer
+                         135 EnterCriticalSection
+                         159 EnumSystemLocalesW
+                         164 ExitProcess
+                         170 FileTimeToSystemTime
+                         17B FindClose
+                         181 FindFirstFileExW
+                         192 FindNextFileW
+                         1A5 FlushFileBuffers
+                         1B0 FreeEnvironmentStringsW
+                         1B1 FreeLibrary
+                         1B8 GetACP
+                         1C7 GetCPInfo
+                         1DC GetCommandLineA
+                         1DD GetCommandLineW
+                         1F0 GetConsoleCP
+                         202 GetConsoleMode
+                         217 GetCurrentDirectoryW
+                         21D GetCurrentProcess
+                         21E GetCurrentProcessId
+                         222 GetCurrentThreadId
+                         236 GetDriveTypeW
+                         23E GetEnvironmentStringsW
+                         24E GetFileInformationByHandle
+                         253 GetFileSizeEx
+                         255 GetFileType
+                         260 GetFullPathNameW
+                         267 GetLastError
+                         26B GetLocaleInfoW
+                         27A GetModuleFileNameW
+                         27D GetModuleHandleExW
+                         27E GetModuleHandleW
+                         29E GetOEMCP
+                         2B5 GetProcAddress
+                         2BB GetProcessHeap
+                         2D7 GetStartupInfoW
+                         2D9 GetStdHandle
+                         2DE GetStringTypeW
+                         2EE GetSystemTime
+                         2F0 GetSystemTimeAsFileTime
+                         315 GetTimeZoneInformation
+                         31B GetUserDefaultLCID
+                         34E HeapAlloc
+                         352 HeapFree
+                         355 HeapReAlloc
+                         357 HeapSize
+                         362 InitOnceExecuteOnce
+                         367 InitializeCriticalSection
+                         368 InitializeCriticalSectionAndSpinCount
+                         369 InitializeCriticalSectionEx
+                         36C InitializeSListHead
+                         36D InitializeSRWLock
+                         370 InterlockedFlushSList
+                         382 IsDebuggerPresent
+                         389 IsProcessorFeaturePresent
+                         38E IsValidCodePage
+                         390 IsValidLocale
+                         3B3 LCMapStringEx
+                         3B4 LCMapStringW
+                         3C0 LeaveCriticalSection
+                         3C4 LoadLibraryA
+                         3C6 LoadLibraryExW
+                         3C7 LoadLibraryW
+                         3E1 MapViewOfFile
+                         3F2 MultiByteToWideChar
+                         41B OutputDebugStringA
+                         425 PeekNamedPipe
+                         450 QueryPerformanceCounter
+                         451 QueryPerformanceFrequency
+                         466 RaiseException
+                         474 ReadConsoleW
+                         477 ReadFile
+                         4B6 ReleaseSRWLockExclusive
+                         4B7 ReleaseSRWLockShared
+                         4B8 ReleaseSemaphore
+                         4D3 RtlCaptureContext
+                         4DA RtlLookupFunctionEntry
+                         4DC RtlPcToFileHeader
+                         4DF RtlUnwind
+                         4E0 RtlUnwindEx
+                         4E1 RtlVirtualUnwind
+                         51E SetEndOfFile
+                         522 SetEnvironmentVariableW
+                         531 SetFilePointerEx
+                         53F SetLastError
+                         557 SetStdHandle
+                         57B SetUnhandledExceptionFilter
+                         58B Sleep
+                         58D SleepConditionVariableSRW
+                         597 SystemTimeToTzSpecificLocalTime
+                         59A TerminateProcess
+                         5AC TlsAlloc
+                         5AD TlsFree
+                         5AE TlsGetValue
+                         5AF TlsSetValue
+                         5B3 TryAcquireSRWLockExclusive
+                         5BC UnhandledExceptionFilter
+                         5BF UnmapViewOfFile
+                         5E6 WaitForSingleObject
+                         5EE WakeAllConditionVariable
+                         60D WideCharToMultiByte
+                         620 WriteConsoleW
+                         621 WriteFile
+
+  Summary
+
+        F000 .data
+       62000 .pdata
+      202000 .rdata
+        8000 .reloc
+        1000 .retplne
+      89E000 .text
+        1000 .tls
+        1000 _RDATA

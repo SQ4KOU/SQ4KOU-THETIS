@@ -1,0 +1,9 @@
+program=rnnoise_avx2.dll
+language=x86:LE:64:default
+compiler=clangwindows
+functions_total=110
+functions_external_skipped=0
+functions_decompiled_ok=110
+functions_failed=0
+chunks=1
+cancelled=false

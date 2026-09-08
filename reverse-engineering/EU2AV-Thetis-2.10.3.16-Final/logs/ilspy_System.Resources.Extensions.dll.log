@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\System.Resources.Extensions.dll
+assembly_sha256=e32ed1de4104a122bf3deede49ab061e6c3bc04790c346b640cb0bc27133a2b4
+csharp_files=60
+il_bytes=711670
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

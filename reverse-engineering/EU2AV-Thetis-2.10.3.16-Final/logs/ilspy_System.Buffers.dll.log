@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\System.Buffers.dll
+assembly_sha256=2d78d770c9cb997199154ae8c018b9f1d1efbc86729f7264dde6dbad2a12cac3
+csharp_files=7
+il_bytes=58090
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

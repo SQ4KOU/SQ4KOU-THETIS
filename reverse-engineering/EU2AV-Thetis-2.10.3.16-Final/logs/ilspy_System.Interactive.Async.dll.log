@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\System.Interactive.Async.dll
+assembly_sha256=399e17fea584ab79ed39f7a658e3d65d0be6c283761678b68ddee493e670d61b
+csharp_files=15
+il_bytes=5968157
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

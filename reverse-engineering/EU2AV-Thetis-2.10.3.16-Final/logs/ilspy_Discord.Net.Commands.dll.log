@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\Discord.Net.Commands.dll
+assembly_sha256=9eda875c3c361136095db0d5e497f7f4f7e0831f480304a653d0b8504da5811c
+csharp_files=71
+il_bytes=1700848
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

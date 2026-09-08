@@ -1,0 +1,61 @@
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using Microsoft.CodeAnalysis.CSharp.Symbols;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+
+namespace Microsoft.CodeAnalysis.CSharp;
+
+internal abstract class AbstractRegionDataFlowPass : DefiniteAssignmentPass
+{
+	internal AbstractRegionDataFlowPass(CSharpCompilation compilation, Symbol member, BoundNode node, BoundNode firstInRegion, BoundNode lastInRegion, HashSet<Symbol> initiallyAssignedVariables = null, HashSet<PrefixUnaryExpressionSyntax> unassignedVariableAddressOfSyntaxes = null, bool trackUnassignments = false)
+		: base(compilation, member, node, firstInRegion, lastInRegion, initiallyAssignedVariables, unassignedVariableAddressOfSyntaxes, trackUnassignments)
+	{
+	}
+
+	protected override ImmutableArray<PendingBranch> Scan(ref bool badRegion)
+	{
+		MakeSlots(base.MethodParameters);
+		if ((object)base.MethodThisParameter != null)
+		{
+			GetOrCreateSlot(base.MethodThisParameter);
+		}
+		if (_symbol.TryGetInstanceExtensionParameter(out ParameterSymbol extensionParameter))
+		{
+			GetOrCreateSlot(extensionParameter);
+		}
+		return base.Scan(ref badRegion);
+	}
+
+	public override BoundNode VisitLambda(BoundLambda node)
+	{
+		MakeSlots(node.Symbol.Parameters);
+		return base.VisitLambda(node);
+	}
+
+	public override BoundNode VisitLocalFunctionStatement(BoundLocalFunctionStatement node)
+	{
+		MakeSlots(node.Symbol.Parameters);
+		return base.VisitLocalFunctionStatement(node);
+	}
+
+	public override BoundNode VisitNameOfOperator(BoundNameOfOperator node)
+	{
+		return node;
+	}
+
+	private void MakeSlots(ImmutableArray<ParameterSymbol> parameters)
+	{
+		foreach (ParameterSymbol item in parameters)
+		{
+			GetOrCreateSlot(item);
+		}
+	}
+
+	protected override void AfterVisitInlineArrayAccess(BoundInlineArrayAccess node)
+	{
+	}
+
+	protected override void AfterVisitConversion(BoundConversion node)
+	{
+	}
+}

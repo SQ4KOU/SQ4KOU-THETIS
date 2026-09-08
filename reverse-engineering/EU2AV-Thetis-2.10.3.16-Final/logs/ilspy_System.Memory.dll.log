@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\System.Memory.dll
+assembly_sha256=d5e8e4866f9cfa66f7765660f84b210198893e55335487afe5ebda342c0e913d
+csharp_files=43
+il_bytes=1431753
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

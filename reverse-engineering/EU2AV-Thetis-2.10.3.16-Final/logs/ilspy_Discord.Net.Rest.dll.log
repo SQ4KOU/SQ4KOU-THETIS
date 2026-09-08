@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\Discord.Net.Rest.dll
+assembly_sha256=4352cbe6bd8756ac7655af3d07e3836c7fc86dd5a7a4b5558b3e87a10d2753ab
+csharp_files=487
+il_bytes=17902583
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

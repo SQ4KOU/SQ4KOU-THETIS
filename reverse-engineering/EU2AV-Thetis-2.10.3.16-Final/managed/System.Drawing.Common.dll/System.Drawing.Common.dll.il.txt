@@ -1,0 +1,3309 @@
+// IL code: System.Drawing.Common
+.class private auto ansi '<Module>'
+{
+} // end of class <Module>
+
+.class private auto ansi sealed beforefieldinit Microsoft.CodeAnalysis.EmbeddedAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void Microsoft.CodeAnalysis.EmbeddedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x2050
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ret
+	} // end of method EmbeddedAttribute::.ctor
+
+} // end of class Microsoft.CodeAnalysis.EmbeddedAttribute
+
+.class private auto ansi sealed beforefieldinit System.Runtime.CompilerServices.NullableAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void Microsoft.CodeAnalysis.EmbeddedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 84 6b 00 00 02 00 54 02 0d 41 6c 6c 6f 77
+		4d 75 6c 74 69 70 6c 65 00 54 02 09 49 6e 68 65
+		72 69 74 65 64 00
+	)
+	// Fields
+	.field public initonly uint8[] NullableFlags
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			uint8 ''
+		) cil managed 
+	{
+		// Method begins at RVA 0x2058
+		// Header size: 1
+		// Code size: 23 (0x17)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldc.i4.1
+		IL_0008: newarr [mscorlib]System.Byte
+		IL_000d: dup
+		IL_000e: ldc.i4.0
+		IL_000f: ldarg.1
+		IL_0010: stelem.i1
+		IL_0011: stfld uint8[] System.Runtime.CompilerServices.NullableAttribute::NullableFlags
+		IL_0016: ret
+	} // end of method NullableAttribute::.ctor
+
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			uint8[] ''
+		) cil managed 
+	{
+		// Method begins at RVA 0x2070
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld uint8[] System.Runtime.CompilerServices.NullableAttribute::NullableFlags
+		IL_000d: ret
+	} // end of method NullableAttribute::.ctor
+
+} // end of class System.Runtime.CompilerServices.NullableAttribute
+
+.class private auto ansi sealed beforefieldinit System.Runtime.CompilerServices.NullableContextAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void Microsoft.CodeAnalysis.EmbeddedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 4c 14 00 00 02 00 54 02 0d 41 6c 6c 6f 77
+		4d 75 6c 74 69 70 6c 65 00 54 02 09 49 6e 68 65
+		72 69 74 65 64 00
+	)
+	// Fields
+	.field public initonly uint8 Flag
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			uint8 ''
+		) cil managed 
+	{
+		// Method begins at RVA 0x207f
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld uint8 System.Runtime.CompilerServices.NullableContextAttribute::Flag
+		IL_000d: ret
+	} // end of method NullableContextAttribute::.ctor
+
+} // end of class System.Runtime.CompilerServices.NullableContextAttribute
+
+.class private auto ansi sealed beforefieldinit System.Runtime.CompilerServices.RefSafetyRulesAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void Microsoft.CodeAnalysis.EmbeddedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 02 00 00 00 02 00 54 02 0d 41 6c 6c 6f 77
+		4d 75 6c 74 69 70 6c 65 00 54 02 09 49 6e 68 65
+		72 69 74 65 64 00
+	)
+	// Fields
+	.field public initonly int32 Version
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			int32 ''
+		) cil managed 
+	{
+		// Method begins at RVA 0x208e
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld int32 System.Runtime.CompilerServices.RefSafetyRulesAttribute::Version
+		IL_000d: ret
+	} // end of method RefSafetyRulesAttribute::.ctor
+
+} // end of class System.Runtime.CompilerServices.RefSafetyRulesAttribute
+
+.class private auto ansi abstract sealed beforefieldinit FXAssembly
+	extends [mscorlib]System.Object
+{
+	// Fields
+	.field assembly static literal string Version = "4.0.0.0"
+	.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+		01 00 01 00 00
+	)
+
+} // end of class FXAssembly
+
+.class private auto ansi abstract sealed beforefieldinit AssemblyRef
+	extends [mscorlib]System.Object
+{
+	.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+		01 00 01 00 00
+	)
+	.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+		01 00 00 00 00
+	)
+	// Fields
+	.field assembly static literal string MicrosoftPublicKey = "b03f5f7f11d50a3a"
+	.field assembly static literal string SystemDrawingDesign = "System.Drawing.Design, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a"
+	.field assembly static literal string SystemDrawing = "System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a"
+
+} // end of class AssemblyRef
+
+.class private auto ansi abstract sealed beforefieldinit FxResources.System.Drawing.Common.SR
+	extends [mscorlib]System.Object
+{
+} // end of class FxResources.System.Drawing.Common.SR
+
+.class private auto ansi abstract sealed beforefieldinit System.SR
+	extends [mscorlib]System.Object
+{
+	// Fields
+	.field private static initonly bool s_usingResourceKeys
+	.field private static class [mscorlib]System.Resources.ResourceManager s_resourceManager
+
+	// Methods
+	.method assembly hidebysig static 
+		bool UsingResourceKeys () cil managed 
+	{
+		// Method begins at RVA 0x209d
+		// Header size: 1
+		// Code size: 6 (0x6)
+		.maxstack 8
+
+		IL_0000: ldsfld bool System.SR::s_usingResourceKeys
+		IL_0005: ret
+	} // end of method SR::UsingResourceKeys
+
+	.method assembly hidebysig static 
+		string GetResourceString (
+			string resourceKey
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 01 00 00
+		)
+		// Method begins at RVA 0x20a4
+		// Header size: 12
+		// Code size: 30 (0x1e)
+		.maxstack 2
+		.locals init (
+			[0] string
+		)
+
+		IL_0000: call bool System.SR::UsingResourceKeys()
+		IL_0005: brfalse.s IL_0009
+
+		IL_0007: ldarg.0
+		IL_0008: ret
+
+		IL_0009: ldnull
+		IL_000a: stloc.0
+		.try
+		{
+			IL_000b: call class [mscorlib]System.Resources.ResourceManager System.SR::get_ResourceManager()
+			IL_0010: ldarg.0
+			IL_0011: callvirt instance string [mscorlib]System.Resources.ResourceManager::GetString(string)
+			IL_0016: stloc.0
+			IL_0017: leave.s IL_001c
+		} // end .try
+		catch [mscorlib]System.Resources.MissingManifestResourceException
+		{
+			IL_0019: pop
+			IL_001a: leave.s IL_001c
+		} // end handler
+
+		IL_001c: ldloc.0
+		IL_001d: ret
+	} // end of method SR::GetResourceString
+
+	.method assembly hidebysig static 
+		string GetResourceString (
+			string resourceKey,
+			string defaultString
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 01 00 00
+		)
+		// Method begins at RVA 0x20e0
+		// Header size: 12
+		// Code size: 23 (0x17)
+		.maxstack 2
+		.locals init (
+			[0] string
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: call string System.SR::GetResourceString(string)
+		IL_0006: stloc.0
+		IL_0007: ldarg.0
+		IL_0008: ldloc.0
+		IL_0009: call bool [mscorlib]System.String::op_Equality(string, string)
+		IL_000e: brtrue.s IL_0015
+
+		IL_0010: ldloc.0
+		IL_0011: brfalse.s IL_0015
+
+		IL_0013: ldloc.0
+		IL_0014: ret
+
+		IL_0015: ldarg.1
+		IL_0016: ret
+	} // end of method SR::GetResourceString
+
+	.method assembly hidebysig static 
+		string Format (
+			string resourceFormat,
+			object p1
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 01 00 00
+		)
+		.param [2]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		// Method begins at RVA 0x2103
+		// Header size: 1
+		// Code size: 40 (0x28)
+		.maxstack 8
+
+		IL_0000: call bool System.SR::UsingResourceKeys()
+		IL_0005: brtrue.s IL_000f
+
+		IL_0007: ldarg.0
+		IL_0008: ldarg.1
+		IL_0009: call string [mscorlib]System.String::Format(string, object)
+		IL_000e: ret
+
+		IL_000f: ldstr ", "
+		IL_0014: ldc.i4.2
+		IL_0015: newarr [mscorlib]System.Object
+		IL_001a: dup
+		IL_001b: ldc.i4.0
+		IL_001c: ldarg.0
+		IL_001d: stelem.ref
+		IL_001e: dup
+		IL_001f: ldc.i4.1
+		IL_0020: ldarg.1
+		IL_0021: stelem.ref
+		IL_0022: call string [mscorlib]System.String::Join(string, object[])
+		IL_0027: ret
+	} // end of method SR::Format
+
+	.method assembly hidebysig static 
+		string Format (
+			string resourceFormat,
+			object p1,
+			object p2
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 01 00 00
+		)
+		.param [2]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param [3]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		// Method begins at RVA 0x212c
+		// Header size: 1
+		// Code size: 45 (0x2d)
+		.maxstack 8
+
+		IL_0000: call bool System.SR::UsingResourceKeys()
+		IL_0005: brtrue.s IL_0010
+
+		IL_0007: ldarg.0
+		IL_0008: ldarg.1
+		IL_0009: ldarg.2
+		IL_000a: call string [mscorlib]System.String::Format(string, object, object)
+		IL_000f: ret
+
+		IL_0010: ldstr ", "
+		IL_0015: ldc.i4.3
+		IL_0016: newarr [mscorlib]System.Object
+		IL_001b: dup
+		IL_001c: ldc.i4.0
+		IL_001d: ldarg.0
+		IL_001e: stelem.ref
+		IL_001f: dup
+		IL_0020: ldc.i4.1
+		IL_0021: ldarg.1
+		IL_0022: stelem.ref
+		IL_0023: dup
+		IL_0024: ldc.i4.2
+		IL_0025: ldarg.2
+		IL_0026: stelem.ref
+		IL_0027: call string [mscorlib]System.String::Join(string, object[])
+		IL_002c: ret
+	} // end of method SR::Format
+
+	.method assembly hidebysig static 
+		string Format (
+			string resourceFormat,
+			object p1,
+			object p2,
+			object p3
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 02 00 00
+		)
+		.param [0]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 01 00 00
+			)
+		.param [1]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 01 00 00
+			)
+		// Method begins at RVA 0x215a
+		// Header size: 1
+		// Code size: 50 (0x32)
+		.maxstack 8
+
+		IL_0000: call bool System.SR::UsingResourceKeys()
+		IL_0005: brtrue.s IL_0011
+
+		IL_0007: ldarg.0
+		IL_0008: ldarg.1
+		IL_0009: ldarg.2
+		IL_000a: ldarg.3
+		IL_000b: call string [mscorlib]System.String::Format(string, object, object, object)
+		IL_0010: ret
+
+		IL_0011: ldstr ", "
+		IL_0016: ldc.i4.4
+		IL_0017: newarr [mscorlib]System.Object
+		IL_001c: dup
+		IL_001d: ldc.i4.0
+		IL_001e: ldarg.0
+		IL_001f: stelem.ref
+		IL_0020: dup
+		IL_0021: ldc.i4.1
+		IL_0022: ldarg.1
+		IL_0023: stelem.ref
+		IL_0024: dup
+		IL_0025: ldc.i4.2
+		IL_0026: ldarg.2
+		IL_0027: stelem.ref
+		IL_0028: dup
+		IL_0029: ldc.i4.3
+		IL_002a: ldarg.3
+		IL_002b: stelem.ref
+		IL_002c: call string [mscorlib]System.String::Join(string, object[])
+		IL_0031: ret
+	} // end of method SR::Format
+
+	.method assembly hidebysig static 
+		string Format (
+			string resourceFormat,
+			object[] args
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 01 00 00
+		)
+		.param [2]
+			.custom instance void [mscorlib]System.ParamArrayAttribute::.ctor() = (
+				01 00 00 00
+			)
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		// Method begins at RVA 0x218d
+		// Header size: 1
+		// Code size: 43 (0x2b)
+		.maxstack 8
+
+		IL_0000: ldarg.1
+		IL_0001: brtrue.s IL_0005
+
+		IL_0003: ldarg.0
+		IL_0004: ret
+
+		IL_0005: call bool System.SR::UsingResourceKeys()
+		IL_000a: brtrue.s IL_0014
+
+		IL_000c: ldarg.0
+		IL_000d: ldarg.1
+		IL_000e: call string [mscorlib]System.String::Format(string, object[])
+		IL_0013: ret
+
+		IL_0014: ldarg.0
+		IL_0015: ldstr ", "
+		IL_001a: ldstr ", "
+		IL_001f: ldarg.1
+		IL_0020: call string [mscorlib]System.String::Join(string, object[])
+		IL_0025: call string [mscorlib]System.String::Concat(string, string, string)
+		IL_002a: ret
+	} // end of method SR::Format
+
+	.method assembly hidebysig static 
+		string Format (
+			class [mscorlib]System.IFormatProvider provider,
+			string resourceFormat,
+			object p1
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 01 00 00
+		)
+		.param [1]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param [3]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		// Method begins at RVA 0x21b9
+		// Header size: 1
+		// Code size: 41 (0x29)
+		.maxstack 8
+
+		IL_0000: call bool System.SR::UsingResourceKeys()
+		IL_0005: brtrue.s IL_0010
+
+		IL_0007: ldarg.0
+		IL_0008: ldarg.1
+		IL_0009: ldarg.2
+		IL_000a: call string [mscorlib]System.String::Format(class [mscorlib]System.IFormatProvider, string, object)
+		IL_000f: ret
+
+		IL_0010: ldstr ", "
+		IL_0015: ldc.i4.2
+		IL_0016: newarr [mscorlib]System.Object
+		IL_001b: dup
+		IL_001c: ldc.i4.0
+		IL_001d: ldarg.1
+		IL_001e: stelem.ref
+		IL_001f: dup
+		IL_0020: ldc.i4.1
+		IL_0021: ldarg.2
+		IL_0022: stelem.ref
+		IL_0023: call string [mscorlib]System.String::Join(string, object[])
+		IL_0028: ret
+	} // end of method SR::Format
+
+	.method assembly hidebysig static 
+		string Format (
+			class [mscorlib]System.IFormatProvider provider,
+			string resourceFormat,
+			object p1,
+			object p2
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 02 00 00
+		)
+		.param [0]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 01 00 00
+			)
+		.param [2]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 01 00 00
+			)
+		// Method begins at RVA 0x21e3
+		// Header size: 1
+		// Code size: 46 (0x2e)
+		.maxstack 8
+
+		IL_0000: call bool System.SR::UsingResourceKeys()
+		IL_0005: brtrue.s IL_0011
+
+		IL_0007: ldarg.0
+		IL_0008: ldarg.1
+		IL_0009: ldarg.2
+		IL_000a: ldarg.3
+		IL_000b: call string [mscorlib]System.String::Format(class [mscorlib]System.IFormatProvider, string, object, object)
+		IL_0010: ret
+
+		IL_0011: ldstr ", "
+		IL_0016: ldc.i4.3
+		IL_0017: newarr [mscorlib]System.Object
+		IL_001c: dup
+		IL_001d: ldc.i4.0
+		IL_001e: ldarg.1
+		IL_001f: stelem.ref
+		IL_0020: dup
+		IL_0021: ldc.i4.1
+		IL_0022: ldarg.2
+		IL_0023: stelem.ref
+		IL_0024: dup
+		IL_0025: ldc.i4.2
+		IL_0026: ldarg.3
+		IL_0027: stelem.ref
+		IL_0028: call string [mscorlib]System.String::Join(string, object[])
+		IL_002d: ret
+	} // end of method SR::Format
+
+	.method assembly hidebysig static 
+		string Format (
+			class [mscorlib]System.IFormatProvider provider,
+			string resourceFormat,
+			object p1,
+			object p2,
+			object p3
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 02 00 00
+		)
+		.param [0]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 01 00 00
+			)
+		.param [2]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 01 00 00
+			)
+		// Method begins at RVA 0x2212
+		// Header size: 1
+		// Code size: 53 (0x35)
+		.maxstack 8
+
+		IL_0000: call bool System.SR::UsingResourceKeys()
+		IL_0005: brtrue.s IL_0013
+
+		IL_0007: ldarg.0
+		IL_0008: ldarg.1
+		IL_0009: ldarg.2
+		IL_000a: ldarg.3
+		IL_000b: ldarg.s p3
+		IL_000d: call string [mscorlib]System.String::Format(class [mscorlib]System.IFormatProvider, string, object, object, object)
+		IL_0012: ret
+
+		IL_0013: ldstr ", "
+		IL_0018: ldc.i4.4
+		IL_0019: newarr [mscorlib]System.Object
+		IL_001e: dup
+		IL_001f: ldc.i4.0
+		IL_0020: ldarg.1
+		IL_0021: stelem.ref
+		IL_0022: dup
+		IL_0023: ldc.i4.1
+		IL_0024: ldarg.2
+		IL_0025: stelem.ref
+		IL_0026: dup
+		IL_0027: ldc.i4.2
+		IL_0028: ldarg.3
+		IL_0029: stelem.ref
+		IL_002a: dup
+		IL_002b: ldc.i4.3
+		IL_002c: ldarg.s p3
+		IL_002e: stelem.ref
+		IL_002f: call string [mscorlib]System.String::Join(string, object[])
+		IL_0034: ret
+	} // end of method SR::Format
+
+	.method assembly hidebysig static 
+		string Format (
+			class [mscorlib]System.IFormatProvider provider,
+			string resourceFormat,
+			object[] args
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 01 00 00
+		)
+		.param [1]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param [3]
+			.custom instance void [mscorlib]System.ParamArrayAttribute::.ctor() = (
+				01 00 00 00
+			)
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		// Method begins at RVA 0x2248
+		// Header size: 1
+		// Code size: 44 (0x2c)
+		.maxstack 8
+
+		IL_0000: ldarg.2
+		IL_0001: brtrue.s IL_0005
+
+		IL_0003: ldarg.1
+		IL_0004: ret
+
+		IL_0005: call bool System.SR::UsingResourceKeys()
+		IL_000a: brtrue.s IL_0015
+
+		IL_000c: ldarg.0
+		IL_000d: ldarg.1
+		IL_000e: ldarg.2
+		IL_000f: call string [mscorlib]System.String::Format(class [mscorlib]System.IFormatProvider, string, object[])
+		IL_0014: ret
+
+		IL_0015: ldarg.1
+		IL_0016: ldstr ", "
+		IL_001b: ldstr ", "
+		IL_0020: ldarg.2
+		IL_0021: call string [mscorlib]System.String::Join(string, object[])
+		IL_0026: call string [mscorlib]System.String::Concat(string, string, string)
+		IL_002b: ret
+	} // end of method SR::Format
+
+	.method assembly hidebysig specialname static 
+		class [mscorlib]System.Resources.ResourceManager get_ResourceManager () cil managed 
+	{
+		// Method begins at RVA 0x2275
+		// Header size: 1
+		// Code size: 31 (0x1f)
+		.maxstack 8
+
+		IL_0000: ldsfld class [mscorlib]System.Resources.ResourceManager System.SR::s_resourceManager
+		IL_0005: dup
+		IL_0006: brtrue.s IL_001e
+
+		IL_0008: pop
+		IL_0009: ldtoken FxResources.System.Drawing.Common.SR
+		IL_000e: call class [mscorlib]System.Type [mscorlib]System.Type::GetTypeFromHandle(valuetype [mscorlib]System.RuntimeTypeHandle)
+		IL_0013: newobj instance void [mscorlib]System.Resources.ResourceManager::.ctor(class [mscorlib]System.Type)
+		IL_0018: dup
+		IL_0019: stsfld class [mscorlib]System.Resources.ResourceManager System.SR::s_resourceManager
+
+		IL_001e: ret
+	} // end of method SR::get_ResourceManager
+
+	.method assembly hidebysig specialname static 
+		string get_CantTellPrinterName () cil managed 
+	{
+		// Method begins at RVA 0x2295
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "CantTellPrinterName"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_CantTellPrinterName
+
+	.method assembly hidebysig specialname static 
+		string get_CantChangeImmutableObjects () cil managed 
+	{
+		// Method begins at RVA 0x22a1
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "CantChangeImmutableObjects"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_CantChangeImmutableObjects
+
+	.method assembly hidebysig specialname static 
+		string get_CantMakeIconTransparent () cil managed 
+	{
+		// Method begins at RVA 0x22ad
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "CantMakeIconTransparent"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_CantMakeIconTransparent
+
+	.method assembly hidebysig specialname static 
+		string get_ColorNotSystemColor () cil managed 
+	{
+		// Method begins at RVA 0x22b9
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "ColorNotSystemColor"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_ColorNotSystemColor
+
+	.method assembly hidebysig specialname static 
+		string get_GdiplusAborted () cil managed 
+	{
+		// Method begins at RVA 0x22c5
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "GdiplusAborted"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_GdiplusAborted
+
+	.method assembly hidebysig specialname static 
+		string get_GdiplusAccessDenied () cil managed 
+	{
+		// Method begins at RVA 0x22d1
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "GdiplusAccessDenied"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_GdiplusAccessDenied
+
+	.method assembly hidebysig specialname static 
+		string get_GdiplusCannotCreateGraphicsFromIndexedPixelFormat () cil managed 
+	{
+		// Method begins at RVA 0x22dd
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "GdiplusCannotCreateGraphicsFromIndexedPixelFormat"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_GdiplusCannotCreateGraphicsFromIndexedPixelFormat
+
+	.method assembly hidebysig specialname static 
+		string get_GdiplusCannotSetPixelFromIndexedPixelFormat () cil managed 
+	{
+		// Method begins at RVA 0x22e9
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "GdiplusCannotSetPixelFromIndexedPixelFormat"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_GdiplusCannotSetPixelFromIndexedPixelFormat
+
+	.method assembly hidebysig specialname static 
+		string get_GdiplusDestPointsInvalidParallelogram () cil managed 
+	{
+		// Method begins at RVA 0x22f5
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "GdiplusDestPointsInvalidParallelogram"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_GdiplusDestPointsInvalidParallelogram
+
+	.method assembly hidebysig specialname static 
+		string get_GdiplusDestPointsInvalidLength () cil managed 
+	{
+		// Method begins at RVA 0x2301
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "GdiplusDestPointsInvalidLength"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_GdiplusDestPointsInvalidLength
+
+	.method assembly hidebysig specialname static 
+		string get_GdiplusFileNotFound () cil managed 
+	{
+		// Method begins at RVA 0x230d
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "GdiplusFileNotFound"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_GdiplusFileNotFound
+
+	.method assembly hidebysig specialname static 
+		string get_GdiplusFontFamilyNotFound () cil managed 
+	{
+		// Method begins at RVA 0x2319
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "GdiplusFontFamilyNotFound"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_GdiplusFontFamilyNotFound
+
+	.method assembly hidebysig specialname static 
+		string get_GdiplusFontStyleNotFound () cil managed 
+	{
+		// Method begins at RVA 0x2325
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "GdiplusFontStyleNotFound"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_GdiplusFontStyleNotFound
+
+	.method assembly hidebysig specialname static 
+		string get_GdiplusGenericError () cil managed 
+	{
+		// Method begins at RVA 0x2331
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "GdiplusGenericError"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_GdiplusGenericError
+
+	.method assembly hidebysig specialname static 
+		string get_GdiplusInsufficientBuffer () cil managed 
+	{
+		// Method begins at RVA 0x233d
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "GdiplusInsufficientBuffer"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_GdiplusInsufficientBuffer
+
+	.method assembly hidebysig specialname static 
+		string get_GdiplusInvalidParameter () cil managed 
+	{
+		// Method begins at RVA 0x2349
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "GdiplusInvalidParameter"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_GdiplusInvalidParameter
+
+	.method assembly hidebysig specialname static 
+		string get_GdiplusInvalidRectangle () cil managed 
+	{
+		// Method begins at RVA 0x2355
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "GdiplusInvalidRectangle"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_GdiplusInvalidRectangle
+
+	.method assembly hidebysig specialname static 
+		string get_GdiplusInvalidSize () cil managed 
+	{
+		// Method begins at RVA 0x2361
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "GdiplusInvalidSize"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_GdiplusInvalidSize
+
+	.method assembly hidebysig specialname static 
+		string get_GdiplusNotImplemented () cil managed 
+	{
+		// Method begins at RVA 0x236d
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "GdiplusNotImplemented"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_GdiplusNotImplemented
+
+	.method assembly hidebysig specialname static 
+		string get_GdiplusNotInitialized () cil managed 
+	{
+		// Method begins at RVA 0x2379
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "GdiplusNotInitialized"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_GdiplusNotInitialized
+
+	.method assembly hidebysig specialname static 
+		string get_GdiplusNotTrueTypeFont () cil managed 
+	{
+		// Method begins at RVA 0x2385
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "GdiplusNotTrueTypeFont"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_GdiplusNotTrueTypeFont
+
+	.method assembly hidebysig specialname static 
+		string get_GdiplusNotTrueTypeFont_NoName () cil managed 
+	{
+		// Method begins at RVA 0x2391
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "GdiplusNotTrueTypeFont_NoName"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_GdiplusNotTrueTypeFont_NoName
+
+	.method assembly hidebysig specialname static 
+		string get_GdiplusObjectBusy () cil managed 
+	{
+		// Method begins at RVA 0x239d
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "GdiplusObjectBusy"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_GdiplusObjectBusy
+
+	.method assembly hidebysig specialname static 
+		string get_GdiplusOverflow () cil managed 
+	{
+		// Method begins at RVA 0x23a9
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "GdiplusOverflow"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_GdiplusOverflow
+
+	.method assembly hidebysig specialname static 
+		string get_GdiplusPropertyNotFoundError () cil managed 
+	{
+		// Method begins at RVA 0x23b5
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "GdiplusPropertyNotFoundError"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_GdiplusPropertyNotFoundError
+
+	.method assembly hidebysig specialname static 
+		string get_GdiplusPropertyNotSupportedError () cil managed 
+	{
+		// Method begins at RVA 0x23c1
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "GdiplusPropertyNotSupportedError"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_GdiplusPropertyNotSupportedError
+
+	.method assembly hidebysig specialname static 
+		string get_GdiplusUnknown () cil managed 
+	{
+		// Method begins at RVA 0x23cd
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "GdiplusUnknown"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_GdiplusUnknown
+
+	.method assembly hidebysig specialname static 
+		string get_GdiplusUnknownImageFormat () cil managed 
+	{
+		// Method begins at RVA 0x23d9
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "GdiplusUnknownImageFormat"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_GdiplusUnknownImageFormat
+
+	.method assembly hidebysig specialname static 
+		string get_GdiplusUnsupportedGdiplusVersion () cil managed 
+	{
+		// Method begins at RVA 0x23e5
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "GdiplusUnsupportedGdiplusVersion"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_GdiplusUnsupportedGdiplusVersion
+
+	.method assembly hidebysig specialname static 
+		string get_GdiplusWrongState () cil managed 
+	{
+		// Method begins at RVA 0x23f1
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "GdiplusWrongState"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_GdiplusWrongState
+
+	.method assembly hidebysig specialname static 
+		string get_GlobalAssemblyCache () cil managed 
+	{
+		// Method begins at RVA 0x23fd
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "GlobalAssemblyCache"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_GlobalAssemblyCache
+
+	.method assembly hidebysig specialname static 
+		string get_GraphicsBufferCurrentlyBusy () cil managed 
+	{
+		// Method begins at RVA 0x2409
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "GraphicsBufferCurrentlyBusy"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_GraphicsBufferCurrentlyBusy
+
+	.method assembly hidebysig specialname static 
+		string get_GraphicsBufferQueryFail () cil managed 
+	{
+		// Method begins at RVA 0x2415
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "GraphicsBufferQueryFail"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_GraphicsBufferQueryFail
+
+	.method assembly hidebysig specialname static 
+		string get_IconInvalidMaskLength () cil managed 
+	{
+		// Method begins at RVA 0x2421
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "IconInvalidMaskLength"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_IconInvalidMaskLength
+
+	.method assembly hidebysig specialname static 
+		string get_IllegalState () cil managed 
+	{
+		// Method begins at RVA 0x242d
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "IllegalState"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_IllegalState
+
+	.method assembly hidebysig specialname static 
+		string get_InterpolationColorsColorBlendNotSet () cil managed 
+	{
+		// Method begins at RVA 0x2439
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "InterpolationColorsColorBlendNotSet"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_InterpolationColorsColorBlendNotSet
+
+	.method assembly hidebysig specialname static 
+		string get_InterpolationColorsCommon () cil managed 
+	{
+		// Method begins at RVA 0x2445
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "InterpolationColorsCommon"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_InterpolationColorsCommon
+
+	.method assembly hidebysig specialname static 
+		string get_InterpolationColorsInvalidColorBlendObject () cil managed 
+	{
+		// Method begins at RVA 0x2451
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "InterpolationColorsInvalidColorBlendObject"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_InterpolationColorsInvalidColorBlendObject
+
+	.method assembly hidebysig specialname static 
+		string get_InterpolationColorsInvalidStartPosition () cil managed 
+	{
+		// Method begins at RVA 0x245d
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "InterpolationColorsInvalidStartPosition"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_InterpolationColorsInvalidStartPosition
+
+	.method assembly hidebysig specialname static 
+		string get_InterpolationColorsInvalidEndPosition () cil managed 
+	{
+		// Method begins at RVA 0x2469
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "InterpolationColorsInvalidEndPosition"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_InterpolationColorsInvalidEndPosition
+
+	.method assembly hidebysig specialname static 
+		string get_InterpolationColorsLength () cil managed 
+	{
+		// Method begins at RVA 0x2475
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "InterpolationColorsLength"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_InterpolationColorsLength
+
+	.method assembly hidebysig specialname static 
+		string get_InterpolationColorsLengthsDiffer () cil managed 
+	{
+		// Method begins at RVA 0x2481
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "InterpolationColorsLengthsDiffer"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_InterpolationColorsLengthsDiffer
+
+	.method assembly hidebysig specialname static 
+		string get_InvalidArgumentValue () cil managed 
+	{
+		// Method begins at RVA 0x248d
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "InvalidArgumentValue"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_InvalidArgumentValue
+
+	.method assembly hidebysig specialname static 
+		string get_InvalidArgumentValueFontConverter () cil managed 
+	{
+		// Method begins at RVA 0x2499
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "InvalidArgumentValueFontConverter"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_InvalidArgumentValueFontConverter
+
+	.method assembly hidebysig specialname static 
+		string get_InvalidBoundArgument () cil managed 
+	{
+		// Method begins at RVA 0x24a5
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "InvalidBoundArgument"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_InvalidBoundArgument
+
+	.method assembly hidebysig specialname static 
+		string get_InvalidColor () cil managed 
+	{
+		// Method begins at RVA 0x24b1
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "InvalidColor"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_InvalidColor
+
+	.method assembly hidebysig specialname static 
+		string get_InvalidDashPattern () cil managed 
+	{
+		// Method begins at RVA 0x24bd
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "InvalidDashPattern"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_InvalidDashPattern
+
+	.method assembly hidebysig specialname static 
+		string get_InvalidEx2BoundArgument () cil managed 
+	{
+		// Method begins at RVA 0x24c9
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "InvalidEx2BoundArgument"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_InvalidEx2BoundArgument
+
+	.method assembly hidebysig specialname static 
+		string get_InvalidGDIHandle () cil managed 
+	{
+		// Method begins at RVA 0x24d5
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "InvalidGDIHandle"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_InvalidGDIHandle
+
+	.method assembly hidebysig specialname static 
+		string get_InvalidImage () cil managed 
+	{
+		// Method begins at RVA 0x24e1
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "InvalidImage"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_InvalidImage
+
+	.method assembly hidebysig specialname static 
+		string get_InvalidLowBoundArgumentEx () cil managed 
+	{
+		// Method begins at RVA 0x24ed
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "InvalidLowBoundArgumentEx"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_InvalidLowBoundArgumentEx
+
+	.method assembly hidebysig specialname static 
+		string get_InvalidPermissionState () cil managed 
+	{
+		// Method begins at RVA 0x24f9
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "InvalidPermissionState"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_InvalidPermissionState
+
+	.method assembly hidebysig specialname static 
+		string get_InvalidPictureType () cil managed 
+	{
+		// Method begins at RVA 0x2505
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "InvalidPictureType"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_InvalidPictureType
+
+	.method assembly hidebysig specialname static 
+		string get_InvalidPrinterException_InvalidPrinter () cil managed 
+	{
+		// Method begins at RVA 0x2511
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "InvalidPrinterException_InvalidPrinter"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_InvalidPrinterException_InvalidPrinter
+
+	.method assembly hidebysig specialname static 
+		string get_InvalidPrinterException_NoDefaultPrinter () cil managed 
+	{
+		// Method begins at RVA 0x251d
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "InvalidPrinterException_NoDefaultPrinter"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_InvalidPrinterException_NoDefaultPrinter
+
+	.method assembly hidebysig specialname static 
+		string get_InvalidPrinterHandle () cil managed 
+	{
+		// Method begins at RVA 0x2529
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "InvalidPrinterHandle"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_InvalidPrinterHandle
+
+	.method assembly hidebysig specialname static 
+		string get_ValidRangeX () cil managed 
+	{
+		// Method begins at RVA 0x2535
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "ValidRangeX"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_ValidRangeX
+
+	.method assembly hidebysig specialname static 
+		string get_ValidRangeY () cil managed 
+	{
+		// Method begins at RVA 0x2541
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "ValidRangeY"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_ValidRangeY
+
+	.method assembly hidebysig specialname static 
+		string get_NativeHandle0 () cil managed 
+	{
+		// Method begins at RVA 0x254d
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "NativeHandle0"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_NativeHandle0
+
+	.method assembly hidebysig specialname static 
+		string get_NoDefaultPrinter () cil managed 
+	{
+		// Method begins at RVA 0x2559
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "NoDefaultPrinter"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_NoDefaultPrinter
+
+	.method assembly hidebysig specialname static 
+		string get_NotImplemented () cil managed 
+	{
+		// Method begins at RVA 0x2565
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "NotImplemented"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_NotImplemented
+
+	.method assembly hidebysig specialname static 
+		string get_PDOCbeginPrintDescr () cil managed 
+	{
+		// Method begins at RVA 0x2571
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "PDOCbeginPrintDescr"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_PDOCbeginPrintDescr
+
+	.method assembly hidebysig specialname static 
+		string get_PDOCdocumentNameDescr () cil managed 
+	{
+		// Method begins at RVA 0x257d
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "PDOCdocumentNameDescr"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_PDOCdocumentNameDescr
+
+	.method assembly hidebysig specialname static 
+		string get_PDOCdocumentPageSettingsDescr () cil managed 
+	{
+		// Method begins at RVA 0x2589
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "PDOCdocumentPageSettingsDescr"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_PDOCdocumentPageSettingsDescr
+
+	.method assembly hidebysig specialname static 
+		string get_PDOCendPrintDescr () cil managed 
+	{
+		// Method begins at RVA 0x2595
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "PDOCendPrintDescr"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_PDOCendPrintDescr
+
+	.method assembly hidebysig specialname static 
+		string get_PDOCoriginAtMarginsDescr () cil managed 
+	{
+		// Method begins at RVA 0x25a1
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "PDOCoriginAtMarginsDescr"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_PDOCoriginAtMarginsDescr
+
+	.method assembly hidebysig specialname static 
+		string get_PDOCprintControllerDescr () cil managed 
+	{
+		// Method begins at RVA 0x25ad
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "PDOCprintControllerDescr"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_PDOCprintControllerDescr
+
+	.method assembly hidebysig specialname static 
+		string get_PDOCprintPageDescr () cil managed 
+	{
+		// Method begins at RVA 0x25b9
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "PDOCprintPageDescr"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_PDOCprintPageDescr
+
+	.method assembly hidebysig specialname static 
+		string get_PDOCprinterSettingsDescr () cil managed 
+	{
+		// Method begins at RVA 0x25c5
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "PDOCprinterSettingsDescr"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_PDOCprinterSettingsDescr
+
+	.method assembly hidebysig specialname static 
+		string get_PDOCqueryPageSettingsDescr () cil managed 
+	{
+		// Method begins at RVA 0x25d1
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "PDOCqueryPageSettingsDescr"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_PDOCqueryPageSettingsDescr
+
+	.method assembly hidebysig specialname static 
+		string get_PrintDocumentDesc () cil managed 
+	{
+		// Method begins at RVA 0x25dd
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "PrintDocumentDesc"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_PrintDocumentDesc
+
+	.method assembly hidebysig specialname static 
+		string get_PropertyValueInvalidEntry () cil managed 
+	{
+		// Method begins at RVA 0x25e9
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "PropertyValueInvalidEntry"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_PropertyValueInvalidEntry
+
+	.method assembly hidebysig specialname static 
+		string get_PSizeNotCustom () cil managed 
+	{
+		// Method begins at RVA 0x25f5
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "PSizeNotCustom"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_PSizeNotCustom
+
+	.method assembly hidebysig specialname static 
+		string get_ResourceNotFound () cil managed 
+	{
+		// Method begins at RVA 0x2601
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "ResourceNotFound"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_ResourceNotFound
+
+	.method assembly hidebysig specialname static 
+		string get_TextParseFailedFormat () cil managed 
+	{
+		// Method begins at RVA 0x260d
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "TextParseFailedFormat"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_TextParseFailedFormat
+
+	.method assembly hidebysig specialname static 
+		string get_TriStateCompareError () cil managed 
+	{
+		// Method begins at RVA 0x2619
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "TriStateCompareError"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_TriStateCompareError
+
+	.method assembly hidebysig specialname static 
+		string get_toStringIcon () cil managed 
+	{
+		// Method begins at RVA 0x2625
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "toStringIcon"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_toStringIcon
+
+	.method assembly hidebysig specialname static 
+		string get_toStringNone () cil managed 
+	{
+		// Method begins at RVA 0x2631
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "toStringNone"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_toStringNone
+
+	.method assembly hidebysig specialname static 
+		string get_DCTypeInvalid () cil managed 
+	{
+		// Method begins at RVA 0x263d
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "DCTypeInvalid"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_DCTypeInvalid
+
+	.method assembly hidebysig specialname static 
+		string get_InvalidEnumArgument () cil managed 
+	{
+		// Method begins at RVA 0x2649
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "InvalidEnumArgument"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_InvalidEnumArgument
+
+	.method assembly hidebysig specialname static 
+		string get_ConvertInvalidPrimitive () cil managed 
+	{
+		// Method begins at RVA 0x2655
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "ConvertInvalidPrimitive"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_ConvertInvalidPrimitive
+
+	.method assembly hidebysig specialname static 
+		string get_BlendObjectMustHaveTwoElements () cil managed 
+	{
+		// Method begins at RVA 0x2661
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "BlendObjectMustHaveTwoElements"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_BlendObjectMustHaveTwoElements
+
+	.method assembly hidebysig specialname static 
+		string get_BlendObjectFirstElementInvalid () cil managed 
+	{
+		// Method begins at RVA 0x266d
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "BlendObjectFirstElementInvalid"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_BlendObjectFirstElementInvalid
+
+	.method assembly hidebysig specialname static 
+		string get_BlendObjectLastElementInvalid () cil managed 
+	{
+		// Method begins at RVA 0x2679
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "BlendObjectLastElementInvalid"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_BlendObjectLastElementInvalid
+
+	.method assembly hidebysig specialname static 
+		string get_AvailableOnlyOnWMF () cil managed 
+	{
+		// Method begins at RVA 0x2685
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "AvailableOnlyOnWMF"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_AvailableOnlyOnWMF
+
+	.method assembly hidebysig specialname static 
+		string get_CannotCreateGraphics () cil managed 
+	{
+		// Method begins at RVA 0x2691
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "CannotCreateGraphics"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_CannotCreateGraphics
+
+	.method assembly hidebysig specialname static 
+		string get_CouldNotOpenDisplay () cil managed 
+	{
+		// Method begins at RVA 0x269d
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "CouldNotOpenDisplay"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_CouldNotOpenDisplay
+
+	.method assembly hidebysig specialname static 
+		string get_CouldntFindSpecifiedFile () cil managed 
+	{
+		// Method begins at RVA 0x26a9
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "CouldntFindSpecifiedFile"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_CouldntFindSpecifiedFile
+
+	.method assembly hidebysig specialname static 
+		string get_IconInstanceWasDisposed () cil managed 
+	{
+		// Method begins at RVA 0x26b5
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "IconInstanceWasDisposed"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_IconInstanceWasDisposed
+
+	.method assembly hidebysig specialname static 
+		string get_InvalidGraphicsUnit () cil managed 
+	{
+		// Method begins at RVA 0x26c1
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "InvalidGraphicsUnit"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_InvalidGraphicsUnit
+
+	.method assembly hidebysig specialname static 
+		string get_InvalidThumbnailSize () cil managed 
+	{
+		// Method begins at RVA 0x26cd
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "InvalidThumbnailSize"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_InvalidThumbnailSize
+
+	.method assembly hidebysig specialname static 
+		string get_NoCodecAvailableForFormat () cil managed 
+	{
+		// Method begins at RVA 0x26d9
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "NoCodecAvailableForFormat"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_NoCodecAvailableForFormat
+
+	.method assembly hidebysig specialname static 
+		string get_NotImplementedUnderX11 () cil managed 
+	{
+		// Method begins at RVA 0x26e5
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "NotImplementedUnderX11"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_NotImplementedUnderX11
+
+	.method assembly hidebysig specialname static 
+		string get_none () cil managed 
+	{
+		// Method begins at RVA 0x26f1
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "none"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_none
+
+	.method assembly hidebysig specialname static 
+		string get_NoValidIconImageFound () cil managed 
+	{
+		// Method begins at RVA 0x26fd
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "NoValidIconImageFound"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_NoValidIconImageFound
+
+	.method assembly hidebysig specialname static 
+		string get_NullOrEmptyPath () cil managed 
+	{
+		// Method begins at RVA 0x2709
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "NullOrEmptyPath"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_NullOrEmptyPath
+
+	.method assembly hidebysig specialname static 
+		string get_NumberOfPointsAndTypesMustBeSame () cil managed 
+	{
+		// Method begins at RVA 0x2715
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "NumberOfPointsAndTypesMustBeSame"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_NumberOfPointsAndTypesMustBeSame
+
+	.method assembly hidebysig specialname static 
+		string get_ObjectDisposed () cil managed 
+	{
+		// Method begins at RVA 0x2721
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "ObjectDisposed"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_ObjectDisposed
+
+	.method assembly hidebysig specialname static 
+		string get_ValueLessThenZero () cil managed 
+	{
+		// Method begins at RVA 0x272d
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "ValueLessThenZero"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_ValueLessThenZero
+
+	.method assembly hidebysig specialname static 
+		string get_ValueNotOneOfValues () cil managed 
+	{
+		// Method begins at RVA 0x2739
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "ValueNotOneOfValues"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_ValueNotOneOfValues
+
+	.method assembly hidebysig specialname static 
+		string get_TargetDirectoryDoesNotExist () cil managed 
+	{
+		// Method begins at RVA 0x2745
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "TargetDirectoryDoesNotExist"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_TargetDirectoryDoesNotExist
+
+	.method assembly hidebysig specialname static 
+		string get_SystemDrawingCommon_PlatformNotSupported () cil managed 
+	{
+		// Method begins at RVA 0x2751
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "SystemDrawingCommon_PlatformNotSupported"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_SystemDrawingCommon_PlatformNotSupported
+
+	.method assembly hidebysig specialname static 
+		string get_IconCouldNotBeExtracted () cil managed 
+	{
+		// Method begins at RVA 0x275d
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "IconCouldNotBeExtracted"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_IconCouldNotBeExtracted
+
+	.method private hidebysig specialname rtspecialname static 
+		void .cctor () cil managed 
+	{
+		// Method begins at RVA 0x276c
+		// Header size: 12
+		// Code size: 20 (0x14)
+		.maxstack 2
+		.locals init (
+			[0] bool
+		)
+
+		IL_0000: ldstr "System.Resources.UseSystemResourceKeys"
+		IL_0005: ldloca.s 0
+		IL_0007: call bool [mscorlib]System.AppContext::TryGetSwitch(string, bool&)
+		IL_000c: ldloc.0
+		IL_000d: and
+		IL_000e: stsfld bool System.SR::s_usingResourceKeys
+		IL_0013: ret
+	} // end of method SR::.cctor
+
+	// Properties
+	.property class [mscorlib]System.Resources.ResourceManager ResourceManager()
+	{
+		.get class [mscorlib]System.Resources.ResourceManager System.SR::get_ResourceManager()
+	}
+	.property string CantTellPrinterName()
+	{
+		.get string System.SR::get_CantTellPrinterName()
+	}
+	.property string CantChangeImmutableObjects()
+	{
+		.get string System.SR::get_CantChangeImmutableObjects()
+	}
+	.property string CantMakeIconTransparent()
+	{
+		.get string System.SR::get_CantMakeIconTransparent()
+	}
+	.property string ColorNotSystemColor()
+	{
+		.get string System.SR::get_ColorNotSystemColor()
+	}
+	.property string GdiplusAborted()
+	{
+		.get string System.SR::get_GdiplusAborted()
+	}
+	.property string GdiplusAccessDenied()
+	{
+		.get string System.SR::get_GdiplusAccessDenied()
+	}
+	.property string GdiplusCannotCreateGraphicsFromIndexedPixelFormat()
+	{
+		.get string System.SR::get_GdiplusCannotCreateGraphicsFromIndexedPixelFormat()
+	}
+	.property string GdiplusCannotSetPixelFromIndexedPixelFormat()
+	{
+		.get string System.SR::get_GdiplusCannotSetPixelFromIndexedPixelFormat()
+	}
+	.property string GdiplusDestPointsInvalidParallelogram()
+	{
+		.get string System.SR::get_GdiplusDestPointsInvalidParallelogram()
+	}
+	.property string GdiplusDestPointsInvalidLength()
+	{
+		.get string System.SR::get_GdiplusDestPointsInvalidLength()
+	}
+	.property string GdiplusFileNotFound()
+	{
+		.get string System.SR::get_GdiplusFileNotFound()
+	}
+	.property string GdiplusFontFamilyNotFound()
+	{
+		.get string System.SR::get_GdiplusFontFamilyNotFound()
+	}
+	.property string GdiplusFontStyleNotFound()
+	{
+		.get string System.SR::get_GdiplusFontStyleNotFound()
+	}
+	.property string GdiplusGenericError()
+	{
+		.get string System.SR::get_GdiplusGenericError()
+	}
+	.property string GdiplusInsufficientBuffer()
+	{
+		.get string System.SR::get_GdiplusInsufficientBuffer()
+	}
+	.property string GdiplusInvalidParameter()
+	{
+		.get string System.SR::get_GdiplusInvalidParameter()
+	}
+	.property string GdiplusInvalidRectangle()
+	{
+		.get string System.SR::get_GdiplusInvalidRectangle()
+	}
+	.property string GdiplusInvalidSize()
+	{
+		.get string System.SR::get_GdiplusInvalidSize()
+	}
+	.property string GdiplusNotImplemented()
+	{
+		.get string System.SR::get_GdiplusNotImplemented()
+	}
+	.property string GdiplusNotInitialized()
+	{
+		.get string System.SR::get_GdiplusNotInitialized()
+	}
+	.property string GdiplusNotTrueTypeFont()
+	{
+		.get string System.SR::get_GdiplusNotTrueTypeFont()
+	}
+	.property string GdiplusNotTrueTypeFont_NoName()
+	{
+		.get string System.SR::get_GdiplusNotTrueTypeFont_NoName()
+	}
+	.property string GdiplusObjectBusy()
+	{
+		.get string System.SR::get_GdiplusObjectBusy()
+	}
+	.property string GdiplusOverflow()
+	{
+		.get string System.SR::get_GdiplusOverflow()
+	}
+	.property string GdiplusPropertyNotFoundError()
+	{
+		.get string System.SR::get_GdiplusPropertyNotFoundError()
+	}
+	.property string GdiplusPropertyNotSupportedError()
+	{
+		.get string System.SR::get_GdiplusPropertyNotSupportedError()
+	}
+	.property string GdiplusUnknown()
+	{
+		.get string System.SR::get_GdiplusUnknown()
+	}
+	.property string GdiplusUnknownImageFormat()
+	{
+		.get string System.SR::get_GdiplusUnknownImageFormat()
+	}
+	.property string GdiplusUnsupportedGdiplusVersion()
+	{
+		.get string System.SR::get_GdiplusUnsupportedGdiplusVersion()
+	}
+	.property string GdiplusWrongState()
+	{
+		.get string System.SR::get_GdiplusWrongState()
+	}
+	.property string GlobalAssemblyCache()
+	{
+		.get string System.SR::get_GlobalAssemblyCache()
+	}
+	.property string GraphicsBufferCurrentlyBusy()
+	{
+		.get string System.SR::get_GraphicsBufferCurrentlyBusy()
+	}
+	.property string GraphicsBufferQueryFail()
+	{
+		.get string System.SR::get_GraphicsBufferQueryFail()
+	}
+	.property string IconInvalidMaskLength()
+	{
+		.get string System.SR::get_IconInvalidMaskLength()
+	}
+	.property string IllegalState()
+	{
+		.get string System.SR::get_IllegalState()
+	}
+	.property string InterpolationColorsColorBlendNotSet()
+	{
+		.get string System.SR::get_InterpolationColorsColorBlendNotSet()
+	}
+	.property string InterpolationColorsCommon()
+	{
+		.get string System.SR::get_InterpolationColorsCommon()
+	}
+	.property string InterpolationColorsInvalidColorBlendObject()
+	{
+		.get string System.SR::get_InterpolationColorsInvalidColorBlendObject()
+	}
+	.property string InterpolationColorsInvalidStartPosition()
+	{
+		.get string System.SR::get_InterpolationColorsInvalidStartPosition()
+	}
+	.property string InterpolationColorsInvalidEndPosition()
+	{
+		.get string System.SR::get_InterpolationColorsInvalidEndPosition()
+	}
+	.property string InterpolationColorsLength()
+	{
+		.get string System.SR::get_InterpolationColorsLength()
+	}
+	.property string InterpolationColorsLengthsDiffer()
+	{
+		.get string System.SR::get_InterpolationColorsLengthsDiffer()
+	}
+	.property string InvalidArgumentValue()
+	{
+		.get string System.SR::get_InvalidArgumentValue()
+	}
+	.property string InvalidArgumentValueFontConverter()
+	{
+		.get string System.SR::get_InvalidArgumentValueFontConverter()
+	}
+	.property string InvalidBoundArgument()
+	{
+		.get string System.SR::get_InvalidBoundArgument()
+	}
+	.property string InvalidColor()
+	{
+		.get string System.SR::get_InvalidColor()
+	}
+	.property string InvalidDashPattern()
+	{
+		.get string System.SR::get_InvalidDashPattern()
+	}
+	.property string InvalidEx2BoundArgument()
+	{
+		.get string System.SR::get_InvalidEx2BoundArgument()
+	}
+	.property string InvalidGDIHandle()
+	{
+		.get string System.SR::get_InvalidGDIHandle()
+	}
+	.property string InvalidImage()
+	{
+		.get string System.SR::get_InvalidImage()
+	}
+	.property string InvalidLowBoundArgumentEx()
+	{
+		.get string System.SR::get_InvalidLowBoundArgumentEx()
+	}
+	.property string InvalidPermissionState()
+	{
+		.get string System.SR::get_InvalidPermissionState()
+	}
+	.property string InvalidPictureType()
+	{
+		.get string System.SR::get_InvalidPictureType()
+	}
+	.property string InvalidPrinterException_InvalidPrinter()
+	{
+		.get string System.SR::get_InvalidPrinterException_InvalidPrinter()
+	}
+	.property string InvalidPrinterException_NoDefaultPrinter()
+	{
+		.get string System.SR::get_InvalidPrinterException_NoDefaultPrinter()
+	}
+	.property string InvalidPrinterHandle()
+	{
+		.get string System.SR::get_InvalidPrinterHandle()
+	}
+	.property string ValidRangeX()
+	{
+		.get string System.SR::get_ValidRangeX()
+	}
+	.property string ValidRangeY()
+	{
+		.get string System.SR::get_ValidRangeY()
+	}
+	.property string NativeHandle0()
+	{
+		.get string System.SR::get_NativeHandle0()
+	}
+	.property string NoDefaultPrinter()
+	{
+		.get string System.SR::get_NoDefaultPrinter()
+	}
+	.property string NotImplemented()
+	{
+		.get string System.SR::get_NotImplemented()
+	}
+	.property string PDOCbeginPrintDescr()
+	{
+		.get string System.SR::get_PDOCbeginPrintDescr()
+	}
+	.property string PDOCdocumentNameDescr()
+	{
+		.get string System.SR::get_PDOCdocumentNameDescr()
+	}
+	.property string PDOCdocumentPageSettingsDescr()
+	{
+		.get string System.SR::get_PDOCdocumentPageSettingsDescr()
+	}
+	.property string PDOCendPrintDescr()
+	{
+		.get string System.SR::get_PDOCendPrintDescr()
+	}
+	.property string PDOCoriginAtMarginsDescr()
+	{
+		.get string System.SR::get_PDOCoriginAtMarginsDescr()
+	}
+	.property string PDOCprintControllerDescr()
+	{
+		.get string System.SR::get_PDOCprintControllerDescr()
+	}
+	.property string PDOCprintPageDescr()
+	{
+		.get string System.SR::get_PDOCprintPageDescr()
+	}
+	.property string PDOCprinterSettingsDescr()
+	{
+		.get string System.SR::get_PDOCprinterSettingsDescr()
+	}
+	.property string PDOCqueryPageSettingsDescr()
+	{
+		.get string System.SR::get_PDOCqueryPageSettingsDescr()
+	}
+	.property string PrintDocumentDesc()
+	{
+		.get string System.SR::get_PrintDocumentDesc()
+	}
+	.property string PropertyValueInvalidEntry()
+	{
+		.get string System.SR::get_PropertyValueInvalidEntry()
+	}
+	.property string PSizeNotCustom()
+	{
+		.get string System.SR::get_PSizeNotCustom()
+	}
+	.property string ResourceNotFound()
+	{
+		.get string System.SR::get_ResourceNotFound()
+	}
+	.property string TextParseFailedFormat()
+	{
+		.get string System.SR::get_TextParseFailedFormat()
+	}
+	.property string TriStateCompareError()
+	{
+		.get string System.SR::get_TriStateCompareError()
+	}
+	.property string toStringIcon()
+	{
+		.get string System.SR::get_toStringIcon()
+	}
+	.property string toStringNone()
+	{
+		.get string System.SR::get_toStringNone()
+	}
+	.property string DCTypeInvalid()
+	{
+		.get string System.SR::get_DCTypeInvalid()
+	}
+	.property string InvalidEnumArgument()
+	{
+		.get string System.SR::get_InvalidEnumArgument()
+	}
+	.property string ConvertInvalidPrimitive()
+	{
+		.get string System.SR::get_ConvertInvalidPrimitive()
+	}
+	.property string BlendObjectMustHaveTwoElements()
+	{
+		.get string System.SR::get_BlendObjectMustHaveTwoElements()
+	}
+	.property string BlendObjectFirstElementInvalid()
+	{
+		.get string System.SR::get_BlendObjectFirstElementInvalid()
+	}
+	.property string BlendObjectLastElementInvalid()
+	{
+		.get string System.SR::get_BlendObjectLastElementInvalid()
+	}
+	.property string AvailableOnlyOnWMF()
+	{
+		.get string System.SR::get_AvailableOnlyOnWMF()
+	}
+	.property string CannotCreateGraphics()
+	{
+		.get string System.SR::get_CannotCreateGraphics()
+	}
+	.property string CouldNotOpenDisplay()
+	{
+		.get string System.SR::get_CouldNotOpenDisplay()
+	}
+	.property string CouldntFindSpecifiedFile()
+	{
+		.get string System.SR::get_CouldntFindSpecifiedFile()
+	}
+	.property string IconInstanceWasDisposed()
+	{
+		.get string System.SR::get_IconInstanceWasDisposed()
+	}
+	.property string InvalidGraphicsUnit()
+	{
+		.get string System.SR::get_InvalidGraphicsUnit()
+	}
+	.property string InvalidThumbnailSize()
+	{
+		.get string System.SR::get_InvalidThumbnailSize()
+	}
+	.property string NoCodecAvailableForFormat()
+	{
+		.get string System.SR::get_NoCodecAvailableForFormat()
+	}
+	.property string NotImplementedUnderX11()
+	{
+		.get string System.SR::get_NotImplementedUnderX11()
+	}
+	.property string none()
+	{
+		.get string System.SR::get_none()
+	}
+	.property string NoValidIconImageFound()
+	{
+		.get string System.SR::get_NoValidIconImageFound()
+	}
+	.property string NullOrEmptyPath()
+	{
+		.get string System.SR::get_NullOrEmptyPath()
+	}
+	.property string NumberOfPointsAndTypesMustBeSame()
+	{
+		.get string System.SR::get_NumberOfPointsAndTypesMustBeSame()
+	}
+	.property string ObjectDisposed()
+	{
+		.get string System.SR::get_ObjectDisposed()
+	}
+	.property string ValueLessThenZero()
+	{
+		.get string System.SR::get_ValueLessThenZero()
+	}
+	.property string ValueNotOneOfValues()
+	{
+		.get string System.SR::get_ValueNotOneOfValues()
+	}
+	.property string TargetDirectoryDoesNotExist()
+	{
+		.get string System.SR::get_TargetDirectoryDoesNotExist()
+	}
+	.property string SystemDrawingCommon_PlatformNotSupported()
+	{
+		.get string System.SR::get_SystemDrawingCommon_PlatformNotSupported()
+	}
+	.property string IconCouldNotBeExtracted()
+	{
+		.get string System.SR::get_IconCouldNotBeExtracted()
+	}
+
+} // end of class System.SR
+
+.class private auto ansi abstract beforefieldinit System.Runtime.Versioning.OSPlatformAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+		01 00 01 00 00
+	)
+	.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+		01 00 00 00 00
+	)
+	// Fields
+	.field private initonly string '<PlatformName>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+
+	// Methods
+	.method famandassem hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string platformName
+		) cil managed 
+	{
+		// Method begins at RVA 0x278c
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld string System.Runtime.Versioning.OSPlatformAttribute::'<PlatformName>k__BackingField'
+		IL_000d: ret
+	} // end of method OSPlatformAttribute::.ctor
+
+	.method public hidebysig specialname 
+		instance string get_PlatformName () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x279b
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld string System.Runtime.Versioning.OSPlatformAttribute::'<PlatformName>k__BackingField'
+		IL_0006: ret
+	} // end of method OSPlatformAttribute::get_PlatformName
+
+	// Properties
+	.property instance string PlatformName()
+	{
+		.get instance string System.Runtime.Versioning.OSPlatformAttribute::get_PlatformName()
+	}
+
+} // end of class System.Runtime.Versioning.OSPlatformAttribute
+
+.class private auto ansi sealed beforefieldinit System.Runtime.Versioning.TargetPlatformAttribute
+	extends System.Runtime.Versioning.OSPlatformAttribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 01 00 00 00 02 00 54 02 0d 41 6c 6c 6f 77
+		4d 75 6c 74 69 70 6c 65 00 54 02 09 49 6e 68 65
+		72 69 74 65 64 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string platformName
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 01 00 00
+		)
+		// Method begins at RVA 0x27a3
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: call instance void System.Runtime.Versioning.OSPlatformAttribute::.ctor(string)
+		IL_0007: ret
+	} // end of method TargetPlatformAttribute::.ctor
+
+} // end of class System.Runtime.Versioning.TargetPlatformAttribute
+
+.class private auto ansi sealed beforefieldinit System.Runtime.Versioning.SupportedOSPlatformAttribute
+	extends System.Runtime.Versioning.OSPlatformAttribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 ff 07 00 00 02 00 54 02 0d 41 6c 6c 6f 77
+		4d 75 6c 74 69 70 6c 65 01 54 02 09 49 6e 68 65
+		72 69 74 65 64 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string platformName
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 01 00 00
+		)
+		// Method begins at RVA 0x27ac
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: call instance void System.Runtime.Versioning.OSPlatformAttribute::.ctor(string)
+		IL_0007: ret
+	} // end of method SupportedOSPlatformAttribute::.ctor
+
+} // end of class System.Runtime.Versioning.SupportedOSPlatformAttribute
+
+.class private auto ansi sealed beforefieldinit System.Runtime.Versioning.UnsupportedOSPlatformAttribute
+	extends System.Runtime.Versioning.OSPlatformAttribute
+{
+	.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+		01 00 02 00 00
+	)
+	.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+		01 00 00 00 00
+	)
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 ff 07 00 00 02 00 54 02 0d 41 6c 6c 6f 77
+		4d 75 6c 74 69 70 6c 65 01 54 02 09 49 6e 68 65
+		72 69 74 65 64 00
+	)
+	// Fields
+	.field private initonly string '<Message>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string platformName
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 01 00 00
+		)
+		// Method begins at RVA 0x27b5
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: call instance void System.Runtime.Versioning.OSPlatformAttribute::.ctor(string)
+		IL_0007: ret
+	} // end of method UnsupportedOSPlatformAttribute::.ctor
+
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string platformName,
+			string message
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 01 00 00
+		)
+		.param [2]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		// Method begins at RVA 0x27be
+		// Header size: 1
+		// Code size: 15 (0xf)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: call instance void System.Runtime.Versioning.OSPlatformAttribute::.ctor(string)
+		IL_0007: ldarg.0
+		IL_0008: ldarg.2
+		IL_0009: stfld string System.Runtime.Versioning.UnsupportedOSPlatformAttribute::'<Message>k__BackingField'
+		IL_000e: ret
+	} // end of method UnsupportedOSPlatformAttribute::.ctor
+
+	.method public hidebysig specialname 
+		instance string get_Message () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x27ce
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld string System.Runtime.Versioning.UnsupportedOSPlatformAttribute::'<Message>k__BackingField'
+		IL_0006: ret
+	} // end of method UnsupportedOSPlatformAttribute::get_Message
+
+	// Properties
+	.property instance string Message()
+	{
+		.get instance string System.Runtime.Versioning.UnsupportedOSPlatformAttribute::get_Message()
+	}
+
+} // end of class System.Runtime.Versioning.UnsupportedOSPlatformAttribute
+
+.class private auto ansi sealed beforefieldinit System.Runtime.Versioning.ObsoletedOSPlatformAttribute
+	extends System.Runtime.Versioning.OSPlatformAttribute
+{
+	.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+		01 00 02 00 00
+	)
+	.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+		01 00 00 00 00
+	)
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 ff 07 00 00 02 00 54 02 0d 41 6c 6c 6f 77
+		4d 75 6c 74 69 70 6c 65 01 54 02 09 49 6e 68 65
+		72 69 74 65 64 00
+	)
+	// Fields
+	.field private initonly string '<Message>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.field private string '<Url>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string platformName
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 01 00 00
+		)
+		// Method begins at RVA 0x27d6
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: call instance void System.Runtime.Versioning.OSPlatformAttribute::.ctor(string)
+		IL_0007: ret
+	} // end of method ObsoletedOSPlatformAttribute::.ctor
+
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string platformName,
+			string message
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 01 00 00
+		)
+		.param [2]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		// Method begins at RVA 0x27df
+		// Header size: 1
+		// Code size: 15 (0xf)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: call instance void System.Runtime.Versioning.OSPlatformAttribute::.ctor(string)
+		IL_0007: ldarg.0
+		IL_0008: ldarg.2
+		IL_0009: stfld string System.Runtime.Versioning.ObsoletedOSPlatformAttribute::'<Message>k__BackingField'
+		IL_000e: ret
+	} // end of method ObsoletedOSPlatformAttribute::.ctor
+
+	.method public hidebysig specialname 
+		instance string get_Message () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x27ef
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld string System.Runtime.Versioning.ObsoletedOSPlatformAttribute::'<Message>k__BackingField'
+		IL_0006: ret
+	} // end of method ObsoletedOSPlatformAttribute::get_Message
+
+	.method public hidebysig specialname 
+		instance string get_Url () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x27f7
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld string System.Runtime.Versioning.ObsoletedOSPlatformAttribute::'<Url>k__BackingField'
+		IL_0006: ret
+	} // end of method ObsoletedOSPlatformAttribute::get_Url
+
+	.method public hidebysig specialname 
+		instance void set_Url (
+			string 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x27ff
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: stfld string System.Runtime.Versioning.ObsoletedOSPlatformAttribute::'<Url>k__BackingField'
+		IL_0007: ret
+	} // end of method ObsoletedOSPlatformAttribute::set_Url
+
+	// Properties
+	.property instance string Message()
+	{
+		.get instance string System.Runtime.Versioning.ObsoletedOSPlatformAttribute::get_Message()
+	}
+	.property instance string Url()
+	{
+		.get instance string System.Runtime.Versioning.ObsoletedOSPlatformAttribute::get_Url()
+		.set instance void System.Runtime.Versioning.ObsoletedOSPlatformAttribute::set_Url(string)
+	}
+
+} // end of class System.Runtime.Versioning.ObsoletedOSPlatformAttribute
+
+.class private auto ansi sealed beforefieldinit System.Runtime.Versioning.SupportedOSPlatformGuardAttribute
+	extends System.Runtime.Versioning.OSPlatformAttribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 c0 01 00 00 02 00 54 02 0d 41 6c 6c 6f 77
+		4d 75 6c 74 69 70 6c 65 01 54 02 09 49 6e 68 65
+		72 69 74 65 64 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string platformName
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 01 00 00
+		)
+		// Method begins at RVA 0x2808
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: call instance void System.Runtime.Versioning.OSPlatformAttribute::.ctor(string)
+		IL_0007: ret
+	} // end of method SupportedOSPlatformGuardAttribute::.ctor
+
+} // end of class System.Runtime.Versioning.SupportedOSPlatformGuardAttribute
+
+.class private auto ansi sealed beforefieldinit System.Runtime.Versioning.UnsupportedOSPlatformGuardAttribute
+	extends System.Runtime.Versioning.OSPlatformAttribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 c0 01 00 00 02 00 54 02 0d 41 6c 6c 6f 77
+		4d 75 6c 74 69 70 6c 65 01 54 02 09 49 6e 68 65
+		72 69 74 65 64 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string platformName
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 01 00 00
+		)
+		// Method begins at RVA 0x2811
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: call instance void System.Runtime.Versioning.OSPlatformAttribute::.ctor(string)
+		IL_0007: ret
+	} // end of method UnsupportedOSPlatformGuardAttribute::.ctor
+
+} // end of class System.Runtime.Versioning.UnsupportedOSPlatformGuardAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.RequiresUnreferencedCodeAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+		01 00 01 00 00
+	)
+	.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+		01 00 00 00 00
+	)
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 64 00 00 00 01 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00
+	)
+	// Fields
+	.field private initonly string '<Message>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.field private string '<Url>k__BackingField'
+	.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+		01 00 02 00 00
+	)
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string message
+		) cil managed 
+	{
+		// Method begins at RVA 0x281a
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld string System.Diagnostics.CodeAnalysis.RequiresUnreferencedCodeAttribute::'<Message>k__BackingField'
+		IL_000d: ret
+	} // end of method RequiresUnreferencedCodeAttribute::.ctor
+
+	.method public hidebysig specialname 
+		instance string get_Message () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2829
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld string System.Diagnostics.CodeAnalysis.RequiresUnreferencedCodeAttribute::'<Message>k__BackingField'
+		IL_0006: ret
+	} // end of method RequiresUnreferencedCodeAttribute::get_Message
+
+	.method public hidebysig specialname 
+		instance string get_Url () cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 02 00 00
+		)
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2831
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld string System.Diagnostics.CodeAnalysis.RequiresUnreferencedCodeAttribute::'<Url>k__BackingField'
+		IL_0006: ret
+	} // end of method RequiresUnreferencedCodeAttribute::get_Url
+
+	.method public hidebysig specialname 
+		instance void set_Url (
+			string 'value'
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 02 00 00
+		)
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2839
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: stfld string System.Diagnostics.CodeAnalysis.RequiresUnreferencedCodeAttribute::'<Url>k__BackingField'
+		IL_0007: ret
+	} // end of method RequiresUnreferencedCodeAttribute::set_Url
+
+	// Properties
+	.property instance string Message()
+	{
+		.get instance string System.Diagnostics.CodeAnalysis.RequiresUnreferencedCodeAttribute::get_Message()
+	}
+	.property instance string Url()
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+			01 00 02 00 00
+		)
+		.get instance string System.Diagnostics.CodeAnalysis.RequiresUnreferencedCodeAttribute::get_Url()
+		.set instance void System.Diagnostics.CodeAnalysis.RequiresUnreferencedCodeAttribute::set_Url(string)
+	}
+
+} // end of class System.Diagnostics.CodeAnalysis.RequiresUnreferencedCodeAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessageAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+		01 00 02 00 00
+	)
+	.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+		01 00 00 00 00
+	)
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 ff 7f 00 00 02 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00 54 02 0d 41 6c 6c 6f 77 4d 75 6c
+		74 69 70 6c 65 01
+	)
+	// Fields
+	.field private initonly string '<Category>k__BackingField'
+	.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+		01 00 01 00 00
+	)
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.field private initonly string '<CheckId>k__BackingField'
+	.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+		01 00 01 00 00
+	)
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.field private string '<Scope>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.field private string '<Target>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.field private string '<MessageId>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.field private string '<Justification>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string category,
+			string checkId
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 01 00 00
+		)
+		// Method begins at RVA 0x2842
+		// Header size: 1
+		// Code size: 21 (0x15)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld string System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessageAttribute::'<Category>k__BackingField'
+		IL_000d: ldarg.0
+		IL_000e: ldarg.2
+		IL_000f: stfld string System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessageAttribute::'<CheckId>k__BackingField'
+		IL_0014: ret
+	} // end of method UnconditionalSuppressMessageAttribute::.ctor
+
+	.method public hidebysig specialname 
+		instance string get_Category () cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 01 00 00
+		)
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2858
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld string System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessageAttribute::'<Category>k__BackingField'
+		IL_0006: ret
+	} // end of method UnconditionalSuppressMessageAttribute::get_Category
+
+	.method public hidebysig specialname 
+		instance string get_CheckId () cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 01 00 00
+		)
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2860
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld string System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessageAttribute::'<CheckId>k__BackingField'
+		IL_0006: ret
+	} // end of method UnconditionalSuppressMessageAttribute::get_CheckId
+
+	.method public hidebysig specialname 
+		instance string get_Scope () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2868
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld string System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessageAttribute::'<Scope>k__BackingField'
+		IL_0006: ret
+	} // end of method UnconditionalSuppressMessageAttribute::get_Scope
+
+	.method public hidebysig specialname 
+		instance void set_Scope (
+			string 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2870
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: stfld string System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessageAttribute::'<Scope>k__BackingField'
+		IL_0007: ret
+	} // end of method UnconditionalSuppressMessageAttribute::set_Scope
+
+	.method public hidebysig specialname 
+		instance string get_Target () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2879
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld string System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessageAttribute::'<Target>k__BackingField'
+		IL_0006: ret
+	} // end of method UnconditionalSuppressMessageAttribute::get_Target
+
+	.method public hidebysig specialname 
+		instance void set_Target (
+			string 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2881
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: stfld string System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessageAttribute::'<Target>k__BackingField'
+		IL_0007: ret
+	} // end of method UnconditionalSuppressMessageAttribute::set_Target
+
+	.method public hidebysig specialname 
+		instance string get_MessageId () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x288a
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld string System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessageAttribute::'<MessageId>k__BackingField'
+		IL_0006: ret
+	} // end of method UnconditionalSuppressMessageAttribute::get_MessageId
+
+	.method public hidebysig specialname 
+		instance void set_MessageId (
+			string 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2892
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: stfld string System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessageAttribute::'<MessageId>k__BackingField'
+		IL_0007: ret
+	} // end of method UnconditionalSuppressMessageAttribute::set_MessageId
+
+	.method public hidebysig specialname 
+		instance string get_Justification () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x289b
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld string System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessageAttribute::'<Justification>k__BackingField'
+		IL_0006: ret
+	} // end of method UnconditionalSuppressMessageAttribute::get_Justification
+
+	.method public hidebysig specialname 
+		instance void set_Justification (
+			string 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x28a3
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: stfld string System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessageAttribute::'<Justification>k__BackingField'
+		IL_0007: ret
+	} // end of method UnconditionalSuppressMessageAttribute::set_Justification
+
+	// Properties
+	.property instance string Category()
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+			01 00 01 00 00
+		)
+		.get instance string System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessageAttribute::get_Category()
+	}
+	.property instance string CheckId()
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+			01 00 01 00 00
+		)
+		.get instance string System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessageAttribute::get_CheckId()
+	}
+	.property instance string Scope()
+	{
+		.get instance string System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessageAttribute::get_Scope()
+		.set instance void System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessageAttribute::set_Scope(string)
+	}
+	.property instance string Target()
+	{
+		.get instance string System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessageAttribute::get_Target()
+		.set instance void System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessageAttribute::set_Target(string)
+	}
+	.property instance string MessageId()
+	{
+		.get instance string System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessageAttribute::get_MessageId()
+		.set instance void System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessageAttribute::set_MessageId(string)
+	}
+	.property instance string Justification()
+	{
+		.get instance string System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessageAttribute::get_Justification()
+		.set instance void System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessageAttribute::set_Justification(string)
+	}
+
+} // end of class System.Diagnostics.CodeAnalysis.UnconditionalSuppressMessageAttribute
+

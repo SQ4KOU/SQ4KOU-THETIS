@@ -1,0 +1,9 @@
+program=libfftw3f-3.dll
+language=x86:LE:64:default
+compiler=windows
+functions_total=2201
+functions_external_skipped=0
+functions_decompiled_ok=2201
+functions_failed=0
+chunks=5
+cancelled=false

@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\System.Runtime.CompilerServices.Unsafe.dll
+assembly_sha256=08cbd7278b66f1e68425a82d4b97181a4130d93e3dd91831407aba7212ccdacf
+csharp_files=3
+il_bytes=24900
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

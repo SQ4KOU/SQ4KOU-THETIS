@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\Microsoft.Bcl.AsyncInterfaces.dll
+assembly_sha256=f89f62aee959e03cfc50c646d38b50085c5862cec86f519254dbb7a3381939bc
+csharp_files=30
+il_bytes=106395
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

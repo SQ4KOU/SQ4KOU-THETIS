@@ -1,0 +1,17 @@
+namespace Thetis;
+
+public enum PreampMode
+{
+	FIRST = -1,
+	HPSDR_OFF,
+	HPSDR_ON,
+	HPSDR_MINUS10,
+	HPSDR_MINUS20,
+	HPSDR_MINUS30,
+	HPSDR_MINUS40,
+	HPSDR_MINUS50,
+	SA_MINUS10,
+	SA_MINUS20,
+	SA_MINUS30,
+	LAST
+}

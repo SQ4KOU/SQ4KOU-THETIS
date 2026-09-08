@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\Microsoft.Win32.Registry.dll
+assembly_sha256=e9a9d281c1a708aaae366f82fd6a1742f65da2918cc4fa5eaaaada0be24277d9
+csharp_files=18
+il_bytes=47775
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

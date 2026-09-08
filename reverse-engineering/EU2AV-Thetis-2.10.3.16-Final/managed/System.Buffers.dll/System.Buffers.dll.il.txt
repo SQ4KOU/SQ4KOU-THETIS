@@ -1,0 +1,1905 @@
+// IL code: System.Buffers
+.class private auto ansi '<Module>'
+{
+} // end of class <Module>
+
+.class private auto ansi sealed beforefieldinit Microsoft.CodeAnalysis.EmbeddedAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void Microsoft.CodeAnalysis.EmbeddedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x2050
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ret
+	} // end of method EmbeddedAttribute::.ctor
+
+} // end of class Microsoft.CodeAnalysis.EmbeddedAttribute
+
+.class private auto ansi sealed beforefieldinit System.Runtime.CompilerServices.NullableAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void Microsoft.CodeAnalysis.EmbeddedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 84 6b 00 00 02 00 54 02 0d 41 6c 6c 6f 77
+		4d 75 6c 74 69 70 6c 65 00 54 02 09 49 6e 68 65
+		72 69 74 65 64 00
+	)
+	// Fields
+	.field public initonly uint8[] NullableFlags
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			uint8 ''
+		) cil managed 
+	{
+		// Method begins at RVA 0x2058
+		// Header size: 1
+		// Code size: 23 (0x17)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldc.i4.1
+		IL_0008: newarr [mscorlib]System.Byte
+		IL_000d: dup
+		IL_000e: ldc.i4.0
+		IL_000f: ldarg.1
+		IL_0010: stelem.i1
+		IL_0011: stfld uint8[] System.Runtime.CompilerServices.NullableAttribute::NullableFlags
+		IL_0016: ret
+	} // end of method NullableAttribute::.ctor
+
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			uint8[] ''
+		) cil managed 
+	{
+		// Method begins at RVA 0x2070
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld uint8[] System.Runtime.CompilerServices.NullableAttribute::NullableFlags
+		IL_000d: ret
+	} // end of method NullableAttribute::.ctor
+
+} // end of class System.Runtime.CompilerServices.NullableAttribute
+
+.class private auto ansi sealed beforefieldinit System.Runtime.CompilerServices.NullableContextAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void Microsoft.CodeAnalysis.EmbeddedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 4c 14 00 00 02 00 54 02 0d 41 6c 6c 6f 77
+		4d 75 6c 74 69 70 6c 65 00 54 02 09 49 6e 68 65
+		72 69 74 65 64 00
+	)
+	// Fields
+	.field public initonly uint8 Flag
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			uint8 ''
+		) cil managed 
+	{
+		// Method begins at RVA 0x207f
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld uint8 System.Runtime.CompilerServices.NullableContextAttribute::Flag
+		IL_000d: ret
+	} // end of method NullableContextAttribute::.ctor
+
+} // end of class System.Runtime.CompilerServices.NullableContextAttribute
+
+.class private auto ansi sealed beforefieldinit System.Runtime.CompilerServices.RefSafetyRulesAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void Microsoft.CodeAnalysis.EmbeddedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 02 00 00 00 02 00 54 02 0d 41 6c 6c 6f 77
+		4d 75 6c 74 69 70 6c 65 00 54 02 09 49 6e 68 65
+		72 69 74 65 64 00
+	)
+	// Fields
+	.field public initonly int32 Version
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			int32 ''
+		) cil managed 
+	{
+		// Method begins at RVA 0x208e
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld int32 System.Runtime.CompilerServices.RefSafetyRulesAttribute::Version
+		IL_000d: ret
+	} // end of method RefSafetyRulesAttribute::.ctor
+
+} // end of class System.Runtime.CompilerServices.RefSafetyRulesAttribute
+
+.class private auto ansi abstract sealed beforefieldinit FxResources.System.Buffers.SR
+	extends [mscorlib]System.Object
+{
+} // end of class FxResources.System.Buffers.SR
+
+.class private auto ansi abstract sealed beforefieldinit System.SR
+	extends [mscorlib]System.Object
+{
+	.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+		01 00 01 00 00
+	)
+	.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+		01 00 00 00 00
+	)
+	// Fields
+	.field private static initonly bool s_usingResourceKeys
+	.field private static class [mscorlib]System.Resources.ResourceManager s_resourceManager
+	.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+		01 00 00 00 00
+	)
+
+	// Methods
+	.method private hidebysig static 
+		bool UsingResourceKeys () cil managed 
+	{
+		// Method begins at RVA 0x209d
+		// Header size: 1
+		// Code size: 6 (0x6)
+		.maxstack 8
+
+		IL_0000: ldsfld bool System.SR::s_usingResourceKeys
+		IL_0005: ret
+	} // end of method SR::UsingResourceKeys
+
+	.method assembly hidebysig static 
+		string GetResourceString (
+			string resourceKey
+		) cil managed 
+	{
+		// Method begins at RVA 0x20a4
+		// Header size: 12
+		// Code size: 30 (0x1e)
+		.maxstack 2
+		.locals init (
+			[0] string
+		)
+
+		IL_0000: call bool System.SR::UsingResourceKeys()
+		IL_0005: brfalse.s IL_0009
+
+		IL_0007: ldarg.0
+		IL_0008: ret
+
+		IL_0009: ldnull
+		IL_000a: stloc.0
+		.try
+		{
+			IL_000b: call class [mscorlib]System.Resources.ResourceManager System.SR::get_ResourceManager()
+			IL_0010: ldarg.0
+			IL_0011: callvirt instance string [mscorlib]System.Resources.ResourceManager::GetString(string)
+			IL_0016: stloc.0
+			IL_0017: leave.s IL_001c
+		} // end .try
+		catch [mscorlib]System.Resources.MissingManifestResourceException
+		{
+			IL_0019: pop
+			IL_001a: leave.s IL_001c
+		} // end handler
+
+		IL_001c: ldloc.0
+		IL_001d: ret
+	} // end of method SR::GetResourceString
+
+	.method assembly hidebysig static 
+		string GetResourceString (
+			string resourceKey,
+			string defaultString
+		) cil managed 
+	{
+		// Method begins at RVA 0x20e0
+		// Header size: 12
+		// Code size: 23 (0x17)
+		.maxstack 2
+		.locals init (
+			[0] string
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: call string System.SR::GetResourceString(string)
+		IL_0006: stloc.0
+		IL_0007: ldarg.0
+		IL_0008: ldloc.0
+		IL_0009: call bool [mscorlib]System.String::op_Equality(string, string)
+		IL_000e: brtrue.s IL_0015
+
+		IL_0010: ldloc.0
+		IL_0011: brfalse.s IL_0015
+
+		IL_0013: ldloc.0
+		IL_0014: ret
+
+		IL_0015: ldarg.1
+		IL_0016: ret
+	} // end of method SR::GetResourceString
+
+	.method assembly hidebysig static 
+		string Format (
+			string resourceFormat,
+			object p1
+		) cil managed 
+	{
+		.param [2]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		// Method begins at RVA 0x2103
+		// Header size: 1
+		// Code size: 40 (0x28)
+		.maxstack 8
+
+		IL_0000: call bool System.SR::UsingResourceKeys()
+		IL_0005: brfalse.s IL_0020
+
+		IL_0007: ldstr ", "
+		IL_000c: ldc.i4.2
+		IL_000d: newarr [mscorlib]System.Object
+		IL_0012: dup
+		IL_0013: ldc.i4.0
+		IL_0014: ldarg.0
+		IL_0015: stelem.ref
+		IL_0016: dup
+		IL_0017: ldc.i4.1
+		IL_0018: ldarg.1
+		IL_0019: stelem.ref
+		IL_001a: call string [mscorlib]System.String::Join(string, object[])
+		IL_001f: ret
+
+		IL_0020: ldarg.0
+		IL_0021: ldarg.1
+		IL_0022: call string [mscorlib]System.String::Format(string, object)
+		IL_0027: ret
+	} // end of method SR::Format
+
+	.method assembly hidebysig static 
+		string Format (
+			string resourceFormat,
+			object p1,
+			object p2
+		) cil managed 
+	{
+		.param [2]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param [3]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		// Method begins at RVA 0x212c
+		// Header size: 1
+		// Code size: 45 (0x2d)
+		.maxstack 8
+
+		IL_0000: call bool System.SR::UsingResourceKeys()
+		IL_0005: brfalse.s IL_0024
+
+		IL_0007: ldstr ", "
+		IL_000c: ldc.i4.3
+		IL_000d: newarr [mscorlib]System.Object
+		IL_0012: dup
+		IL_0013: ldc.i4.0
+		IL_0014: ldarg.0
+		IL_0015: stelem.ref
+		IL_0016: dup
+		IL_0017: ldc.i4.1
+		IL_0018: ldarg.1
+		IL_0019: stelem.ref
+		IL_001a: dup
+		IL_001b: ldc.i4.2
+		IL_001c: ldarg.2
+		IL_001d: stelem.ref
+		IL_001e: call string [mscorlib]System.String::Join(string, object[])
+		IL_0023: ret
+
+		IL_0024: ldarg.0
+		IL_0025: ldarg.1
+		IL_0026: ldarg.2
+		IL_0027: call string [mscorlib]System.String::Format(string, object, object)
+		IL_002c: ret
+	} // end of method SR::Format
+
+	.method assembly hidebysig static 
+		string Format (
+			string resourceFormat,
+			object p1,
+			object p2,
+			object p3
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 02 00 00
+		)
+		.param [0]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 01 00 00
+			)
+		.param [1]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 01 00 00
+			)
+		// Method begins at RVA 0x215a
+		// Header size: 1
+		// Code size: 50 (0x32)
+		.maxstack 8
+
+		IL_0000: call bool System.SR::UsingResourceKeys()
+		IL_0005: brfalse.s IL_0028
+
+		IL_0007: ldstr ", "
+		IL_000c: ldc.i4.4
+		IL_000d: newarr [mscorlib]System.Object
+		IL_0012: dup
+		IL_0013: ldc.i4.0
+		IL_0014: ldarg.0
+		IL_0015: stelem.ref
+		IL_0016: dup
+		IL_0017: ldc.i4.1
+		IL_0018: ldarg.1
+		IL_0019: stelem.ref
+		IL_001a: dup
+		IL_001b: ldc.i4.2
+		IL_001c: ldarg.2
+		IL_001d: stelem.ref
+		IL_001e: dup
+		IL_001f: ldc.i4.3
+		IL_0020: ldarg.3
+		IL_0021: stelem.ref
+		IL_0022: call string [mscorlib]System.String::Join(string, object[])
+		IL_0027: ret
+
+		IL_0028: ldarg.0
+		IL_0029: ldarg.1
+		IL_002a: ldarg.2
+		IL_002b: ldarg.3
+		IL_002c: call string [mscorlib]System.String::Format(string, object, object, object)
+		IL_0031: ret
+	} // end of method SR::Format
+
+	.method assembly hidebysig static 
+		string Format (
+			string resourceFormat,
+			object[] args
+		) cil managed 
+	{
+		.param [2]
+			.custom instance void [mscorlib]System.ParamArrayAttribute::.ctor() = (
+				01 00 00 00
+			)
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		// Method begins at RVA 0x218d
+		// Header size: 1
+		// Code size: 43 (0x2b)
+		.maxstack 8
+
+		IL_0000: ldarg.1
+		IL_0001: brfalse.s IL_0029
+
+		IL_0003: call bool System.SR::UsingResourceKeys()
+		IL_0008: brfalse.s IL_0021
+
+		IL_000a: ldarg.0
+		IL_000b: ldstr ", "
+		IL_0010: ldstr ", "
+		IL_0015: ldarg.1
+		IL_0016: call string [mscorlib]System.String::Join(string, object[])
+		IL_001b: call string [mscorlib]System.String::Concat(string, string, string)
+		IL_0020: ret
+
+		IL_0021: ldarg.0
+		IL_0022: ldarg.1
+		IL_0023: call string [mscorlib]System.String::Format(string, object[])
+		IL_0028: ret
+
+		IL_0029: ldarg.0
+		IL_002a: ret
+	} // end of method SR::Format
+
+	.method assembly hidebysig static 
+		string Format (
+			class [mscorlib]System.IFormatProvider provider,
+			string resourceFormat,
+			object p1
+		) cil managed 
+	{
+		.param [1]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param [3]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		// Method begins at RVA 0x21b9
+		// Header size: 1
+		// Code size: 41 (0x29)
+		.maxstack 8
+
+		IL_0000: call bool System.SR::UsingResourceKeys()
+		IL_0005: brfalse.s IL_0020
+
+		IL_0007: ldstr ", "
+		IL_000c: ldc.i4.2
+		IL_000d: newarr [mscorlib]System.Object
+		IL_0012: dup
+		IL_0013: ldc.i4.0
+		IL_0014: ldarg.1
+		IL_0015: stelem.ref
+		IL_0016: dup
+		IL_0017: ldc.i4.1
+		IL_0018: ldarg.2
+		IL_0019: stelem.ref
+		IL_001a: call string [mscorlib]System.String::Join(string, object[])
+		IL_001f: ret
+
+		IL_0020: ldarg.0
+		IL_0021: ldarg.1
+		IL_0022: ldarg.2
+		IL_0023: call string [mscorlib]System.String::Format(class [mscorlib]System.IFormatProvider, string, object)
+		IL_0028: ret
+	} // end of method SR::Format
+
+	.method assembly hidebysig static 
+		string Format (
+			class [mscorlib]System.IFormatProvider provider,
+			string resourceFormat,
+			object p1,
+			object p2
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 02 00 00
+		)
+		.param [0]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 01 00 00
+			)
+		.param [2]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 01 00 00
+			)
+		// Method begins at RVA 0x21e3
+		// Header size: 1
+		// Code size: 46 (0x2e)
+		.maxstack 8
+
+		IL_0000: call bool System.SR::UsingResourceKeys()
+		IL_0005: brfalse.s IL_0024
+
+		IL_0007: ldstr ", "
+		IL_000c: ldc.i4.3
+		IL_000d: newarr [mscorlib]System.Object
+		IL_0012: dup
+		IL_0013: ldc.i4.0
+		IL_0014: ldarg.1
+		IL_0015: stelem.ref
+		IL_0016: dup
+		IL_0017: ldc.i4.1
+		IL_0018: ldarg.2
+		IL_0019: stelem.ref
+		IL_001a: dup
+		IL_001b: ldc.i4.2
+		IL_001c: ldarg.3
+		IL_001d: stelem.ref
+		IL_001e: call string [mscorlib]System.String::Join(string, object[])
+		IL_0023: ret
+
+		IL_0024: ldarg.0
+		IL_0025: ldarg.1
+		IL_0026: ldarg.2
+		IL_0027: ldarg.3
+		IL_0028: call string [mscorlib]System.String::Format(class [mscorlib]System.IFormatProvider, string, object, object)
+		IL_002d: ret
+	} // end of method SR::Format
+
+	.method assembly hidebysig static 
+		string Format (
+			class [mscorlib]System.IFormatProvider provider,
+			string resourceFormat,
+			object p1,
+			object p2,
+			object p3
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 02 00 00
+		)
+		.param [0]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 01 00 00
+			)
+		.param [2]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 01 00 00
+			)
+		// Method begins at RVA 0x2212
+		// Header size: 1
+		// Code size: 53 (0x35)
+		.maxstack 8
+
+		IL_0000: call bool System.SR::UsingResourceKeys()
+		IL_0005: brfalse.s IL_0029
+
+		IL_0007: ldstr ", "
+		IL_000c: ldc.i4.4
+		IL_000d: newarr [mscorlib]System.Object
+		IL_0012: dup
+		IL_0013: ldc.i4.0
+		IL_0014: ldarg.1
+		IL_0015: stelem.ref
+		IL_0016: dup
+		IL_0017: ldc.i4.1
+		IL_0018: ldarg.2
+		IL_0019: stelem.ref
+		IL_001a: dup
+		IL_001b: ldc.i4.2
+		IL_001c: ldarg.3
+		IL_001d: stelem.ref
+		IL_001e: dup
+		IL_001f: ldc.i4.3
+		IL_0020: ldarg.s p3
+		IL_0022: stelem.ref
+		IL_0023: call string [mscorlib]System.String::Join(string, object[])
+		IL_0028: ret
+
+		IL_0029: ldarg.0
+		IL_002a: ldarg.1
+		IL_002b: ldarg.2
+		IL_002c: ldarg.3
+		IL_002d: ldarg.s p3
+		IL_002f: call string [mscorlib]System.String::Format(class [mscorlib]System.IFormatProvider, string, object, object, object)
+		IL_0034: ret
+	} // end of method SR::Format
+
+	.method assembly hidebysig static 
+		string Format (
+			class [mscorlib]System.IFormatProvider provider,
+			string resourceFormat,
+			object[] args
+		) cil managed 
+	{
+		.param [1]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param [3]
+			.custom instance void [mscorlib]System.ParamArrayAttribute::.ctor() = (
+				01 00 00 00
+			)
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		// Method begins at RVA 0x2248
+		// Header size: 1
+		// Code size: 44 (0x2c)
+		.maxstack 8
+
+		IL_0000: ldarg.2
+		IL_0001: brfalse.s IL_002a
+
+		IL_0003: call bool System.SR::UsingResourceKeys()
+		IL_0008: brfalse.s IL_0021
+
+		IL_000a: ldarg.1
+		IL_000b: ldstr ", "
+		IL_0010: ldstr ", "
+		IL_0015: ldarg.2
+		IL_0016: call string [mscorlib]System.String::Join(string, object[])
+		IL_001b: call string [mscorlib]System.String::Concat(string, string, string)
+		IL_0020: ret
+
+		IL_0021: ldarg.0
+		IL_0022: ldarg.1
+		IL_0023: ldarg.2
+		IL_0024: call string [mscorlib]System.String::Format(class [mscorlib]System.IFormatProvider, string, object[])
+		IL_0029: ret
+
+		IL_002a: ldarg.1
+		IL_002b: ret
+	} // end of method SR::Format
+
+	.method assembly hidebysig specialname static 
+		class [mscorlib]System.Resources.ResourceManager get_ResourceManager () cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 00 00 00
+		)
+		// Method begins at RVA 0x2275
+		// Header size: 1
+		// Code size: 31 (0x1f)
+		.maxstack 8
+
+		IL_0000: ldsfld class [mscorlib]System.Resources.ResourceManager System.SR::s_resourceManager
+		IL_0005: dup
+		IL_0006: brtrue.s IL_001e
+
+		IL_0008: pop
+		IL_0009: ldtoken FxResources.System.Buffers.SR
+		IL_000e: call class [mscorlib]System.Type [mscorlib]System.Type::GetTypeFromHandle(valuetype [mscorlib]System.RuntimeTypeHandle)
+		IL_0013: newobj instance void [mscorlib]System.Resources.ResourceManager::.ctor(class [mscorlib]System.Type)
+		IL_0018: dup
+		IL_0019: stsfld class [mscorlib]System.Resources.ResourceManager System.SR::s_resourceManager
+
+		IL_001e: ret
+	} // end of method SR::get_ResourceManager
+
+	.method assembly hidebysig specialname static 
+		string get_ArgumentException_BufferNotFromPool () cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 00 00 00
+		)
+		// Method begins at RVA 0x2295
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldstr "ArgumentException_BufferNotFromPool"
+		IL_0005: call string System.SR::GetResourceString(string)
+		IL_000a: ret
+	} // end of method SR::get_ArgumentException_BufferNotFromPool
+
+	.method private hidebysig specialname rtspecialname static 
+		void .cctor () cil managed 
+	{
+		// Method begins at RVA 0x22a4
+		// Header size: 12
+		// Code size: 24 (0x18)
+		.maxstack 2
+		.locals init (
+			[0] bool
+		)
+
+		IL_0000: ldstr "System.Resources.UseSystemResourceKeys"
+		IL_0005: ldloca.s 0
+		IL_0007: call bool [mscorlib]System.AppContext::TryGetSwitch(string, bool&)
+		IL_000c: brtrue.s IL_0011
+
+		IL_000e: ldc.i4.0
+		IL_000f: br.s IL_0012
+
+		IL_0011: ldloc.0
+
+		IL_0012: stsfld bool System.SR::s_usingResourceKeys
+		IL_0017: ret
+	} // end of method SR::.cctor
+
+	// Properties
+	.property class [mscorlib]System.Resources.ResourceManager ResourceManager()
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+			01 00 00 00 00
+		)
+		.get class [mscorlib]System.Resources.ResourceManager System.SR::get_ResourceManager()
+	}
+	.property string ArgumentException_BufferNotFromPool()
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+			01 00 00 00 00
+		)
+		.get string System.SR::get_ArgumentException_BufferNotFromPool()
+	}
+
+} // end of class System.SR
+
+.class public auto ansi abstract beforefieldinit System.Buffers.ArrayPool`1<T>
+	extends [mscorlib]System.Object
+{
+	// Fields
+	.field private static class System.Buffers.ArrayPool`1<!T> s_sharedInstance
+
+	// Methods
+	.method public hidebysig specialname static 
+		class System.Buffers.ArrayPool`1<!T> get_Shared () cil managed aggressiveinlining 
+	{
+		// Method begins at RVA 0x22c8
+		// Header size: 1
+		// Code size: 20 (0x14)
+		.maxstack 8
+
+		IL_0000: ldsflda class System.Buffers.ArrayPool`1<!0> class System.Buffers.ArrayPool`1<!T>::s_sharedInstance
+		IL_0005: call !!0 [mscorlib]System.Threading.Volatile::Read<class System.Buffers.ArrayPool`1<!T>>(!!0&)
+		IL_000a: dup
+		IL_000b: brtrue.s IL_0013
+
+		IL_000d: pop
+		IL_000e: call class System.Buffers.ArrayPool`1<!0> class System.Buffers.ArrayPool`1<!T>::EnsureSharedCreated()
+
+		IL_0013: ret
+	} // end of method ArrayPool`1::get_Shared
+
+	.method private hidebysig static 
+		class System.Buffers.ArrayPool`1<!T> EnsureSharedCreated () cil managed noinlining 
+	{
+		// Method begins at RVA 0x22dd
+		// Header size: 1
+		// Code size: 23 (0x17)
+		.maxstack 8
+
+		IL_0000: ldsflda class System.Buffers.ArrayPool`1<!0> class System.Buffers.ArrayPool`1<!T>::s_sharedInstance
+		IL_0005: call class System.Buffers.ArrayPool`1<!0> class System.Buffers.ArrayPool`1<!T>::Create()
+		IL_000a: ldnull
+		IL_000b: call !!0 [mscorlib]System.Threading.Interlocked::CompareExchange<class System.Buffers.ArrayPool`1<!T>>(!!0&, !!0, !!0)
+		IL_0010: pop
+		IL_0011: ldsfld class System.Buffers.ArrayPool`1<!0> class System.Buffers.ArrayPool`1<!T>::s_sharedInstance
+		IL_0016: ret
+	} // end of method ArrayPool`1::EnsureSharedCreated
+
+	.method public hidebysig static 
+		class System.Buffers.ArrayPool`1<!T> Create () cil managed 
+	{
+		// Method begins at RVA 0x22f5
+		// Header size: 1
+		// Code size: 6 (0x6)
+		.maxstack 8
+
+		IL_0000: newobj instance void class System.Buffers.DefaultArrayPool`1<!T>::.ctor()
+		IL_0005: ret
+	} // end of method ArrayPool`1::Create
+
+	.method public hidebysig static 
+		class System.Buffers.ArrayPool`1<!T> Create (
+			int32 maxArrayLength,
+			int32 maxArraysPerBucket
+		) cil managed 
+	{
+		// Method begins at RVA 0x22fc
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: newobj instance void class System.Buffers.DefaultArrayPool`1<!T>::.ctor(int32, int32)
+		IL_0007: ret
+	} // end of method ArrayPool`1::Create
+
+	.method public hidebysig newslot abstract virtual 
+		instance !T[] Rent (
+			int32 minimumLength
+		) cil managed 
+	{
+	} // end of method ArrayPool`1::Rent
+
+	.method public hidebysig newslot abstract virtual 
+		instance void Return (
+			!T[] 'array',
+			[opt] bool clearArray
+		) cil managed 
+	{
+		.param [2] = bool(false)
+	} // end of method ArrayPool`1::Return
+
+	.method family hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x2305
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Object::.ctor()
+		IL_0006: ret
+	} // end of method ArrayPool`1::.ctor
+
+	// Properties
+	.property class System.Buffers.ArrayPool`1<!T> Shared()
+	{
+		.get class System.Buffers.ArrayPool`1<!0> System.Buffers.ArrayPool`1::get_Shared()
+	}
+
+} // end of class System.Buffers.ArrayPool`1
+
+.class private auto ansi sealed beforefieldinit System.Buffers.ArrayPoolEventSource
+	extends [mscorlib]System.Diagnostics.Tracing.EventSource
+{
+	.custom instance void [mscorlib]System.Diagnostics.Tracing.EventSourceAttribute::.ctor() = (
+		01 00 01 00 54 0e 04 4e 61 6d 65 23 53 79 73 74
+		65 6d 2e 42 75 66 66 65 72 73 2e 41 72 72 61 79
+		50 6f 6f 6c 45 76 65 6e 74 53 6f 75 72 63 65
+	)
+	// Nested Types
+	.class nested assembly auto ansi sealed BufferAllocatedReason
+		extends [mscorlib]System.Enum
+	{
+		// Fields
+		.field public specialname rtspecialname int32 value__
+		.field public static literal valuetype System.Buffers.ArrayPoolEventSource/BufferAllocatedReason Pooled = int32(0)
+		.field public static literal valuetype System.Buffers.ArrayPoolEventSource/BufferAllocatedReason OverMaximumSize = int32(1)
+		.field public static literal valuetype System.Buffers.ArrayPoolEventSource/BufferAllocatedReason PoolExhausted = int32(2)
+
+	} // end of class BufferAllocatedReason
+
+
+	// Fields
+	.field assembly static initonly class System.Buffers.ArrayPoolEventSource Log
+
+	// Methods
+	.method assembly hidebysig 
+		instance void BufferRented (
+			int32 bufferId,
+			int32 bufferSize,
+			int32 poolId,
+			int32 bucketId
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Diagnostics.Tracing.EventAttribute::.ctor(int32) = (
+			01 00 01 00 00 00 01 00 54 55 72 53 79 73 74 65
+			6d 2e 44 69 61 67 6e 6f 73 74 69 63 73 2e 54 72
+			61 63 69 6e 67 2e 45 76 65 6e 74 4c 65 76 65 6c
+			2c 20 6d 73 63 6f 72 6c 69 62 2c 20 56 65 72 73
+			69 6f 6e 3d 34 2e 30 2e 30 2e 30 2c 20 43 75 6c
+			74 75 72 65 3d 6e 65 75 74 72 61 6c 2c 20 50 75
+			62 6c 69 63 4b 65 79 54 6f 6b 65 6e 3d 62 37 37
+			61 35 63 35 36 31 39 33 34 65 30 38 39 05 4c 65
+			76 65 6c 05 00 00 00
+		)
+		// Method begins at RVA 0x2310
+		// Header size: 12
+		// Code size: 201 (0xc9)
+		.maxstack 4
+		.locals init (
+			[0] valuetype [mscorlib]System.Diagnostics.Tracing.EventSource/EventData*,
+			[1] valuetype [mscorlib]System.Diagnostics.Tracing.EventSource/EventData
+		)
+
+		IL_0000: ldc.i4.4
+		IL_0001: conv.u
+		IL_0002: sizeof [mscorlib]System.Diagnostics.Tracing.EventSource/EventData
+		IL_0008: mul.ovf.un
+		IL_0009: localloc
+		IL_000b: stloc.0
+		IL_000c: ldloc.0
+		IL_000d: ldloca.s 1
+		IL_000f: initobj [mscorlib]System.Diagnostics.Tracing.EventSource/EventData
+		IL_0015: ldloca.s 1
+		IL_0017: ldc.i4.4
+		IL_0018: call instance void [mscorlib]System.Diagnostics.Tracing.EventSource/EventData::set_Size(int32)
+		IL_001d: ldloca.s 1
+		IL_001f: ldarga.s bufferId
+		IL_0021: conv.u
+		IL_0022: call native int [mscorlib]System.IntPtr::op_Explicit(void*)
+		IL_0027: call instance void [mscorlib]System.Diagnostics.Tracing.EventSource/EventData::set_DataPointer(native int)
+		IL_002c: ldloc.1
+		IL_002d: stobj [mscorlib]System.Diagnostics.Tracing.EventSource/EventData
+		IL_0032: ldloc.0
+		IL_0033: sizeof [mscorlib]System.Diagnostics.Tracing.EventSource/EventData
+		IL_0039: add
+		IL_003a: ldloca.s 1
+		IL_003c: initobj [mscorlib]System.Diagnostics.Tracing.EventSource/EventData
+		IL_0042: ldloca.s 1
+		IL_0044: ldc.i4.4
+		IL_0045: call instance void [mscorlib]System.Diagnostics.Tracing.EventSource/EventData::set_Size(int32)
+		IL_004a: ldloca.s 1
+		IL_004c: ldarga.s bufferSize
+		IL_004e: conv.u
+		IL_004f: call native int [mscorlib]System.IntPtr::op_Explicit(void*)
+		IL_0054: call instance void [mscorlib]System.Diagnostics.Tracing.EventSource/EventData::set_DataPointer(native int)
+		IL_0059: ldloc.1
+		IL_005a: stobj [mscorlib]System.Diagnostics.Tracing.EventSource/EventData
+		IL_005f: ldloc.0
+		IL_0060: ldc.i4.2
+		IL_0061: conv.i
+		IL_0062: sizeof [mscorlib]System.Diagnostics.Tracing.EventSource/EventData
+		IL_0068: mul
+		IL_0069: add
+		IL_006a: ldloca.s 1
+		IL_006c: initobj [mscorlib]System.Diagnostics.Tracing.EventSource/EventData
+		IL_0072: ldloca.s 1
+		IL_0074: ldc.i4.4
+		IL_0075: call instance void [mscorlib]System.Diagnostics.Tracing.EventSource/EventData::set_Size(int32)
+		IL_007a: ldloca.s 1
+		IL_007c: ldarga.s poolId
+		IL_007e: conv.u
+		IL_007f: call native int [mscorlib]System.IntPtr::op_Explicit(void*)
+		IL_0084: call instance void [mscorlib]System.Diagnostics.Tracing.EventSource/EventData::set_DataPointer(native int)
+		IL_0089: ldloc.1
+		IL_008a: stobj [mscorlib]System.Diagnostics.Tracing.EventSource/EventData
+		IL_008f: ldloc.0
+		IL_0090: ldc.i4.3
+		IL_0091: conv.i
+		IL_0092: sizeof [mscorlib]System.Diagnostics.Tracing.EventSource/EventData
+		IL_0098: mul
+		IL_0099: add
+		IL_009a: ldloca.s 1
+		IL_009c: initobj [mscorlib]System.Diagnostics.Tracing.EventSource/EventData
+		IL_00a2: ldloca.s 1
+		IL_00a4: ldc.i4.4
+		IL_00a5: call instance void [mscorlib]System.Diagnostics.Tracing.EventSource/EventData::set_Size(int32)
+		IL_00aa: ldloca.s 1
+		IL_00ac: ldarga.s bucketId
+		IL_00ae: conv.u
+		IL_00af: call native int [mscorlib]System.IntPtr::op_Explicit(void*)
+		IL_00b4: call instance void [mscorlib]System.Diagnostics.Tracing.EventSource/EventData::set_DataPointer(native int)
+		IL_00b9: ldloc.1
+		IL_00ba: stobj [mscorlib]System.Diagnostics.Tracing.EventSource/EventData
+		IL_00bf: ldarg.0
+		IL_00c0: ldc.i4.1
+		IL_00c1: ldc.i4.4
+		IL_00c2: ldloc.0
+		IL_00c3: call instance void [mscorlib]System.Diagnostics.Tracing.EventSource::WriteEventCore(int32, int32, valuetype [mscorlib]System.Diagnostics.Tracing.EventSource/EventData*)
+		IL_00c8: ret
+	} // end of method ArrayPoolEventSource::BufferRented
+
+	.method assembly hidebysig 
+		instance void BufferAllocated (
+			int32 bufferId,
+			int32 bufferSize,
+			int32 poolId,
+			int32 bucketId,
+			valuetype System.Buffers.ArrayPoolEventSource/BufferAllocatedReason reason
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Diagnostics.Tracing.EventAttribute::.ctor(int32) = (
+			01 00 02 00 00 00 01 00 54 55 72 53 79 73 74 65
+			6d 2e 44 69 61 67 6e 6f 73 74 69 63 73 2e 54 72
+			61 63 69 6e 67 2e 45 76 65 6e 74 4c 65 76 65 6c
+			2c 20 6d 73 63 6f 72 6c 69 62 2c 20 56 65 72 73
+			69 6f 6e 3d 34 2e 30 2e 30 2e 30 2c 20 43 75 6c
+			74 75 72 65 3d 6e 65 75 74 72 61 6c 2c 20 50 75
+			62 6c 69 63 4b 65 79 54 6f 6b 65 6e 3d 62 37 37
+			61 35 63 35 36 31 39 33 34 65 30 38 39 05 4c 65
+			76 65 6c 04 00 00 00
+		)
+		// Method begins at RVA 0x23e8
+		// Header size: 12
+		// Code size: 249 (0xf9)
+		.maxstack 4
+		.locals init (
+			[0] valuetype [mscorlib]System.Diagnostics.Tracing.EventSource/EventData*,
+			[1] valuetype [mscorlib]System.Diagnostics.Tracing.EventSource/EventData
+		)
+
+		IL_0000: ldc.i4.5
+		IL_0001: conv.u
+		IL_0002: sizeof [mscorlib]System.Diagnostics.Tracing.EventSource/EventData
+		IL_0008: mul.ovf.un
+		IL_0009: localloc
+		IL_000b: stloc.0
+		IL_000c: ldloc.0
+		IL_000d: ldloca.s 1
+		IL_000f: initobj [mscorlib]System.Diagnostics.Tracing.EventSource/EventData
+		IL_0015: ldloca.s 1
+		IL_0017: ldc.i4.4
+		IL_0018: call instance void [mscorlib]System.Diagnostics.Tracing.EventSource/EventData::set_Size(int32)
+		IL_001d: ldloca.s 1
+		IL_001f: ldarga.s bufferId
+		IL_0021: conv.u
+		IL_0022: call native int [mscorlib]System.IntPtr::op_Explicit(void*)
+		IL_0027: call instance void [mscorlib]System.Diagnostics.Tracing.EventSource/EventData::set_DataPointer(native int)
+		IL_002c: ldloc.1
+		IL_002d: stobj [mscorlib]System.Diagnostics.Tracing.EventSource/EventData
+		IL_0032: ldloc.0
+		IL_0033: sizeof [mscorlib]System.Diagnostics.Tracing.EventSource/EventData
+		IL_0039: add
+		IL_003a: ldloca.s 1
+		IL_003c: initobj [mscorlib]System.Diagnostics.Tracing.EventSource/EventData
+		IL_0042: ldloca.s 1
+		IL_0044: ldc.i4.4
+		IL_0045: call instance void [mscorlib]System.Diagnostics.Tracing.EventSource/EventData::set_Size(int32)
+		IL_004a: ldloca.s 1
+		IL_004c: ldarga.s bufferSize
+		IL_004e: conv.u
+		IL_004f: call native int [mscorlib]System.IntPtr::op_Explicit(void*)
+		IL_0054: call instance void [mscorlib]System.Diagnostics.Tracing.EventSource/EventData::set_DataPointer(native int)
+		IL_0059: ldloc.1
+		IL_005a: stobj [mscorlib]System.Diagnostics.Tracing.EventSource/EventData
+		IL_005f: ldloc.0
+		IL_0060: ldc.i4.2
+		IL_0061: conv.i
+		IL_0062: sizeof [mscorlib]System.Diagnostics.Tracing.EventSource/EventData
+		IL_0068: mul
+		IL_0069: add
+		IL_006a: ldloca.s 1
+		IL_006c: initobj [mscorlib]System.Diagnostics.Tracing.EventSource/EventData
+		IL_0072: ldloca.s 1
+		IL_0074: ldc.i4.4
+		IL_0075: call instance void [mscorlib]System.Diagnostics.Tracing.EventSource/EventData::set_Size(int32)
+		IL_007a: ldloca.s 1
+		IL_007c: ldarga.s poolId
+		IL_007e: conv.u
+		IL_007f: call native int [mscorlib]System.IntPtr::op_Explicit(void*)
+		IL_0084: call instance void [mscorlib]System.Diagnostics.Tracing.EventSource/EventData::set_DataPointer(native int)
+		IL_0089: ldloc.1
+		IL_008a: stobj [mscorlib]System.Diagnostics.Tracing.EventSource/EventData
+		IL_008f: ldloc.0
+		IL_0090: ldc.i4.3
+		IL_0091: conv.i
+		IL_0092: sizeof [mscorlib]System.Diagnostics.Tracing.EventSource/EventData
+		IL_0098: mul
+		IL_0099: add
+		IL_009a: ldloca.s 1
+		IL_009c: initobj [mscorlib]System.Diagnostics.Tracing.EventSource/EventData
+		IL_00a2: ldloca.s 1
+		IL_00a4: ldc.i4.4
+		IL_00a5: call instance void [mscorlib]System.Diagnostics.Tracing.EventSource/EventData::set_Size(int32)
+		IL_00aa: ldloca.s 1
+		IL_00ac: ldarga.s bucketId
+		IL_00ae: conv.u
+		IL_00af: call native int [mscorlib]System.IntPtr::op_Explicit(void*)
+		IL_00b4: call instance void [mscorlib]System.Diagnostics.Tracing.EventSource/EventData::set_DataPointer(native int)
+		IL_00b9: ldloc.1
+		IL_00ba: stobj [mscorlib]System.Diagnostics.Tracing.EventSource/EventData
+		IL_00bf: ldloc.0
+		IL_00c0: ldc.i4.4
+		IL_00c1: conv.i
+		IL_00c2: sizeof [mscorlib]System.Diagnostics.Tracing.EventSource/EventData
+		IL_00c8: mul
+		IL_00c9: add
+		IL_00ca: ldloca.s 1
+		IL_00cc: initobj [mscorlib]System.Diagnostics.Tracing.EventSource/EventData
+		IL_00d2: ldloca.s 1
+		IL_00d4: ldc.i4.4
+		IL_00d5: call instance void [mscorlib]System.Diagnostics.Tracing.EventSource/EventData::set_Size(int32)
+		IL_00da: ldloca.s 1
+		IL_00dc: ldarga.s reason
+		IL_00de: conv.u
+		IL_00df: call native int [mscorlib]System.IntPtr::op_Explicit(void*)
+		IL_00e4: call instance void [mscorlib]System.Diagnostics.Tracing.EventSource/EventData::set_DataPointer(native int)
+		IL_00e9: ldloc.1
+		IL_00ea: stobj [mscorlib]System.Diagnostics.Tracing.EventSource/EventData
+		IL_00ef: ldarg.0
+		IL_00f0: ldc.i4.2
+		IL_00f1: ldc.i4.5
+		IL_00f2: ldloc.0
+		IL_00f3: call instance void [mscorlib]System.Diagnostics.Tracing.EventSource::WriteEventCore(int32, int32, valuetype [mscorlib]System.Diagnostics.Tracing.EventSource/EventData*)
+		IL_00f8: ret
+	} // end of method ArrayPoolEventSource::BufferAllocated
+
+	.method assembly hidebysig 
+		instance void BufferReturned (
+			int32 bufferId,
+			int32 bufferSize,
+			int32 poolId
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Diagnostics.Tracing.EventAttribute::.ctor(int32) = (
+			01 00 03 00 00 00 01 00 54 55 72 53 79 73 74 65
+			6d 2e 44 69 61 67 6e 6f 73 74 69 63 73 2e 54 72
+			61 63 69 6e 67 2e 45 76 65 6e 74 4c 65 76 65 6c
+			2c 20 6d 73 63 6f 72 6c 69 62 2c 20 56 65 72 73
+			69 6f 6e 3d 34 2e 30 2e 30 2e 30 2c 20 43 75 6c
+			74 75 72 65 3d 6e 65 75 74 72 61 6c 2c 20 50 75
+			62 6c 69 63 4b 65 79 54 6f 6b 65 6e 3d 62 37 37
+			61 35 63 35 36 31 39 33 34 65 30 38 39 05 4c 65
+			76 65 6c 05 00 00 00
+		)
+		// Method begins at RVA 0x24ed
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldc.i4.3
+		IL_0002: ldarg.1
+		IL_0003: ldarg.2
+		IL_0004: ldarg.3
+		IL_0005: call instance void [mscorlib]System.Diagnostics.Tracing.EventSource::WriteEvent(int32, int32, int32, int32)
+		IL_000a: ret
+	} // end of method ArrayPoolEventSource::BufferReturned
+
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x24f9
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Diagnostics.Tracing.EventSource::.ctor()
+		IL_0006: ret
+	} // end of method ArrayPoolEventSource::.ctor
+
+	.method private hidebysig specialname rtspecialname static 
+		void .cctor () cil managed 
+	{
+		// Method begins at RVA 0x2501
+		// Header size: 1
+		// Code size: 11 (0xb)
+		.maxstack 8
+
+		IL_0000: newobj instance void System.Buffers.ArrayPoolEventSource::.ctor()
+		IL_0005: stsfld class System.Buffers.ArrayPoolEventSource System.Buffers.ArrayPoolEventSource::Log
+		IL_000a: ret
+	} // end of method ArrayPoolEventSource::.cctor
+
+} // end of class System.Buffers.ArrayPoolEventSource
+
+.class private auto ansi sealed beforefieldinit System.Buffers.DefaultArrayPool`1<T>
+	extends class System.Buffers.ArrayPool`1<!T>
+{
+	// Nested Types
+	.class nested private auto ansi sealed beforefieldinit Bucket<T>
+		extends [mscorlib]System.Object
+	{
+		// Fields
+		.field assembly initonly int32 _bufferLength
+		.field private initonly !T[][] _buffers
+		.field private initonly int32 _poolId
+		.field private valuetype [mscorlib]System.Threading.SpinLock _lock
+		.field private int32 _index
+
+		// Methods
+		.method assembly hidebysig specialname rtspecialname 
+			instance void .ctor (
+				int32 bufferLength,
+				int32 numberOfBuffers,
+				int32 poolId
+			) cil managed 
+		{
+			// Method begins at RVA 0x279e
+			// Header size: 1
+			// Code size: 49 (0x31)
+			.maxstack 8
+
+			IL_0000: ldarg.0
+			IL_0001: call instance void [mscorlib]System.Object::.ctor()
+			IL_0006: ldarg.0
+			IL_0007: call bool [mscorlib]System.Diagnostics.Debugger::get_IsAttached()
+			IL_000c: newobj instance void [mscorlib]System.Threading.SpinLock::.ctor(bool)
+			IL_0011: stfld valuetype [mscorlib]System.Threading.SpinLock class System.Buffers.DefaultArrayPool`1/Bucket<!T>::_lock
+			IL_0016: ldarg.0
+			IL_0017: ldarg.2
+			IL_0018: newarr !T[]
+			IL_001d: stfld !0[][] class System.Buffers.DefaultArrayPool`1/Bucket<!T>::_buffers
+			IL_0022: ldarg.0
+			IL_0023: ldarg.1
+			IL_0024: stfld int32 class System.Buffers.DefaultArrayPool`1/Bucket<!T>::_bufferLength
+			IL_0029: ldarg.0
+			IL_002a: ldarg.3
+			IL_002b: stfld int32 class System.Buffers.DefaultArrayPool`1/Bucket<!T>::_poolId
+			IL_0030: ret
+		} // end of method Bucket::.ctor
+
+		.method assembly hidebysig specialname 
+			instance int32 get_Id () cil managed 
+		{
+			// Method begins at RVA 0x27d0
+			// Header size: 1
+			// Code size: 7 (0x7)
+			.maxstack 8
+
+			IL_0000: ldarg.0
+			IL_0001: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+			IL_0006: ret
+		} // end of method Bucket::get_Id
+
+		.method assembly hidebysig 
+			instance !T[] Rent () cil managed 
+		{
+			// Method begins at RVA 0x27d8
+			// Header size: 12
+			// Code size: 157 (0x9d)
+			.maxstack 6
+			.locals init (
+				[0] !T[][],
+				[1] !T[],
+				[2] bool,
+				[3] bool,
+				[4] int32,
+				[5] class System.Buffers.ArrayPoolEventSource
+			)
+
+			IL_0000: ldarg.0
+			IL_0001: ldfld !0[][] class System.Buffers.DefaultArrayPool`1/Bucket<!T>::_buffers
+			IL_0006: stloc.0
+			IL_0007: ldnull
+			IL_0008: stloc.1
+			IL_0009: ldc.i4.0
+			IL_000a: stloc.2
+			IL_000b: ldc.i4.0
+			IL_000c: stloc.3
+			.try
+			{
+				IL_000d: ldarg.0
+				IL_000e: ldflda valuetype [mscorlib]System.Threading.SpinLock class System.Buffers.DefaultArrayPool`1/Bucket<!T>::_lock
+				IL_0013: ldloca.s 2
+				IL_0015: call instance void [mscorlib]System.Threading.SpinLock::Enter(bool&)
+				IL_001a: ldarg.0
+				IL_001b: ldfld int32 class System.Buffers.DefaultArrayPool`1/Bucket<!T>::_index
+				IL_0020: ldloc.0
+				IL_0021: ldlen
+				IL_0022: conv.i4
+				IL_0023: bge.s IL_004a
+
+				IL_0025: ldloc.0
+				IL_0026: ldarg.0
+				IL_0027: ldfld int32 class System.Buffers.DefaultArrayPool`1/Bucket<!T>::_index
+				IL_002c: ldelem.ref
+				IL_002d: stloc.1
+				IL_002e: ldloc.0
+				IL_002f: ldarg.0
+				IL_0030: ldarg.0
+				IL_0031: ldfld int32 class System.Buffers.DefaultArrayPool`1/Bucket<!T>::_index
+				IL_0036: stloc.s 4
+				IL_0038: ldloc.s 4
+				IL_003a: ldc.i4.1
+				IL_003b: add
+				IL_003c: stfld int32 class System.Buffers.DefaultArrayPool`1/Bucket<!T>::_index
+				IL_0041: ldloc.s 4
+				IL_0043: ldnull
+				IL_0044: stelem.ref
+				IL_0045: ldloc.1
+				IL_0046: ldnull
+				IL_0047: ceq
+				IL_0049: stloc.3
+
+				IL_004a: leave.s IL_005c
+			} // end .try
+			finally
+			{
+				IL_004c: ldloc.2
+				IL_004d: brfalse.s IL_005b
+
+				IL_004f: ldarg.0
+				IL_0050: ldflda valuetype [mscorlib]System.Threading.SpinLock class System.Buffers.DefaultArrayPool`1/Bucket<!T>::_lock
+				IL_0055: ldc.i4.0
+				IL_0056: call instance void [mscorlib]System.Threading.SpinLock::Exit(bool)
+
+				IL_005b: endfinally
+			} // end handler
+
+			IL_005c: ldloc.3
+			IL_005d: brfalse.s IL_009b
+
+			IL_005f: ldarg.0
+			IL_0060: ldfld int32 class System.Buffers.DefaultArrayPool`1/Bucket<!T>::_bufferLength
+			IL_0065: newarr !T
+			IL_006a: stloc.1
+			IL_006b: ldsfld class System.Buffers.ArrayPoolEventSource System.Buffers.ArrayPoolEventSource::Log
+			IL_0070: stloc.s 5
+			IL_0072: ldloc.s 5
+			IL_0074: callvirt instance bool [mscorlib]System.Diagnostics.Tracing.EventSource::IsEnabled()
+			IL_0079: brfalse.s IL_009b
+
+			IL_007b: ldloc.s 5
+			IL_007d: ldloc.1
+			IL_007e: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+			IL_0083: ldarg.0
+			IL_0084: ldfld int32 class System.Buffers.DefaultArrayPool`1/Bucket<!T>::_bufferLength
+			IL_0089: ldarg.0
+			IL_008a: ldfld int32 class System.Buffers.DefaultArrayPool`1/Bucket<!T>::_poolId
+			IL_008f: ldarg.0
+			IL_0090: call instance int32 class System.Buffers.DefaultArrayPool`1/Bucket<!T>::get_Id()
+			IL_0095: ldc.i4.0
+			IL_0096: callvirt instance void System.Buffers.ArrayPoolEventSource::BufferAllocated(int32, int32, int32, int32, valuetype System.Buffers.ArrayPoolEventSource/BufferAllocatedReason)
+
+			IL_009b: ldloc.1
+			IL_009c: ret
+		} // end of method Bucket::Rent
+
+		.method assembly hidebysig 
+			instance void Return (
+				!T[] 'array'
+			) cil managed 
+		{
+			// Method begins at RVA 0x2894
+			// Header size: 12
+			// Code size: 94 (0x5e)
+			.maxstack 4
+			.locals init (
+				[0] bool,
+				[1] int32
+			)
+
+			IL_0000: ldarg.1
+			IL_0001: ldlen
+			IL_0002: conv.i4
+			IL_0003: ldarg.0
+			IL_0004: ldfld int32 class System.Buffers.DefaultArrayPool`1/Bucket<!T>::_bufferLength
+			IL_0009: beq.s IL_001b
+
+			IL_000b: call string System.SR::get_ArgumentException_BufferNotFromPool()
+			IL_0010: ldstr "array"
+			IL_0015: newobj instance void [mscorlib]System.ArgumentException::.ctor(string, string)
+			IL_001a: throw
+
+			IL_001b: ldc.i4.0
+			IL_001c: stloc.0
+			.try
+			{
+				IL_001d: ldarg.0
+				IL_001e: ldflda valuetype [mscorlib]System.Threading.SpinLock class System.Buffers.DefaultArrayPool`1/Bucket<!T>::_lock
+				IL_0023: ldloca.s 0
+				IL_0025: call instance void [mscorlib]System.Threading.SpinLock::Enter(bool&)
+				IL_002a: ldarg.0
+				IL_002b: ldfld int32 class System.Buffers.DefaultArrayPool`1/Bucket<!T>::_index
+				IL_0030: brfalse.s IL_004b
+
+				IL_0032: ldarg.0
+				IL_0033: ldfld !0[][] class System.Buffers.DefaultArrayPool`1/Bucket<!T>::_buffers
+				IL_0038: ldarg.0
+				IL_0039: ldarg.0
+				IL_003a: ldfld int32 class System.Buffers.DefaultArrayPool`1/Bucket<!T>::_index
+				IL_003f: ldc.i4.1
+				IL_0040: sub
+				IL_0041: stloc.1
+				IL_0042: ldloc.1
+				IL_0043: stfld int32 class System.Buffers.DefaultArrayPool`1/Bucket<!T>::_index
+				IL_0048: ldloc.1
+				IL_0049: ldarg.1
+				IL_004a: stelem.ref
+
+				IL_004b: leave.s IL_005d
+			} // end .try
+			finally
+			{
+				IL_004d: ldloc.0
+				IL_004e: brfalse.s IL_005c
+
+				IL_0050: ldarg.0
+				IL_0051: ldflda valuetype [mscorlib]System.Threading.SpinLock class System.Buffers.DefaultArrayPool`1/Bucket<!T>::_lock
+				IL_0056: ldc.i4.0
+				IL_0057: call instance void [mscorlib]System.Threading.SpinLock::Exit(bool)
+
+				IL_005c: endfinally
+			} // end handler
+
+			IL_005d: ret
+		} // end of method Bucket::Return
+
+		// Properties
+		.property instance int32 Id()
+		{
+			.get instance int32 System.Buffers.DefaultArrayPool`1/Bucket::get_Id()
+		}
+
+	} // end of class Bucket
+
+
+	// Fields
+	.field private static literal int32 DefaultMaxArrayLength = int32(1048576)
+	.field private static literal int32 DefaultMaxNumberOfArraysPerBucket = int32(50)
+	.field private static !T[] s_emptyArray
+	.field private initonly class System.Buffers.DefaultArrayPool`1/Bucket<!T>[] _buckets
+
+	// Methods
+	.method assembly hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x250d
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldc.i4 1048576
+		IL_0006: ldc.i4.s 50
+		IL_0008: call instance void class System.Buffers.DefaultArrayPool`1<!T>::.ctor(int32, int32)
+		IL_000d: ret
+	} // end of method DefaultArrayPool`1::.ctor
+
+	.method assembly hidebysig specialname rtspecialname 
+		instance void .ctor (
+			int32 maxArrayLength,
+			int32 maxArraysPerBucket
+		) cil managed 
+	{
+		// Method begins at RVA 0x251c
+		// Header size: 12
+		// Code size: 123 (0x7b)
+		.maxstack 5
+		.locals init (
+			[0] int32,
+			[1] int32,
+			[2] class System.Buffers.DefaultArrayPool`1/Bucket<!T>[],
+			[3] int32
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void class System.Buffers.ArrayPool`1<!T>::.ctor()
+		IL_0006: ldarg.1
+		IL_0007: ldc.i4.0
+		IL_0008: bgt.s IL_0015
+
+		IL_000a: ldstr "maxArrayLength"
+		IL_000f: newobj instance void [mscorlib]System.ArgumentOutOfRangeException::.ctor(string)
+		IL_0014: throw
+
+		IL_0015: ldarg.2
+		IL_0016: ldc.i4.0
+		IL_0017: bgt.s IL_0024
+
+		IL_0019: ldstr "maxArraysPerBucket"
+		IL_001e: newobj instance void [mscorlib]System.ArgumentOutOfRangeException::.ctor(string)
+		IL_0023: throw
+
+		IL_0024: ldarg.1
+		IL_0025: ldc.i4 1073741824
+		IL_002a: ble.s IL_0035
+
+		IL_002c: ldc.i4 1073741824
+		IL_0031: starg.s maxArrayLength
+		IL_0033: br.s IL_003e
+
+		IL_0035: ldarg.1
+		IL_0036: ldc.i4.s 16
+		IL_0038: bge.s IL_003e
+
+		IL_003a: ldc.i4.s 16
+		IL_003c: starg.s maxArrayLength
+
+		IL_003e: ldarg.0
+		IL_003f: call instance int32 class System.Buffers.DefaultArrayPool`1<!T>::get_Id()
+		IL_0044: stloc.0
+		IL_0045: ldarg.1
+		IL_0046: call int32 System.Buffers.Utilities::SelectBucketIndex(int32)
+		IL_004b: stloc.1
+		IL_004c: ldloc.1
+		IL_004d: ldc.i4.1
+		IL_004e: add
+		IL_004f: newarr class System.Buffers.DefaultArrayPool`1/Bucket<!T>
+		IL_0054: stloc.2
+		IL_0055: ldc.i4.0
+		IL_0056: stloc.3
+		IL_0057: br.s IL_006d
+		// loop start (head: IL_006d)
+			IL_0059: ldloc.2
+			IL_005a: ldloc.3
+			IL_005b: ldloc.3
+			IL_005c: call int32 System.Buffers.Utilities::GetMaxSizeForBucket(int32)
+			IL_0061: ldarg.2
+			IL_0062: ldloc.0
+			IL_0063: newobj instance void class System.Buffers.DefaultArrayPool`1/Bucket<!T>::.ctor(int32, int32, int32)
+			IL_0068: stelem.ref
+			IL_0069: ldloc.3
+			IL_006a: ldc.i4.1
+			IL_006b: add
+			IL_006c: stloc.3
+
+			IL_006d: ldloc.3
+			IL_006e: ldloc.2
+			IL_006f: ldlen
+			IL_0070: conv.i4
+			IL_0071: blt.s IL_0059
+		// end loop
+
+		IL_0073: ldarg.0
+		IL_0074: ldloc.2
+		IL_0075: stfld class System.Buffers.DefaultArrayPool`1/Bucket<!0>[] class System.Buffers.DefaultArrayPool`1<!T>::_buckets
+		IL_007a: ret
+	} // end of method DefaultArrayPool`1::.ctor
+
+	.method private hidebysig specialname 
+		instance int32 get_Id () cil managed 
+	{
+		// Method begins at RVA 0x25a3
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+		IL_0006: ret
+	} // end of method DefaultArrayPool`1::get_Id
+
+	.method public hidebysig virtual 
+		instance !T[] Rent (
+			int32 minimumLength
+		) cil managed 
+	{
+		// Method begins at RVA 0x25ac
+		// Header size: 12
+		// Code size: 252 (0xfc)
+		.maxstack 7
+		.locals init (
+			[0] class System.Buffers.ArrayPoolEventSource,
+			[1] !T[],
+			[2] int32,
+			[3] int32,
+			[4] int32,
+			[5] int32
+		)
+
+		IL_0000: ldarg.1
+		IL_0001: ldc.i4.0
+		IL_0002: bge.s IL_000f
+
+		IL_0004: ldstr "minimumLength"
+		IL_0009: newobj instance void [mscorlib]System.ArgumentOutOfRangeException::.ctor(string)
+		IL_000e: throw
+
+		IL_000f: ldarg.1
+		IL_0010: brtrue.s IL_0028
+
+		IL_0012: ldsfld !0[] class System.Buffers.DefaultArrayPool`1<!T>::s_emptyArray
+		IL_0017: dup
+		IL_0018: brtrue.s IL_0027
+
+		IL_001a: pop
+		IL_001b: ldc.i4.0
+		IL_001c: newarr !T
+		IL_0021: dup
+		IL_0022: stsfld !0[] class System.Buffers.DefaultArrayPool`1<!T>::s_emptyArray
+
+		IL_0027: ret
+
+		IL_0028: ldsfld class System.Buffers.ArrayPoolEventSource System.Buffers.ArrayPoolEventSource::Log
+		IL_002d: stloc.0
+		IL_002e: ldnull
+		IL_002f: stloc.1
+		IL_0030: ldarg.1
+		IL_0031: call int32 System.Buffers.Utilities::SelectBucketIndex(int32)
+		IL_0036: stloc.2
+		IL_0037: ldloc.2
+		IL_0038: ldarg.0
+		IL_0039: ldfld class System.Buffers.DefaultArrayPool`1/Bucket<!0>[] class System.Buffers.DefaultArrayPool`1<!T>::_buckets
+		IL_003e: ldlen
+		IL_003f: conv.i4
+		IL_0040: bge.s IL_00ab
+
+		IL_0042: ldloc.2
+		IL_0043: stloc.3
+		// loop start (head: IL_0044)
+			IL_0044: ldarg.0
+			IL_0045: ldfld class System.Buffers.DefaultArrayPool`1/Bucket<!0>[] class System.Buffers.DefaultArrayPool`1<!T>::_buckets
+			IL_004a: ldloc.3
+			IL_004b: ldelem.ref
+			IL_004c: callvirt instance !0[] class System.Buffers.DefaultArrayPool`1/Bucket<!T>::Rent()
+			IL_0051: stloc.1
+			IL_0052: ldloc.1
+			IL_0053: brfalse.s IL_0081
+
+			IL_0055: ldloc.0
+			IL_0056: callvirt instance bool [mscorlib]System.Diagnostics.Tracing.EventSource::IsEnabled()
+			IL_005b: brfalse.s IL_007f
+
+			IL_005d: ldloc.0
+			IL_005e: ldloc.1
+			IL_005f: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+			IL_0064: ldloc.1
+			IL_0065: ldlen
+			IL_0066: conv.i4
+			IL_0067: ldarg.0
+			IL_0068: call instance int32 class System.Buffers.DefaultArrayPool`1<!T>::get_Id()
+			IL_006d: ldarg.0
+			IL_006e: ldfld class System.Buffers.DefaultArrayPool`1/Bucket<!0>[] class System.Buffers.DefaultArrayPool`1<!T>::_buckets
+			IL_0073: ldloc.3
+			IL_0074: ldelem.ref
+			IL_0075: callvirt instance int32 class System.Buffers.DefaultArrayPool`1/Bucket<!T>::get_Id()
+			IL_007a: callvirt instance void System.Buffers.ArrayPoolEventSource::BufferRented(int32, int32, int32, int32)
+
+			IL_007f: ldloc.1
+			IL_0080: ret
+
+			IL_0081: ldloc.3
+			IL_0082: ldc.i4.1
+			IL_0083: add
+			IL_0084: dup
+			IL_0085: stloc.3
+			IL_0086: ldarg.0
+			IL_0087: ldfld class System.Buffers.DefaultArrayPool`1/Bucket<!0>[] class System.Buffers.DefaultArrayPool`1<!T>::_buckets
+			IL_008c: ldlen
+			IL_008d: conv.i4
+			IL_008e: bge.s IL_0096
+
+			IL_0090: ldloc.3
+			IL_0091: ldloc.2
+			IL_0092: ldc.i4.2
+			IL_0093: add
+			IL_0094: bne.un.s IL_0044
+		// end loop
+
+		IL_0096: ldarg.0
+		IL_0097: ldfld class System.Buffers.DefaultArrayPool`1/Bucket<!0>[] class System.Buffers.DefaultArrayPool`1<!T>::_buckets
+		IL_009c: ldloc.2
+		IL_009d: ldelem.ref
+		IL_009e: ldfld int32 class System.Buffers.DefaultArrayPool`1/Bucket<!T>::_bufferLength
+		IL_00a3: newarr !T
+		IL_00a8: stloc.1
+		IL_00a9: br.s IL_00b2
+
+		IL_00ab: ldarg.1
+		IL_00ac: newarr !T
+		IL_00b1: stloc.1
+
+		IL_00b2: ldloc.0
+		IL_00b3: callvirt instance bool [mscorlib]System.Diagnostics.Tracing.EventSource::IsEnabled()
+		IL_00b8: brfalse.s IL_00fa
+
+		IL_00ba: ldloc.1
+		IL_00bb: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+		IL_00c0: stloc.s 4
+		IL_00c2: ldc.i4.m1
+		IL_00c3: stloc.s 5
+		IL_00c5: ldloc.0
+		IL_00c6: ldloc.s 4
+		IL_00c8: ldloc.1
+		IL_00c9: ldlen
+		IL_00ca: conv.i4
+		IL_00cb: ldarg.0
+		IL_00cc: call instance int32 class System.Buffers.DefaultArrayPool`1<!T>::get_Id()
+		IL_00d1: ldloc.s 5
+		IL_00d3: callvirt instance void System.Buffers.ArrayPoolEventSource::BufferRented(int32, int32, int32, int32)
+		IL_00d8: ldloc.0
+		IL_00d9: ldloc.s 4
+		IL_00db: ldloc.1
+		IL_00dc: ldlen
+		IL_00dd: conv.i4
+		IL_00de: ldarg.0
+		IL_00df: call instance int32 class System.Buffers.DefaultArrayPool`1<!T>::get_Id()
+		IL_00e4: ldloc.s 5
+		IL_00e6: ldloc.2
+		IL_00e7: ldarg.0
+		IL_00e8: ldfld class System.Buffers.DefaultArrayPool`1/Bucket<!0>[] class System.Buffers.DefaultArrayPool`1<!T>::_buckets
+		IL_00ed: ldlen
+		IL_00ee: conv.i4
+		IL_00ef: bge.s IL_00f4
+
+		IL_00f1: ldc.i4.2
+		IL_00f2: br.s IL_00f5
+
+		IL_00f4: ldc.i4.1
+
+		IL_00f5: callvirt instance void System.Buffers.ArrayPoolEventSource::BufferAllocated(int32, int32, int32, int32, valuetype System.Buffers.ArrayPoolEventSource/BufferAllocatedReason)
+
+		IL_00fa: ldloc.1
+		IL_00fb: ret
+	} // end of method DefaultArrayPool`1::Rent
+
+	.method public hidebysig virtual 
+		instance void Return (
+			!T[] 'array',
+			[opt] bool clearArray
+		) cil managed 
+	{
+		.param [2] = bool(false)
+		// Method begins at RVA 0x26b4
+		// Header size: 12
+		// Code size: 102 (0x66)
+		.maxstack 4
+		.locals init (
+			[0] int32,
+			[1] class System.Buffers.ArrayPoolEventSource
+		)
+
+		IL_0000: ldarg.1
+		IL_0001: brtrue.s IL_000e
+
+		IL_0003: ldstr "array"
+		IL_0008: newobj instance void [mscorlib]System.ArgumentNullException::.ctor(string)
+		IL_000d: throw
+
+		IL_000e: ldarg.1
+		IL_000f: ldlen
+		IL_0010: brtrue.s IL_0013
+
+		IL_0012: ret
+
+		IL_0013: ldarg.1
+		IL_0014: ldlen
+		IL_0015: conv.i4
+		IL_0016: call int32 System.Buffers.Utilities::SelectBucketIndex(int32)
+		IL_001b: stloc.0
+		IL_001c: ldloc.0
+		IL_001d: ldarg.0
+		IL_001e: ldfld class System.Buffers.DefaultArrayPool`1/Bucket<!0>[] class System.Buffers.DefaultArrayPool`1<!T>::_buckets
+		IL_0023: ldlen
+		IL_0024: conv.i4
+		IL_0025: bge.s IL_0042
+
+		IL_0027: ldarg.2
+		IL_0028: brfalse.s IL_0034
+
+		IL_002a: ldarg.1
+		IL_002b: ldc.i4.0
+		IL_002c: ldarg.1
+		IL_002d: ldlen
+		IL_002e: conv.i4
+		IL_002f: call void [mscorlib]System.Array::Clear(class [mscorlib]System.Array, int32, int32)
+
+		IL_0034: ldarg.0
+		IL_0035: ldfld class System.Buffers.DefaultArrayPool`1/Bucket<!0>[] class System.Buffers.DefaultArrayPool`1<!T>::_buckets
+		IL_003a: ldloc.0
+		IL_003b: ldelem.ref
+		IL_003c: ldarg.1
+		IL_003d: callvirt instance void class System.Buffers.DefaultArrayPool`1/Bucket<!T>::Return(!0[])
+
+		IL_0042: ldsfld class System.Buffers.ArrayPoolEventSource System.Buffers.ArrayPoolEventSource::Log
+		IL_0047: stloc.1
+		IL_0048: ldloc.1
+		IL_0049: callvirt instance bool [mscorlib]System.Diagnostics.Tracing.EventSource::IsEnabled()
+		IL_004e: brfalse.s IL_0065
+
+		IL_0050: ldloc.1
+		IL_0051: ldarg.1
+		IL_0052: callvirt instance int32 [mscorlib]System.Object::GetHashCode()
+		IL_0057: ldarg.1
+		IL_0058: ldlen
+		IL_0059: conv.i4
+		IL_005a: ldarg.0
+		IL_005b: call instance int32 class System.Buffers.DefaultArrayPool`1<!T>::get_Id()
+		IL_0060: callvirt instance void System.Buffers.ArrayPoolEventSource::BufferReturned(int32, int32, int32)
+
+		IL_0065: ret
+	} // end of method DefaultArrayPool`1::Return
+
+	// Properties
+	.property instance int32 Id()
+	{
+		.get instance int32 System.Buffers.DefaultArrayPool`1::get_Id()
+	}
+
+} // end of class System.Buffers.DefaultArrayPool`1
+
+.class private auto ansi abstract sealed beforefieldinit System.Buffers.Utilities
+	extends [mscorlib]System.Object
+{
+	// Methods
+	.method assembly hidebysig static 
+		int32 SelectBucketIndex (
+			int32 bufferSize
+		) cil managed aggressiveinlining 
+	{
+		// Method begins at RVA 0x2728
+		// Header size: 12
+		// Code size: 81 (0x51)
+		.maxstack 2
+		.locals init (
+			[0] uint32,
+			[1] int32
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldc.i4.1
+		IL_0002: sub
+		IL_0003: ldc.i4.4
+		IL_0004: shr.un
+		IL_0005: stloc.0
+		IL_0006: ldc.i4.0
+		IL_0007: stloc.1
+		IL_0008: ldloc.0
+		IL_0009: ldc.i4 65535
+		IL_000e: ble.un.s IL_0018
+
+		IL_0010: ldloc.0
+		IL_0011: ldc.i4.s 16
+		IL_0013: shr.un
+		IL_0014: stloc.0
+		IL_0015: ldc.i4.s 16
+		IL_0017: stloc.1
+
+		IL_0018: ldloc.0
+		IL_0019: ldc.i4 255
+		IL_001e: ble.un.s IL_0028
+
+		IL_0020: ldloc.0
+		IL_0021: ldc.i4.8
+		IL_0022: shr.un
+		IL_0023: stloc.0
+		IL_0024: ldloc.1
+		IL_0025: ldc.i4.8
+		IL_0026: add
+		IL_0027: stloc.1
+
+		IL_0028: ldloc.0
+		IL_0029: ldc.i4.s 15
+		IL_002b: ble.un.s IL_0035
+
+		IL_002d: ldloc.0
+		IL_002e: ldc.i4.4
+		IL_002f: shr.un
+		IL_0030: stloc.0
+		IL_0031: ldloc.1
+		IL_0032: ldc.i4.4
+		IL_0033: add
+		IL_0034: stloc.1
+
+		IL_0035: ldloc.0
+		IL_0036: ldc.i4.3
+		IL_0037: ble.un.s IL_0041
+
+		IL_0039: ldloc.0
+		IL_003a: ldc.i4.2
+		IL_003b: shr.un
+		IL_003c: stloc.0
+		IL_003d: ldloc.1
+		IL_003e: ldc.i4.2
+		IL_003f: add
+		IL_0040: stloc.1
+
+		IL_0041: ldloc.0
+		IL_0042: ldc.i4.1
+		IL_0043: ble.un.s IL_004d
+
+		IL_0045: ldloc.0
+		IL_0046: ldc.i4.1
+		IL_0047: shr.un
+		IL_0048: stloc.0
+		IL_0049: ldloc.1
+		IL_004a: ldc.i4.1
+		IL_004b: add
+		IL_004c: stloc.1
+
+		IL_004d: ldloc.1
+		IL_004e: ldloc.0
+		IL_004f: add
+		IL_0050: ret
+	} // end of method Utilities::SelectBucketIndex
+
+	.method assembly hidebysig static 
+		int32 GetMaxSizeForBucket (
+			int32 binIndex
+		) cil managed aggressiveinlining 
+	{
+		// Method begins at RVA 0x2788
+		// Header size: 12
+		// Code size: 10 (0xa)
+		.maxstack 3
+		.locals init (
+			[0] int32
+		)
+
+		IL_0000: ldc.i4.s 16
+		IL_0002: ldarg.0
+		IL_0003: ldc.i4.s 31
+		IL_0005: and
+		IL_0006: shl
+		IL_0007: stloc.0
+		IL_0008: ldloc.0
+		IL_0009: ret
+	} // end of method Utilities::GetMaxSizeForBucket
+
+} // end of class System.Buffers.Utilities
+

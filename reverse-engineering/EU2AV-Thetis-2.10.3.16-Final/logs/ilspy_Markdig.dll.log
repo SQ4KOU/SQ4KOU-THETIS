@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\Markdig.dll
+assembly_sha256=2a79c1c7138d099b8d9f363f37d25ce56abfdf42a6172f6c19a09161bc7ba849
+csharp_files=330
+il_bytes=4541878
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

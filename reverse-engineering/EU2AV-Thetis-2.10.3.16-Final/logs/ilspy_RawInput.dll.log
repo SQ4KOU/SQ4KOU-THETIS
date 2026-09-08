@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\RawInput.dll
+assembly_sha256=f5bd2b33eec5b81ff5aba167dfc7b0a539102939d13b6fd6b7692d55d7041f13
+csharp_files=30
+il_bytes=143969
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

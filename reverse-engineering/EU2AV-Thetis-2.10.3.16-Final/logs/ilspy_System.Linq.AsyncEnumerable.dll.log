@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\System.Linq.AsyncEnumerable.dll
+assembly_sha256=23fcea8d204b86a3b19b560548421c38f69624863d5d199c33e5d0f091382c0a
+csharp_files=25
+il_bytes=8197832
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

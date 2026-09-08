@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\ExCSS.dll
+assembly_sha256=05470f413caf55cc511e83a5f114f7fc54815f330eb956578c6714515526c9da
+csharp_files=485
+il_bytes=3594241
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\SkiaSharp.dll
+assembly_sha256=9e379211b9438087befe86e4a2392334193f34c7793430bac50ecc7e90d70af8
+csharp_files=286
+il_bytes=5823002
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

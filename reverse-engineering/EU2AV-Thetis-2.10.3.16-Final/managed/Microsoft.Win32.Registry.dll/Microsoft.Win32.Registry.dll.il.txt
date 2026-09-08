@@ -1,0 +1,1608 @@
+// IL code: Microsoft.Win32.Registry
+.class private auto ansi '<Module>'
+{
+} // end of class <Module>
+
+.class private auto ansi abstract sealed beforefieldinit FxResources.Microsoft.Win32.Registry.SR
+	extends [mscorlib]System.Object
+{
+} // end of class FxResources.Microsoft.Win32.Registry.SR
+
+.class private auto ansi abstract sealed beforefieldinit System.SR
+	extends [mscorlib]System.Object
+{
+	// Fields
+	.field private static initonly bool s_usingResourceKeys
+	.field private static class [mscorlib]System.Resources.ResourceManager s_resourceManager
+
+	// Methods
+	.method private hidebysig static 
+		bool UsingResourceKeys () cil managed 
+	{
+		// Method begins at RVA 0x2050
+		// Header size: 1
+		// Code size: 6 (0x6)
+		.maxstack 8
+
+		IL_0000: ldsfld bool System.SR::s_usingResourceKeys
+		IL_0005: ret
+	} // end of method SR::UsingResourceKeys
+
+	.method assembly hidebysig static 
+		string GetResourceString (
+			string resourceKey,
+			[opt] string defaultString
+		) cil managed 
+	{
+		.param [2] = nullref
+		// Method begins at RVA 0x2058
+		// Header size: 12
+		// Code size: 49 (0x31)
+		.maxstack 2
+		.locals init (
+			[0] string
+		)
+
+		IL_0000: call bool System.SR::UsingResourceKeys()
+		IL_0005: brfalse.s IL_000e
+
+		IL_0007: ldarg.1
+		IL_0008: dup
+		IL_0009: brtrue.s IL_000d
+
+		IL_000b: pop
+		IL_000c: ldarg.0
+
+		IL_000d: ret
+
+		IL_000e: ldnull
+		IL_000f: stloc.0
+		.try
+		{
+			IL_0010: call class [mscorlib]System.Resources.ResourceManager System.SR::get_ResourceManager()
+			IL_0015: ldarg.0
+			IL_0016: callvirt instance string [mscorlib]System.Resources.ResourceManager::GetString(string)
+			IL_001b: stloc.0
+			IL_001c: leave.s IL_0021
+		} // end .try
+		catch [mscorlib]System.Resources.MissingManifestResourceException
+		{
+			IL_001e: pop
+			IL_001f: leave.s IL_0021
+		} // end handler
+
+		IL_0021: ldarg.1
+		IL_0022: brfalse.s IL_002f
+
+		IL_0024: ldarg.0
+		IL_0025: ldloc.0
+		IL_0026: callvirt instance bool [mscorlib]System.String::Equals(string)
+		IL_002b: brfalse.s IL_002f
+
+		IL_002d: ldarg.1
+		IL_002e: ret
+
+		IL_002f: ldloc.0
+		IL_0030: ret
+	} // end of method SR::GetResourceString
+
+	.method assembly hidebysig static 
+		string Format (
+			string resourceFormat,
+			object p1
+		) cil managed 
+	{
+		// Method begins at RVA 0x20a8
+		// Header size: 1
+		// Code size: 40 (0x28)
+		.maxstack 8
+
+		IL_0000: call bool System.SR::UsingResourceKeys()
+		IL_0005: brfalse.s IL_0020
+
+		IL_0007: ldstr ", "
+		IL_000c: ldc.i4.2
+		IL_000d: newarr [mscorlib]System.Object
+		IL_0012: dup
+		IL_0013: ldc.i4.0
+		IL_0014: ldarg.0
+		IL_0015: stelem.ref
+		IL_0016: dup
+		IL_0017: ldc.i4.1
+		IL_0018: ldarg.1
+		IL_0019: stelem.ref
+		IL_001a: call string [mscorlib]System.String::Join(string, object[])
+		IL_001f: ret
+
+		IL_0020: ldarg.0
+		IL_0021: ldarg.1
+		IL_0022: call string [mscorlib]System.String::Format(string, object)
+		IL_0027: ret
+	} // end of method SR::Format
+
+	.method assembly hidebysig static 
+		string Format (
+			string resourceFormat,
+			object p1,
+			object p2
+		) cil managed 
+	{
+		// Method begins at RVA 0x20d1
+		// Header size: 1
+		// Code size: 45 (0x2d)
+		.maxstack 8
+
+		IL_0000: call bool System.SR::UsingResourceKeys()
+		IL_0005: brfalse.s IL_0024
+
+		IL_0007: ldstr ", "
+		IL_000c: ldc.i4.3
+		IL_000d: newarr [mscorlib]System.Object
+		IL_0012: dup
+		IL_0013: ldc.i4.0
+		IL_0014: ldarg.0
+		IL_0015: stelem.ref
+		IL_0016: dup
+		IL_0017: ldc.i4.1
+		IL_0018: ldarg.1
+		IL_0019: stelem.ref
+		IL_001a: dup
+		IL_001b: ldc.i4.2
+		IL_001c: ldarg.2
+		IL_001d: stelem.ref
+		IL_001e: call string [mscorlib]System.String::Join(string, object[])
+		IL_0023: ret
+
+		IL_0024: ldarg.0
+		IL_0025: ldarg.1
+		IL_0026: ldarg.2
+		IL_0027: call string [mscorlib]System.String::Format(string, object, object)
+		IL_002c: ret
+	} // end of method SR::Format
+
+	.method assembly hidebysig static 
+		string Format (
+			string resourceFormat,
+			object p1,
+			object p2,
+			object p3
+		) cil managed 
+	{
+		// Method begins at RVA 0x20ff
+		// Header size: 1
+		// Code size: 50 (0x32)
+		.maxstack 8
+
+		IL_0000: call bool System.SR::UsingResourceKeys()
+		IL_0005: brfalse.s IL_0028
+
+		IL_0007: ldstr ", "
+		IL_000c: ldc.i4.4
+		IL_000d: newarr [mscorlib]System.Object
+		IL_0012: dup
+		IL_0013: ldc.i4.0
+		IL_0014: ldarg.0
+		IL_0015: stelem.ref
+		IL_0016: dup
+		IL_0017: ldc.i4.1
+		IL_0018: ldarg.1
+		IL_0019: stelem.ref
+		IL_001a: dup
+		IL_001b: ldc.i4.2
+		IL_001c: ldarg.2
+		IL_001d: stelem.ref
+		IL_001e: dup
+		IL_001f: ldc.i4.3
+		IL_0020: ldarg.3
+		IL_0021: stelem.ref
+		IL_0022: call string [mscorlib]System.String::Join(string, object[])
+		IL_0027: ret
+
+		IL_0028: ldarg.0
+		IL_0029: ldarg.1
+		IL_002a: ldarg.2
+		IL_002b: ldarg.3
+		IL_002c: call string [mscorlib]System.String::Format(string, object, object, object)
+		IL_0031: ret
+	} // end of method SR::Format
+
+	.method assembly hidebysig static 
+		string Format (
+			string resourceFormat,
+			object[] args
+		) cil managed 
+	{
+		.param [2]
+			.custom instance void [mscorlib]System.ParamArrayAttribute::.ctor() = (
+				01 00 00 00
+			)
+		// Method begins at RVA 0x2132
+		// Header size: 1
+		// Code size: 43 (0x2b)
+		.maxstack 8
+
+		IL_0000: ldarg.1
+		IL_0001: brfalse.s IL_0029
+
+		IL_0003: call bool System.SR::UsingResourceKeys()
+		IL_0008: brfalse.s IL_0021
+
+		IL_000a: ldarg.0
+		IL_000b: ldstr ", "
+		IL_0010: ldstr ", "
+		IL_0015: ldarg.1
+		IL_0016: call string [mscorlib]System.String::Join(string, object[])
+		IL_001b: call string [mscorlib]System.String::Concat(string, string, string)
+		IL_0020: ret
+
+		IL_0021: ldarg.0
+		IL_0022: ldarg.1
+		IL_0023: call string [mscorlib]System.String::Format(string, object[])
+		IL_0028: ret
+
+		IL_0029: ldarg.0
+		IL_002a: ret
+	} // end of method SR::Format
+
+	.method assembly hidebysig static 
+		string Format (
+			class [mscorlib]System.IFormatProvider provider,
+			string resourceFormat,
+			object p1
+		) cil managed 
+	{
+		// Method begins at RVA 0x215e
+		// Header size: 1
+		// Code size: 41 (0x29)
+		.maxstack 8
+
+		IL_0000: call bool System.SR::UsingResourceKeys()
+		IL_0005: brfalse.s IL_0020
+
+		IL_0007: ldstr ", "
+		IL_000c: ldc.i4.2
+		IL_000d: newarr [mscorlib]System.Object
+		IL_0012: dup
+		IL_0013: ldc.i4.0
+		IL_0014: ldarg.1
+		IL_0015: stelem.ref
+		IL_0016: dup
+		IL_0017: ldc.i4.1
+		IL_0018: ldarg.2
+		IL_0019: stelem.ref
+		IL_001a: call string [mscorlib]System.String::Join(string, object[])
+		IL_001f: ret
+
+		IL_0020: ldarg.0
+		IL_0021: ldarg.1
+		IL_0022: ldarg.2
+		IL_0023: call string [mscorlib]System.String::Format(class [mscorlib]System.IFormatProvider, string, object)
+		IL_0028: ret
+	} // end of method SR::Format
+
+	.method assembly hidebysig static 
+		string Format (
+			class [mscorlib]System.IFormatProvider provider,
+			string resourceFormat,
+			object p1,
+			object p2
+		) cil managed 
+	{
+		// Method begins at RVA 0x2188
+		// Header size: 1
+		// Code size: 46 (0x2e)
+		.maxstack 8
+
+		IL_0000: call bool System.SR::UsingResourceKeys()
+		IL_0005: brfalse.s IL_0024
+
+		IL_0007: ldstr ", "
+		IL_000c: ldc.i4.3
+		IL_000d: newarr [mscorlib]System.Object
+		IL_0012: dup
+		IL_0013: ldc.i4.0
+		IL_0014: ldarg.1
+		IL_0015: stelem.ref
+		IL_0016: dup
+		IL_0017: ldc.i4.1
+		IL_0018: ldarg.2
+		IL_0019: stelem.ref
+		IL_001a: dup
+		IL_001b: ldc.i4.2
+		IL_001c: ldarg.3
+		IL_001d: stelem.ref
+		IL_001e: call string [mscorlib]System.String::Join(string, object[])
+		IL_0023: ret
+
+		IL_0024: ldarg.0
+		IL_0025: ldarg.1
+		IL_0026: ldarg.2
+		IL_0027: ldarg.3
+		IL_0028: call string [mscorlib]System.String::Format(class [mscorlib]System.IFormatProvider, string, object, object)
+		IL_002d: ret
+	} // end of method SR::Format
+
+	.method assembly hidebysig static 
+		string Format (
+			class [mscorlib]System.IFormatProvider provider,
+			string resourceFormat,
+			object p1,
+			object p2,
+			object p3
+		) cil managed 
+	{
+		// Method begins at RVA 0x21b7
+		// Header size: 1
+		// Code size: 53 (0x35)
+		.maxstack 8
+
+		IL_0000: call bool System.SR::UsingResourceKeys()
+		IL_0005: brfalse.s IL_0029
+
+		IL_0007: ldstr ", "
+		IL_000c: ldc.i4.4
+		IL_000d: newarr [mscorlib]System.Object
+		IL_0012: dup
+		IL_0013: ldc.i4.0
+		IL_0014: ldarg.1
+		IL_0015: stelem.ref
+		IL_0016: dup
+		IL_0017: ldc.i4.1
+		IL_0018: ldarg.2
+		IL_0019: stelem.ref
+		IL_001a: dup
+		IL_001b: ldc.i4.2
+		IL_001c: ldarg.3
+		IL_001d: stelem.ref
+		IL_001e: dup
+		IL_001f: ldc.i4.3
+		IL_0020: ldarg.s p3
+		IL_0022: stelem.ref
+		IL_0023: call string [mscorlib]System.String::Join(string, object[])
+		IL_0028: ret
+
+		IL_0029: ldarg.0
+		IL_002a: ldarg.1
+		IL_002b: ldarg.2
+		IL_002c: ldarg.3
+		IL_002d: ldarg.s p3
+		IL_002f: call string [mscorlib]System.String::Format(class [mscorlib]System.IFormatProvider, string, object, object, object)
+		IL_0034: ret
+	} // end of method SR::Format
+
+	.method assembly hidebysig static 
+		string Format (
+			class [mscorlib]System.IFormatProvider provider,
+			string resourceFormat,
+			object[] args
+		) cil managed 
+	{
+		.param [3]
+			.custom instance void [mscorlib]System.ParamArrayAttribute::.ctor() = (
+				01 00 00 00
+			)
+		// Method begins at RVA 0x21ed
+		// Header size: 1
+		// Code size: 44 (0x2c)
+		.maxstack 8
+
+		IL_0000: ldarg.2
+		IL_0001: brfalse.s IL_002a
+
+		IL_0003: call bool System.SR::UsingResourceKeys()
+		IL_0008: brfalse.s IL_0021
+
+		IL_000a: ldarg.1
+		IL_000b: ldstr ", "
+		IL_0010: ldstr ", "
+		IL_0015: ldarg.2
+		IL_0016: call string [mscorlib]System.String::Join(string, object[])
+		IL_001b: call string [mscorlib]System.String::Concat(string, string, string)
+		IL_0020: ret
+
+		IL_0021: ldarg.0
+		IL_0022: ldarg.1
+		IL_0023: ldarg.2
+		IL_0024: call string [mscorlib]System.String::Format(class [mscorlib]System.IFormatProvider, string, object[])
+		IL_0029: ret
+
+		IL_002a: ldarg.1
+		IL_002b: ret
+	} // end of method SR::Format
+
+	.method assembly hidebysig specialname static 
+		class [mscorlib]System.Resources.ResourceManager get_ResourceManager () cil managed 
+	{
+		// Method begins at RVA 0x221a
+		// Header size: 1
+		// Code size: 31 (0x1f)
+		.maxstack 8
+
+		IL_0000: ldsfld class [mscorlib]System.Resources.ResourceManager System.SR::s_resourceManager
+		IL_0005: dup
+		IL_0006: brtrue.s IL_001e
+
+		IL_0008: pop
+		IL_0009: ldtoken FxResources.Microsoft.Win32.Registry.SR
+		IL_000e: call class [mscorlib]System.Type [mscorlib]System.Type::GetTypeFromHandle(valuetype [mscorlib]System.RuntimeTypeHandle)
+		IL_0013: newobj instance void [mscorlib]System.Resources.ResourceManager::.ctor(class [mscorlib]System.Type)
+		IL_0018: dup
+		IL_0019: stsfld class [mscorlib]System.Resources.ResourceManager System.SR::s_resourceManager
+
+		IL_001e: ret
+	} // end of method SR::get_ResourceManager
+
+	.method assembly hidebysig specialname static 
+		string get_AccessControl_InvalidHandle () cil managed 
+	{
+		// Method begins at RVA 0x223a
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldstr "AccessControl_InvalidHandle"
+		IL_0005: ldnull
+		IL_0006: call string System.SR::GetResourceString(string, string)
+		IL_000b: ret
+	} // end of method SR::get_AccessControl_InvalidHandle
+
+	.method assembly hidebysig specialname static 
+		string get_Arg_RegSubKeyAbsent () cil managed 
+	{
+		// Method begins at RVA 0x2247
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldstr "Arg_RegSubKeyAbsent"
+		IL_0005: ldnull
+		IL_0006: call string System.SR::GetResourceString(string, string)
+		IL_000b: ret
+	} // end of method SR::get_Arg_RegSubKeyAbsent
+
+	.method assembly hidebysig specialname static 
+		string get_Arg_RegKeyDelHive () cil managed 
+	{
+		// Method begins at RVA 0x2254
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldstr "Arg_RegKeyDelHive"
+		IL_0005: ldnull
+		IL_0006: call string System.SR::GetResourceString(string, string)
+		IL_000b: ret
+	} // end of method SR::get_Arg_RegKeyDelHive
+
+	.method assembly hidebysig specialname static 
+		string get_Arg_RegKeyNoRemoteConnect () cil managed 
+	{
+		// Method begins at RVA 0x2261
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldstr "Arg_RegKeyNoRemoteConnect"
+		IL_0005: ldnull
+		IL_0006: call string System.SR::GetResourceString(string, string)
+		IL_000b: ret
+	} // end of method SR::get_Arg_RegKeyNoRemoteConnect
+
+	.method assembly hidebysig specialname static 
+		string get_Arg_RegKeyOutOfRange () cil managed 
+	{
+		// Method begins at RVA 0x226e
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldstr "Arg_RegKeyOutOfRange"
+		IL_0005: ldnull
+		IL_0006: call string System.SR::GetResourceString(string, string)
+		IL_000b: ret
+	} // end of method SR::get_Arg_RegKeyOutOfRange
+
+	.method assembly hidebysig specialname static 
+		string get_Arg_RegKeyNotFound () cil managed 
+	{
+		// Method begins at RVA 0x227b
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldstr "Arg_RegKeyNotFound"
+		IL_0005: ldnull
+		IL_0006: call string System.SR::GetResourceString(string, string)
+		IL_000b: ret
+	} // end of method SR::get_Arg_RegKeyNotFound
+
+	.method assembly hidebysig specialname static 
+		string get_Arg_RegKeyStrLenBug () cil managed 
+	{
+		// Method begins at RVA 0x2288
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldstr "Arg_RegKeyStrLenBug"
+		IL_0005: ldnull
+		IL_0006: call string System.SR::GetResourceString(string, string)
+		IL_000b: ret
+	} // end of method SR::get_Arg_RegKeyStrLenBug
+
+	.method assembly hidebysig specialname static 
+		string get_Arg_RegValStrLenBug () cil managed 
+	{
+		// Method begins at RVA 0x2295
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldstr "Arg_RegValStrLenBug"
+		IL_0005: ldnull
+		IL_0006: call string System.SR::GetResourceString(string, string)
+		IL_000b: ret
+	} // end of method SR::get_Arg_RegValStrLenBug
+
+	.method assembly hidebysig specialname static 
+		string get_Arg_RegBadKeyKind () cil managed 
+	{
+		// Method begins at RVA 0x22a2
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldstr "Arg_RegBadKeyKind"
+		IL_0005: ldnull
+		IL_0006: call string System.SR::GetResourceString(string, string)
+		IL_000b: ret
+	} // end of method SR::get_Arg_RegBadKeyKind
+
+	.method assembly hidebysig specialname static 
+		string get_Arg_RegGetOverflowBug () cil managed 
+	{
+		// Method begins at RVA 0x22af
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldstr "Arg_RegGetOverflowBug"
+		IL_0005: ldnull
+		IL_0006: call string System.SR::GetResourceString(string, string)
+		IL_000b: ret
+	} // end of method SR::get_Arg_RegGetOverflowBug
+
+	.method assembly hidebysig specialname static 
+		string get_Arg_RegSetMismatchedKind () cil managed 
+	{
+		// Method begins at RVA 0x22bc
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldstr "Arg_RegSetMismatchedKind"
+		IL_0005: ldnull
+		IL_0006: call string System.SR::GetResourceString(string, string)
+		IL_000b: ret
+	} // end of method SR::get_Arg_RegSetMismatchedKind
+
+	.method assembly hidebysig specialname static 
+		string get_Arg_RegSetBadArrType () cil managed 
+	{
+		// Method begins at RVA 0x22c9
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldstr "Arg_RegSetBadArrType"
+		IL_0005: ldnull
+		IL_0006: call string System.SR::GetResourceString(string, string)
+		IL_000b: ret
+	} // end of method SR::get_Arg_RegSetBadArrType
+
+	.method assembly hidebysig specialname static 
+		string get_Arg_RegSetStrArrNull () cil managed 
+	{
+		// Method begins at RVA 0x22d6
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldstr "Arg_RegSetStrArrNull"
+		IL_0005: ldnull
+		IL_0006: call string System.SR::GetResourceString(string, string)
+		IL_000b: ret
+	} // end of method SR::get_Arg_RegSetStrArrNull
+
+	.method assembly hidebysig specialname static 
+		string get_Arg_RegInvalidKeyName () cil managed 
+	{
+		// Method begins at RVA 0x22e3
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldstr "Arg_RegInvalidKeyName"
+		IL_0005: ldnull
+		IL_0006: call string System.SR::GetResourceString(string, string)
+		IL_000b: ret
+	} // end of method SR::get_Arg_RegInvalidKeyName
+
+	.method assembly hidebysig specialname static 
+		string get_Arg_DllInitFailure () cil managed 
+	{
+		// Method begins at RVA 0x22f0
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldstr "Arg_DllInitFailure"
+		IL_0005: ldnull
+		IL_0006: call string System.SR::GetResourceString(string, string)
+		IL_000b: ret
+	} // end of method SR::get_Arg_DllInitFailure
+
+	.method assembly hidebysig specialname static 
+		string get_Arg_EnumIllegalVal () cil managed 
+	{
+		// Method begins at RVA 0x22fd
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldstr "Arg_EnumIllegalVal"
+		IL_0005: ldnull
+		IL_0006: call string System.SR::GetResourceString(string, string)
+		IL_000b: ret
+	} // end of method SR::get_Arg_EnumIllegalVal
+
+	.method assembly hidebysig specialname static 
+		string get_Arg_RegSubKeyValueAbsent () cil managed 
+	{
+		// Method begins at RVA 0x230a
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldstr "Arg_RegSubKeyValueAbsent"
+		IL_0005: ldnull
+		IL_0006: call string System.SR::GetResourceString(string, string)
+		IL_000b: ret
+	} // end of method SR::get_Arg_RegSubKeyValueAbsent
+
+	.method assembly hidebysig specialname static 
+		string get_Argument_InvalidRegistryOptionsCheck () cil managed 
+	{
+		// Method begins at RVA 0x2317
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldstr "Argument_InvalidRegistryOptionsCheck"
+		IL_0005: ldnull
+		IL_0006: call string System.SR::GetResourceString(string, string)
+		IL_000b: ret
+	} // end of method SR::get_Argument_InvalidRegistryOptionsCheck
+
+	.method assembly hidebysig specialname static 
+		string get_Argument_InvalidRegistryViewCheck () cil managed 
+	{
+		// Method begins at RVA 0x2324
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldstr "Argument_InvalidRegistryViewCheck"
+		IL_0005: ldnull
+		IL_0006: call string System.SR::GetResourceString(string, string)
+		IL_000b: ret
+	} // end of method SR::get_Argument_InvalidRegistryViewCheck
+
+	.method assembly hidebysig specialname static 
+		string get_Argument_InvalidRegistryKeyPermissionCheck () cil managed 
+	{
+		// Method begins at RVA 0x2331
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldstr "Argument_InvalidRegistryKeyPermissionCheck"
+		IL_0005: ldnull
+		IL_0006: call string System.SR::GetResourceString(string, string)
+		IL_000b: ret
+	} // end of method SR::get_Argument_InvalidRegistryKeyPermissionCheck
+
+	.method assembly hidebysig specialname static 
+		string get_InvalidOperation_RegRemoveSubKey () cil managed 
+	{
+		// Method begins at RVA 0x233e
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldstr "InvalidOperation_RegRemoveSubKey"
+		IL_0005: ldnull
+		IL_0006: call string System.SR::GetResourceString(string, string)
+		IL_000b: ret
+	} // end of method SR::get_InvalidOperation_RegRemoveSubKey
+
+	.method assembly hidebysig specialname static 
+		string get_ObjectDisposed_RegKeyClosed () cil managed 
+	{
+		// Method begins at RVA 0x234b
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldstr "ObjectDisposed_RegKeyClosed"
+		IL_0005: ldnull
+		IL_0006: call string System.SR::GetResourceString(string, string)
+		IL_000b: ret
+	} // end of method SR::get_ObjectDisposed_RegKeyClosed
+
+	.method assembly hidebysig specialname static 
+		string get_PlatformNotSupported_Registry () cil managed 
+	{
+		// Method begins at RVA 0x2358
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldstr "PlatformNotSupported_Registry"
+		IL_0005: ldnull
+		IL_0006: call string System.SR::GetResourceString(string, string)
+		IL_000b: ret
+	} // end of method SR::get_PlatformNotSupported_Registry
+
+	.method assembly hidebysig specialname static 
+		string get_Security_RegistryPermission () cil managed 
+	{
+		// Method begins at RVA 0x2365
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldstr "Security_RegistryPermission"
+		IL_0005: ldnull
+		IL_0006: call string System.SR::GetResourceString(string, string)
+		IL_000b: ret
+	} // end of method SR::get_Security_RegistryPermission
+
+	.method assembly hidebysig specialname static 
+		string get_UnauthorizedAccess_RegistryKeyGeneric_Key () cil managed 
+	{
+		// Method begins at RVA 0x2372
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldstr "UnauthorizedAccess_RegistryKeyGeneric_Key"
+		IL_0005: ldnull
+		IL_0006: call string System.SR::GetResourceString(string, string)
+		IL_000b: ret
+	} // end of method SR::get_UnauthorizedAccess_RegistryKeyGeneric_Key
+
+	.method assembly hidebysig specialname static 
+		string get_UnauthorizedAccess_RegistryNoWrite () cil managed 
+	{
+		// Method begins at RVA 0x237f
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldstr "UnauthorizedAccess_RegistryNoWrite"
+		IL_0005: ldnull
+		IL_0006: call string System.SR::GetResourceString(string, string)
+		IL_000b: ret
+	} // end of method SR::get_UnauthorizedAccess_RegistryNoWrite
+
+	.method private hidebysig specialname rtspecialname static 
+		void .cctor () cil managed 
+	{
+		// Method begins at RVA 0x238c
+		// Header size: 12
+		// Code size: 24 (0x18)
+		.maxstack 2
+		.locals init (
+			[0] bool
+		)
+
+		IL_0000: ldstr "System.Resources.UseSystemResourceKeys"
+		IL_0005: ldloca.s 0
+		IL_0007: call bool [mscorlib]System.AppContext::TryGetSwitch(string, bool&)
+		IL_000c: brtrue.s IL_0011
+
+		IL_000e: ldc.i4.0
+		IL_000f: br.s IL_0012
+
+		IL_0011: ldloc.0
+
+		IL_0012: stsfld bool System.SR::s_usingResourceKeys
+		IL_0017: ret
+	} // end of method SR::.cctor
+
+	// Properties
+	.property class [mscorlib]System.Resources.ResourceManager ResourceManager()
+	{
+		.get class [mscorlib]System.Resources.ResourceManager System.SR::get_ResourceManager()
+	}
+	.property string AccessControl_InvalidHandle()
+	{
+		.get string System.SR::get_AccessControl_InvalidHandle()
+	}
+	.property string Arg_RegSubKeyAbsent()
+	{
+		.get string System.SR::get_Arg_RegSubKeyAbsent()
+	}
+	.property string Arg_RegKeyDelHive()
+	{
+		.get string System.SR::get_Arg_RegKeyDelHive()
+	}
+	.property string Arg_RegKeyNoRemoteConnect()
+	{
+		.get string System.SR::get_Arg_RegKeyNoRemoteConnect()
+	}
+	.property string Arg_RegKeyOutOfRange()
+	{
+		.get string System.SR::get_Arg_RegKeyOutOfRange()
+	}
+	.property string Arg_RegKeyNotFound()
+	{
+		.get string System.SR::get_Arg_RegKeyNotFound()
+	}
+	.property string Arg_RegKeyStrLenBug()
+	{
+		.get string System.SR::get_Arg_RegKeyStrLenBug()
+	}
+	.property string Arg_RegValStrLenBug()
+	{
+		.get string System.SR::get_Arg_RegValStrLenBug()
+	}
+	.property string Arg_RegBadKeyKind()
+	{
+		.get string System.SR::get_Arg_RegBadKeyKind()
+	}
+	.property string Arg_RegGetOverflowBug()
+	{
+		.get string System.SR::get_Arg_RegGetOverflowBug()
+	}
+	.property string Arg_RegSetMismatchedKind()
+	{
+		.get string System.SR::get_Arg_RegSetMismatchedKind()
+	}
+	.property string Arg_RegSetBadArrType()
+	{
+		.get string System.SR::get_Arg_RegSetBadArrType()
+	}
+	.property string Arg_RegSetStrArrNull()
+	{
+		.get string System.SR::get_Arg_RegSetStrArrNull()
+	}
+	.property string Arg_RegInvalidKeyName()
+	{
+		.get string System.SR::get_Arg_RegInvalidKeyName()
+	}
+	.property string Arg_DllInitFailure()
+	{
+		.get string System.SR::get_Arg_DllInitFailure()
+	}
+	.property string Arg_EnumIllegalVal()
+	{
+		.get string System.SR::get_Arg_EnumIllegalVal()
+	}
+	.property string Arg_RegSubKeyValueAbsent()
+	{
+		.get string System.SR::get_Arg_RegSubKeyValueAbsent()
+	}
+	.property string Argument_InvalidRegistryOptionsCheck()
+	{
+		.get string System.SR::get_Argument_InvalidRegistryOptionsCheck()
+	}
+	.property string Argument_InvalidRegistryViewCheck()
+	{
+		.get string System.SR::get_Argument_InvalidRegistryViewCheck()
+	}
+	.property string Argument_InvalidRegistryKeyPermissionCheck()
+	{
+		.get string System.SR::get_Argument_InvalidRegistryKeyPermissionCheck()
+	}
+	.property string InvalidOperation_RegRemoveSubKey()
+	{
+		.get string System.SR::get_InvalidOperation_RegRemoveSubKey()
+	}
+	.property string ObjectDisposed_RegKeyClosed()
+	{
+		.get string System.SR::get_ObjectDisposed_RegKeyClosed()
+	}
+	.property string PlatformNotSupported_Registry()
+	{
+		.get string System.SR::get_PlatformNotSupported_Registry()
+	}
+	.property string Security_RegistryPermission()
+	{
+		.get string System.SR::get_Security_RegistryPermission()
+	}
+	.property string UnauthorizedAccess_RegistryKeyGeneric_Key()
+	{
+		.get string System.SR::get_UnauthorizedAccess_RegistryKeyGeneric_Key()
+	}
+	.property string UnauthorizedAccess_RegistryNoWrite()
+	{
+		.get string System.SR::get_UnauthorizedAccess_RegistryNoWrite()
+	}
+
+} // end of class System.SR
+
+.class private auto ansi abstract beforefieldinit System.Runtime.Versioning.OSPlatformAttribute
+	extends [mscorlib]System.Attribute
+{
+	// Fields
+	.field private initonly string '<PlatformName>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+
+	// Methods
+	.method famandassem hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string platformName
+		) cil managed 
+	{
+		// Method begins at RVA 0x23b0
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld string System.Runtime.Versioning.OSPlatformAttribute::'<PlatformName>k__BackingField'
+		IL_000d: ret
+	} // end of method OSPlatformAttribute::.ctor
+
+	.method public hidebysig specialname 
+		instance string get_PlatformName () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x23bf
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld string System.Runtime.Versioning.OSPlatformAttribute::'<PlatformName>k__BackingField'
+		IL_0006: ret
+	} // end of method OSPlatformAttribute::get_PlatformName
+
+	// Properties
+	.property instance string PlatformName()
+	{
+		.get instance string System.Runtime.Versioning.OSPlatformAttribute::get_PlatformName()
+	}
+
+} // end of class System.Runtime.Versioning.OSPlatformAttribute
+
+.class private auto ansi sealed beforefieldinit System.Runtime.Versioning.TargetPlatformAttribute
+	extends System.Runtime.Versioning.OSPlatformAttribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 01 00 00 00 02 00 54 02 0d 41 6c 6c 6f 77
+		4d 75 6c 74 69 70 6c 65 00 54 02 09 49 6e 68 65
+		72 69 74 65 64 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string platformName
+		) cil managed 
+	{
+		// Method begins at RVA 0x23c7
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: call instance void System.Runtime.Versioning.OSPlatformAttribute::.ctor(string)
+		IL_0007: ret
+	} // end of method TargetPlatformAttribute::.ctor
+
+} // end of class System.Runtime.Versioning.TargetPlatformAttribute
+
+.class private auto ansi sealed beforefieldinit System.Runtime.Versioning.SupportedOSPlatformAttribute
+	extends System.Runtime.Versioning.OSPlatformAttribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 ff 03 00 00 02 00 54 02 0d 41 6c 6c 6f 77
+		4d 75 6c 74 69 70 6c 65 01 54 02 09 49 6e 68 65
+		72 69 74 65 64 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string platformName
+		) cil managed 
+	{
+		// Method begins at RVA 0x23d0
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: call instance void System.Runtime.Versioning.OSPlatformAttribute::.ctor(string)
+		IL_0007: ret
+	} // end of method SupportedOSPlatformAttribute::.ctor
+
+} // end of class System.Runtime.Versioning.SupportedOSPlatformAttribute
+
+.class private auto ansi sealed beforefieldinit System.Runtime.Versioning.UnsupportedOSPlatformAttribute
+	extends System.Runtime.Versioning.OSPlatformAttribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 ff 03 00 00 02 00 54 02 0d 41 6c 6c 6f 77
+		4d 75 6c 74 69 70 6c 65 01 54 02 09 49 6e 68 65
+		72 69 74 65 64 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string platformName
+		) cil managed 
+	{
+		// Method begins at RVA 0x23d9
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: call instance void System.Runtime.Versioning.OSPlatformAttribute::.ctor(string)
+		IL_0007: ret
+	} // end of method UnsupportedOSPlatformAttribute::.ctor
+
+} // end of class System.Runtime.Versioning.UnsupportedOSPlatformAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.AllowNullAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 80 09 00 00 01 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x23e2
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ret
+	} // end of method AllowNullAttribute::.ctor
+
+} // end of class System.Diagnostics.CodeAnalysis.AllowNullAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.DisallowNullAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 80 09 00 00 01 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x23ea
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ret
+	} // end of method DisallowNullAttribute::.ctor
+
+} // end of class System.Diagnostics.CodeAnalysis.DisallowNullAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.MaybeNullAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 80 29 00 00 01 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x23f2
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ret
+	} // end of method MaybeNullAttribute::.ctor
+
+} // end of class System.Diagnostics.CodeAnalysis.MaybeNullAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.NotNullAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 80 29 00 00 01 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x23fa
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ret
+	} // end of method NotNullAttribute::.ctor
+
+} // end of class System.Diagnostics.CodeAnalysis.NotNullAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.MaybeNullWhenAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 00 08 00 00 01 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00
+	)
+	// Fields
+	.field private initonly bool '<ReturnValue>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			bool returnValue
+		) cil managed 
+	{
+		// Method begins at RVA 0x2402
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld bool System.Diagnostics.CodeAnalysis.MaybeNullWhenAttribute::'<ReturnValue>k__BackingField'
+		IL_000d: ret
+	} // end of method MaybeNullWhenAttribute::.ctor
+
+	.method public hidebysig specialname 
+		instance bool get_ReturnValue () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2411
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld bool System.Diagnostics.CodeAnalysis.MaybeNullWhenAttribute::'<ReturnValue>k__BackingField'
+		IL_0006: ret
+	} // end of method MaybeNullWhenAttribute::get_ReturnValue
+
+	// Properties
+	.property instance bool ReturnValue()
+	{
+		.get instance bool System.Diagnostics.CodeAnalysis.MaybeNullWhenAttribute::get_ReturnValue()
+	}
+
+} // end of class System.Diagnostics.CodeAnalysis.MaybeNullWhenAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.NotNullWhenAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 00 08 00 00 01 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00
+	)
+	// Fields
+	.field private initonly bool '<ReturnValue>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			bool returnValue
+		) cil managed 
+	{
+		// Method begins at RVA 0x2419
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld bool System.Diagnostics.CodeAnalysis.NotNullWhenAttribute::'<ReturnValue>k__BackingField'
+		IL_000d: ret
+	} // end of method NotNullWhenAttribute::.ctor
+
+	.method public hidebysig specialname 
+		instance bool get_ReturnValue () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2428
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld bool System.Diagnostics.CodeAnalysis.NotNullWhenAttribute::'<ReturnValue>k__BackingField'
+		IL_0006: ret
+	} // end of method NotNullWhenAttribute::get_ReturnValue
+
+	// Properties
+	.property instance bool ReturnValue()
+	{
+		.get instance bool System.Diagnostics.CodeAnalysis.NotNullWhenAttribute::get_ReturnValue()
+	}
+
+} // end of class System.Diagnostics.CodeAnalysis.NotNullWhenAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.NotNullIfNotNullAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 80 28 00 00 02 00 54 02 0d 41 6c 6c 6f 77
+		4d 75 6c 74 69 70 6c 65 01 54 02 09 49 6e 68 65
+		72 69 74 65 64 00
+	)
+	// Fields
+	.field private initonly string '<ParameterName>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string parameterName
+		) cil managed 
+	{
+		// Method begins at RVA 0x2430
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld string System.Diagnostics.CodeAnalysis.NotNullIfNotNullAttribute::'<ParameterName>k__BackingField'
+		IL_000d: ret
+	} // end of method NotNullIfNotNullAttribute::.ctor
+
+	.method public hidebysig specialname 
+		instance string get_ParameterName () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x243f
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld string System.Diagnostics.CodeAnalysis.NotNullIfNotNullAttribute::'<ParameterName>k__BackingField'
+		IL_0006: ret
+	} // end of method NotNullIfNotNullAttribute::get_ParameterName
+
+	// Properties
+	.property instance string ParameterName()
+	{
+		.get instance string System.Diagnostics.CodeAnalysis.NotNullIfNotNullAttribute::get_ParameterName()
+	}
+
+} // end of class System.Diagnostics.CodeAnalysis.NotNullIfNotNullAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.DoesNotReturnAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 40 00 00 00 01 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x2447
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ret
+	} // end of method DoesNotReturnAttribute::.ctor
+
+} // end of class System.Diagnostics.CodeAnalysis.DoesNotReturnAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.DoesNotReturnIfAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 00 08 00 00 01 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00
+	)
+	// Fields
+	.field private initonly bool '<ParameterValue>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			bool parameterValue
+		) cil managed 
+	{
+		// Method begins at RVA 0x244f
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld bool System.Diagnostics.CodeAnalysis.DoesNotReturnIfAttribute::'<ParameterValue>k__BackingField'
+		IL_000d: ret
+	} // end of method DoesNotReturnIfAttribute::.ctor
+
+	.method public hidebysig specialname 
+		instance bool get_ParameterValue () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x245e
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld bool System.Diagnostics.CodeAnalysis.DoesNotReturnIfAttribute::'<ParameterValue>k__BackingField'
+		IL_0006: ret
+	} // end of method DoesNotReturnIfAttribute::get_ParameterValue
+
+	// Properties
+	.property instance bool ParameterValue()
+	{
+		.get instance bool System.Diagnostics.CodeAnalysis.DoesNotReturnIfAttribute::get_ParameterValue()
+	}
+
+} // end of class System.Diagnostics.CodeAnalysis.DoesNotReturnIfAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.MemberNotNullAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 c0 00 00 00 02 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00 54 02 0d 41 6c 6c 6f 77 4d 75 6c
+		74 69 70 6c 65 01
+	)
+	// Fields
+	.field private initonly string[] '<Members>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string member
+		) cil managed 
+	{
+		// Method begins at RVA 0x2466
+		// Header size: 1
+		// Code size: 23 (0x17)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldc.i4.1
+		IL_0008: newarr [mscorlib]System.String
+		IL_000d: dup
+		IL_000e: ldc.i4.0
+		IL_000f: ldarg.1
+		IL_0010: stelem.ref
+		IL_0011: stfld string[] System.Diagnostics.CodeAnalysis.MemberNotNullAttribute::'<Members>k__BackingField'
+		IL_0016: ret
+	} // end of method MemberNotNullAttribute::.ctor
+
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string[] members
+		) cil managed 
+	{
+		.param [1]
+			.custom instance void [mscorlib]System.ParamArrayAttribute::.ctor() = (
+				01 00 00 00
+			)
+		// Method begins at RVA 0x247e
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld string[] System.Diagnostics.CodeAnalysis.MemberNotNullAttribute::'<Members>k__BackingField'
+		IL_000d: ret
+	} // end of method MemberNotNullAttribute::.ctor
+
+	.method public hidebysig specialname 
+		instance string[] get_Members () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x248d
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld string[] System.Diagnostics.CodeAnalysis.MemberNotNullAttribute::'<Members>k__BackingField'
+		IL_0006: ret
+	} // end of method MemberNotNullAttribute::get_Members
+
+	// Properties
+	.property instance string[] Members()
+	{
+		.get instance string[] System.Diagnostics.CodeAnalysis.MemberNotNullAttribute::get_Members()
+	}
+
+} // end of class System.Diagnostics.CodeAnalysis.MemberNotNullAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 c0 00 00 00 02 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00 54 02 0d 41 6c 6c 6f 77 4d 75 6c
+		74 69 70 6c 65 01
+	)
+	// Fields
+	.field private initonly bool '<ReturnValue>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.field private initonly string[] '<Members>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			bool returnValue,
+			string member
+		) cil managed 
+	{
+		// Method begins at RVA 0x2495
+		// Header size: 1
+		// Code size: 30 (0x1e)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld bool System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute::'<ReturnValue>k__BackingField'
+		IL_000d: ldarg.0
+		IL_000e: ldc.i4.1
+		IL_000f: newarr [mscorlib]System.String
+		IL_0014: dup
+		IL_0015: ldc.i4.0
+		IL_0016: ldarg.2
+		IL_0017: stelem.ref
+		IL_0018: stfld string[] System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute::'<Members>k__BackingField'
+		IL_001d: ret
+	} // end of method MemberNotNullWhenAttribute::.ctor
+
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			bool returnValue,
+			string[] members
+		) cil managed 
+	{
+		.param [2]
+			.custom instance void [mscorlib]System.ParamArrayAttribute::.ctor() = (
+				01 00 00 00
+			)
+		// Method begins at RVA 0x24b4
+		// Header size: 1
+		// Code size: 21 (0x15)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld bool System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute::'<ReturnValue>k__BackingField'
+		IL_000d: ldarg.0
+		IL_000e: ldarg.2
+		IL_000f: stfld string[] System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute::'<Members>k__BackingField'
+		IL_0014: ret
+	} // end of method MemberNotNullWhenAttribute::.ctor
+
+	.method public hidebysig specialname 
+		instance bool get_ReturnValue () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x24ca
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld bool System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute::'<ReturnValue>k__BackingField'
+		IL_0006: ret
+	} // end of method MemberNotNullWhenAttribute::get_ReturnValue
+
+	.method public hidebysig specialname 
+		instance string[] get_Members () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x24d2
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld string[] System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute::'<Members>k__BackingField'
+		IL_0006: ret
+	} // end of method MemberNotNullWhenAttribute::get_Members
+
+	// Properties
+	.property instance bool ReturnValue()
+	{
+		.get instance bool System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute::get_ReturnValue()
+	}
+	.property instance string[] Members()
+	{
+		.get instance string[] System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute::get_Members()
+	}
+
+} // end of class System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute
+

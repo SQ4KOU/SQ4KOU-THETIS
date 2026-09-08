@@ -1,0 +1,250 @@
+INFO  Using log config file: jar:file:/D:/a/_temp/eu2av-final-re/tools/ghidra/ghidra_12.1.3_PUBLIC/Ghidra/Framework/Generic/lib/Generic.jar!/generic.log4j.xml (LoggingInitialization)  
+INFO  Using log file: C:\Users\runneradmin\AppData\Roaming\ghidra\ghidra_12.1.3_PUBLIC\application.log (LoggingInitialization)  
+INFO  Loading user preferences: C:\Users\runneradmin\AppData\Roaming\ghidra\ghidra_12.1.3_PUBLIC\preferences (Preferences)  
+INFO  Searching for classes... (ClassSearcher)  
+INFO  Class search complete (1208 ms) (ClassSearcher)  
+INFO  Initializing SSL Context (DefaultSSLContextInitializer)  
+INFO  Initializing Random Number Generator... (SecureRandomFactory)  
+INFO  Random Number Generator initialization complete: SHA1PRNG (SecureRandomFactory)  
+INFO  Trust manager disabled, cacerts have not been set (DefaultTrustManagerFactory)  
+INFO  Headless startup complete (3162 ms) (AnalyzeHeadless)  
+INFO  Class searcher loaded 59 extension points (20 false positives) (ClassSearcher)  
+INFO  HEADLESS Script Paths:
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\GnuDemangler\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\PDB\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\BytePatterns\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Debug\Debugger-rmi-trace\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\BSim\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Processors\DATA\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\MicrosoftCodeAnalyzer\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Processors\PIC\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\SwiftDemangler\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\Base\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\DecompilerDependent\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\SystemEmulation\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\Decompiler\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Debug\Debugger\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\FunctionID\ghidra_scripts
+    D:\a\SQ4KOU-THETIS\SQ4KOU-THETIS\tools\reverse-engineering
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\FileFormats\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\VersionTracking\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Processors\Atmel\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Processors\8051\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\PyGhidra\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Processors\JVM\ghidra_scripts
+    D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\WildcardAssembler\ghidra_scripts (HeadlessAnalyzer)  
+INFO  HEADLESS: execution starts (HeadlessAnalyzer)  
+INFO  Creating project: D:\a\_temp\eu2av-final-re\ghidra-projects\p5\EU2AV_5 (HeadlessAnalyzer)  
+INFO  Creating project: D:\a\_temp\eu2av-final-re\ghidra-projects\p5\EU2AV_5 (DefaultProject)  
+INFO  REPORT: Processing input files:  (HeadlessAnalyzer)  
+INFO       project: D:\a\_temp\eu2av-final-re\ghidra-projects\p5\EU2AV_5 (HeadlessAnalyzer)  
+INFO  IMPORTING: file:///D:/a/_temp/eu2av-final-re/installed/OpenHPSDR/Thetis/libSkiaSharp.dll (HeadlessAnalyzer)  
+INFO  Using Loader: Portable Executable (PE) (ProgramLoader)  
+INFO  Using Language/Compiler: x86:LE:64:default:clangwindows (ProgramLoader)  
+INFO  Using Library Search Path: [., C:\Windows\SysWOW64, C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\21.0.12-101.0\x64\bin, C:\Windows\Sun\Java\bin, C:\Windows\system32, C:\Windows, C:\Program Files\PowerShell\7, C:\Program Files\dotnet, C:\Program Files\MongoDB\Server\7.0\bin, C:\vcpkg, C:\tools\zstd, C:\hostedtoolcache\windows\stack\3.11.1\x64, C:\cabal\bin, C:\\ghcup\bin, C:\mingw64\bin, C:\Program Files\MySQL\MySQL Server 8.0\bin, C:\Program Files\R\R-4.6.1\bin\x64, C:\SeleniumWebDrivers\GeckoDriver, C:\SeleniumWebDrivers\EdgeDriver\, C:\SeleniumWebDrivers\ChromeDriver, C:\Program Files (x86)\sbt\bin, C:\Program Files (x86)\GitHub CLI, C:\Program Files\Git\bin, C:\Program Files (x86)\pipx_bin, C:\npm\prefix, C:\hostedtoolcache\windows\go\1.24.13\x64\bin, C:\hostedtoolcache\windows\Python\3.12.10\x64\Scripts, C:\hostedtoolcache\windows\Python\3.12.10\x64, C:\hostedtoolcache\windows\Ruby\3.3.12\x64\bin, C:\Program Files\OpenSSL\bin, C:\tools\kotlinc\bin, C:\hostedtoolcache\windows\Java_Temurin-Hotspot_jdk\17.0.20-101\x64\bin, C:\Program Files\ImageMagick-7.1.2-Q16-HDRI, C:\Program Files\Microsoft SDKs\Azure\CLI2\wbin, C:\ProgramData\kind, C:\ProgramData\Chocolatey\bin, C:\Windows\System32\Wbem, C:\Windows\System32\WindowsPowerShell\v1.0\, C:\Windows\System32\OpenSSH\, C:\Program Files\Microsoft\Web Platform Installer\, C:\Program Files\Microsoft SQL Server\170\Tools\Binn\, C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\170\Tools\Binn\, C:\Program Files\dotnet\, C:\Program Files (x86)\Windows Kits\10\Windows Performance Toolkit\, C:\Program Files (x86)\WiX Toolset v3.14\bin, C:\Program Files\Microsoft SQL Server\130\DTS\Binn\, C:\Program Files\Microsoft SQL Server\140\DTS\Binn\, C:\Program Files\Microsoft SQL Server\150\DTS\Binn\, C:\Program Files\Microsoft SQL Server\160\DTS\Binn\, C:\Program Files\Microsoft SQL Server\170\DTS\Binn\, C:\ProgramData\chocolatey\lib\pulumi\tools\Pulumi\bin, C:\Program Files\CMake\bin, C:\Strawberry\c\bin, C:\Strawberry\perl\site\bin, C:\Strawberry\perl\bin, C:\ProgramData\chocolatey\lib\maven\apache-maven-3.9.16\bin, C:\Program Files\Microsoft Service Fabric\bin\Fabric\Fabric.Code, C:\Program Files\Microsoft SDKs\Service Fabric\Tools\ServiceFabricLocalClusterManager, C:\Program Files\nodejs\, C:\Program Files\Git\cmd, C:\Program Files\Git\mingw64\bin, C:\Program Files\Git\usr\bin, C:\Program Files\GitHub CLI\, c:\tools\php, C:\Program Files\Amazon\AWSCLIV2\, C:\Program Files\Amazon\SessionManagerPlugin\bin\, C:\Program Files\Amazon\AWSSAMCLI\bin\, C:\Program Files\Microsoft SQL Server\130\Tools\Binn\, C:\Program Files\mongosh\, C:\Program Files\PowerShell\7\, C:\Program Files\LLVM\bin, C:\Program Files (x86)\LLVM\bin, C:\Users\runneradmin\.dotnet\tools, C:\Users\runneradmin\.cargo\bin, C:\Users\runneradmin\AppData\Local\Microsoft\WindowsApps] (ProgramLoader)  
+INFO  TLS callbacks at 18095d990 (TLSDirectory)  
+INFO  TLS callbacks at 180016c10 (TLSDirectory)  
+INFO  TLS callbacks at 180399b78 (TLSDirectory)  
+INFO  TLS callbacks at 1800e2880 (TLSDirectory)  
+WARN  Invalid or missing function at 1800be728 (ExportDataDirectory)  
+INFO  Additional info:
+Loading file:///D:/a/_temp/eu2av-final-re/installed/OpenHPSDR/Thetis/libSkiaSharp.dll?MD5=4a53bffcf34c5a2a826f20fdaf037fb5...
+------------------------------------------------
+
+Searching 67 paths for library D3D12.DLL...
+Skipping library which is the wrong architecture: file:///C:/Windows/SysWOW64/D3D12.dll
+Loading file:///C:/Windows/System32/D3D12.dll?MD5=5450e5548130f4bd3a098fb18585396a...
+Created exports file: C:\Users\runneradmin\AppData\Roaming\ghidra\ghidra_12.1.3_PUBLIC\symbols\win64\d3d12.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 67 paths for library D3DCOMPILER_47.DLL...
+Skipping library which is the wrong architecture: file:///C:/Windows/SysWOW64/D3DCompiler_47.dll
+Loading file:///C:/Windows/System32/D3DCompiler_47.dll?MD5=a67cc58a277eb6e2a7b1d4e1a30e5921...
+Created exports file: C:\Users\runneradmin\AppData\Roaming\ghidra\ghidra_12.1.3_PUBLIC\symbols\win64\d3dcompiler_47.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 67 paths for library FONTSUB.DLL...
+Skipping library which is the wrong architecture: file:///C:/Windows/SysWOW64/fontsub.dll
+Loading file:///C:/Windows/System32/fontsub.dll?MD5=cb6b8ba1666a8e5258bfa0efc4b92b66...
+Created exports file: C:\Users\runneradmin\AppData\Roaming\ghidra\ghidra_12.1.3_PUBLIC\symbols\win64\fontsub.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 67 paths for library KERNEL32.DLL...
+Skipping library which is the wrong architecture: file:///C:/Windows/SysWOW64/kernel32.dll
+Loading file:///C:/Windows/System32/kernel32.dll?MD5=20edea40009e24397fe2193d69932799...
+Using existing exports file: C:\Users\runneradmin\AppData\Roaming\ghidra\ghidra_12.1.3_PUBLIC\symbols\win64\kernel32.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 67 paths for library OLE32.DLL...
+Skipping library which is the wrong architecture: file:///C:/Windows/SysWOW64/ole32.dll
+Loading file:///C:/Windows/System32/ole32.dll?MD5=3b9586c03291bdb58fb1c00339396b12...
+[ole32.dll]: failed to create WEVTResource at 180181740: Failed to resolve data length for WEVTResource
+Using existing exports file: C:\Users\runneradmin\AppData\Roaming\ghidra\ghidra_12.1.3_PUBLIC\symbols\win64\ole32.exports
+Library not saved to project.
+------------------------------------------------
+
+Searching 67 paths for library USER32.DLL...
+Skipping library which is the wrong architecture: file:///C:/Windows/SysWOW64/user32.dll
+Loading file:///C:/Windows/System32/user32.dll?MD5=7adedf39d9d425df849a87309c3623d6...
+[user32.dll]: failed to create WEVTResource at 1800dda70: Failed to resolve data length for WEVTResource
+Using existing exports file: C:\Users\runneradmin\AppData\Roaming\ghidra\ghidra_12.1.3_PUBLIC\symbols\win64\user32.exports
+Library not saved to project.
+------------------------------------------------
+
+Applying C:\Users\runneradmin\AppData\Roaming\ghidra\ghidra_12.1.3_PUBLIC\symbols\win64\ole32.exports
+Applying cached symbols from FONTSUB.DLL
+Applying C:\Users\runneradmin\AppData\Roaming\ghidra\ghidra_12.1.3_PUBLIC\symbols\win64\user32.exports
+Applying cached symbols from D3D12.DLL
+Applying cached symbols from D3DCOMPILER_47.DLL
+Applying C:\Users\runneradmin\AppData\Roaming\ghidra\ghidra_12.1.3_PUBLIC\symbols\win64\kernel32.exports
+Linking the External Programs of 'libSkiaSharp.dll' to imported libraries...
+  [OLE32.DLL] -> not found in project
+  [FONTSUB.DLL] -> not found in project
+  [USER32.DLL] -> not found in project
+  [D3D12.DLL] -> not found in project
+  [D3DCOMPILER_47.DLL] -> not found in project
+  [KERNEL32.DLL] -> not found in project
+------------------------------------------------
+
+ (ProgramLoader)  
+INFO  IMPORTING: Loaded 0 additional files (HeadlessAnalyzer)  
+INFO  ANALYZING all memory and code: file:///D:/a/_temp/eu2av-final-re/installed/OpenHPSDR/Thetis/libSkiaSharp.dll (HeadlessAnalyzer)  
+WARN  Ignoring leading '_' chars on no-return name '___raise_securityfailure' specified in file: D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\Base\data\PEFunctionsThatDoNotReturn (NoReturnFunctionAnalyzer)  
+WARN  Ignoring leading '_' chars on no-return name '___report_rangecheckfailure' specified in file: D:\a\_temp\eu2av-final-re\tools\ghidra\ghidra_12.1.3_PUBLIC\Ghidra\Features\Base\data\PEFunctionsThatDoNotReturn (NoReturnFunctionAnalyzer)  
+INFO  Skipping PDB processing: failed to locate PDB file in configured locations (PdbUniversalAnalyzer)  
+INFO  Use a script to set the PDB file location. I.e.,
+    PdbAnalyzer.setPdbFileOption(currentProgram, new File("/path/to/pdb/file.pdb")); or
+    PdbUniversalAnalyzer.setPdbFileOption(currentProgram, new File("/path/to/pdb/file.pdb"));
+Or set the symbol server search configuration using:    PdbPlugin.saveSymbolServerServiceConfig(...);
+ This must be done using a pre-script (prior to analysis). (PdbUniversalAnalyzer)  
+INFO  Packed database cache: C:\Users\runneradmin\AppData\Local\ghidra\packed-db-cache (PackedDatabaseCache)  
+ERROR Invalid PNG data at 1808b7ca0 (PngDataType)  
+ERROR Invalid PNG data at 1808ba81b (PngDataType)  
+WARN  Decompiling 1800d4bb0: Unable to read bytes at ram:1008bb5c8 (DecompileCallback)  
+WARN  Decompiling 1800d4bb0, pcode error at 1808a9956: Unable to resolve constructor at 1808a9956 (DecompileCallback)  
+WARN  Decompiling 1800d4bb0, pcode error at 1808a994a: Unable to resolve constructor at 1808a994a (DecompileCallback)  
+WARN  Decompiling 1800d4bb0: Unable to read bytes at ram:1008bb5c8 (DecompileCallback)  
+WARN  Decompiling 1800d4bb0, pcode error at 1808a9956: Unable to resolve constructor at 1808a9956 (DecompileCallback)  
+WARN  Decompiling 1800d4bb0, pcode error at 1808a994a: Unable to resolve constructor at 1808a994a (DecompileCallback)  
+WARN  Decompiling 1803f9fd0: Unable to read bytes at ram:1c40ce738 (DecompileCallback)  
+WARN  Decompiling 1803f9fd0, pcode error at 1808ce738: Unable to resolve constructor at 1808ce738 (DecompileCallback)  
+WARN  Decompiling 1803f9fd0, pcode error at 1808ce7aa: Unable to resolve constructor at 1808ce7aa (DecompileCallback)  
+WARN  Decompiling 1803f9fd0: Unable to read bytes at ram:1c40ce738 (DecompileCallback)  
+WARN  Decompiling 1803f9fd0, pcode error at 1808ce738: Unable to resolve constructor at 1808ce738 (DecompileCallback)  
+WARN  Decompiling 1803f9fd0, pcode error at 1808ce7aa: Unable to resolve constructor at 1808ce7aa (DecompileCallback)  
+WARN  Decompiling 1803f91a0: Unable to read bytes at ram:1c40ce708 (DecompileCallback)  
+WARN  Decompiling 1803f91a0, pcode error at 1808ce708: Unable to resolve constructor at 1808ce708 (DecompileCallback)  
+WARN  Decompiling 1803f91a0, pcode error at 1808ce754: Unable to resolve constructor at 1808ce754 (DecompileCallback)  
+WARN  Decompiling 1803f91a0, pcode error at 1803fa3f8: Unable to resolve constructor at 1803fa3f8 (DecompileCallback)  
+WARN  Decompiling 1803f91a0, pcode error at 1803fa37c: Unable to resolve constructor at 1803fa37c (DecompileCallback)  
+WARN  Decompiling 1803f91a0: Unable to read bytes at ram:1c40ce738 (DecompileCallback)  
+WARN  Decompiling 1803f91a0, pcode error at 1808ce738: Unable to resolve constructor at 1808ce738 (DecompileCallback)  
+WARN  Decompiling 1803f91a0, pcode error at 1808ce7aa: Unable to resolve constructor at 1808ce7aa (DecompileCallback)  
+WARN  Decompiling 1803f91a0: Unable to read bytes at ram:1c40ce708 (DecompileCallback)  
+WARN  Decompiling 1803f91a0, pcode error at 1808ce708: Unable to resolve constructor at 1808ce708 (DecompileCallback)  
+WARN  Decompiling 1803f91a0, pcode error at 1808ce754: Unable to resolve constructor at 1808ce754 (DecompileCallback)  
+WARN  Decompiling 1803f91a0, pcode error at 1803fa3f8: Unable to resolve constructor at 1803fa3f8 (DecompileCallback)  
+WARN  Decompiling 1803f91a0, pcode error at 1803fa37c: Unable to resolve constructor at 1803fa37c (DecompileCallback)  
+WARN  Decompiling 1803f91a0: Unable to read bytes at ram:1c40ce738 (DecompileCallback)  
+WARN  Decompiling 1803f91a0, pcode error at 1808ce738: Unable to resolve constructor at 1808ce738 (DecompileCallback)  
+WARN  Decompiling 1803f91a0, pcode error at 1808ce7aa: Unable to resolve constructor at 1808ce7aa (DecompileCallback)  
+WARN  Decompiling 18003da90: Unable to read bytes at ram:1e7c234e1 (DecompileCallback)  
+WARN  Decompiling 1800fbfc0: Unable to read bytes at ram:1c1eaa888 (DecompileCallback)  
+WARN  Decompiling 1800fbfc0: Unable to read bytes at ram:1c1eaa888 (DecompileCallback)  
+WARN  Decompiling 18085c500: Unable to read bytes at ram:58090ccf0 (DecompileCallback)  
+WARN  Decompiling 18085c500: Unable to read bytes at ram:58090cd68 (DecompileCallback)  
+WARN  Decompiling 18085c500: Unable to read bytes at ram:58090ccf0 (DecompileCallback)  
+WARN  Decompiling 1807d4cb0: Unable to read bytes at ram:580902a84 (DecompileCallback)  
+WARN  Decompiling 1807d4cb0: Unable to read bytes at ram:580902a84 (DecompileCallback)  
+INFO  Unprocessed TypeDescriptor: void (__cdecl *)(struct _iobuf * __ptr64) (TypeDescriptorModel)  
+INFO  Unprocessed TypeDescriptor: void (__cdecl *)(struct _iobuf * __ptr64) (TypeDescriptorModel)  
+INFO  Applied data type archive: windows_vs12_64 (ApplyDataArchiveAnalyzer)  
+INFO  Applied data type archive: windows_vs12_64 (ApplyDataArchiveAnalyzer)  
+INFO  -----------------------------------------------------
+    ASCII Strings                              1.793 secs
+    Apply Data Archives                        0.458 secs
+    Call Convention ID                         0.432 secs
+    Call-Fixup Installer                       0.399 secs
+    Create Address Tables                      5.319 secs
+    Create Address Tables - One Time           7.438 secs
+    Create Function                            0.382 secs
+    Data Reference                             6.726 secs
+    Decompiler Switch Analysis               236.638 secs
+    Demangler Microsoft                        1.356 secs
+    Disassemble Entry Points                  40.115 secs
+    Embedded Media                             0.115 secs
+    External Entry References                  0.013 secs
+    Function ID                               14.423 secs
+    Non-Returning Functions - Discovered      21.329 secs
+    Non-Returning Functions - Known            0.127 secs
+    PDB Universal                              0.023 secs
+    Reference                                  4.729 secs
+    Scalar Operand References                 19.174 secs
+    Shared Return Calls                        3.827 secs
+    Stack                                    133.974 secs
+    Subroutine References                      2.513 secs
+    Subroutine References - One Time           0.007 secs
+    Windows x86 PE Exception Handling         19.697 secs
+    Windows x86 PE RTTI Analyzer               2.543 secs
+    Windows x86 Thread Environment Block (TEB) Analyzer     0.021 secs
+    WindowsResourceReference                   0.407 secs
+    x86 Constant Reference Analyzer           92.949 secs
+-----------------------------------------------------
+     Total Time   616 secs
+-----------------------------------------------------
+ (AutoAnalysisManager)  
+INFO  REPORT: Analysis succeeded for file: file:///D:/a/_temp/eu2av-final-re/installed/OpenHPSDR/Thetis/libSkiaSharp.dll (HeadlessAnalyzer)  
+INFO  REPORT: Execute script: ExportDecomp.java 'D:\a\SQ4KOU-THETIS\SQ4KOU-THETIS\reverse-engineering\EU2AV-Thetis-2.10.3.16-Final\native\libSkiaSharp.dll'  (HeadlessAnalyzer)  
+INFO  SCRIPT: D:\a\SQ4KOU-THETIS\SQ4KOU-THETIS\tools\reverse-engineering\ExportDecomp.java (HeadlessAnalyzer)  
+WARN  Decompiling 18003da90: Unable to read bytes at ram:1e7c234e1 (DecompileCallback)  
+WARN  Decompiling 1800d4bb0: Unable to read bytes at ram:1008bb5c8 (DecompileCallback)  
+WARN  Decompiling 1800d4bb0, pcode error at 1808a9956: Unable to resolve constructor at 1808a9956 (DecompileCallback)  
+WARN  Decompiling 1800d4bb0, pcode error at 1808a994a: Unable to resolve constructor at 1808a994a (DecompileCallback)  
+WARN  Decompiling 1800fbfc0: Unable to read bytes at ram:1c1eaa888 (DecompileCallback)  
+INFO  ExportDecomp.java> STRICT_DECOMP_ASSEMBLY_FALLBACK entry=180200870 name=FUN_180200870 instructions=599 error= (GhidraScript)  
+INFO  ExportDecomp.java> STRICT_DECOMP_ASSEMBLY_FALLBACK entry=1803e6290 name=FUN_1803e6290 instructions=582 error= (GhidraScript)  
+WARN  Decompiling 1803f91a0: Unable to read bytes at ram:1c40ce708 (DecompileCallback)  
+WARN  Decompiling 1803f91a0, pcode error at 1808ce708: Unable to resolve constructor at 1808ce708 (DecompileCallback)  
+WARN  Decompiling 1803f91a0, pcode error at 1808ce754: Unable to resolve constructor at 1808ce754 (DecompileCallback)  
+WARN  Decompiling 1803f91a0, pcode error at 1803fa3f8: Unable to resolve constructor at 1803fa3f8 (DecompileCallback)  
+WARN  Decompiling 1803f91a0, pcode error at 1803fa37c: Unable to resolve constructor at 1803fa37c (DecompileCallback)  
+WARN  Decompiling 1803f91a0: Unable to read bytes at ram:1c40ce738 (DecompileCallback)  
+WARN  Decompiling 1803f91a0, pcode error at 1808ce738: Unable to resolve constructor at 1808ce738 (DecompileCallback)  
+WARN  Decompiling 1803f91a0, pcode error at 1808ce7aa: Unable to resolve constructor at 1808ce7aa (DecompileCallback)  
+WARN  Decompiling 1803f9fd0: Unable to read bytes at ram:1c40ce738 (DecompileCallback)  
+WARN  Decompiling 1803f9fd0, pcode error at 1808ce738: Unable to resolve constructor at 1808ce738 (DecompileCallback)  
+WARN  Decompiling 1803f9fd0, pcode error at 1808ce7aa: Unable to resolve constructor at 1808ce7aa (DecompileCallback)  
+INFO  ExportDecomp.java> STRICT_DECOMP_ASSEMBLY_FALLBACK entry=1804322c0 name=FUN_1804322c0 instructions=685 error= (GhidraScript)  
+INFO  ExportDecomp.java> STRICT_DECOMP_ASSEMBLY_FALLBACK entry=1804439e0 name=FUN_1804439e0 instructions=1016 error=
+Low-level Error: Free varnode has multiple descendants (GhidraScript)  
+INFO  ExportDecomp.java> STRICT_DECOMP_ASSEMBLY_FALLBACK entry=180459230 name=FUN_180459230 instructions=96 error= (GhidraScript)  
+INFO  ExportDecomp.java> STRICT_DECOMP_ASSEMBLY_FALLBACK entry=180623060 name=FUN_180623060 instructions=531 error= (GhidraScript)  
+INFO  ExportDecomp.java> STRICT_DECOMP_ASSEMBLY_FALLBACK entry=1806239d0 name=FUN_1806239d0 instructions=531 error= (GhidraScript)  
+INFO  ExportDecomp.java> STRICT_DECOMP_ASSEMBLY_FALLBACK entry=180624340 name=FUN_180624340 instructions=529 error= (GhidraScript)  
+INFO  ExportDecomp.java> STRICT_DECOMP_ASSEMBLY_FALLBACK entry=180624ca0 name=FUN_180624ca0 instructions=529 error= (GhidraScript)  
+INFO  ExportDecomp.java> STRICT_DECOMP_ASSEMBLY_FALLBACK entry=180625610 name=FUN_180625610 instructions=531 error= (GhidraScript)  
+INFO  ExportDecomp.java> STRICT_DECOMP_ASSEMBLY_FALLBACK entry=180625f80 name=FUN_180625f80 instructions=539 error= (GhidraScript)  
+INFO  ExportDecomp.java> STRICT_DECOMP_ASSEMBLY_FALLBACK entry=180626920 name=FUN_180626920 instructions=533 error= (GhidraScript)  
+INFO  ExportDecomp.java> STRICT_DECOMP_ASSEMBLY_FALLBACK entry=180627820 name=FUN_180627820 instructions=529 error= (GhidraScript)  
+INFO  ExportDecomp.java> STRICT_DECOMP_ASSEMBLY_FALLBACK entry=180628180 name=FUN_180628180 instructions=529 error= (GhidraScript)  
+WARN  Decompiling 1807d4cb0: Unable to read bytes at ram:580902a84 (DecompileCallback)  
+WARN  Decompiling 1807d4cb0: Unable to read bytes at ram:580902a84 (DecompileCallback)  
+INFO  ExportDecomp.java> STRICT_DECOMP_ASSEMBLY_FALLBACK entry=1807fcb20 name=FUN_1807fcb20 instructions=204 error= (GhidraScript)  
+INFO  ExportDecomp.java> STRICT_DECOMP_ASSEMBLY_FALLBACK entry=1807fcf30 name=FUN_1807fcf30 instructions=387 error= (GhidraScript)  
+INFO  ExportDecomp.java> STRICT_DECOMP_ASSEMBLY_FALLBACK entry=1807fd700 name=FUN_1807fd700 instructions=241 error= (GhidraScript)  
+INFO  ExportDecomp.java> STRICT_DECOMP_ASSEMBLY_FALLBACK entry=1807fdbb0 name=FUN_1807fdbb0 instructions=390 error= (GhidraScript)  
+INFO  ExportDecomp.java> STRICT_DECOMP_ASSEMBLY_FALLBACK entry=1807fe380 name=FUN_1807fe380 instructions=165 error= (GhidraScript)  
+INFO  ExportDecomp.java> STRICT_DECOMP_ASSEMBLY_FALLBACK entry=1807fe6e0 name=FUN_1807fe6e0 instructions=332 error= (GhidraScript)  
+INFO  ExportDecomp.java> STRICT_DECOMP_ASSEMBLY_FALLBACK entry=1807ff0a0 name=FUN_1807ff0a0 instructions=274 error= (GhidraScript)  
+WARN  Decompiling 18085c500: Unable to read bytes at ram:58090ccf0 (DecompileCallback)  
+WARN  Decompiling 18085c500: Unable to read bytes at ram:58090cd68 (DecompileCallback)  
+WARN  Decompiling 18085c500: Unable to read bytes at ram:58090ccf0 (DecompileCallback)  
+INFO  ANALYZING changes made by post scripts: file:///D:/a/_temp/eu2av-final-re/installed/OpenHPSDR/Thetis/libSkiaSharp.dll (HeadlessAnalyzer)  
+INFO  REPORT: Post-analysis succeeded for file: file:///D:/a/_temp/eu2av-final-re/installed/OpenHPSDR/Thetis/libSkiaSharp.dll (HeadlessAnalyzer)  
+INFO  /libSkiaSharp.dll: file created (runneradmin) (LocalFileSystem)  
+INFO  REPORT: Save succeeded for: /libSkiaSharp.dll (EU2AV_5:/libSkiaSharp.dll) (HeadlessAnalyzer)  
+INFO  REPORT: Import succeeded (HeadlessAnalyzer)  

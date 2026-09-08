@@ -1,0 +1,13 @@
+namespace ExCSS;
+
+internal sealed class BorderRightWidthProperty : Property
+{
+	private static readonly IValueConverter StyleConverter = Converters.LineWidthConverter.OrDefault(Length.Medium);
+
+	internal override IValueConverter Converter => StyleConverter;
+
+	internal BorderRightWidthProperty()
+		: base(PropertyNames.BorderRightWidth, PropertyFlags.Unitless | PropertyFlags.Animatable)
+	{
+	}
+}

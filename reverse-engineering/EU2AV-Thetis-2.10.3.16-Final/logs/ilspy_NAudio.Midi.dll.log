@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\NAudio.Midi.dll
+assembly_sha256=7796a9ec97a1ff29e682855839845da9fe26b6ddcc34addbb514cd73e7a9f02a
+csharp_files=34
+il_bytes=317693
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

@@ -1,0 +1,561 @@
+// IL code: NAudio
+.class private auto ansi '<Module>'
+{
+} // end of class <Module>
+
+.class public auto ansi beforefieldinit NAudio.Wave.AudioFileReader
+	extends [NAudio.Core]NAudio.Wave.WaveStream
+	implements [NAudio.Core]NAudio.Wave.ISampleProvider
+{
+	// Fields
+	.field private class [NAudio.Core]NAudio.Wave.WaveStream readerStream
+	.field private initonly class [NAudio.Core]NAudio.Wave.SampleProviders.SampleChannel sampleChannel
+	.field private initonly int32 destBytesPerSample
+	.field private initonly int32 sourceBytesPerSample
+	.field private initonly int64 length
+	.field private initonly object lockObject
+	.field private initonly string '<FileName>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string fileName
+		) cil managed 
+	{
+		// Method begins at RVA 0x2050
+		// Header size: 12
+		// Code size: 138 (0x8a)
+		.maxstack 3
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [NAudio.Core]NAudio.Wave.WaveStream::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: newobj instance void [mscorlib]System.Object::.ctor()
+		IL_000c: stfld object NAudio.Wave.AudioFileReader::lockObject
+		IL_0011: ldarg.0
+		IL_0012: ldarg.1
+		IL_0013: stfld string NAudio.Wave.AudioFileReader::'<FileName>k__BackingField'
+		IL_0018: ldarg.0
+		IL_0019: ldarg.1
+		IL_001a: call instance void NAudio.Wave.AudioFileReader::CreateReaderStream(string)
+		IL_001f: ldarg.0
+		IL_0020: ldarg.0
+		IL_0021: ldfld class [NAudio.Core]NAudio.Wave.WaveStream NAudio.Wave.AudioFileReader::readerStream
+		IL_0026: callvirt instance class [NAudio.Core]NAudio.Wave.WaveFormat [NAudio.Core]NAudio.Wave.WaveStream::get_WaveFormat()
+		IL_002b: callvirt instance int32 [NAudio.Core]NAudio.Wave.WaveFormat::get_BitsPerSample()
+		IL_0030: ldc.i4.8
+		IL_0031: div
+		IL_0032: ldarg.0
+		IL_0033: ldfld class [NAudio.Core]NAudio.Wave.WaveStream NAudio.Wave.AudioFileReader::readerStream
+		IL_0038: callvirt instance class [NAudio.Core]NAudio.Wave.WaveFormat [NAudio.Core]NAudio.Wave.WaveStream::get_WaveFormat()
+		IL_003d: callvirt instance int32 [NAudio.Core]NAudio.Wave.WaveFormat::get_Channels()
+		IL_0042: mul
+		IL_0043: stfld int32 NAudio.Wave.AudioFileReader::sourceBytesPerSample
+		IL_0048: ldarg.0
+		IL_0049: ldarg.0
+		IL_004a: ldfld class [NAudio.Core]NAudio.Wave.WaveStream NAudio.Wave.AudioFileReader::readerStream
+		IL_004f: ldc.i4.0
+		IL_0050: newobj instance void [NAudio.Core]NAudio.Wave.SampleProviders.SampleChannel::.ctor(class [NAudio.Core]NAudio.Wave.IWaveProvider, bool)
+		IL_0055: stfld class [NAudio.Core]NAudio.Wave.SampleProviders.SampleChannel NAudio.Wave.AudioFileReader::sampleChannel
+		IL_005a: ldarg.0
+		IL_005b: ldc.i4.4
+		IL_005c: ldarg.0
+		IL_005d: ldfld class [NAudio.Core]NAudio.Wave.SampleProviders.SampleChannel NAudio.Wave.AudioFileReader::sampleChannel
+		IL_0062: callvirt instance class [NAudio.Core]NAudio.Wave.WaveFormat [NAudio.Core]NAudio.Wave.SampleProviders.SampleChannel::get_WaveFormat()
+		IL_0067: callvirt instance int32 [NAudio.Core]NAudio.Wave.WaveFormat::get_Channels()
+		IL_006c: mul
+		IL_006d: stfld int32 NAudio.Wave.AudioFileReader::destBytesPerSample
+		IL_0072: ldarg.0
+		IL_0073: ldarg.0
+		IL_0074: ldarg.0
+		IL_0075: ldfld class [NAudio.Core]NAudio.Wave.WaveStream NAudio.Wave.AudioFileReader::readerStream
+		IL_007a: callvirt instance int64 [mscorlib]System.IO.Stream::get_Length()
+		IL_007f: call instance int64 NAudio.Wave.AudioFileReader::SourceToDest(int64)
+		IL_0084: stfld int64 NAudio.Wave.AudioFileReader::length
+		IL_0089: ret
+	} // end of method AudioFileReader::.ctor
+
+	.method private hidebysig 
+		instance void CreateReaderStream (
+			string fileName
+		) cil managed 
+	{
+		// Method begins at RVA 0x20e8
+		// Header size: 12
+		// Code size: 217 (0xd9)
+		.maxstack 3
+
+		IL_0000: ldarg.1
+		IL_0001: ldstr ".wav"
+		IL_0006: ldc.i4.5
+		IL_0007: callvirt instance bool [mscorlib]System.String::EndsWith(string, valuetype [mscorlib]System.StringComparison)
+		IL_000c: brfalse.s IL_0069
+
+		IL_000e: ldarg.0
+		IL_000f: ldarg.1
+		IL_0010: newobj instance void [NAudio.Core]NAudio.Wave.WaveFileReader::.ctor(string)
+		IL_0015: stfld class [NAudio.Core]NAudio.Wave.WaveStream NAudio.Wave.AudioFileReader::readerStream
+		IL_001a: ldarg.0
+		IL_001b: ldfld class [NAudio.Core]NAudio.Wave.WaveStream NAudio.Wave.AudioFileReader::readerStream
+		IL_0020: callvirt instance class [NAudio.Core]NAudio.Wave.WaveFormat [NAudio.Core]NAudio.Wave.WaveStream::get_WaveFormat()
+		IL_0025: callvirt instance valuetype [NAudio.Core]NAudio.Wave.WaveFormatEncoding [NAudio.Core]NAudio.Wave.WaveFormat::get_Encoding()
+		IL_002a: ldc.i4.1
+		IL_002b: beq IL_00d8
+
+		IL_0030: ldarg.0
+		IL_0031: ldfld class [NAudio.Core]NAudio.Wave.WaveStream NAudio.Wave.AudioFileReader::readerStream
+		IL_0036: callvirt instance class [NAudio.Core]NAudio.Wave.WaveFormat [NAudio.Core]NAudio.Wave.WaveStream::get_WaveFormat()
+		IL_003b: callvirt instance valuetype [NAudio.Core]NAudio.Wave.WaveFormatEncoding [NAudio.Core]NAudio.Wave.WaveFormat::get_Encoding()
+		IL_0040: ldc.i4.3
+		IL_0041: beq IL_00d8
+
+		IL_0046: ldarg.0
+		IL_0047: ldarg.0
+		IL_0048: ldfld class [NAudio.Core]NAudio.Wave.WaveStream NAudio.Wave.AudioFileReader::readerStream
+		IL_004d: call class [NAudio.Core]NAudio.Wave.WaveStream [NAudio.WinMM]NAudio.Wave.WaveFormatConversionStream::CreatePcmStream(class [NAudio.Core]NAudio.Wave.WaveStream)
+		IL_0052: stfld class [NAudio.Core]NAudio.Wave.WaveStream NAudio.Wave.AudioFileReader::readerStream
+		IL_0057: ldarg.0
+		IL_0058: ldarg.0
+		IL_0059: ldfld class [NAudio.Core]NAudio.Wave.WaveStream NAudio.Wave.AudioFileReader::readerStream
+		IL_005e: newobj instance void [NAudio.Core]NAudio.Wave.BlockAlignReductionStream::.ctor(class [NAudio.Core]NAudio.Wave.WaveStream)
+		IL_0063: stfld class [NAudio.Core]NAudio.Wave.WaveStream NAudio.Wave.AudioFileReader::readerStream
+		IL_0068: ret
+
+		IL_0069: ldarg.1
+		IL_006a: ldstr ".mp3"
+		IL_006f: ldc.i4.5
+		IL_0070: callvirt instance bool [mscorlib]System.String::EndsWith(string, valuetype [mscorlib]System.StringComparison)
+		IL_0075: brfalse.s IL_00a3
+
+		IL_0077: call class [mscorlib]System.OperatingSystem [mscorlib]System.Environment::get_OSVersion()
+		IL_007c: callvirt instance class [mscorlib]System.Version [mscorlib]System.OperatingSystem::get_Version()
+		IL_0081: callvirt instance int32 [mscorlib]System.Version::get_Major()
+		IL_0086: ldc.i4.6
+		IL_0087: bge.s IL_0096
+
+		IL_0089: ldarg.0
+		IL_008a: ldarg.1
+		IL_008b: newobj instance void NAudio.Wave.Mp3FileReader::.ctor(string)
+		IL_0090: stfld class [NAudio.Core]NAudio.Wave.WaveStream NAudio.Wave.AudioFileReader::readerStream
+		IL_0095: ret
+
+		IL_0096: ldarg.0
+		IL_0097: ldarg.1
+		IL_0098: newobj instance void [NAudio.Wasapi]NAudio.Wave.MediaFoundationReader::.ctor(string)
+		IL_009d: stfld class [NAudio.Core]NAudio.Wave.WaveStream NAudio.Wave.AudioFileReader::readerStream
+		IL_00a2: ret
+
+		IL_00a3: ldarg.1
+		IL_00a4: ldstr ".aiff"
+		IL_00a9: ldc.i4.5
+		IL_00aa: callvirt instance bool [mscorlib]System.String::EndsWith(string, valuetype [mscorlib]System.StringComparison)
+		IL_00af: brtrue.s IL_00bf
+
+		IL_00b1: ldarg.1
+		IL_00b2: ldstr ".aif"
+		IL_00b7: ldc.i4.5
+		IL_00b8: callvirt instance bool [mscorlib]System.String::EndsWith(string, valuetype [mscorlib]System.StringComparison)
+		IL_00bd: brfalse.s IL_00cc
+
+		IL_00bf: ldarg.0
+		IL_00c0: ldarg.1
+		IL_00c1: newobj instance void [NAudio.Core]NAudio.Wave.AiffFileReader::.ctor(string)
+		IL_00c6: stfld class [NAudio.Core]NAudio.Wave.WaveStream NAudio.Wave.AudioFileReader::readerStream
+		IL_00cb: ret
+
+		IL_00cc: ldarg.0
+		IL_00cd: ldarg.1
+		IL_00ce: newobj instance void [NAudio.Wasapi]NAudio.Wave.MediaFoundationReader::.ctor(string)
+		IL_00d3: stfld class [NAudio.Core]NAudio.Wave.WaveStream NAudio.Wave.AudioFileReader::readerStream
+
+		IL_00d8: ret
+	} // end of method AudioFileReader::CreateReaderStream
+
+	.method public hidebysig specialname 
+		instance string get_FileName () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x21cd
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld string NAudio.Wave.AudioFileReader::'<FileName>k__BackingField'
+		IL_0006: ret
+	} // end of method AudioFileReader::get_FileName
+
+	.method public hidebysig specialname virtual 
+		instance class [NAudio.Core]NAudio.Wave.WaveFormat get_WaveFormat () cil managed 
+	{
+		// Method begins at RVA 0x21d5
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [NAudio.Core]NAudio.Wave.SampleProviders.SampleChannel NAudio.Wave.AudioFileReader::sampleChannel
+		IL_0006: callvirt instance class [NAudio.Core]NAudio.Wave.WaveFormat [NAudio.Core]NAudio.Wave.SampleProviders.SampleChannel::get_WaveFormat()
+		IL_000b: ret
+	} // end of method AudioFileReader::get_WaveFormat
+
+	.method public hidebysig specialname virtual 
+		instance int64 get_Length () cil managed 
+	{
+		// Method begins at RVA 0x21e2
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld int64 NAudio.Wave.AudioFileReader::length
+		IL_0006: ret
+	} // end of method AudioFileReader::get_Length
+
+	.method public hidebysig specialname virtual 
+		instance int64 get_Position () cil managed 
+	{
+		// Method begins at RVA 0x21ea
+		// Header size: 1
+		// Code size: 18 (0x12)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.0
+		IL_0002: ldfld class [NAudio.Core]NAudio.Wave.WaveStream NAudio.Wave.AudioFileReader::readerStream
+		IL_0007: callvirt instance int64 [mscorlib]System.IO.Stream::get_Position()
+		IL_000c: call instance int64 NAudio.Wave.AudioFileReader::SourceToDest(int64)
+		IL_0011: ret
+	} // end of method AudioFileReader::get_Position
+
+	.method public hidebysig specialname virtual 
+		instance void set_Position (
+			int64 'value'
+		) cil managed 
+	{
+		// Method begins at RVA 0x2200
+		// Header size: 12
+		// Code size: 48 (0x30)
+		.maxstack 3
+		.locals init (
+			[0] object,
+			[1] bool
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld object NAudio.Wave.AudioFileReader::lockObject
+		IL_0006: stloc.0
+		IL_0007: ldc.i4.0
+		IL_0008: stloc.1
+		.try
+		{
+			IL_0009: ldloc.0
+			IL_000a: ldloca.s 1
+			IL_000c: call void [mscorlib]System.Threading.Monitor::Enter(object, bool&)
+			IL_0011: ldarg.0
+			IL_0012: ldfld class [NAudio.Core]NAudio.Wave.WaveStream NAudio.Wave.AudioFileReader::readerStream
+			IL_0017: ldarg.0
+			IL_0018: ldarg.1
+			IL_0019: call instance int64 NAudio.Wave.AudioFileReader::DestToSource(int64)
+			IL_001e: callvirt instance void [mscorlib]System.IO.Stream::set_Position(int64)
+			IL_0023: leave.s IL_002f
+		} // end .try
+		finally
+		{
+			IL_0025: ldloc.1
+			IL_0026: brfalse.s IL_002e
+
+			IL_0028: ldloc.0
+			IL_0029: call void [mscorlib]System.Threading.Monitor::Exit(object)
+
+			IL_002e: endfinally
+		} // end handler
+
+		IL_002f: ret
+	} // end of method AudioFileReader::set_Position
+
+	.method public hidebysig virtual 
+		instance int32 Read (
+			uint8[] buffer,
+			int32 offset,
+			int32 count
+		) cil managed 
+	{
+		// Method begins at RVA 0x224c
+		// Header size: 12
+		// Code size: 30 (0x1e)
+		.maxstack 4
+		.locals init (
+			[0] class [NAudio.Core]NAudio.Wave.WaveBuffer,
+			[1] int32
+		)
+
+		IL_0000: ldarg.1
+		IL_0001: newobj instance void [NAudio.Core]NAudio.Wave.WaveBuffer::.ctor(uint8[])
+		IL_0006: stloc.0
+		IL_0007: ldarg.3
+		IL_0008: ldc.i4.4
+		IL_0009: div
+		IL_000a: stloc.1
+		IL_000b: ldarg.0
+		IL_000c: ldloc.0
+		IL_000d: callvirt instance float32[] [NAudio.Core]NAudio.Wave.WaveBuffer::get_FloatBuffer()
+		IL_0012: ldarg.2
+		IL_0013: ldc.i4.4
+		IL_0014: div
+		IL_0015: ldloc.1
+		IL_0016: call instance int32 NAudio.Wave.AudioFileReader::Read(float32[], int32, int32)
+		IL_001b: ldc.i4.4
+		IL_001c: mul
+		IL_001d: ret
+	} // end of method AudioFileReader::Read
+
+	.method public final hidebysig newslot virtual 
+		instance int32 Read (
+			float32[] buffer,
+			int32 offset,
+			int32 count
+		) cil managed 
+	{
+		// Method begins at RVA 0x2278
+		// Header size: 12
+		// Code size: 46 (0x2e)
+		.maxstack 4
+		.locals init (
+			[0] object,
+			[1] bool,
+			[2] int32
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld object NAudio.Wave.AudioFileReader::lockObject
+		IL_0006: stloc.0
+		IL_0007: ldc.i4.0
+		IL_0008: stloc.1
+		.try
+		{
+			IL_0009: ldloc.0
+			IL_000a: ldloca.s 1
+			IL_000c: call void [mscorlib]System.Threading.Monitor::Enter(object, bool&)
+			IL_0011: ldarg.0
+			IL_0012: ldfld class [NAudio.Core]NAudio.Wave.SampleProviders.SampleChannel NAudio.Wave.AudioFileReader::sampleChannel
+			IL_0017: ldarg.1
+			IL_0018: ldarg.2
+			IL_0019: ldarg.3
+			IL_001a: callvirt instance int32 [NAudio.Core]NAudio.Wave.SampleProviders.SampleChannel::Read(float32[], int32, int32)
+			IL_001f: stloc.2
+			IL_0020: leave.s IL_002c
+		} // end .try
+		finally
+		{
+			IL_0022: ldloc.1
+			IL_0023: brfalse.s IL_002b
+
+			IL_0025: ldloc.0
+			IL_0026: call void [mscorlib]System.Threading.Monitor::Exit(object)
+
+			IL_002b: endfinally
+		} // end handler
+
+		IL_002c: ldloc.2
+		IL_002d: ret
+	} // end of method AudioFileReader::Read
+
+	.method public hidebysig specialname 
+		instance float32 get_Volume () cil managed 
+	{
+		// Method begins at RVA 0x22c4
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [NAudio.Core]NAudio.Wave.SampleProviders.SampleChannel NAudio.Wave.AudioFileReader::sampleChannel
+		IL_0006: callvirt instance float32 [NAudio.Core]NAudio.Wave.SampleProviders.SampleChannel::get_Volume()
+		IL_000b: ret
+	} // end of method AudioFileReader::get_Volume
+
+	.method public hidebysig specialname 
+		instance void set_Volume (
+			float32 'value'
+		) cil managed 
+	{
+		// Method begins at RVA 0x22d1
+		// Header size: 1
+		// Code size: 13 (0xd)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [NAudio.Core]NAudio.Wave.SampleProviders.SampleChannel NAudio.Wave.AudioFileReader::sampleChannel
+		IL_0006: ldarg.1
+		IL_0007: callvirt instance void [NAudio.Core]NAudio.Wave.SampleProviders.SampleChannel::set_Volume(float32)
+		IL_000c: ret
+	} // end of method AudioFileReader::set_Volume
+
+	.method private hidebysig 
+		instance int64 SourceToDest (
+			int64 sourceBytes
+		) cil managed 
+	{
+		// Method begins at RVA 0x22df
+		// Header size: 1
+		// Code size: 18 (0x12)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld int32 NAudio.Wave.AudioFileReader::destBytesPerSample
+		IL_0006: conv.i8
+		IL_0007: ldarg.1
+		IL_0008: ldarg.0
+		IL_0009: ldfld int32 NAudio.Wave.AudioFileReader::sourceBytesPerSample
+		IL_000e: conv.i8
+		IL_000f: div
+		IL_0010: mul
+		IL_0011: ret
+	} // end of method AudioFileReader::SourceToDest
+
+	.method private hidebysig 
+		instance int64 DestToSource (
+			int64 destBytes
+		) cil managed 
+	{
+		// Method begins at RVA 0x22f2
+		// Header size: 1
+		// Code size: 18 (0x12)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld int32 NAudio.Wave.AudioFileReader::sourceBytesPerSample
+		IL_0006: conv.i8
+		IL_0007: ldarg.1
+		IL_0008: ldarg.0
+		IL_0009: ldfld int32 NAudio.Wave.AudioFileReader::destBytesPerSample
+		IL_000e: conv.i8
+		IL_000f: div
+		IL_0010: mul
+		IL_0011: ret
+	} // end of method AudioFileReader::DestToSource
+
+	.method family hidebysig virtual 
+		instance void Dispose (
+			bool disposing
+		) cil managed 
+	{
+		// Method begins at RVA 0x2305
+		// Header size: 1
+		// Code size: 37 (0x25)
+		.maxstack 8
+
+		IL_0000: ldarg.1
+		IL_0001: brfalse.s IL_001d
+
+		IL_0003: ldarg.0
+		IL_0004: ldfld class [NAudio.Core]NAudio.Wave.WaveStream NAudio.Wave.AudioFileReader::readerStream
+		IL_0009: brfalse.s IL_001d
+
+		IL_000b: ldarg.0
+		IL_000c: ldfld class [NAudio.Core]NAudio.Wave.WaveStream NAudio.Wave.AudioFileReader::readerStream
+		IL_0011: callvirt instance void [mscorlib]System.IO.Stream::Dispose()
+		IL_0016: ldarg.0
+		IL_0017: ldnull
+		IL_0018: stfld class [NAudio.Core]NAudio.Wave.WaveStream NAudio.Wave.AudioFileReader::readerStream
+
+		IL_001d: ldarg.0
+		IL_001e: ldarg.1
+		IL_001f: call instance void [mscorlib]System.IO.Stream::Dispose(bool)
+		IL_0024: ret
+	} // end of method AudioFileReader::Dispose
+
+	// Properties
+	.property instance string FileName()
+	{
+		.get instance string NAudio.Wave.AudioFileReader::get_FileName()
+	}
+	.property instance class [NAudio.Core]NAudio.Wave.WaveFormat WaveFormat()
+	{
+		.get instance class [NAudio.Core]NAudio.Wave.WaveFormat NAudio.Wave.AudioFileReader::get_WaveFormat()
+	}
+	.property instance int64 Length()
+	{
+		.get instance int64 NAudio.Wave.AudioFileReader::get_Length()
+	}
+	.property instance int64 Position()
+	{
+		.get instance int64 NAudio.Wave.AudioFileReader::get_Position()
+		.set instance void NAudio.Wave.AudioFileReader::set_Position(int64)
+	}
+	.property instance float32 Volume()
+	{
+		.get instance float32 NAudio.Wave.AudioFileReader::get_Volume()
+		.set instance void NAudio.Wave.AudioFileReader::set_Volume(float32)
+	}
+
+} // end of class NAudio.Wave.AudioFileReader
+
+.class public auto ansi beforefieldinit NAudio.Wave.Mp3FileReader
+	extends [NAudio.Core]NAudio.Wave.Mp3FileReaderBase
+{
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string mp3FileName
+		) cil managed 
+	{
+		// Method begins at RVA 0x232b
+		// Header size: 1
+		// Code size: 26 (0x1a)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: call class [mscorlib]System.IO.FileStream [mscorlib]System.IO.File::OpenRead(string)
+		IL_0007: ldnull
+		IL_0008: ldftn class [NAudio.Core]NAudio.Wave.IMp3FrameDecompressor NAudio.Wave.Mp3FileReader::CreateAcmFrameDecompressor(class [NAudio.Core]NAudio.Wave.WaveFormat)
+		IL_000e: newobj instance void [NAudio.Core]NAudio.Wave.Mp3FileReaderBase/FrameDecompressorBuilder::.ctor(object, native int)
+		IL_0013: ldc.i4.1
+		IL_0014: call instance void [NAudio.Core]NAudio.Wave.Mp3FileReaderBase::.ctor(class [mscorlib]System.IO.Stream, class [NAudio.Core]NAudio.Wave.Mp3FileReaderBase/FrameDecompressorBuilder, bool)
+		IL_0019: ret
+	} // end of method Mp3FileReader::.ctor
+
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			class [mscorlib]System.IO.Stream inputStream
+		) cil managed 
+	{
+		// Method begins at RVA 0x2346
+		// Header size: 1
+		// Code size: 21 (0x15)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: ldnull
+		IL_0003: ldftn class [NAudio.Core]NAudio.Wave.IMp3FrameDecompressor NAudio.Wave.Mp3FileReader::CreateAcmFrameDecompressor(class [NAudio.Core]NAudio.Wave.WaveFormat)
+		IL_0009: newobj instance void [NAudio.Core]NAudio.Wave.Mp3FileReaderBase/FrameDecompressorBuilder::.ctor(object, native int)
+		IL_000e: ldc.i4.0
+		IL_000f: call instance void [NAudio.Core]NAudio.Wave.Mp3FileReaderBase::.ctor(class [mscorlib]System.IO.Stream, class [NAudio.Core]NAudio.Wave.Mp3FileReaderBase/FrameDecompressorBuilder, bool)
+		IL_0014: ret
+	} // end of method Mp3FileReader::.ctor
+
+	.method public hidebysig static 
+		class [NAudio.Core]NAudio.Wave.IMp3FrameDecompressor CreateAcmFrameDecompressor (
+			class [NAudio.Core]NAudio.Wave.WaveFormat mp3Format
+		) cil managed 
+	{
+		// Method begins at RVA 0x235c
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: newobj instance void [NAudio.WinMM]NAudio.Wave.AcmMp3FrameDecompressor::.ctor(class [NAudio.Core]NAudio.Wave.WaveFormat)
+		IL_0006: ret
+	} // end of method Mp3FileReader::CreateAcmFrameDecompressor
+
+} // end of class NAudio.Wave.Mp3FileReader
+

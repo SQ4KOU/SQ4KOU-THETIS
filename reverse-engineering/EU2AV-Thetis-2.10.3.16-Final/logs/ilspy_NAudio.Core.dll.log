@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\NAudio.Core.dll
+assembly_sha256=4f8d8c4140146674b103c8a3c46fbc4c768a86c0012a167168e3f7da2b3e5c09
+csharp_files=181
+il_bytes=1693238
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

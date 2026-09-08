@@ -1,0 +1,13 @@
+namespace ExCSS;
+
+internal sealed class AnimationPlayStateProperty : Property
+{
+	private static readonly IValueConverter ListConverter = Converters.PlayStateConverter.FromList().OrDefault(PlayState.Running);
+
+	internal override IValueConverter Converter => ListConverter;
+
+	internal AnimationPlayStateProperty()
+		: base(PropertyNames.AnimationPlayState)
+	{
+	}
+}

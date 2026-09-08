@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\NAudio.Asio.dll
+assembly_sha256=504dd507c34817a8a8be1965e82dd091ff0f5a85ba444ea784783f196677bfd1
+csharp_files=21
+il_bytes=248426
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

@@ -1,0 +1,117 @@
+Microsoft (R) COFF/PE Dumper Version 14.51.36256.0
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+Dump of file D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\PA19.dll
+
+File Type: DLL
+
+  Section contains the following exports for PA19.dll
+
+    00000000 characteristics
+    FFFFFFFF time date stamp
+        0.00 version
+           1 ordinal base
+          89 number of functions
+          89 number of names
+
+    ordinal hint RVA      name
+
+         35    0 00020E90 PA_AbortStream
+         36    1 00020EA0 PA_CloseStream
+         37    2 00020EB0 PA_GetDefaultHostApi
+         38    3 00020EC0 PA_GetDefaultInputDevice
+         39    4 00020ED0 PA_GetDefaultOutputDevice
+         40    5 00020EE0 PA_GetDeviceCount
+         41    6 00020EF0 PA_GetDeviceInfo
+         42    7 00020F00 PA_GetErrorText
+         43    8 00020F10 PA_GetHostApiCount
+         44    9 00020F20 PA_GetHostApiInfo
+         45    A 00020F30 PA_GetLastHostErrorInfo
+         46    B 00020F40 PA_GetSampleSize
+         47    C 00020F50 PA_GetStreamCpuLoad
+         48    D 00020F60 PA_GetStreamInfo
+         49    E 00020F70 PA_GetStreamReadAvailable
+         71    F 00020F80 PA_GetStreamTime
+         72   10 00020F90 PA_GetStreamWriteAvailable
+         73   11 00020FA0 PA_GetVersion
+         74   12 00020FB0 PA_GetVersionText
+         75   13 00020FC0 PA_HostApiDeviceIndexToDeviceIndex
+         76   14 00020FD0 PA_HostApiTypeIdToHostApiIndex
+         77   15 00020FE0 PA_Initialize
+         78   16 00020FF0 PA_IsFormatSupported
+         79   17 00021000 PA_IsStreamActive
+         80   18 00021010 PA_IsStreamStopped
+         81   19 00021020 PA_OpenDefaultStream
+         82   1A 00021060 PA_OpenStream
+         83   1B 000210A0 PA_ReadStream
+         84   1C 000210B0 PA_SetStreamFinishedCallback
+         85   1D 000210D0 PA_Sleep
+         86   1E 000210E0 PA_StartStream
+         87   1F 000210F0 PA_StopStream
+         88   20 00021100 PA_Terminate
+         89   21 00021110 PA_WriteStream
+         50   22 0000AAA0 PaAsio_GetAvailableBufferSizes
+         53   23 0000AB20 PaAsio_GetInputChannelName
+         54   24 0000ABC0 PaAsio_GetOutputChannelName
+         51   25 0000B210 PaAsio_ShowControlPanel
+         52   26 00002300 PaUtil_InitializeX86PlainConverters
+         55   27 00003980 PaUtil_SetDebugPrintFunction
+         69   28 000111D0 PaWasapiWinrt_PopulateDeviceList
+         67   29 000111D0 PaWasapiWinrt_SetDefaultDeviceId
+         56   2A 000111F0 PaWasapi_GetAudioClient
+         58   2B 00011230 PaWasapi_GetDeviceCurrentFormat
+         59   2C 00011290 PaWasapi_GetDeviceDefaultFormat
+         60   2D 00011310 PaWasapi_GetDeviceMixFormat
+         61   2E 00011390 PaWasapi_GetDeviceRole
+         64   2F 000113C0 PaWasapi_GetFramesPerHostBuffer
+         70   30 000113F0 PaWasapi_GetIMMDevice
+         65   31 00011430 PaWasapi_GetJackCount
+         66   32 000115D0 PaWasapi_GetJackDescription
+         68   33 00011A50 PaWasapi_SetStreamStateHandler
+         62   34 00011A70 PaWasapi_ThreadPriorityBoost
+         63   35 00011AB0 PaWasapi_ThreadPriorityRevert
+         57   36 00011AD0 PaWasapi_UpdateDeviceList
+         23   37 00003CF0 Pa_AbortStream
+         19   38 00003D30 Pa_CloseStream
+          7   39 00003D90 Pa_GetDefaultHostApi
+         13   3A 00003DC0 Pa_GetDefaultInputDevice
+         14   3B 00003DF0 Pa_GetDefaultOutputDevice
+         12   3C 00003E20 Pa_GetDeviceCount
+         15   3D 00003E40 Pa_GetDeviceInfo
+          3   3E 00003E80 Pa_GetErrorText
+          6   3F 00004040 Pa_GetHostApiCount
+          8   40 00004060 Pa_GetHostApiInfo
+         11   41 00004090 Pa_GetLastHostErrorInfo
+         33   42 000040A0 Pa_GetSampleSize
+         28   43 00004150 Pa_GetStreamCpuLoad
+         26   44 00004180 Pa_GetStreamInfo
+         31   45 000041B0 Pa_GetStreamReadAvailable
+         27   46 000041E0 Pa_GetStreamTime
+         32   47 00004210 Pa_GetStreamWriteAvailable
+          1   48 00004240 Pa_GetVersion
+          2   49 00004250 Pa_GetVersionText
+         10   4A 00004260 Pa_HostApiDeviceIndexToDeviceIndex
+          9   4B 000042B0 Pa_HostApiTypeIdToHostApiIndex
+          4   4C 00004300 Pa_Initialize
+         16   4D 00004360 Pa_IsFormatSupported
+         25   4E 000044A0 Pa_IsStreamActive
+         24   4F 000044D0 Pa_IsStreamStopped
+         18   50 00004500 Pa_OpenDefaultStream
+         17   51 000045F0 Pa_OpenStream
+         29   52 000047B0 Pa_ReadStream
+         20   53 00004850 Pa_SetStreamFinishedCallback
+         34   54 000203C0 Pa_Sleep
+         21   55 000048A0 Pa_StartStream
+         22   56 000048F0 Pa_StopStream
+          5   57 00004930 Pa_Terminate
+         30   58 00004970 Pa_WriteStream
+
+  Summary
+
+        1000 .data
+        3000 .pdata
+        8000 .rdata
+        1000 .reloc
+        1000 .rsrc
+       22000 .text

@@ -1,0 +1,9 @@
+program=cmASIO.dll
+language=x86:LE:64:default
+compiler=windows
+functions_total=95
+functions_external_skipped=0
+functions_decompiled_ok=95
+functions_failed=0
+chunks=1
+cancelled=false

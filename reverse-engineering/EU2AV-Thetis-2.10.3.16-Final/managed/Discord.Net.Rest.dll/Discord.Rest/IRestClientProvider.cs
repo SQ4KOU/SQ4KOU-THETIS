@@ -1,0 +1,6 @@
+namespace Discord.Rest;
+
+public interface IRestClientProvider
+{
+	DiscordRestClient RestClient { get; }
+}

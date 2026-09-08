@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\System.Threading.Tasks.Extensions.dll
+assembly_sha256=af4e13ef418fd89b432de20cd1dfb7fa10a7179c8dd049c9856316e50c5949ca
+csharp_files=12
+il_bytes=134888
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

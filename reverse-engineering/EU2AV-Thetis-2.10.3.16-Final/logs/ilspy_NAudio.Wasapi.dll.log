@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\NAudio.Wasapi.dll
+assembly_sha256=a05e371abf96195770ac4f84653d987d63731fed528e98c7fe0d10ce66e37d7e
+csharp_files=225
+il_bytes=1346624
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

@@ -1,0 +1,19 @@
+using System;
+
+namespace Discord;
+
+[Flags]
+public enum ApplicationFlags
+{
+	UsesAutoModApi = 0x40,
+	GatewayPresence = 0x1000,
+	GatewayPresenceLimited = 0x2000,
+	GatewayGuildMembers = 0x4000,
+	GatewayGuildMembersLimited = 0x8000,
+	VerificationPendingGuildLimit = 0x10000,
+	Embedded = 0x20000,
+	GatewayMessageContent = 0x40000,
+	GatewayMessageContentLimited = 0x80000,
+	ApplicationCommandBadge = 0x800000,
+	ActiveApplication = 0x1000000
+}

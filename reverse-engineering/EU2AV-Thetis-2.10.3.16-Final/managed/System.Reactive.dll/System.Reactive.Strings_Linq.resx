@@ -1,0 +1,46 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+<resheader name="resmimetype"><value>text/microsoft-resx</value></resheader><resheader name="version"><value>1.3</value></resheader><resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader><resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader><data name="MORE_THAN_ONE_MATCHING_ELEMENT" xml:space="preserve"><value>Sequence contains more than one matching element.</value></data>
+  <data name="EVENT_SENDER_NOT_ASSIGNABLE" xml:space="preserve"><value>The first parameter of the event delegate must be assignable to '{0}'.</value></data>
+  <data name="NO_MATCHING_ELEMENTS" xml:space="preserve"><value>Sequence contains no matching element.</value></data>
+  <data name="EVENT_WINRT_REMOVE_METHOD_SHOULD_TAKE_ERT" xml:space="preserve"><value>Remove method of a WinRT event should take an EventRegistrationToken.</value></data>
+  <data name="EVENT_ADD_METHOD_SHOULD_TAKE_ONE_PARAMETER" xml:space="preserve"><value>Add method should take 1 parameter.</value></data>
+  <data name="EVENT_PATTERN_REQUIRES_TWO_PARAMETERS" xml:space="preserve"><value>The event delegate must have exactly two parameters.</value></data>
+  <data name="NO_ELEMENTS" xml:space="preserve"><value>Sequence contains no elements.</value></data>
+  <data name="MORE_THAN_ONE_ELEMENT" xml:space="preserve"><value>Sequence contains more than one element.</value></data>
+  <data name="COULD_NOT_FIND_STATIC_EVENT" xml:space="preserve"><value>Could not find event '{0}' on type '{1}'.</value></data>
+  <data name="EVENT_MISSING_ADD_METHOD" xml:space="preserve"><value>Event is missing the add method.</value></data>
+  <data name="COULD_NOT_FIND_INSTANCE_EVENT" xml:space="preserve"><value>Could not find event '{0}' on object of type '{1}'.</value></data>
+  <data name="EVENT_ARGS_NOT_ASSIGNABLE" xml:space="preserve"><value>The second parameter of the event delegate must be assignable to '{0}'.</value></data>
+  <data name="EVENT_MUST_RETURN_VOID" xml:space="preserve"><value>The event delegate must have a void return type.</value></data>
+  <data name="EVENT_REMOVE_METHOD_SHOULD_TAKE_ONE_PARAMETER" xml:space="preserve"><value>Remove method should take 1 parameter.</value></data>
+  <data name="EVENT_MISSING_REMOVE_METHOD" xml:space="preserve"><value>Event is missing the remove method.</value></data>
+  <data name="CANT_ADVANCE_WHILE_RUNNING" xml:space="preserve"><value>{0} cannot be called when the scheduler is already running. Try using Sleep instead.</value></data>
+  </root>

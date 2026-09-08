@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\NAudio.WinMM.dll
+assembly_sha256=3c8359bb74c6dabd2ec8ba561ffa163f24859ff5aef724fb5794073e2e883a02
+csharp_files=57
+il_bytes=440618
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

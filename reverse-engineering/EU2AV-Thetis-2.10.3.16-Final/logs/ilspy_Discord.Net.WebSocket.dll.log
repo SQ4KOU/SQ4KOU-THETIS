@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\Discord.Net.WebSocket.dll
+assembly_sha256=af980b24ada6130486b83cf2203862699080d6ff4a5f08045efe1e19ed99c5e0
+csharp_files=242
+il_bytes=12510143
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\WindowsFirewallHelper.dll
+assembly_sha256=ee82486413d69f4e69c75d6ffe11e0c764ad62f2ad7ded04f56028e5307f4ab6
+csharp_files=96
+il_bytes=1236156
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

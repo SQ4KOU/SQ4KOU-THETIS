@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\System.Collections.Immutable.dll
+assembly_sha256=76027956c9a116dac74749b1bbe901a31bfb91bf6fa3be139dac20faedbd7a62
+csharp_files=121
+il_bytes=3093726
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

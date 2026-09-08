@@ -1,0 +1,120 @@
+namespace Microsoft.CodeAnalysis.Operations;
+
+internal sealed class CompoundAssignmentOperation : BaseAssignmentOperation, ICompoundAssignmentOperation, IAssignmentOperation, IOperation
+{
+	internal IConvertibleConversion InConversionConvertible { get; }
+
+	public CommonConversion InConversion => InConversionConvertible.ToCommonConversion();
+
+	internal IConvertibleConversion OutConversionConvertible { get; }
+
+	public CommonConversion OutConversion => OutConversionConvertible.ToCommonConversion();
+
+	public BinaryOperatorKind OperatorKind { get; }
+
+	public bool IsLifted { get; }
+
+	public bool IsChecked { get; }
+
+	public IMethodSymbol? OperatorMethod { get; }
+
+	public ITypeSymbol? ConstrainedToType { get; }
+
+	internal override int ChildOperationsCount => ((base.Target != null) ? 1 : 0) + ((base.Value != null) ? 1 : 0);
+
+	public override ITypeSymbol? Type { get; }
+
+	internal override ConstantValue? OperationConstantValue => null;
+
+	public override OperationKind Kind => OperationKind.CompoundAssignment;
+
+	internal CompoundAssignmentOperation(IConvertibleConversion inConversion, IConvertibleConversion outConversion, BinaryOperatorKind operatorKind, bool isLifted, bool isChecked, IMethodSymbol? operatorMethod, ITypeSymbol? constrainedToType, IOperation target, IOperation value, SemanticModel? semanticModel, SyntaxNode syntax, ITypeSymbol? type, bool isImplicit)
+		: base(target, value, semanticModel, syntax, isImplicit)
+	{
+		InConversionConvertible = inConversion;
+		OutConversionConvertible = outConversion;
+		OperatorKind = operatorKind;
+		IsLifted = isLifted;
+		IsChecked = isChecked;
+		OperatorMethod = operatorMethod;
+		ConstrainedToType = constrainedToType;
+		Type = type;
+	}
+
+	internal override IOperation GetCurrent(int slot, int index)
+	{
+		switch (slot)
+		{
+		case 0:
+			if (base.Target != null)
+			{
+				return base.Target;
+			}
+			break;
+		case 1:
+			if (base.Value != null)
+			{
+				return base.Value;
+			}
+			break;
+		}
+		throw ExceptionUtilities.UnexpectedValue((slot, index));
+	}
+
+	internal override (bool hasNext, int nextSlot, int nextIndex) MoveNext(int previousSlot, int previousIndex)
+	{
+		switch (previousSlot)
+		{
+		case -1:
+			if (base.Target != null)
+			{
+				return (hasNext: true, nextSlot: 0, nextIndex: 0);
+			}
+			goto case 0;
+		case 0:
+			if (base.Value != null)
+			{
+				return (hasNext: true, nextSlot: 1, nextIndex: 0);
+			}
+			goto case 1;
+		case 1:
+		case 2:
+			return (hasNext: false, nextSlot: 2, nextIndex: 0);
+		default:
+			throw ExceptionUtilities.UnexpectedValue((previousSlot, previousIndex));
+		}
+	}
+
+	internal override (bool hasNext, int nextSlot, int nextIndex) MoveNextReversed(int previousSlot, int previousIndex)
+	{
+		if ((uint)(previousSlot - -1) > 1u)
+		{
+			if (previousSlot != 1)
+			{
+				if (previousSlot != int.MaxValue)
+				{
+					throw ExceptionUtilities.UnexpectedValue((previousSlot, previousIndex));
+				}
+				if (base.Value != null)
+				{
+					return (hasNext: true, nextSlot: 1, nextIndex: 0);
+				}
+			}
+			if (base.Target != null)
+			{
+				return (hasNext: true, nextSlot: 0, nextIndex: 0);
+			}
+		}
+		return (hasNext: false, nextSlot: -1, nextIndex: 0);
+	}
+
+	public override void Accept(OperationVisitor visitor)
+	{
+		visitor.VisitCompoundAssignment(this);
+	}
+
+	public override TResult? Accept<TArgument, TResult>(OperationVisitor<TArgument, TResult> visitor, TArgument argument) where TResult : default
+	{
+		return visitor.VisitCompoundAssignment(this, argument);
+	}
+}

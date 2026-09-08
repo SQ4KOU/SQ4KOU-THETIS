@@ -1,0 +1,267 @@
+Microsoft (R) COFF/PE Dumper Version 14.51.36256.0
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+Dump of file D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\libfftw3-3.dll
+
+File Type: DLL
+
+  Section contains the following exports for libfftw3-3.dll
+
+    00000000 characteristics
+    5F7B6DD9 time date stamp Mon Oct  5 19:02:49 2020
+        0.00 version
+           1 ordinal base
+         228 number of functions
+         228 number of names
+
+    ordinal hint RVA      name
+
+          1    0 000EB8F0 DFFTW_CLEANUP
+          2    1 001C5570 DFFTW_CLEANUP_THREADS
+          3    2 000EB9F0 DFFTW_COST
+          4    3 000EB8E0 DFFTW_DESTROY_PLAN
+          5    4 000EB9D0 DFFTW_ESTIMATE_COST
+          6    5 000EB8D0 DFFTW_EXECUTE
+          7    6 000EC4E0 DFFTW_EXECUTE_DFT
+          8    7 000ED9A0 DFFTW_EXECUTE_DFT_C2R
+          9    8 000ECF30 DFFTW_EXECUTE_DFT_R2C
+         10    9 000EE630 DFFTW_EXECUTE_R2R
+         11    A 000EC530 DFFTW_EXECUTE_SPLIT_DFT
+         12    B 000ED9E0 DFFTW_EXECUTE_SPLIT_DFT_C2R
+         13    C 000ECF70 DFFTW_EXECUTE_SPLIT_DFT_R2C
+         14    D 000EB910 DFFTW_EXPORT_WISDOM
+         15    E 000EB9C0 DFFTW_FLOPS
+         16    F 000EB900 DFFTW_FORGET_WISDOM
+         17   10 000EB970 DFFTW_IMPORT_SYSTEM_WISDOM
+         18   11 000EB940 DFFTW_IMPORT_WISDOM
+         19   12 001C5550 DFFTW_INIT_THREADS
+         20   13 000EBA20 DFFTW_PLAN_DFT
+         21   14 000EBBC0 DFFTW_PLAN_DFT_1D
+         22   15 000EBC00 DFFTW_PLAN_DFT_2D
+         23   16 000EBC40 DFFTW_PLAN_DFT_3D
+         24   17 000ECFB0 DFFTW_PLAN_DFT_C2R
+         25   18 000ED130 DFFTW_PLAN_DFT_C2R_1D
+         26   19 000ED160 DFFTW_PLAN_DFT_C2R_2D
+         27   1A 000ED190 DFFTW_PLAN_DFT_C2R_3D
+         28   1B 000EC540 DFFTW_PLAN_DFT_R2C
+         29   1C 000EC6C0 DFFTW_PLAN_DFT_R2C_1D
+         30   1D 000EC6F0 DFFTW_PLAN_DFT_R2C_2D
+         31   1E 000EC720 DFFTW_PLAN_DFT_R2C_3D
+         32   1F 000EC190 DFFTW_PLAN_GURU_DFT
+         33   20 000ED690 DFFTW_PLAN_GURU_DFT_C2R
+         34   21 000ECC20 DFFTW_PLAN_GURU_DFT_R2C
+         35   22 000EE3B0 DFFTW_PLAN_GURU_R2R
+         36   23 000EC320 DFFTW_PLAN_GURU_SPLIT_DFT
+         37   24 000ED810 DFFTW_PLAN_GURU_SPLIT_DFT_C2R
+         38   25 000ECDA0 DFFTW_PLAN_GURU_SPLIT_DFT_R2C
+         39   26 000EBCA0 DFFTW_PLAN_MANY_DFT
+         40   27 000ED1D0 DFFTW_PLAN_MANY_DFT_C2R
+         41   28 000EC760 DFFTW_PLAN_MANY_DFT_R2C
+         42   29 000EDDA0 DFFTW_PLAN_MANY_R2R
+         43   2A 000EDA20 DFFTW_PLAN_R2R
+         44   2B 000EDC90 DFFTW_PLAN_R2R_1D
+         45   2C 000EDCD0 DFFTW_PLAN_R2R_2D
+         46   2D 000EDD20 DFFTW_PLAN_R2R_3D
+         47   2E 001C5540 DFFTW_PLAN_WITH_NTHREADS
+         48   2F 000EB990 DFFTW_PRINT_PLAN
+         49   30 000EBA10 DFFTW_SET_TIMELIMIT
+         50   31 000E8B80 dfftw_cleanup_
+         51   32 000E5E00 dfftw_cleanup__
+         52   33 001C5530 dfftw_cleanup_threads_
+         53   34 001C54F0 dfftw_cleanup_threads__
+         54   35 000E8C80 dfftw_cost_
+         55   36 000E5F00 dfftw_cost__
+         56   37 000E8B70 dfftw_destroy_plan_
+         57   38 000E5DF0 dfftw_destroy_plan__
+         58   39 000E8C60 dfftw_estimate_cost_
+         59   3A 000E5EE0 dfftw_estimate_cost__
+         60   3B 000E8B60 dfftw_execute_
+         61   3C 000E5DE0 dfftw_execute__
+         62   3D 000E9770 dfftw_execute_dft_
+         63   3E 000E69F0 dfftw_execute_dft__
+         64   3F 000EAC30 dfftw_execute_dft_c2r_
+         65   40 000E7EC0 dfftw_execute_dft_c2r__
+         66   41 000EA1C0 dfftw_execute_dft_r2c_
+         67   42 000E7440 dfftw_execute_dft_r2c__
+         68   43 000EB8C0 dfftw_execute_r2r_
+         69   44 000E8B50 dfftw_execute_r2r__
+         70   45 000E97C0 dfftw_execute_split_dft_
+         71   46 000E6A40 dfftw_execute_split_dft__
+         72   47 000EAC70 dfftw_execute_split_dft_c2r_
+         73   48 000E7F00 dfftw_execute_split_dft_c2r__
+         74   49 000EA200 dfftw_execute_split_dft_r2c_
+         75   4A 000E7480 dfftw_execute_split_dft_r2c__
+         76   4B 000E8BA0 dfftw_export_wisdom_
+         77   4C 000E5E20 dfftw_export_wisdom__
+         78   4D 000E8C50 dfftw_flops_
+         79   4E 000E5ED0 dfftw_flops__
+         80   4F 000E8B90 dfftw_forget_wisdom_
+         81   50 000E5E10 dfftw_forget_wisdom__
+         82   51 000E8C00 dfftw_import_system_wisdom_
+         83   52 000E5E80 dfftw_import_system_wisdom__
+         84   53 000E8BD0 dfftw_import_wisdom_
+         85   54 000E5E50 dfftw_import_wisdom__
+         86   55 001C5510 dfftw_init_threads_
+         87   56 001C54D0 dfftw_init_threads__
+         88   57 000E8CB0 dfftw_plan_dft_
+         89   58 000E8E50 dfftw_plan_dft_1d_
+         90   59 000E60D0 dfftw_plan_dft_1d__
+         91   5A 000E8E90 dfftw_plan_dft_2d_
+         92   5B 000E6110 dfftw_plan_dft_2d__
+         93   5C 000E8ED0 dfftw_plan_dft_3d_
+         94   5D 000E6150 dfftw_plan_dft_3d__
+         95   5E 000E5F30 dfftw_plan_dft__
+         96   5F 000EA240 dfftw_plan_dft_c2r_
+         97   60 000EA3C0 dfftw_plan_dft_c2r_1d_
+         98   61 000E7640 dfftw_plan_dft_c2r_1d__
+         99   62 000EA3F0 dfftw_plan_dft_c2r_2d_
+        100   63 000E7670 dfftw_plan_dft_c2r_2d__
+        101   64 000EA420 dfftw_plan_dft_c2r_3d_
+        102   65 000E76A0 dfftw_plan_dft_c2r_3d__
+        103   66 000E74C0 dfftw_plan_dft_c2r__
+        104   67 000E97D0 dfftw_plan_dft_r2c_
+        105   68 000E9950 dfftw_plan_dft_r2c_1d_
+        106   69 000E6BD0 dfftw_plan_dft_r2c_1d__
+        107   6A 000E9980 dfftw_plan_dft_r2c_2d_
+        108   6B 000E6C00 dfftw_plan_dft_r2c_2d__
+        109   6C 000E99B0 dfftw_plan_dft_r2c_3d_
+        110   6D 000E6C30 dfftw_plan_dft_r2c_3d__
+        111   6E 000E6A50 dfftw_plan_dft_r2c__
+        112   6F 000E9420 dfftw_plan_guru_dft_
+        113   70 000E66A0 dfftw_plan_guru_dft__
+        114   71 000EA920 dfftw_plan_guru_dft_c2r_
+        115   72 000E7BA0 dfftw_plan_guru_dft_c2r__
+        116   73 000E9EB0 dfftw_plan_guru_dft_r2c_
+        117   74 000E7130 dfftw_plan_guru_dft_r2c__
+        118   75 000EB640 dfftw_plan_guru_r2r_
+        119   76 000E88D0 dfftw_plan_guru_r2r__
+        120   77 000E95B0 dfftw_plan_guru_split_dft_
+        121   78 000E6830 dfftw_plan_guru_split_dft__
+        122   79 000EAAA0 dfftw_plan_guru_split_dft_c2r_
+        123   7A 000E7D20 dfftw_plan_guru_split_dft_c2r__
+        124   7B 000EA030 dfftw_plan_guru_split_dft_r2c_
+        125   7C 000E72B0 dfftw_plan_guru_split_dft_r2c__
+        126   7D 000E8F30 dfftw_plan_many_dft_
+        127   7E 000E61B0 dfftw_plan_many_dft__
+        128   7F 000EA460 dfftw_plan_many_dft_c2r_
+        129   80 000E76E0 dfftw_plan_many_dft_c2r__
+        130   81 000E99F0 dfftw_plan_many_dft_r2c_
+        131   82 000E6C70 dfftw_plan_many_dft_r2c__
+        132   83 000EB030 dfftw_plan_many_r2r_
+        133   84 000E82C0 dfftw_plan_many_r2r__
+        134   85 000EACB0 dfftw_plan_r2r_
+        135   86 000EAF20 dfftw_plan_r2r_1d_
+        136   87 000E81B0 dfftw_plan_r2r_1d__
+        137   88 000EAF60 dfftw_plan_r2r_2d_
+        138   89 000E81F0 dfftw_plan_r2r_2d__
+        139   8A 000EAFB0 dfftw_plan_r2r_3d_
+        140   8B 000E8240 dfftw_plan_r2r_3d__
+        141   8C 000E7F40 dfftw_plan_r2r__
+        142   8D 001C5500 dfftw_plan_with_nthreads_
+        143   8E 001C54C0 dfftw_plan_with_nthreads__
+        144   8F 000E8C20 dfftw_print_plan_
+        145   90 000E5EA0 dfftw_print_plan__
+        146   91 000E8CA0 dfftw_set_timelimit_
+        147   92 000E5F20 dfftw_set_timelimit__
+        148   93 000E5A50 fftw_alignment_of
+        149   94 000EE990 fftw_alloc_complex
+        150   95 000EE980 fftw_alloc_real
+        151   96 00001440 fftw_assertion_failed
+        152   97 001D70A0 fftw_cc
+        153   98 000F04E0 fftw_cleanup
+        154   99 001C2C30 fftw_cleanup_threads
+        155   9A 001D7094 fftw_codelet_optim
+        156   9B 000EE700 fftw_cost
+        157   9C 000E59F0 fftw_destroy_plan
+        158   9D 000EE6D0 fftw_estimate_cost
+        159   9E 000E5BF0 fftw_execute
+        160   9F 000E5B10 fftw_execute_dft
+        161   A0 000E5A90 fftw_execute_dft_c2r
+        162   A1 000E5AD0 fftw_execute_dft_r2c
+        163   A2 000E5B60 fftw_execute_r2r
+        164   A3 000E5BE0 fftw_execute_split_dft
+        165   A4 000E5B70 fftw_execute_split_dft_c2r
+        166   A5 000E5BB0 fftw_execute_split_dft_r2c
+        167   A6 000E5D40 fftw_export_wisdom
+        168   A7 000E5C10 fftw_export_wisdom_to_file
+        169   A8 000E5C40 fftw_export_wisdom_to_filename
+        170   A9 000E5CB0 fftw_export_wisdom_to_string
+        171   AA 000EE640 fftw_flops
+        172   AB 000EE710 fftw_forget_wisdom
+        173   AC 000F0390 fftw_fprint_plan
+        174   AD 000EE970 fftw_free
+        175   AE 000013B0 fftw_ialignment_of
+        176   AF 00001410 fftw_ifree
+        177   B0 000EE730 fftw_import_system_wisdom
+        178   B1 000EE910 fftw_import_wisdom
+        179   B2 000EE7B0 fftw_import_wisdom_from_file
+        180   B3 000EE810 fftw_import_wisdom_from_filename
+        181   B4 000EE8B0 fftw_import_wisdom_from_string
+        182   B5 001C2BC0 fftw_init_threads
+        183   B6 001C2D10 fftw_make_planner_thread_safe
+        184   B7 000EE960 fftw_malloc
+        185   B8 000013C0 fftw_malloc_plain
+        186   B9 000EEE30 fftw_mkprinter_file
+        187   BA 000038B0 fftw_plan_awake
+        188   BB 000EF3C0 fftw_plan_dft
+        189   BC 000EF110 fftw_plan_dft_1d
+        190   BD 000EF140 fftw_plan_dft_2d
+        191   BE 000EF170 fftw_plan_dft_3d
+        192   BF 000EF260 fftw_plan_dft_c2r
+        193   C0 000EF1C0 fftw_plan_dft_c2r_1d
+        194   C1 000EF1F0 fftw_plan_dft_c2r_2d
+        195   C2 000EF220 fftw_plan_dft_c2r_3d
+        196   C3 000EF360 fftw_plan_dft_r2c
+        197   C4 000EF2C0 fftw_plan_dft_r2c_1d
+        198   C5 000EF2F0 fftw_plan_dft_r2c_2d
+        199   C6 000EF320 fftw_plan_dft_r2c_3d
+        200   C7 000F0780 fftw_plan_guru64_dft
+        201   C8 000F0570 fftw_plan_guru64_dft_c2r
+        202   C9 000F0680 fftw_plan_guru64_dft_r2c
+        203   CA 000F08B0 fftw_plan_guru64_r2r
+        204   CB 000F0BD0 fftw_plan_guru64_split_dft
+        205   CC 000F09A0 fftw_plan_guru64_split_dft_c2r
+        206   CD 000F0AC0 fftw_plan_guru64_split_dft_r2c
+        207   CE 000EF640 fftw_plan_guru_dft
+        208   CF 000EF430 fftw_plan_guru_dft_c2r
+        209   D0 000EF540 fftw_plan_guru_dft_r2c
+        210   D1 000EF770 fftw_plan_guru_r2r
+        211   D2 000EFA90 fftw_plan_guru_split_dft
+        212   D3 000EF860 fftw_plan_guru_split_dft_c2r
+        213   D4 000EF980 fftw_plan_guru_split_dft_r2c
+        214   D5 000EFF20 fftw_plan_many_dft
+        215   D6 000EFC00 fftw_plan_many_dft_c2r
+        216   D7 000EFDA0 fftw_plan_many_dft_r2c
+        217   D8 000F0090 fftw_plan_many_r2r
+        218   D9 000F02B0 fftw_plan_r2r
+        219   DA 000F01B0 fftw_plan_r2r_1d
+        220   DB 000F01F0 fftw_plan_r2r_2d
+        221   DC 000F0240 fftw_plan_r2r_3d
+        222   DD 001C2C80 fftw_plan_with_nthreads
+        223   DE 000F03C0 fftw_print_plan
+        224   DF 00006200 fftw_printer_destroy
+        225   E0 000F0510 fftw_set_timelimit
+        226   E1 000F0320 fftw_sprint_plan
+        227   E2 000F04A0 fftw_the_planner
+        228   E3 001D7080 fftw_version
+
+  Summary
+
+        1000 .CRT
+        1000 .bss
+        1000 .data
+        1000 .debug_abbrev
+        1000 .debug_aranges
+        1000 .debug_frame
+        2000 .debug_info
+        1000 .debug_line
+        1000 .debug_str
+        2000 .edata
+        1000 .idata
+        7000 .pdata
+       43000 .rdata
+        2000 .reloc
+      1C7000 .text
+        1000 .tls
+        B000 .xdata

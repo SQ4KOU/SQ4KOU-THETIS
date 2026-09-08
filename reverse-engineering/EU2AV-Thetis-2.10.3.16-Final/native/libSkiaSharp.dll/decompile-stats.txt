@@ -1,0 +1,9 @@
+program=libSkiaSharp.dll
+language=x86:LE:64:default
+compiler=clangwindows
+functions_total=37676
+functions_external_skipped=0
+functions_decompiled_ok=37655
+functions_failed=21
+chunks=16
+cancelled=false

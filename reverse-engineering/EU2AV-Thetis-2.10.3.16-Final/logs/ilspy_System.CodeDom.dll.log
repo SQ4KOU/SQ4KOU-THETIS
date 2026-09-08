@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\System.CodeDom.dll
+assembly_sha256=e733e2626089bb2a6b61891d73c8a331c908b41283e3fc9de90eb2cb911d8da8
+csharp_files=27
+il_bytes=75696
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

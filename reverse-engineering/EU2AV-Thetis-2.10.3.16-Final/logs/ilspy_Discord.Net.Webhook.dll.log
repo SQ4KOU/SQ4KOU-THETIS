@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\Discord.Net.Webhook.dll
+assembly_sha256=9327b7bba8c79742cbf32da450911ed22c86442197a0c958a6972d61c285fb36
+csharp_files=5
+il_bytes=292613
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

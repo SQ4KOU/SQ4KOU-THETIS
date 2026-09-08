@@ -1,0 +1,9 @@
+program=ChannelMaster.dll
+language=x86:LE:64:default
+compiler=windows
+functions_total=416
+functions_external_skipped=0
+functions_decompiled_ok=416
+functions_failed=0
+chunks=1
+cancelled=false

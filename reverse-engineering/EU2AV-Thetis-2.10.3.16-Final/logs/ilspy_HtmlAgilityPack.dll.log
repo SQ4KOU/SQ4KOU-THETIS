@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\HtmlAgilityPack.dll
+assembly_sha256=32b0c05ce48354499ab11dea7cbb7ddb705e81c59415fee2b65bd98b30652164
+csharp_files=42
+il_bytes=1608291
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

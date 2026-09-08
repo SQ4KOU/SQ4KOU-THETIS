@@ -1,0 +1,58 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+<resheader name="resmimetype"><value>text/microsoft-resx</value></resheader><resheader name="version"><value>1.3</value></resheader><resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader><resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader><data name="chkPruneBackups.ToolTip" xml:space="preserve"><value>Prune happens after a backup is taken
+Only auto backups are pruned
+
+Last 7 days: Keep all backups
+Weekly backups: Retain 1 backup per week (the last one of the week)
+Monthly backups: Retain 1 backup per month (the last one of the month)
+Yearly backups: Retain 1 backup per year (the last one of the year)</value></data>
+  <data name="$this.Icon" type="System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" mimetype="application/x-microsoft.net.object.bytearray.base64"><value>AAABAAEAEBAAAAEAGABoAwAAFgAAACgAAAAQAAAAIAAAAAEAGAAAAAAAaAMAAAAAAAAAAAAAAAAA
+AAAAAAACAgIAAAA3NzecnJzQ0NDk5OTp6enp6enp6enp6enm5ubX19esrKxRUVEBAQEAAAAAAACA
+gIDp6emYmJhcXFw3NzcjIyMZGRkYGBggICAxMTFSUlKHh4fa2tqqqqoCAgIsLCzV1dUWFhYAAAAB
+AQEAAAAAAAAAAAAAAAAAAAAAAAABAQEAAAAEBATW1tY8PDw/Pz/JyckAAAAeHh5SUlJ4eHiQkJCb
+m5ucnJyTk5N/f39dXV0qKioAAADJyclBQUE5OTnh4eG5ubni4uLJycmqqqqTk5OHh4eFhYWPj4+k
+pKTCwsLe3t7Kysrq6uo5OTk0NDT6+vp5eXkSEhIAAAABAQEAAAAAAAAAAAAAAAAAAAAAAAAJCQlY
+WFjx8fE4ODg/Pz/MzMwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADMzMxBQUE/
+Pz/MzMwAAAAkJCRbW1uBgYGZmZmlpaWmpqadnZ2IiIhmZmYyMjIAAADMzMxBQUE5OTnk5OTCwsLh
+4eHCwsKgoKCIiIh7e3t6enqEhISampq5ubnc3NzR0dHt7e05OTk0NDT4+PhtbW0LCwsAAAABAQEA
+AAAAAAAAAAAAAAAAAAAAAAAEBARNTU3v7+84ODg/Pz/MzMwAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAABAQEAAADMzMxBQUE+Pj7Ly8sAAAAuLi5nZ2eOjo6kpKSvr6+wsLCoqKiUlJRycnI8
+PDwBAQHLy8tBQUE6Ojrh4eHFxcXj4+O8vLyXl5d9fX1wcHBvb295eXmQkJCzs7Pc3NzW1tbr6+s4
+ODgiIiL7+/tycnIAAAACAgIAAAAAAAAAAAAAAAAAAAAAAAACAgIAAABAQED39/c1NTUAAAB6enrY
+2NiXl5dfX185OTkkJCQaGhoZGRkhISEzMzNUVFSIiIjNzc2kpKQDAwMBAQEAAAA4ODiamprNzc3j
+4+Po6Ojp6enq6urp6enl5eXV1dWqqqpSUlICAgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA</value></data><data name="picTick.Image" type="System.Drawing.Bitmap, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a" mimetype="application/x-microsoft.net.object.bytearray.base64"><value>iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABGdBTUEAALGPC/xhBQAAAShJREFU
+OE+tk7tKg0EQhT9vlemUoIhvkCLEwsInMGBtkdLWB1CQdGl9DkHwDYIE4l2x8AHSKhYWXkAb5Sxn
+ZLMBL5CBwz87O3PmsvPDGKRqzAHz/uYIW/hNOm4q9GfgDfj8Be/AA7BkggkjXb4A58AFcGVIFy6B
+Uyf6AJZNsAY0gkABwVpKlHwC3AEVoO04ESflOguoAXXr6nPGxBtAE7h1zDGwEgQ3DpgF7p1pOsuu
+rB37al7bticpK9ixbc/ndWBg22E2A1UnjBAoq86vwIHvn4AWsAks2O97XjmBypaseuK6O3Jr+z7H
+M0Z7QwQyamiSXWArnICefaOCIYK/PGPXvouFPRm1SHpTLdOZoQUSsWz9bJFGWvjPKj8Wq5wk/5l+
+QvkzjUe+AJxPXI+6yjVdAAAAAElFTkSuQmCC</value></data></root>

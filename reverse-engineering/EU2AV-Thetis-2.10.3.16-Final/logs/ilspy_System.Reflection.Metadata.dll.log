@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\System.Reflection.Metadata.dll
+assembly_sha256=501348d577e98123a8c4de88849b1b82b3f0d0157f325e060233fe03ff6eb790
+csharp_files=399
+il_bytes=5113327
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

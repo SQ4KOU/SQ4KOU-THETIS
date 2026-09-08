@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\System.Reactive.dll
+assembly_sha256=e7da3097fd6c39018c38b9dc4dfe85005bde036cb01bec4b3bfcb007d64db7a0
+csharp_files=381
+il_bytes=15851432
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

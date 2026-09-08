@@ -1,0 +1,37 @@
+using System.Diagnostics;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Runtime.Versioning;
+using Discord;
+
+[assembly: InternalsVisibleTo("Discord.Net.Rpc")]
+[assembly: InternalsVisibleTo("Discord.Net.WebSocket")]
+[assembly: InternalsVisibleTo("Discord.Net.Webhook")]
+[assembly: InternalsVisibleTo("Discord.Net.Commands")]
+[assembly: InternalsVisibleTo("Discord.Net.Tests")]
+[assembly: InternalsVisibleTo("Discord.Net.Tests.Unit")]
+[assembly: InternalsVisibleTo("Discord.Net.Tests.Integration")]
+[assembly: InternalsVisibleTo("Discord.Net.Interactions")]
+[assembly: AssemblyCompany("Discord.Net Contributors")]
+[assembly: AssemblyConfiguration("Release")]
+[assembly: AssemblyDescription("A core Discord.Net library containing the REST client and models.")]
+[assembly: AssemblyFileVersion("3.18.0.0")]
+[assembly: AssemblyInformationalVersion("3.18.0")]
+[assembly: AssemblyProduct("Discord.Net.Rest")]
+[assembly: AssemblyTitle("Discord.Net.Rest")]
+[assembly: AssemblyMetadata("RepositoryUrl", "git://github.com/Discord-Net/Discord.Net")]
+[assembly: AssemblyVersion("3.18.0.0")]
+[assembly: TypeForwardedTo(typeof(Embed))]
+[assembly: TypeForwardedTo(typeof(EmbedAuthor))]
+[assembly: TypeForwardedTo(typeof(EmbedAuthorBuilder))]
+[assembly: TypeForwardedTo(typeof(EmbedBuilder))]
+[assembly: TypeForwardedTo(typeof(EmbedBuilderExtensions))]
+[assembly: TypeForwardedTo(typeof(EmbedField))]
+[assembly: TypeForwardedTo(typeof(EmbedFieldBuilder))]
+[assembly: TypeForwardedTo(typeof(EmbedFooter))]
+[assembly: TypeForwardedTo(typeof(EmbedFooterBuilder))]
+[assembly: TypeForwardedTo(typeof(EmbedImage))]
+[assembly: TypeForwardedTo(typeof(EmbedProvider))]
+[assembly: TypeForwardedTo(typeof(EmbedThumbnail))]
+[assembly: TypeForwardedTo(typeof(EmbedType))]
+[assembly: TypeForwardedTo(typeof(EmbedVideo))]

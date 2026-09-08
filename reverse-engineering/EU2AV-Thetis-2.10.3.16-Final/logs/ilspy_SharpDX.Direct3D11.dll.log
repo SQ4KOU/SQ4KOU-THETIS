@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\SharpDX.Direct3D11.dll
+assembly_sha256=56f525e33494f4cd2a560a71cdf237303a3fb54a8fa44e1693eba35c9245c60a
+csharp_files=313
+il_bytes=1849364
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

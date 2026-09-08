@@ -1,0 +1,215 @@
+Microsoft (R) COFF/PE Dumper Version 14.51.36256.0
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+Dump of file D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\wdsp.dll
+
+File Type: DLL
+
+  Section contains the following imports:
+
+    libfftw3-3.dll
+             18005C308 Import Address Table
+             180069CE0 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                          BC fftw_plan_dft_1d
+                          9C fftw_destroy_plan
+                          C4 fftw_plan_dft_r2c_1d
+                          9E fftw_execute
+                          AD fftw_free
+                          C0 fftw_plan_dft_c2r_1d
+                          A8 fftw_export_wisdom_to_filename
+                          B3 fftw_import_wisdom_from_filename
+                          B7 fftw_malloc
+
+    AVRT.dll
+             18005C000 Import Address Table
+             1800699D8 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                           E AvSetMmThreadCharacteristicsW
+                           3 AvRevertMmThreadCharacteristics
+                           F AvSetMmThreadPriority
+
+    KERNEL32.dll
+             18005C020 Import Address Table
+             1800699F8 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                         242 GetCurrentProcessId
+                         246 GetCurrentThreadId
+                         481 QueryPerformanceCounter
+                         142 DisableThreadLibraryCalls
+                         39A InitializeSListHead
+                          16 AllocConsole
+                         31A GetSystemTimeAsFileTime
+                         500 ResetEvent
+                         157 EnterCriticalSection
+                         3F0 LeaveCriticalSection
+                         396 InitializeCriticalSectionAndSpinCount
+                         625 WaitForSingleObject
+                         48D QueueUserWorkItem
+                          D9 CreateEventW
+                         5C8 Sleep
+                         55C SetEvent
+                          9D CloseHandle
+                         12F DeleteCriticalSection
+                         4EC ReleaseSemaphore
+                         33D GetTickCount64
+                         109 CreateSemaphoreW
+                         395 InitializeCriticalSection
+                         5A7 SetThreadPriority
+                         245 GetCurrentThread
+                         1D1 FreeConsole
+
+    rnnoise.dll
+             18005C358 Import Address Table
+             180069D30 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                           0 rnnoise_get_frame_size
+                           0 rnnoise_model_from_filename
+                           0 rnnoise_model_free
+                           0 rnnoise_process_frame
+                           0 rnnoise_destroy
+                           0 rnnoise_create
+
+    specbleach.dll
+             18005C390 Import Address Table
+             180069D68 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                           0 specbleach_adaptive_load_parameters
+                           0 specbleach_adaptive_initialize
+                           0 specbleach_adaptive_process
+                           0 specbleach_adaptive_free
+
+    VCRUNTIME140.dll
+             18005C0F0 Import Address Table
+             180069AC8 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                          3D memmove
+                          3E memset
+                           8 __C_specific_handler
+                          25 __std_type_info_destroy_list
+                          3C memcpy
+
+    api-ms-win-crt-heap-l1-1-0.dll
+             18005C120 Import Address Table
+             180069AF8 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                          18 free
+                           0 _aligned_free
+                           1 _aligned_malloc
+                          17 calloc
+
+    api-ms-win-crt-runtime-l1-1-0.dll
+             18005C210 Import Address Table
+             180069BE8 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                          13 _beginthread
+                          1F _endthread
+                          16 _cexit
+                          36 _initterm
+                          37 _initterm_e
+                          3F _seh_filter_dll
+                          18 _configure_narrow_argv
+                          33 _initialize_narrow_environment
+                          34 _initialize_onexit_table
+                          22 _execute_onexit_table
+
+    api-ms-win-crt-utility-l1-1-0.dll
+             18005C2E8 Import Address Table
+             180069CC0 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                          1B rand
+                          1D srand
+                          19 qsort
+
+    api-ms-win-crt-math-l1-1-0.dll
+             18005C148 Import Address Table
+             180069B20 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                          55 atan2
+                          7C ceil
+                          90 cos
+                          92 cosh
+                          B2 exp
+                          B6 expf
+                          DA log
+                          DB log10
+                         109 round
+                          DC log10f
+                          E0 log2
+                          FE pow
+                          FF powf
+                         112 sin
+                          4A acos
+                         114 sinh
+                          B3 exp2
+                         118 tan
+                          C4 fmaxf
+                          C6 fmin
+                         116 sqrt
+                          BE floor
+                          4C acosh
+                          C3 fmax
+
+    api-ms-win-crt-stdio-l1-1-0.dll
+             18005C268 Import Address Table
+             180069C40 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                          83 fread
+                           D __stdio_common_vsprintf
+                           0 __acrt_iob_func
+                           6 __stdio_common_vfscanf
+                          8A fwrite
+                           3 __stdio_common_vfprintf
+                          74 fclose
+                          86 freopen_s
+                          7D fopen
+                          77 fflush
+
+    api-ms-win-crt-time-l1-1-0.dll
+             18005C2D8 Import Address Table
+             180069CB0 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                          30 _time64
+
+    api-ms-win-crt-string-l1-1-0.dll
+             18005C2C0 Import Address Table
+             180069C98 Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                          8C strncat
+                          88 strcpy
+
+  Summary
+
+      4F9000 .data
+        4000 .pdata
+        F000 .rdata
+        1000 .reloc
+        1000 .rsrc
+       5B000 .text

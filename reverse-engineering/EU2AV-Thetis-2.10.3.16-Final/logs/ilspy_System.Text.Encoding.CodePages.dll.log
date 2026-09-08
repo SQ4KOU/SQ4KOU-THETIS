@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\System.Text.Encoding.CodePages.dll
+assembly_sha256=7f06943836fd097bce2b90d5218f9fd4efa55fe851d8c84a5390544e7de7ff6d
+csharp_files=50
+il_bytes=800270
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

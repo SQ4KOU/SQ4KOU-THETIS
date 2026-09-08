@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\FTDI2XX.dll
+assembly_sha256=3d3a24882d78894ba3caee20fea0eb48089bde85985cb6f987157321fdd7b1b5
+csharp_files=2
+il_bytes=544111
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

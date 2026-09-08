@@ -1,0 +1,7 @@
+status=PASS
+assembly=D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\System.Numerics.Vectors.dll
+assembly_sha256=20c2fa81b8c70d651099d762954f285fd4f942e63b2d7217c145dab8d4b2f4c9
+csharp_files=9
+il_bytes=1296480
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375

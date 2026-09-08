@@ -1,0 +1,102 @@
+Microsoft (R) COFF/PE Dumper Version 14.51.36256.0
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+Dump of file D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\libfftw3f-3.dll
+
+File Type: DLL
+
+  Section contains the following imports:
+
+    KERNEL32.dll
+              63971224 Import Address Table
+              6397103C Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                          83 CloseHandle
+                          D4 CreateMutexA
+                          E5 CreateSemaphoreA
+                         10D DeleteCriticalSection
+                         131 EnterCriticalSection
+                         218 GetCurrentProcess
+                         219 GetCurrentProcessId
+                         21D GetCurrentThreadId
+                         262 GetLastError
+                         2EB GetSystemTimeAsFileTime
+                         307 GetTickCount
+                         30E GetTimeZoneInformation
+                         360 InitializeCriticalSection
+                         3B8 LeaveCriticalSection
+                         446 QueryPerformanceCounter
+                         47F ReleaseMutex
+                         483 ReleaseSemaphore
+                         49C RtlAddFunctionTable
+                         49D RtlCaptureContext
+                         4A4 RtlLookupFunctionEntry
+                         4AB RtlVirtualUnwind
+                         543 SetUnhandledExceptionFilter
+                         551 Sleep
+                         560 TerminateProcess
+                         574 TlsGetValue
+                         582 UnhandledExceptionFilter
+                         5A4 VirtualProtect
+                         5A6 VirtualQuery
+                         5AE WaitForSingleObject
+
+    msvcrt.dll
+              63971314 Import Address Table
+              6397112C Import Name Table
+                     0 time date stamp
+                     0 Index of first forwarder reference
+
+                          54 __iob_func
+                          63 __setusermatherr
+                          7B _amsg_exit
+                          89 _beginthreadex
+                          C6 _endthreadex
+                          C9 _errno
+                         14B _initterm
+                         1B8 _lock
+                         32D _unlock
+                         407 abort
+                         41A calloc
+                         42B fclose
+                         42D ferror
+                         42E fflush
+                         438 fopen
+                         43A fprintf
+                         440 fread
+                         441 free
+                         44D fwrite
+                         47C malloc
+                         484 memcpy
+                         485 memmove
+                         486 memset
+                         494 qsort
+                         498 realloc
+                         4A2 signal
+                         4B0 strcmp
+                         4B7 strlen
+                         4BA strncmp
+                         4DA vfprintf
+
+  Summary
+
+        1000 .CRT
+        1000 .bss
+        1000 .data
+        1000 .debug_abbrev
+        1000 .debug_aranges
+        1000 .debug_frame
+        2000 .debug_info
+        1000 .debug_line
+        1000 .debug_str
+        2000 .edata
+        1000 .idata
+        7000 .pdata
+       4A000 .rdata
+        2000 .reloc
+      1CF000 .text
+        1000 .tls
+        C000 .xdata

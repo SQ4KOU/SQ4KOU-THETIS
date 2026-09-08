@@ -1,0 +1,2777 @@
+// IL code: Microsoft.Bcl.AsyncInterfaces
+.class private auto ansi '<Module>'
+{
+} // end of class <Module>
+
+.class private auto ansi sealed beforefieldinit Microsoft.CodeAnalysis.EmbeddedAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void Microsoft.CodeAnalysis.EmbeddedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x2050
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ret
+	} // end of method EmbeddedAttribute::.ctor
+
+} // end of class Microsoft.CodeAnalysis.EmbeddedAttribute
+
+.class private auto ansi sealed beforefieldinit System.Runtime.CompilerServices.IsReadOnlyAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void Microsoft.CodeAnalysis.EmbeddedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x2058
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ret
+	} // end of method IsReadOnlyAttribute::.ctor
+
+} // end of class System.Runtime.CompilerServices.IsReadOnlyAttribute
+
+.class private auto ansi sealed beforefieldinit System.Runtime.CompilerServices.NullableAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void Microsoft.CodeAnalysis.EmbeddedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 84 6b 00 00 02 00 54 02 0d 41 6c 6c 6f 77
+		4d 75 6c 74 69 70 6c 65 00 54 02 09 49 6e 68 65
+		72 69 74 65 64 00
+	)
+	// Fields
+	.field public initonly uint8[] NullableFlags
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			uint8 ''
+		) cil managed 
+	{
+		// Method begins at RVA 0x2060
+		// Header size: 1
+		// Code size: 23 (0x17)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldc.i4.1
+		IL_0008: newarr [mscorlib]System.Byte
+		IL_000d: dup
+		IL_000e: ldc.i4.0
+		IL_000f: ldarg.1
+		IL_0010: stelem.i1
+		IL_0011: stfld uint8[] System.Runtime.CompilerServices.NullableAttribute::NullableFlags
+		IL_0016: ret
+	} // end of method NullableAttribute::.ctor
+
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			uint8[] ''
+		) cil managed 
+	{
+		// Method begins at RVA 0x2078
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld uint8[] System.Runtime.CompilerServices.NullableAttribute::NullableFlags
+		IL_000d: ret
+	} // end of method NullableAttribute::.ctor
+
+} // end of class System.Runtime.CompilerServices.NullableAttribute
+
+.class private auto ansi sealed beforefieldinit System.Runtime.CompilerServices.NullableContextAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void Microsoft.CodeAnalysis.EmbeddedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 4c 14 00 00 02 00 54 02 0d 41 6c 6c 6f 77
+		4d 75 6c 74 69 70 6c 65 00 54 02 09 49 6e 68 65
+		72 69 74 65 64 00
+	)
+	// Fields
+	.field public initonly uint8 Flag
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			uint8 ''
+		) cil managed 
+	{
+		// Method begins at RVA 0x2087
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld uint8 System.Runtime.CompilerServices.NullableContextAttribute::Flag
+		IL_000d: ret
+	} // end of method NullableContextAttribute::.ctor
+
+} // end of class System.Runtime.CompilerServices.NullableContextAttribute
+
+.class private auto ansi sealed beforefieldinit System.Runtime.CompilerServices.NullablePublicOnlyAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void Microsoft.CodeAnalysis.EmbeddedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 02 00 00 00 02 00 54 02 0d 41 6c 6c 6f 77
+		4d 75 6c 74 69 70 6c 65 00 54 02 09 49 6e 68 65
+		72 69 74 65 64 00
+	)
+	// Fields
+	.field public initonly bool IncludesInternals
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			bool ''
+		) cil managed 
+	{
+		// Method begins at RVA 0x2096
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld bool System.Runtime.CompilerServices.NullablePublicOnlyAttribute::IncludesInternals
+		IL_000d: ret
+	} // end of method NullablePublicOnlyAttribute::.ctor
+
+} // end of class System.Runtime.CompilerServices.NullablePublicOnlyAttribute
+
+.class private auto ansi sealed beforefieldinit System.Runtime.CompilerServices.RefSafetyRulesAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void Microsoft.CodeAnalysis.EmbeddedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 02 00 00 00 02 00 54 02 0d 41 6c 6c 6f 77
+		4d 75 6c 74 69 70 6c 65 00 54 02 09 49 6e 68 65
+		72 69 74 65 64 00
+	)
+	// Fields
+	.field public initonly int32 Version
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			int32 ''
+		) cil managed 
+	{
+		// Method begins at RVA 0x20a5
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld int32 System.Runtime.CompilerServices.RefSafetyRulesAttribute::Version
+		IL_000d: ret
+	} // end of method RefSafetyRulesAttribute::.ctor
+
+} // end of class System.Runtime.CompilerServices.RefSafetyRulesAttribute
+
+.class private auto ansi sealed beforefieldinit System.Runtime.CompilerServices.ExtensionMarkerAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void Microsoft.CodeAnalysis.EmbeddedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 dc 17 00 00 02 00 54 02 0d 41 6c 6c 6f 77
+		4d 75 6c 74 69 70 6c 65 00 54 02 09 49 6e 68 65
+		72 69 74 65 64 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string name
+		) cil managed 
+	{
+		// Method begins at RVA 0x20b4
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ret
+	} // end of method ExtensionMarkerAttribute::.ctor
+
+} // end of class System.Runtime.CompilerServices.ExtensionMarkerAttribute
+
+.class interface public auto ansi abstract beforefieldinit System.IAsyncDisposable
+{
+	// Methods
+	.method public hidebysig newslot abstract virtual 
+		instance valuetype [System.Threading.Tasks.Extensions]System.Threading.Tasks.ValueTask DisposeAsync () cil managed 
+	{
+	} // end of method IAsyncDisposable::DisposeAsync
+
+} // end of class System.IAsyncDisposable
+
+.class private auto ansi abstract sealed beforefieldinit System.ExceptionPolyfills
+	extends [mscorlib]System.Object
+{
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.ExtensionAttribute::.ctor() = (
+		01 00 00 00
+	)
+	// Nested Types
+	.class nested public auto ansi sealed specialname '<G>$E6188BA5B951F1F7AA9135E0EBB76F2B'
+		extends [mscorlib]System.Object
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.ExtensionAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Nested Types
+		.class nested public auto ansi abstract sealed specialname '<M>$96F0261AC622664B8B003966835C0332'
+			extends [mscorlib]System.Object
+		{
+			// Methods
+			.method public hidebysig specialname static 
+				void '<Extension>$' (
+					class [mscorlib]System.ArgumentNullException ''
+				) cil managed 
+			{
+				.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+					01 00 00 00
+				)
+				// Method begins at RVA 0x2855
+				// Header size: 1
+				// Code size: 1 (0x1)
+				.maxstack 8
+
+				IL_0000: ret
+			} // end of method '<M>$96F0261AC622664B8B003966835C0332'::'<Extension>$'
+
+		} // end of class <M>$96F0261AC622664B8B003966835C0332
+
+
+		// Methods
+		.method public hidebysig static 
+			void ThrowIfNull (
+				object argument,
+				[opt] string paramName
+			) cil managed 
+		{
+			.custom instance void System.Runtime.CompilerServices.ExtensionMarkerAttribute::.ctor(string) = (
+				01 00 24 3c 4d 3e 24 39 36 46 30 32 36 31 41 43
+				36 32 32 36 36 34 42 38 42 30 30 33 39 36 36 38
+				33 35 43 30 33 33 32 00 00
+			)
+			.param [1]
+				.custom instance void System.Diagnostics.CodeAnalysis.NotNullAttribute::.ctor() = (
+					01 00 00 00
+				)
+			.param [2] = nullref
+				.custom instance void System.Runtime.CompilerServices.CallerArgumentExpressionAttribute::.ctor(string) = (
+					01 00 08 61 72 67 75 6d 65 6e 74 00 00
+				)
+			// Method begins at RVA 0x2760
+			// Header size: 1
+			// Code size: 2 (0x2)
+			.maxstack 8
+
+			IL_0000: ldnull
+			IL_0001: throw
+		} // end of method '<G>$E6188BA5B951F1F7AA9135E0EBB76F2B'::ThrowIfNull
+
+	} // end of class <G>$E6188BA5B951F1F7AA9135E0EBB76F2B
+
+	.class nested public auto ansi sealed specialname '<G>$3F30F31B33543D5FB8E174FB4FD780B9'
+		extends [mscorlib]System.Object
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.ExtensionAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Nested Types
+		.class nested public auto ansi abstract sealed specialname '<M>$1F10CFA08738E6D8AF61CBECC6763DBC'
+			extends [mscorlib]System.Object
+		{
+			// Methods
+			.method public hidebysig specialname static 
+				void '<Extension>$' (
+					class [mscorlib]System.ObjectDisposedException ''
+				) cil managed 
+			{
+				.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+					01 00 00 00
+				)
+				// Method begins at RVA 0x2857
+				// Header size: 1
+				// Code size: 1 (0x1)
+				.maxstack 8
+
+				IL_0000: ret
+			} // end of method '<M>$1F10CFA08738E6D8AF61CBECC6763DBC'::'<Extension>$'
+
+		} // end of class <M>$1F10CFA08738E6D8AF61CBECC6763DBC
+
+
+		// Methods
+		.method public hidebysig static 
+			void ThrowIf (
+				bool condition,
+				object 'instance'
+			) cil managed 
+		{
+			.custom instance void System.Runtime.CompilerServices.ExtensionMarkerAttribute::.ctor(string) = (
+				01 00 24 3c 4d 3e 24 31 46 31 30 43 46 41 30 38
+				37 33 38 45 36 44 38 41 46 36 31 43 42 45 43 43
+				36 37 36 33 44 42 43 00 00
+			)
+			.param [1]
+				.custom instance void System.Diagnostics.CodeAnalysis.DoesNotReturnIfAttribute::.ctor(bool) = (
+					01 00 01 00 00
+				)
+			// Method begins at RVA 0x2763
+			// Header size: 1
+			// Code size: 2 (0x2)
+			.maxstack 8
+
+			IL_0000: ldnull
+			IL_0001: throw
+		} // end of method '<G>$3F30F31B33543D5FB8E174FB4FD780B9'::ThrowIf
+
+		.method public hidebysig static 
+			void ThrowIf (
+				bool condition,
+				class [mscorlib]System.Type 'type'
+			) cil managed 
+		{
+			.custom instance void System.Runtime.CompilerServices.ExtensionMarkerAttribute::.ctor(string) = (
+				01 00 24 3c 4d 3e 24 31 46 31 30 43 46 41 30 38
+				37 33 38 45 36 44 38 41 46 36 31 43 42 45 43 43
+				36 37 36 33 44 42 43 00 00
+			)
+			.param [1]
+				.custom instance void System.Diagnostics.CodeAnalysis.DoesNotReturnIfAttribute::.ctor(bool) = (
+					01 00 01 00 00
+				)
+			// Method begins at RVA 0x2766
+			// Header size: 1
+			// Code size: 2 (0x2)
+			.maxstack 8
+
+			IL_0000: ldnull
+			IL_0001: throw
+		} // end of method '<G>$3F30F31B33543D5FB8E174FB4FD780B9'::ThrowIf
+
+	} // end of class <G>$3F30F31B33543D5FB8E174FB4FD780B9
+
+
+	// Methods
+	.method public hidebysig static 
+		void ThrowIfNull (
+			object argument,
+			[opt] string paramName
+		) cil managed 
+	{
+		.param [1]
+			.custom instance void System.Diagnostics.CodeAnalysis.NotNullAttribute::.ctor() = (
+				01 00 00 00
+			)
+		.param [2] = nullref
+			.custom instance void System.Runtime.CompilerServices.CallerArgumentExpressionAttribute::.ctor(string) = (
+				01 00 08 61 72 67 75 6d 65 6e 74 00 00
+			)
+		// Method begins at RVA 0x20bc
+		// Header size: 1
+		// Code size: 10 (0xa)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: brtrue.s IL_0009
+
+		IL_0003: ldarg.1
+		IL_0004: call void System.ExceptionPolyfills::ThrowArgumentNullException(string)
+
+		IL_0009: ret
+	} // end of method ExceptionPolyfills::ThrowIfNull
+
+	.method private hidebysig static 
+		void ThrowArgumentNullException (
+			string paramName
+		) cil managed 
+	{
+		.custom instance void System.Diagnostics.CodeAnalysis.DoesNotReturnAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x20c7
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: newobj instance void [mscorlib]System.ArgumentNullException::.ctor(string)
+		IL_0006: throw
+	} // end of method ExceptionPolyfills::ThrowArgumentNullException
+
+	.method public hidebysig static 
+		void ThrowIf (
+			bool condition,
+			object 'instance'
+		) cil managed 
+	{
+		.param [1]
+			.custom instance void System.Diagnostics.CodeAnalysis.DoesNotReturnIfAttribute::.ctor(bool) = (
+				01 00 01 00 00
+			)
+		// Method begins at RVA 0x20cf
+		// Header size: 1
+		// Code size: 10 (0xa)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: brfalse.s IL_0009
+
+		IL_0003: ldarg.1
+		IL_0004: call void System.ExceptionPolyfills::ThrowObjectDisposedException(object)
+
+		IL_0009: ret
+	} // end of method ExceptionPolyfills::ThrowIf
+
+	.method public hidebysig static 
+		void ThrowIf (
+			bool condition,
+			class [mscorlib]System.Type 'type'
+		) cil managed 
+	{
+		.param [1]
+			.custom instance void System.Diagnostics.CodeAnalysis.DoesNotReturnIfAttribute::.ctor(bool) = (
+				01 00 01 00 00
+			)
+		// Method begins at RVA 0x20da
+		// Header size: 1
+		// Code size: 10 (0xa)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: brfalse.s IL_0009
+
+		IL_0003: ldarg.1
+		IL_0004: call void System.ExceptionPolyfills::ThrowObjectDisposedException(class [mscorlib]System.Type)
+
+		IL_0009: ret
+	} // end of method ExceptionPolyfills::ThrowIf
+
+	.method private hidebysig static 
+		void ThrowObjectDisposedException (
+			object 'instance'
+		) cil managed 
+	{
+		.custom instance void System.Diagnostics.CodeAnalysis.DoesNotReturnAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x20e5
+		// Header size: 1
+		// Code size: 23 (0x17)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: brtrue.s IL_0006
+
+		IL_0003: ldnull
+		IL_0004: br.s IL_0011
+
+		IL_0006: ldarg.0
+		IL_0007: call instance class [mscorlib]System.Type [mscorlib]System.Object::GetType()
+		IL_000c: callvirt instance string [mscorlib]System.Type::get_FullName()
+
+		IL_0011: newobj instance void [mscorlib]System.ObjectDisposedException::.ctor(string)
+		IL_0016: throw
+	} // end of method ExceptionPolyfills::ThrowObjectDisposedException
+
+	.method private hidebysig static 
+		void ThrowObjectDisposedException (
+			class [mscorlib]System.Type 'type'
+		) cil managed 
+	{
+		.custom instance void System.Diagnostics.CodeAnalysis.DoesNotReturnAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x20fd
+		// Header size: 1
+		// Code size: 18 (0x12)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: brtrue.s IL_0006
+
+		IL_0003: ldnull
+		IL_0004: br.s IL_000c
+
+		IL_0006: ldarg.0
+		IL_0007: callvirt instance string [mscorlib]System.Type::get_FullName()
+
+		IL_000c: newobj instance void [mscorlib]System.ObjectDisposedException::.ctor(string)
+		IL_0011: throw
+	} // end of method ExceptionPolyfills::ThrowObjectDisposedException
+
+} // end of class System.ExceptionPolyfills
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.AllowNullAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 80 09 00 00 01 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x2110
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ret
+	} // end of method AllowNullAttribute::.ctor
+
+} // end of class System.Diagnostics.CodeAnalysis.AllowNullAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.DisallowNullAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 80 09 00 00 01 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x2118
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ret
+	} // end of method DisallowNullAttribute::.ctor
+
+} // end of class System.Diagnostics.CodeAnalysis.DisallowNullAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.MaybeNullAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 80 29 00 00 01 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x2120
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ret
+	} // end of method MaybeNullAttribute::.ctor
+
+} // end of class System.Diagnostics.CodeAnalysis.MaybeNullAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.NotNullAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 80 29 00 00 01 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x2128
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ret
+	} // end of method NotNullAttribute::.ctor
+
+} // end of class System.Diagnostics.CodeAnalysis.NotNullAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.MaybeNullWhenAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 00 08 00 00 01 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00
+	)
+	// Fields
+	.field private initonly bool '<ReturnValue>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			bool returnValue
+		) cil managed 
+	{
+		// Method begins at RVA 0x2130
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld bool System.Diagnostics.CodeAnalysis.MaybeNullWhenAttribute::'<ReturnValue>k__BackingField'
+		IL_000d: ret
+	} // end of method MaybeNullWhenAttribute::.ctor
+
+	.method public hidebysig specialname 
+		instance bool get_ReturnValue () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x213f
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld bool System.Diagnostics.CodeAnalysis.MaybeNullWhenAttribute::'<ReturnValue>k__BackingField'
+		IL_0006: ret
+	} // end of method MaybeNullWhenAttribute::get_ReturnValue
+
+	// Properties
+	.property instance bool ReturnValue()
+	{
+		.get instance bool System.Diagnostics.CodeAnalysis.MaybeNullWhenAttribute::get_ReturnValue()
+	}
+
+} // end of class System.Diagnostics.CodeAnalysis.MaybeNullWhenAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.NotNullWhenAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 00 08 00 00 01 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00
+	)
+	// Fields
+	.field private initonly bool '<ReturnValue>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			bool returnValue
+		) cil managed 
+	{
+		// Method begins at RVA 0x2147
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld bool System.Diagnostics.CodeAnalysis.NotNullWhenAttribute::'<ReturnValue>k__BackingField'
+		IL_000d: ret
+	} // end of method NotNullWhenAttribute::.ctor
+
+	.method public hidebysig specialname 
+		instance bool get_ReturnValue () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2156
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld bool System.Diagnostics.CodeAnalysis.NotNullWhenAttribute::'<ReturnValue>k__BackingField'
+		IL_0006: ret
+	} // end of method NotNullWhenAttribute::get_ReturnValue
+
+	// Properties
+	.property instance bool ReturnValue()
+	{
+		.get instance bool System.Diagnostics.CodeAnalysis.NotNullWhenAttribute::get_ReturnValue()
+	}
+
+} // end of class System.Diagnostics.CodeAnalysis.NotNullWhenAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.NotNullIfNotNullAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 80 28 00 00 02 00 54 02 0d 41 6c 6c 6f 77
+		4d 75 6c 74 69 70 6c 65 01 54 02 09 49 6e 68 65
+		72 69 74 65 64 00
+	)
+	// Fields
+	.field private initonly string '<ParameterName>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string parameterName
+		) cil managed 
+	{
+		// Method begins at RVA 0x215e
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld string System.Diagnostics.CodeAnalysis.NotNullIfNotNullAttribute::'<ParameterName>k__BackingField'
+		IL_000d: ret
+	} // end of method NotNullIfNotNullAttribute::.ctor
+
+	.method public hidebysig specialname 
+		instance string get_ParameterName () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x216d
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld string System.Diagnostics.CodeAnalysis.NotNullIfNotNullAttribute::'<ParameterName>k__BackingField'
+		IL_0006: ret
+	} // end of method NotNullIfNotNullAttribute::get_ParameterName
+
+	// Properties
+	.property instance string ParameterName()
+	{
+		.get instance string System.Diagnostics.CodeAnalysis.NotNullIfNotNullAttribute::get_ParameterName()
+	}
+
+} // end of class System.Diagnostics.CodeAnalysis.NotNullIfNotNullAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.DoesNotReturnAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 40 00 00 00 01 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x2175
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ret
+	} // end of method DoesNotReturnAttribute::.ctor
+
+} // end of class System.Diagnostics.CodeAnalysis.DoesNotReturnAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.DoesNotReturnIfAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 00 08 00 00 01 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00
+	)
+	// Fields
+	.field private initonly bool '<ParameterValue>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			bool parameterValue
+		) cil managed 
+	{
+		// Method begins at RVA 0x217d
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld bool System.Diagnostics.CodeAnalysis.DoesNotReturnIfAttribute::'<ParameterValue>k__BackingField'
+		IL_000d: ret
+	} // end of method DoesNotReturnIfAttribute::.ctor
+
+	.method public hidebysig specialname 
+		instance bool get_ParameterValue () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x218c
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld bool System.Diagnostics.CodeAnalysis.DoesNotReturnIfAttribute::'<ParameterValue>k__BackingField'
+		IL_0006: ret
+	} // end of method DoesNotReturnIfAttribute::get_ParameterValue
+
+	// Properties
+	.property instance bool ParameterValue()
+	{
+		.get instance bool System.Diagnostics.CodeAnalysis.DoesNotReturnIfAttribute::get_ParameterValue()
+	}
+
+} // end of class System.Diagnostics.CodeAnalysis.DoesNotReturnIfAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.MemberNotNullAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 c0 00 00 00 02 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00 54 02 0d 41 6c 6c 6f 77 4d 75 6c
+		74 69 70 6c 65 01
+	)
+	// Fields
+	.field private initonly string[] '<Members>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string member
+		) cil managed 
+	{
+		// Method begins at RVA 0x2194
+		// Header size: 1
+		// Code size: 23 (0x17)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldc.i4.1
+		IL_0008: newarr [mscorlib]System.String
+		IL_000d: dup
+		IL_000e: ldc.i4.0
+		IL_000f: ldarg.1
+		IL_0010: stelem.ref
+		IL_0011: stfld string[] System.Diagnostics.CodeAnalysis.MemberNotNullAttribute::'<Members>k__BackingField'
+		IL_0016: ret
+	} // end of method MemberNotNullAttribute::.ctor
+
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string[] members
+		) cil managed 
+	{
+		.param [1]
+			.custom instance void [mscorlib]System.ParamArrayAttribute::.ctor() = (
+				01 00 00 00
+			)
+		// Method begins at RVA 0x21ac
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld string[] System.Diagnostics.CodeAnalysis.MemberNotNullAttribute::'<Members>k__BackingField'
+		IL_000d: ret
+	} // end of method MemberNotNullAttribute::.ctor
+
+	.method public hidebysig specialname 
+		instance string[] get_Members () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x21bb
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld string[] System.Diagnostics.CodeAnalysis.MemberNotNullAttribute::'<Members>k__BackingField'
+		IL_0006: ret
+	} // end of method MemberNotNullAttribute::get_Members
+
+	// Properties
+	.property instance string[] Members()
+	{
+		.get instance string[] System.Diagnostics.CodeAnalysis.MemberNotNullAttribute::get_Members()
+	}
+
+} // end of class System.Diagnostics.CodeAnalysis.MemberNotNullAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 c0 00 00 00 02 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00 54 02 0d 41 6c 6c 6f 77 4d 75 6c
+		74 69 70 6c 65 01
+	)
+	// Fields
+	.field private initonly bool '<ReturnValue>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.field private initonly string[] '<Members>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			bool returnValue,
+			string member
+		) cil managed 
+	{
+		// Method begins at RVA 0x21c3
+		// Header size: 1
+		// Code size: 30 (0x1e)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld bool System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute::'<ReturnValue>k__BackingField'
+		IL_000d: ldarg.0
+		IL_000e: ldc.i4.1
+		IL_000f: newarr [mscorlib]System.String
+		IL_0014: dup
+		IL_0015: ldc.i4.0
+		IL_0016: ldarg.2
+		IL_0017: stelem.ref
+		IL_0018: stfld string[] System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute::'<Members>k__BackingField'
+		IL_001d: ret
+	} // end of method MemberNotNullWhenAttribute::.ctor
+
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			bool returnValue,
+			string[] members
+		) cil managed 
+	{
+		.param [2]
+			.custom instance void [mscorlib]System.ParamArrayAttribute::.ctor() = (
+				01 00 00 00
+			)
+		// Method begins at RVA 0x21e2
+		// Header size: 1
+		// Code size: 21 (0x15)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld bool System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute::'<ReturnValue>k__BackingField'
+		IL_000d: ldarg.0
+		IL_000e: ldarg.2
+		IL_000f: stfld string[] System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute::'<Members>k__BackingField'
+		IL_0014: ret
+	} // end of method MemberNotNullWhenAttribute::.ctor
+
+	.method public hidebysig specialname 
+		instance bool get_ReturnValue () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x21f8
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld bool System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute::'<ReturnValue>k__BackingField'
+		IL_0006: ret
+	} // end of method MemberNotNullWhenAttribute::get_ReturnValue
+
+	.method public hidebysig specialname 
+		instance string[] get_Members () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2200
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld string[] System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute::'<Members>k__BackingField'
+		IL_0006: ret
+	} // end of method MemberNotNullWhenAttribute::get_Members
+
+	// Properties
+	.property instance bool ReturnValue()
+	{
+		.get instance bool System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute::get_ReturnValue()
+	}
+	.property instance string[] Members()
+	{
+		.get instance string[] System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute::get_Members()
+	}
+
+} // end of class System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute
+
+.class interface public auto ansi abstract beforefieldinit System.Collections.Generic.IAsyncEnumerable`1<+T>
+{
+	.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+		01 00 01 00 00
+	)
+	.param type T
+		.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+			01 00 02 00 00
+		)
+	// Methods
+	.method public hidebysig newslot abstract virtual 
+		instance class System.Collections.Generic.IAsyncEnumerator`1<!T> GetAsyncEnumerator (
+			[opt] valuetype [mscorlib]System.Threading.CancellationToken cancellationToken
+		) cil managed 
+	{
+		.param [1] = nullref
+	} // end of method IAsyncEnumerable`1::GetAsyncEnumerator
+
+} // end of class System.Collections.Generic.IAsyncEnumerable`1
+
+.class interface public auto ansi abstract beforefieldinit System.Collections.Generic.IAsyncEnumerator`1<+T>
+	implements System.IAsyncDisposable
+{
+	.param type T
+		.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+			01 00 02 00 00
+		)
+	// Methods
+	.method public hidebysig newslot abstract virtual 
+		instance valuetype [System.Threading.Tasks.Extensions]System.Threading.Tasks.ValueTask`1<bool> MoveNextAsync () cil managed 
+	{
+	} // end of method IAsyncEnumerator`1::MoveNextAsync
+
+	.method public hidebysig specialname newslot abstract virtual 
+		instance !T get_Current () cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 01 00 00
+		)
+	} // end of method IAsyncEnumerator`1::get_Current
+
+	// Properties
+	.property instance !T Current()
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+			01 00 01 00 00
+		)
+		.get instance !0 System.Collections.Generic.IAsyncEnumerator`1::get_Current()
+	}
+
+} // end of class System.Collections.Generic.IAsyncEnumerator`1
+
+.class private auto ansi sealed beforefieldinit System.Runtime.InteropServices.LibraryImportAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 40 00 00 00 02 00 54 02 0d 41 6c 6c 6f 77
+		4d 75 6c 74 69 70 6c 65 00 54 02 09 49 6e 68 65
+		72 69 74 65 64 00
+	)
+	// Fields
+	.field private initonly string '<LibraryName>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.field private string '<EntryPoint>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.field private valuetype System.Runtime.InteropServices.StringMarshalling '<StringMarshalling>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.field private class [mscorlib]System.Type '<StringMarshallingCustomType>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.field private bool '<SetLastError>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string libraryName
+		) cil managed 
+	{
+		// Method begins at RVA 0x2208
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld string System.Runtime.InteropServices.LibraryImportAttribute::'<LibraryName>k__BackingField'
+		IL_000d: ret
+	} // end of method LibraryImportAttribute::.ctor
+
+	.method public hidebysig specialname 
+		instance string get_LibraryName () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2217
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld string System.Runtime.InteropServices.LibraryImportAttribute::'<LibraryName>k__BackingField'
+		IL_0006: ret
+	} // end of method LibraryImportAttribute::get_LibraryName
+
+	.method public hidebysig specialname 
+		instance string get_EntryPoint () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x221f
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld string System.Runtime.InteropServices.LibraryImportAttribute::'<EntryPoint>k__BackingField'
+		IL_0006: ret
+	} // end of method LibraryImportAttribute::get_EntryPoint
+
+	.method public hidebysig specialname 
+		instance void set_EntryPoint (
+			string 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2227
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: stfld string System.Runtime.InteropServices.LibraryImportAttribute::'<EntryPoint>k__BackingField'
+		IL_0007: ret
+	} // end of method LibraryImportAttribute::set_EntryPoint
+
+	.method public hidebysig specialname 
+		instance valuetype System.Runtime.InteropServices.StringMarshalling get_StringMarshalling () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2230
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld valuetype System.Runtime.InteropServices.StringMarshalling System.Runtime.InteropServices.LibraryImportAttribute::'<StringMarshalling>k__BackingField'
+		IL_0006: ret
+	} // end of method LibraryImportAttribute::get_StringMarshalling
+
+	.method public hidebysig specialname 
+		instance void set_StringMarshalling (
+			valuetype System.Runtime.InteropServices.StringMarshalling 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2238
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: stfld valuetype System.Runtime.InteropServices.StringMarshalling System.Runtime.InteropServices.LibraryImportAttribute::'<StringMarshalling>k__BackingField'
+		IL_0007: ret
+	} // end of method LibraryImportAttribute::set_StringMarshalling
+
+	.method public hidebysig specialname 
+		instance class [mscorlib]System.Type get_StringMarshallingCustomType () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2241
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [mscorlib]System.Type System.Runtime.InteropServices.LibraryImportAttribute::'<StringMarshallingCustomType>k__BackingField'
+		IL_0006: ret
+	} // end of method LibraryImportAttribute::get_StringMarshallingCustomType
+
+	.method public hidebysig specialname 
+		instance void set_StringMarshallingCustomType (
+			class [mscorlib]System.Type 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2249
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: stfld class [mscorlib]System.Type System.Runtime.InteropServices.LibraryImportAttribute::'<StringMarshallingCustomType>k__BackingField'
+		IL_0007: ret
+	} // end of method LibraryImportAttribute::set_StringMarshallingCustomType
+
+	.method public hidebysig specialname 
+		instance bool get_SetLastError () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2252
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld bool System.Runtime.InteropServices.LibraryImportAttribute::'<SetLastError>k__BackingField'
+		IL_0006: ret
+	} // end of method LibraryImportAttribute::get_SetLastError
+
+	.method public hidebysig specialname 
+		instance void set_SetLastError (
+			bool 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x225a
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: stfld bool System.Runtime.InteropServices.LibraryImportAttribute::'<SetLastError>k__BackingField'
+		IL_0007: ret
+	} // end of method LibraryImportAttribute::set_SetLastError
+
+	// Properties
+	.property instance string LibraryName()
+	{
+		.get instance string System.Runtime.InteropServices.LibraryImportAttribute::get_LibraryName()
+	}
+	.property instance string EntryPoint()
+	{
+		.get instance string System.Runtime.InteropServices.LibraryImportAttribute::get_EntryPoint()
+		.set instance void System.Runtime.InteropServices.LibraryImportAttribute::set_EntryPoint(string)
+	}
+	.property instance valuetype System.Runtime.InteropServices.StringMarshalling StringMarshalling()
+	{
+		.get instance valuetype System.Runtime.InteropServices.StringMarshalling System.Runtime.InteropServices.LibraryImportAttribute::get_StringMarshalling()
+		.set instance void System.Runtime.InteropServices.LibraryImportAttribute::set_StringMarshalling(valuetype System.Runtime.InteropServices.StringMarshalling)
+	}
+	.property instance class [mscorlib]System.Type StringMarshallingCustomType()
+	{
+		.get instance class [mscorlib]System.Type System.Runtime.InteropServices.LibraryImportAttribute::get_StringMarshallingCustomType()
+		.set instance void System.Runtime.InteropServices.LibraryImportAttribute::set_StringMarshallingCustomType(class [mscorlib]System.Type)
+	}
+	.property instance bool SetLastError()
+	{
+		.get instance bool System.Runtime.InteropServices.LibraryImportAttribute::get_SetLastError()
+		.set instance void System.Runtime.InteropServices.LibraryImportAttribute::set_SetLastError(bool)
+	}
+
+} // end of class System.Runtime.InteropServices.LibraryImportAttribute
+
+.class private auto ansi sealed System.Runtime.InteropServices.StringMarshalling
+	extends [mscorlib]System.Enum
+{
+	// Fields
+	.field public specialname rtspecialname int32 value__
+	.field public static literal valuetype System.Runtime.InteropServices.StringMarshalling Custom = int32(0)
+	.field public static literal valuetype System.Runtime.InteropServices.StringMarshalling Utf8 = int32(1)
+	.field public static literal valuetype System.Runtime.InteropServices.StringMarshalling Utf16 = int32(2)
+
+} // end of class System.Runtime.InteropServices.StringMarshalling
+
+.class public auto ansi sealed beforefieldinit System.Runtime.CompilerServices.AsyncIteratorMethodBuilder
+	extends [mscorlib]System.ValueType
+{
+	.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+		01 00 01 00 00
+	)
+	.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+		01 00 00 00 00
+	)
+	// Fields
+	.field private valuetype [mscorlib]System.Runtime.CompilerServices.AsyncTaskMethodBuilder _methodBuilder
+	.field private object _id
+
+	// Methods
+	.method public hidebysig static 
+		valuetype System.Runtime.CompilerServices.AsyncIteratorMethodBuilder Create () cil managed 
+	{
+		// Method begins at RVA 0x2264
+		// Header size: 12
+		// Code size: 22 (0x16)
+		.maxstack 2
+		.locals init (
+			[0] valuetype System.Runtime.CompilerServices.AsyncIteratorMethodBuilder
+		)
+
+		IL_0000: ldloca.s 0
+		IL_0002: initobj System.Runtime.CompilerServices.AsyncIteratorMethodBuilder
+		IL_0008: ldloca.s 0
+		IL_000a: call valuetype [mscorlib]System.Runtime.CompilerServices.AsyncTaskMethodBuilder [mscorlib]System.Runtime.CompilerServices.AsyncTaskMethodBuilder::Create()
+		IL_000f: stfld valuetype [mscorlib]System.Runtime.CompilerServices.AsyncTaskMethodBuilder System.Runtime.CompilerServices.AsyncIteratorMethodBuilder::_methodBuilder
+		IL_0014: ldloc.0
+		IL_0015: ret
+	} // end of method AsyncIteratorMethodBuilder::Create
+
+	.method public hidebysig 
+		instance void MoveNext<([mscorlib]System.Runtime.CompilerServices.IAsyncStateMachine) TStateMachine> (
+			!!TStateMachine& stateMachine
+		) cil managed aggressiveinlining 
+	{
+		.param type TStateMachine
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 00 00 00
+			)
+		// Method begins at RVA 0x2286
+		// Header size: 1
+		// Code size: 13 (0xd)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldflda valuetype [mscorlib]System.Runtime.CompilerServices.AsyncTaskMethodBuilder System.Runtime.CompilerServices.AsyncIteratorMethodBuilder::_methodBuilder
+		IL_0006: ldarg.1
+		IL_0007: call instance void [mscorlib]System.Runtime.CompilerServices.AsyncTaskMethodBuilder::Start<!!TStateMachine>(!!0&)
+		IL_000c: ret
+	} // end of method AsyncIteratorMethodBuilder::MoveNext
+
+	.method public hidebysig 
+		instance void AwaitOnCompleted<([mscorlib]System.Runtime.CompilerServices.INotifyCompletion) TAwaiter, ([mscorlib]System.Runtime.CompilerServices.IAsyncStateMachine) TStateMachine> (
+			!!TAwaiter& awaiter,
+			!!TStateMachine& stateMachine
+		) cil managed 
+	{
+		.param type TAwaiter
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 00 00 00
+			)
+		.param type TStateMachine
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 00 00 00
+			)
+		// Method begins at RVA 0x2294
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldflda valuetype [mscorlib]System.Runtime.CompilerServices.AsyncTaskMethodBuilder System.Runtime.CompilerServices.AsyncIteratorMethodBuilder::_methodBuilder
+		IL_0006: ldarg.1
+		IL_0007: ldarg.2
+		IL_0008: call instance void [mscorlib]System.Runtime.CompilerServices.AsyncTaskMethodBuilder::AwaitOnCompleted<!!TAwaiter, !!TStateMachine>(!!0&, !!1&)
+		IL_000d: ret
+	} // end of method AsyncIteratorMethodBuilder::AwaitOnCompleted
+
+	.method public hidebysig 
+		instance void AwaitUnsafeOnCompleted<([mscorlib]System.Runtime.CompilerServices.ICriticalNotifyCompletion) TAwaiter, ([mscorlib]System.Runtime.CompilerServices.IAsyncStateMachine) TStateMachine> (
+			!!TAwaiter& awaiter,
+			!!TStateMachine& stateMachine
+		) cil managed 
+	{
+		.param type TAwaiter
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 00 00 00
+			)
+		.param type TStateMachine
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 00 00 00
+			)
+		// Method begins at RVA 0x22a3
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldflda valuetype [mscorlib]System.Runtime.CompilerServices.AsyncTaskMethodBuilder System.Runtime.CompilerServices.AsyncIteratorMethodBuilder::_methodBuilder
+		IL_0006: ldarg.1
+		IL_0007: ldarg.2
+		IL_0008: call instance void [mscorlib]System.Runtime.CompilerServices.AsyncTaskMethodBuilder::AwaitUnsafeOnCompleted<!!TAwaiter, !!TStateMachine>(!!0&, !!1&)
+		IL_000d: ret
+	} // end of method AsyncIteratorMethodBuilder::AwaitUnsafeOnCompleted
+
+	.method public hidebysig 
+		instance void Complete () cil managed 
+	{
+		// Method begins at RVA 0x22b2
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldflda valuetype [mscorlib]System.Runtime.CompilerServices.AsyncTaskMethodBuilder System.Runtime.CompilerServices.AsyncIteratorMethodBuilder::_methodBuilder
+		IL_0006: call instance void [mscorlib]System.Runtime.CompilerServices.AsyncTaskMethodBuilder::SetResult()
+		IL_000b: ret
+	} // end of method AsyncIteratorMethodBuilder::Complete
+
+	.method assembly hidebysig specialname 
+		instance object get_ObjectIdForDebugger () cil managed 
+	{
+		// Method begins at RVA 0x22bf
+		// Header size: 1
+		// Code size: 38 (0x26)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld object System.Runtime.CompilerServices.AsyncIteratorMethodBuilder::_id
+		IL_0006: dup
+		IL_0007: brtrue.s IL_0025
+
+		IL_0009: pop
+		IL_000a: ldarg.0
+		IL_000b: ldflda object System.Runtime.CompilerServices.AsyncIteratorMethodBuilder::_id
+		IL_0010: newobj instance void [mscorlib]System.Object::.ctor()
+		IL_0015: ldnull
+		IL_0016: call object [mscorlib]System.Threading.Interlocked::CompareExchange(object&, object, object)
+		IL_001b: dup
+		IL_001c: brtrue.s IL_0025
+
+		IL_001e: pop
+		IL_001f: ldarg.0
+		IL_0020: ldfld object System.Runtime.CompilerServices.AsyncIteratorMethodBuilder::_id
+
+		IL_0025: ret
+	} // end of method AsyncIteratorMethodBuilder::get_ObjectIdForDebugger
+
+	// Properties
+	.property instance object ObjectIdForDebugger()
+	{
+		.get instance object System.Runtime.CompilerServices.AsyncIteratorMethodBuilder::get_ObjectIdForDebugger()
+	}
+
+} // end of class System.Runtime.CompilerServices.AsyncIteratorMethodBuilder
+
+.class public auto ansi sealed beforefieldinit System.Runtime.CompilerServices.AsyncIteratorStateMachineAttribute
+	extends [mscorlib]System.Runtime.CompilerServices.StateMachineAttribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 40 00 00 00 02 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00 54 02 0d 41 6c 6c 6f 77 4d 75 6c
+		74 69 70 6c 65 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			class [mscorlib]System.Type stateMachineType
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 01 00 00
+		)
+		// Method begins at RVA 0x22e6
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: call instance void [mscorlib]System.Runtime.CompilerServices.StateMachineAttribute::.ctor(class [mscorlib]System.Type)
+		IL_0007: ret
+	} // end of method AsyncIteratorStateMachineAttribute::.ctor
+
+} // end of class System.Runtime.CompilerServices.AsyncIteratorStateMachineAttribute
+
+.class public auto ansi sealed beforefieldinit System.Runtime.CompilerServices.ConfiguredAsyncDisposable
+	extends [mscorlib]System.ValueType
+{
+	.custom instance void System.Runtime.CompilerServices.IsReadOnlyAttribute::.ctor() = (
+		01 00 00 00
+	)
+	// Fields
+	.field private initonly class System.IAsyncDisposable _source
+	.field private initonly bool _continueOnCapturedContext
+
+	// Methods
+	.method assembly hidebysig specialname rtspecialname 
+		instance void .ctor (
+			class System.IAsyncDisposable source,
+			bool continueOnCapturedContext
+		) cil managed 
+	{
+		// Method begins at RVA 0x22ef
+		// Header size: 1
+		// Code size: 15 (0xf)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: stfld class System.IAsyncDisposable System.Runtime.CompilerServices.ConfiguredAsyncDisposable::_source
+		IL_0007: ldarg.0
+		IL_0008: ldarg.2
+		IL_0009: stfld bool System.Runtime.CompilerServices.ConfiguredAsyncDisposable::_continueOnCapturedContext
+		IL_000e: ret
+	} // end of method ConfiguredAsyncDisposable::.ctor
+
+	.method public hidebysig 
+		instance valuetype [System.Threading.Tasks.Extensions]System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable DisposeAsync () cil managed 
+	{
+		// Method begins at RVA 0x2300
+		// Header size: 12
+		// Code size: 26 (0x1a)
+		.maxstack 2
+		.locals init (
+			[0] valuetype [System.Threading.Tasks.Extensions]System.Threading.Tasks.ValueTask
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class System.IAsyncDisposable System.Runtime.CompilerServices.ConfiguredAsyncDisposable::_source
+		IL_0006: callvirt instance valuetype [System.Threading.Tasks.Extensions]System.Threading.Tasks.ValueTask System.IAsyncDisposable::DisposeAsync()
+		IL_000b: stloc.0
+		IL_000c: ldloca.s 0
+		IL_000e: ldarg.0
+		IL_000f: ldfld bool System.Runtime.CompilerServices.ConfiguredAsyncDisposable::_continueOnCapturedContext
+		IL_0014: call instance valuetype [System.Threading.Tasks.Extensions]System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable [System.Threading.Tasks.Extensions]System.Threading.Tasks.ValueTask::ConfigureAwait(bool)
+		IL_0019: ret
+	} // end of method ConfiguredAsyncDisposable::DisposeAsync
+
+} // end of class System.Runtime.CompilerServices.ConfiguredAsyncDisposable
+
+.class public auto ansi sealed beforefieldinit System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1<T>
+	extends [mscorlib]System.ValueType
+{
+	.custom instance void System.Runtime.CompilerServices.IsReadOnlyAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.param type T
+		.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+			01 00 02 00 00
+		)
+	// Nested Types
+	.class nested public auto ansi sealed beforefieldinit Enumerator<T>
+		extends [mscorlib]System.ValueType
+	{
+		.custom instance void System.Runtime.CompilerServices.IsReadOnlyAttribute::.ctor() = (
+			01 00 00 00
+		)
+		.param type T
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		// Fields
+		.field private initonly class System.Collections.Generic.IAsyncEnumerator`1<!T> _enumerator
+		.field private initonly bool _continueOnCapturedContext
+
+		// Methods
+		.method assembly hidebysig specialname rtspecialname 
+			instance void .ctor (
+				class System.Collections.Generic.IAsyncEnumerator`1<!T> enumerator,
+				bool continueOnCapturedContext
+			) cil managed 
+		{
+			// Method begins at RVA 0x2769
+			// Header size: 1
+			// Code size: 15 (0xf)
+			.maxstack 8
+
+			IL_0000: ldarg.0
+			IL_0001: ldarg.1
+			IL_0002: stfld class System.Collections.Generic.IAsyncEnumerator`1<!0> valuetype System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1/Enumerator<!T>::_enumerator
+			IL_0007: ldarg.0
+			IL_0008: ldarg.2
+			IL_0009: stfld bool valuetype System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1/Enumerator<!T>::_continueOnCapturedContext
+			IL_000e: ret
+		} // end of method Enumerator::.ctor
+
+		.method public hidebysig 
+			instance valuetype [System.Threading.Tasks.Extensions]System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable`1<bool> MoveNextAsync () cil managed 
+		{
+			// Method begins at RVA 0x277c
+			// Header size: 12
+			// Code size: 26 (0x1a)
+			.maxstack 2
+			.locals init (
+				[0] valuetype [System.Threading.Tasks.Extensions]System.Threading.Tasks.ValueTask`1<bool>
+			)
+
+			IL_0000: ldarg.0
+			IL_0001: ldfld class System.Collections.Generic.IAsyncEnumerator`1<!0> valuetype System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1/Enumerator<!T>::_enumerator
+			IL_0006: callvirt instance valuetype [System.Threading.Tasks.Extensions]System.Threading.Tasks.ValueTask`1<bool> class System.Collections.Generic.IAsyncEnumerator`1<!T>::MoveNextAsync()
+			IL_000b: stloc.0
+			IL_000c: ldloca.s 0
+			IL_000e: ldarg.0
+			IL_000f: ldfld bool valuetype System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1/Enumerator<!T>::_continueOnCapturedContext
+			IL_0014: call instance valuetype [System.Threading.Tasks.Extensions]System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable`1<!0> valuetype [System.Threading.Tasks.Extensions]System.Threading.Tasks.ValueTask`1<bool>::ConfigureAwait(bool)
+			IL_0019: ret
+		} // end of method Enumerator::MoveNextAsync
+
+		.method public hidebysig specialname 
+			instance !T get_Current () cil managed 
+		{
+			.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+				01 00 01 00 00
+			)
+			// Method begins at RVA 0x27a2
+			// Header size: 1
+			// Code size: 12 (0xc)
+			.maxstack 8
+
+			IL_0000: ldarg.0
+			IL_0001: ldfld class System.Collections.Generic.IAsyncEnumerator`1<!0> valuetype System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1/Enumerator<!T>::_enumerator
+			IL_0006: callvirt instance !0 class System.Collections.Generic.IAsyncEnumerator`1<!T>::get_Current()
+			IL_000b: ret
+		} // end of method Enumerator::get_Current
+
+		.method public hidebysig 
+			instance valuetype [System.Threading.Tasks.Extensions]System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable DisposeAsync () cil managed 
+		{
+			// Method begins at RVA 0x27b0
+			// Header size: 12
+			// Code size: 26 (0x1a)
+			.maxstack 2
+			.locals init (
+				[0] valuetype [System.Threading.Tasks.Extensions]System.Threading.Tasks.ValueTask
+			)
+
+			IL_0000: ldarg.0
+			IL_0001: ldfld class System.Collections.Generic.IAsyncEnumerator`1<!0> valuetype System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1/Enumerator<!T>::_enumerator
+			IL_0006: callvirt instance valuetype [System.Threading.Tasks.Extensions]System.Threading.Tasks.ValueTask System.IAsyncDisposable::DisposeAsync()
+			IL_000b: stloc.0
+			IL_000c: ldloca.s 0
+			IL_000e: ldarg.0
+			IL_000f: ldfld bool valuetype System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1/Enumerator<!T>::_continueOnCapturedContext
+			IL_0014: call instance valuetype [System.Threading.Tasks.Extensions]System.Runtime.CompilerServices.ConfiguredValueTaskAwaitable [System.Threading.Tasks.Extensions]System.Threading.Tasks.ValueTask::ConfigureAwait(bool)
+			IL_0019: ret
+		} // end of method Enumerator::DisposeAsync
+
+		// Properties
+		.property instance !T Current()
+		{
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 01 00 00
+			)
+			.get instance !0 System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1/Enumerator::get_Current()
+		}
+
+	} // end of class Enumerator
+
+
+	// Fields
+	.field private initonly class System.Collections.Generic.IAsyncEnumerable`1<!T> _enumerable
+	.field private initonly valuetype [mscorlib]System.Threading.CancellationToken _cancellationToken
+	.field private initonly bool _continueOnCapturedContext
+
+	// Methods
+	.method assembly hidebysig specialname rtspecialname 
+		instance void .ctor (
+			class System.Collections.Generic.IAsyncEnumerable`1<!T> enumerable,
+			bool continueOnCapturedContext,
+			valuetype [mscorlib]System.Threading.CancellationToken cancellationToken
+		) cil managed 
+	{
+		// Method begins at RVA 0x2326
+		// Header size: 1
+		// Code size: 22 (0x16)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: stfld class System.Collections.Generic.IAsyncEnumerable`1<!0> valuetype System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1<!T>::_enumerable
+		IL_0007: ldarg.0
+		IL_0008: ldarg.2
+		IL_0009: stfld bool valuetype System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1<!T>::_continueOnCapturedContext
+		IL_000e: ldarg.0
+		IL_000f: ldarg.3
+		IL_0010: stfld valuetype [mscorlib]System.Threading.CancellationToken valuetype System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1<!T>::_cancellationToken
+		IL_0015: ret
+	} // end of method ConfiguredCancelableAsyncEnumerable`1::.ctor
+
+	.method public hidebysig 
+		instance valuetype System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1<!T> ConfigureAwait (
+			bool continueOnCapturedContext
+		) cil managed 
+	{
+		.param [0]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8[]) = (
+				01 00 02 00 00 00 00 01 00 00
+			)
+		// Method begins at RVA 0x233d
+		// Header size: 1
+		// Code size: 19 (0x13)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class System.Collections.Generic.IAsyncEnumerable`1<!0> valuetype System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1<!T>::_enumerable
+		IL_0006: ldarg.1
+		IL_0007: ldarg.0
+		IL_0008: ldfld valuetype [mscorlib]System.Threading.CancellationToken valuetype System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1<!T>::_cancellationToken
+		IL_000d: newobj instance void valuetype System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1<!T>::.ctor(class System.Collections.Generic.IAsyncEnumerable`1<!0>, bool, valuetype [mscorlib]System.Threading.CancellationToken)
+		IL_0012: ret
+	} // end of method ConfiguredCancelableAsyncEnumerable`1::ConfigureAwait
+
+	.method public hidebysig 
+		instance valuetype System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1<!T> WithCancellation (
+			valuetype [mscorlib]System.Threading.CancellationToken cancellationToken
+		) cil managed 
+	{
+		.param [0]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8[]) = (
+				01 00 02 00 00 00 00 01 00 00
+			)
+		// Method begins at RVA 0x2351
+		// Header size: 1
+		// Code size: 19 (0x13)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class System.Collections.Generic.IAsyncEnumerable`1<!0> valuetype System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1<!T>::_enumerable
+		IL_0006: ldarg.0
+		IL_0007: ldfld bool valuetype System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1<!T>::_continueOnCapturedContext
+		IL_000c: ldarg.1
+		IL_000d: newobj instance void valuetype System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1<!T>::.ctor(class System.Collections.Generic.IAsyncEnumerable`1<!0>, bool, valuetype [mscorlib]System.Threading.CancellationToken)
+		IL_0012: ret
+	} // end of method ConfiguredCancelableAsyncEnumerable`1::WithCancellation
+
+	.method public hidebysig 
+		instance valuetype System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1/Enumerator<!T> GetAsyncEnumerator () cil managed 
+	{
+		// Method begins at RVA 0x2365
+		// Header size: 1
+		// Code size: 29 (0x1d)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class System.Collections.Generic.IAsyncEnumerable`1<!0> valuetype System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1<!T>::_enumerable
+		IL_0006: ldarg.0
+		IL_0007: ldfld valuetype [mscorlib]System.Threading.CancellationToken valuetype System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1<!T>::_cancellationToken
+		IL_000c: callvirt instance class System.Collections.Generic.IAsyncEnumerator`1<!0> class System.Collections.Generic.IAsyncEnumerable`1<!T>::GetAsyncEnumerator(valuetype [mscorlib]System.Threading.CancellationToken)
+		IL_0011: ldarg.0
+		IL_0012: ldfld bool valuetype System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1<!T>::_continueOnCapturedContext
+		IL_0017: newobj instance void valuetype System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1/Enumerator<!T>::.ctor(class System.Collections.Generic.IAsyncEnumerator`1<!0>, bool)
+		IL_001c: ret
+	} // end of method ConfiguredCancelableAsyncEnumerable`1::GetAsyncEnumerator
+
+} // end of class System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1
+
+.class public auto ansi sealed beforefieldinit System.Runtime.CompilerServices.EnumeratorCancellationAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 00 08 00 00 01 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x2383
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ret
+	} // end of method EnumeratorCancellationAttribute::.ctor
+
+} // end of class System.Runtime.CompilerServices.EnumeratorCancellationAttribute
+
+.class private auto ansi sealed beforefieldinit System.Runtime.CompilerServices.CallerArgumentExpressionAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 00 08 00 00 02 00 54 02 0d 41 6c 6c 6f 77
+		4d 75 6c 74 69 70 6c 65 00 54 02 09 49 6e 68 65
+		72 69 74 65 64 00
+	)
+	// Fields
+	.field private initonly string '<ParameterName>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string parameterName
+		) cil managed 
+	{
+		// Method begins at RVA 0x238b
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld string System.Runtime.CompilerServices.CallerArgumentExpressionAttribute::'<ParameterName>k__BackingField'
+		IL_000d: ret
+	} // end of method CallerArgumentExpressionAttribute::.ctor
+
+	.method public hidebysig specialname 
+		instance string get_ParameterName () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x239a
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld string System.Runtime.CompilerServices.CallerArgumentExpressionAttribute::'<ParameterName>k__BackingField'
+		IL_0006: ret
+	} // end of method CallerArgumentExpressionAttribute::get_ParameterName
+
+	// Properties
+	.property instance string ParameterName()
+	{
+		.get instance string System.Runtime.CompilerServices.CallerArgumentExpressionAttribute::get_ParameterName()
+	}
+
+} // end of class System.Runtime.CompilerServices.CallerArgumentExpressionAttribute
+
+.class public auto ansi abstract sealed beforefieldinit System.Threading.Tasks.TaskAsyncEnumerableExtensions
+	extends [mscorlib]System.Object
+{
+	.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+		01 00 01 00 00
+	)
+	.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+		01 00 00 00 00
+	)
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.ExtensionAttribute::.ctor() = (
+		01 00 00 00
+	)
+	// Methods
+	.method public hidebysig static 
+		valuetype System.Runtime.CompilerServices.ConfiguredAsyncDisposable ConfigureAwait (
+			class System.IAsyncDisposable source,
+			bool continueOnCapturedContext
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.ExtensionAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x23a2
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: newobj instance void System.Runtime.CompilerServices.ConfiguredAsyncDisposable::.ctor(class System.IAsyncDisposable, bool)
+		IL_0007: ret
+	} // end of method TaskAsyncEnumerableExtensions::ConfigureAwait
+
+	.method public hidebysig static 
+		valuetype System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1<!!T> ConfigureAwait<T> (
+			class System.Collections.Generic.IAsyncEnumerable`1<!!T> source,
+			bool continueOnCapturedContext
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.ExtensionAttribute::.ctor() = (
+			01 00 00 00
+		)
+		.param type T
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param [0]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8[]) = (
+				01 00 02 00 00 00 00 01 00 00
+			)
+		// Method begins at RVA 0x23ac
+		// Header size: 12
+		// Code size: 17 (0x11)
+		.maxstack 3
+		.locals init (
+			[0] valuetype [mscorlib]System.Threading.CancellationToken
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: ldloca.s 0
+		IL_0004: initobj [mscorlib]System.Threading.CancellationToken
+		IL_000a: ldloc.0
+		IL_000b: newobj instance void valuetype System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1<!!T>::.ctor(class System.Collections.Generic.IAsyncEnumerable`1<!0>, bool, valuetype [mscorlib]System.Threading.CancellationToken)
+		IL_0010: ret
+	} // end of method TaskAsyncEnumerableExtensions::ConfigureAwait
+
+	.method public hidebysig static 
+		valuetype System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1<!!T> WithCancellation<T> (
+			class System.Collections.Generic.IAsyncEnumerable`1<!!T> source,
+			valuetype [mscorlib]System.Threading.CancellationToken cancellationToken
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.ExtensionAttribute::.ctor() = (
+			01 00 00 00
+		)
+		.param type T
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		.param [0]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8[]) = (
+				01 00 02 00 00 00 00 01 00 00
+			)
+		// Method begins at RVA 0x23c9
+		// Header size: 1
+		// Code size: 9 (0x9)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldc.i4.1
+		IL_0002: ldarg.1
+		IL_0003: newobj instance void valuetype System.Runtime.CompilerServices.ConfiguredCancelableAsyncEnumerable`1<!!T>::.ctor(class System.Collections.Generic.IAsyncEnumerable`1<!0>, bool, valuetype [mscorlib]System.Threading.CancellationToken)
+		IL_0008: ret
+	} // end of method TaskAsyncEnumerableExtensions::WithCancellation
+
+} // end of class System.Threading.Tasks.TaskAsyncEnumerableExtensions
+
+.class public auto ansi sealed beforefieldinit System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<TResult>
+	extends [mscorlib]System.ValueType
+{
+	.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+		01 00 01 00 00
+	)
+	.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+		01 00 00 00 00
+	)
+	.param type TResult
+		.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+			01 00 02 00 00
+		)
+	// Nested Types
+	.class nested private auto ansi sealed serializable beforefieldinit '<>c'<TResult>
+		extends [mscorlib]System.Object
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		.param type TResult
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8) = (
+				01 00 02 00 00
+			)
+		// Fields
+		.field public static initonly class System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1/'<>c'<!TResult> '<>9'
+		.field public static class [mscorlib]System.Threading.SendOrPostCallback '<>9__19_0'
+		.field public static class [mscorlib]System.Threading.ContextCallback '<>9__21_0'
+		.field public static class [mscorlib]System.Threading.SendOrPostCallback '<>9__22_0'
+
+		// Methods
+		.method private hidebysig specialname rtspecialname static 
+			void .cctor () cil managed 
+		{
+			// Method begins at RVA 0x27d6
+			// Header size: 1
+			// Code size: 11 (0xb)
+			.maxstack 8
+
+			IL_0000: newobj instance void class System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1/'<>c'<!TResult>::.ctor()
+			IL_0005: stsfld class System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1/'<>c'<!0> class System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1/'<>c'<!TResult>::'<>9'
+			IL_000a: ret
+		} // end of method '<>c'::.cctor
+
+		.method public hidebysig specialname rtspecialname 
+			instance void .ctor () cil managed 
+		{
+			// Method begins at RVA 0x27e2
+			// Header size: 1
+			// Code size: 7 (0x7)
+			.maxstack 8
+
+			IL_0000: ldarg.0
+			IL_0001: call instance void [mscorlib]System.Object::.ctor()
+			IL_0006: ret
+		} // end of method '<>c'::.ctor
+
+		.method assembly hidebysig 
+			instance void '<OnCompleted>b__19_0' (
+				object s
+			) cil managed 
+		{
+			// Method begins at RVA 0x27ec
+			// Header size: 12
+			// Code size: 25 (0x19)
+			.maxstack 2
+			.locals init (
+				[0] class [mscorlib]System.Tuple`2<class [mscorlib]System.Action`1<object>, object>
+			)
+
+			IL_0000: ldarg.1
+			IL_0001: castclass class [mscorlib]System.Tuple`2<class [mscorlib]System.Action`1<object>, object>
+			IL_0006: stloc.0
+			IL_0007: ldloc.0
+			IL_0008: callvirt instance !0 class [mscorlib]System.Tuple`2<class [mscorlib]System.Action`1<object>, object>::get_Item1()
+			IL_000d: ldloc.0
+			IL_000e: callvirt instance !1 class [mscorlib]System.Tuple`2<class [mscorlib]System.Action`1<object>, object>::get_Item2()
+			IL_0013: callvirt instance void class [mscorlib]System.Action`1<object>::Invoke(!0)
+			IL_0018: ret
+		} // end of method '<>c'::'<OnCompleted>b__19_0'
+
+		.method assembly hidebysig 
+			instance void '<SignalCompletion>b__21_0' (
+				object s
+			) cil managed 
+		{
+			// Method begins at RVA 0x2814
+			// Header size: 12
+			// Code size: 15 (0xf)
+			.maxstack 1
+			.locals init (
+				[0] valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>
+			)
+
+			IL_0000: ldarg.1
+			IL_0001: unbox.any valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>
+			IL_0006: stloc.0
+			IL_0007: ldloca.s 0
+			IL_0009: call instance void valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::InvokeContinuation()
+			IL_000e: ret
+		} // end of method '<>c'::'<SignalCompletion>b__21_0'
+
+		.method assembly hidebysig 
+			instance void '<InvokeContinuation>b__22_0' (
+				object s
+			) cil managed 
+		{
+			// Method begins at RVA 0x2830
+			// Header size: 12
+			// Code size: 25 (0x19)
+			.maxstack 2
+			.locals init (
+				[0] class [mscorlib]System.Tuple`2<class [mscorlib]System.Action`1<object>, object>
+			)
+
+			IL_0000: ldarg.1
+			IL_0001: castclass class [mscorlib]System.Tuple`2<class [mscorlib]System.Action`1<object>, object>
+			IL_0006: stloc.0
+			IL_0007: ldloc.0
+			IL_0008: callvirt instance !0 class [mscorlib]System.Tuple`2<class [mscorlib]System.Action`1<object>, object>::get_Item1()
+			IL_000d: ldloc.0
+			IL_000e: callvirt instance !1 class [mscorlib]System.Tuple`2<class [mscorlib]System.Action`1<object>, object>::get_Item2()
+			IL_0013: callvirt instance void class [mscorlib]System.Action`1<object>::Invoke(!0)
+			IL_0018: ret
+		} // end of method '<>c'::'<InvokeContinuation>b__22_0'
+
+	} // end of class <>c
+
+
+	// Fields
+	.field private class [mscorlib]System.Action`1<object> _continuation
+	.field private object _continuationState
+	.field private class [mscorlib]System.Threading.ExecutionContext _executionContext
+	.field private object _capturedContext
+	.field private bool _completed
+	.field private !TResult _result
+	.field private class [mscorlib]System.Runtime.ExceptionServices.ExceptionDispatchInfo _error
+	.field private int16 _version
+	.field private bool '<RunContinuationsAsynchronously>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+
+	// Methods
+	.method public hidebysig specialname 
+		instance bool get_RunContinuationsAsynchronously () cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.IsReadOnlyAttribute::.ctor() = (
+			01 00 00 00
+		)
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x23d3
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld bool valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::'<RunContinuationsAsynchronously>k__BackingField'
+		IL_0006: ret
+	} // end of method ManualResetValueTaskSourceCore`1::get_RunContinuationsAsynchronously
+
+	.method public hidebysig specialname 
+		instance void set_RunContinuationsAsynchronously (
+			bool 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x23db
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: stfld bool valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::'<RunContinuationsAsynchronously>k__BackingField'
+		IL_0007: ret
+	} // end of method ManualResetValueTaskSourceCore`1::set_RunContinuationsAsynchronously
+
+	.method public hidebysig 
+		instance void Reset () cil managed 
+	{
+		// Method begins at RVA 0x23e4
+		// Header size: 12
+		// Code size: 70 (0x46)
+		.maxstack 3
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.0
+		IL_0002: ldfld int16 valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_version
+		IL_0007: ldc.i4.1
+		IL_0008: add
+		IL_0009: conv.i2
+		IL_000a: stfld int16 valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_version
+		IL_000f: ldarg.0
+		IL_0010: ldc.i4.0
+		IL_0011: stfld bool valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_completed
+		IL_0016: ldarg.0
+		IL_0017: ldflda !0 valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_result
+		IL_001c: initobj !TResult
+		IL_0022: ldarg.0
+		IL_0023: ldnull
+		IL_0024: stfld class [mscorlib]System.Runtime.ExceptionServices.ExceptionDispatchInfo valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_error
+		IL_0029: ldarg.0
+		IL_002a: ldnull
+		IL_002b: stfld class [mscorlib]System.Threading.ExecutionContext valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_executionContext
+		IL_0030: ldarg.0
+		IL_0031: ldnull
+		IL_0032: stfld object valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_capturedContext
+		IL_0037: ldarg.0
+		IL_0038: ldnull
+		IL_0039: stfld class [mscorlib]System.Action`1<object> valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_continuation
+		IL_003e: ldarg.0
+		IL_003f: ldnull
+		IL_0040: stfld object valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_continuationState
+		IL_0045: ret
+	} // end of method ManualResetValueTaskSourceCore`1::Reset
+
+	.method public hidebysig 
+		instance void SetResult (
+			!TResult result
+		) cil managed 
+	{
+		// Method begins at RVA 0x2436
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: stfld !0 valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_result
+		IL_0007: ldarg.0
+		IL_0008: call instance void valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::SignalCompletion()
+		IL_000d: ret
+	} // end of method ManualResetValueTaskSourceCore`1::SetResult
+
+	.method public hidebysig 
+		instance void SetException (
+			class [mscorlib]System.Exception 'error'
+		) cil managed 
+	{
+		// Method begins at RVA 0x2445
+		// Header size: 1
+		// Code size: 19 (0x13)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: call class [mscorlib]System.Runtime.ExceptionServices.ExceptionDispatchInfo [mscorlib]System.Runtime.ExceptionServices.ExceptionDispatchInfo::Capture(class [mscorlib]System.Exception)
+		IL_0007: stfld class [mscorlib]System.Runtime.ExceptionServices.ExceptionDispatchInfo valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_error
+		IL_000c: ldarg.0
+		IL_000d: call instance void valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::SignalCompletion()
+		IL_0012: ret
+	} // end of method ManualResetValueTaskSourceCore`1::SetException
+
+	.method public hidebysig specialname 
+		instance int16 get_Version () cil managed 
+	{
+		// Method begins at RVA 0x2459
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld int16 valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_version
+		IL_0006: ret
+	} // end of method ManualResetValueTaskSourceCore`1::get_Version
+
+	.method public hidebysig 
+		instance valuetype [System.Threading.Tasks.Extensions]System.Threading.Tasks.Sources.ValueTaskSourceStatus GetStatus (
+			int16 token
+		) cil managed 
+	{
+		// Method begins at RVA 0x2461
+		// Header size: 1
+		// Code size: 57 (0x39)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: call instance void valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::ValidateToken(int16)
+		IL_0007: ldarg.0
+		IL_0008: ldfld class [mscorlib]System.Action`1<object> valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_continuation
+		IL_000d: brfalse.s IL_0037
+
+		IL_000f: ldarg.0
+		IL_0010: ldfld bool valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_completed
+		IL_0015: brfalse.s IL_0037
+
+		IL_0017: ldarg.0
+		IL_0018: ldfld class [mscorlib]System.Runtime.ExceptionServices.ExceptionDispatchInfo valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_error
+		IL_001d: brfalse.s IL_0035
+
+		IL_001f: ldarg.0
+		IL_0020: ldfld class [mscorlib]System.Runtime.ExceptionServices.ExceptionDispatchInfo valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_error
+		IL_0025: callvirt instance class [mscorlib]System.Exception [mscorlib]System.Runtime.ExceptionServices.ExceptionDispatchInfo::get_SourceException()
+		IL_002a: isinst [mscorlib]System.OperationCanceledException
+		IL_002f: brtrue.s IL_0033
+
+		IL_0031: ldc.i4.2
+		IL_0032: ret
+
+		IL_0033: ldc.i4.3
+		IL_0034: ret
+
+		IL_0035: ldc.i4.1
+		IL_0036: ret
+
+		IL_0037: ldc.i4.0
+		IL_0038: ret
+	} // end of method ManualResetValueTaskSourceCore`1::GetStatus
+
+	.method public hidebysig 
+		instance !TResult GetResult (
+			int16 token
+		) cil managed 
+	{
+		// Method begins at RVA 0x249b
+		// Header size: 1
+		// Code size: 45 (0x2d)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: call instance void valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::ValidateToken(int16)
+		IL_0007: ldarg.0
+		IL_0008: ldfld bool valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_completed
+		IL_000d: brtrue.s IL_0015
+
+		IL_000f: newobj instance void [mscorlib]System.InvalidOperationException::.ctor()
+		IL_0014: throw
+
+		IL_0015: ldarg.0
+		IL_0016: ldfld class [mscorlib]System.Runtime.ExceptionServices.ExceptionDispatchInfo valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_error
+		IL_001b: dup
+		IL_001c: brtrue.s IL_0021
+
+		IL_001e: pop
+		IL_001f: br.s IL_0026
+
+		IL_0021: call instance void [mscorlib]System.Runtime.ExceptionServices.ExceptionDispatchInfo::Throw()
+
+		IL_0026: ldarg.0
+		IL_0027: ldfld !0 valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_result
+		IL_002c: ret
+	} // end of method ManualResetValueTaskSourceCore`1::GetResult
+
+	.method public hidebysig 
+		instance void OnCompleted (
+			class [mscorlib]System.Action`1<object> continuation,
+			object state,
+			int16 token,
+			valuetype [System.Threading.Tasks.Extensions]System.Threading.Tasks.Sources.ValueTaskSourceOnCompletedFlags 'flags'
+		) cil managed 
+	{
+		.custom instance void System.Runtime.CompilerServices.NullableContextAttribute::.ctor(uint8) = (
+			01 00 02 00 00
+		)
+		.param [1]
+			.custom instance void System.Runtime.CompilerServices.NullableAttribute::.ctor(uint8[]) = (
+				01 00 02 00 00 00 01 02 00 00
+			)
+		// Method begins at RVA 0x24cc
+		// Header size: 12
+		// Code size: 283 (0x11b)
+		.maxstack 6
+		.locals init (
+			[0] object,
+			[1] class [mscorlib]System.Threading.SynchronizationContext,
+			[2] class [mscorlib]System.Threading.Tasks.TaskScheduler,
+			[3] class [mscorlib]System.Threading.SynchronizationContext,
+			[4] class [mscorlib]System.Threading.Tasks.TaskScheduler,
+			[5] object
+		)
+
+		IL_0000: ldarg.1
+		IL_0001: ldstr "continuation"
+		IL_0006: call void System.ExceptionPolyfills::ThrowIfNull(object, string)
+		IL_000b: ldarg.0
+		IL_000c: ldarg.3
+		IL_000d: call instance void valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::ValidateToken(int16)
+		IL_0012: ldarg.s 'flags'
+		IL_0014: ldc.i4.2
+		IL_0015: and
+		IL_0016: brfalse.s IL_0023
+
+		IL_0018: ldarg.0
+		IL_0019: call class [mscorlib]System.Threading.ExecutionContext [mscorlib]System.Threading.ExecutionContext::Capture()
+		IL_001e: stfld class [mscorlib]System.Threading.ExecutionContext valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_executionContext
+
+		IL_0023: ldarg.s 'flags'
+		IL_0025: ldc.i4.1
+		IL_0026: and
+		IL_0027: brfalse.s IL_0067
+
+		IL_0029: call class [mscorlib]System.Threading.SynchronizationContext [mscorlib]System.Threading.SynchronizationContext::get_Current()
+		IL_002e: stloc.1
+		IL_002f: ldloc.1
+		IL_0030: brfalse.s IL_0052
+
+		IL_0032: ldloc.1
+		IL_0033: callvirt instance class [mscorlib]System.Type [mscorlib]System.Object::GetType()
+		IL_0038: ldtoken [mscorlib]System.Threading.SynchronizationContext
+		IL_003d: call class [mscorlib]System.Type [mscorlib]System.Type::GetTypeFromHandle(valuetype [mscorlib]System.RuntimeTypeHandle)
+		IL_0042: call bool [mscorlib]System.Type::op_Inequality(class [mscorlib]System.Type, class [mscorlib]System.Type)
+		IL_0047: brfalse.s IL_0052
+
+		IL_0049: ldarg.0
+		IL_004a: ldloc.1
+		IL_004b: stfld object valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_capturedContext
+		IL_0050: br.s IL_0067
+
+		IL_0052: call class [mscorlib]System.Threading.Tasks.TaskScheduler [mscorlib]System.Threading.Tasks.TaskScheduler::get_Current()
+		IL_0057: stloc.2
+		IL_0058: ldloc.2
+		IL_0059: call class [mscorlib]System.Threading.Tasks.TaskScheduler [mscorlib]System.Threading.Tasks.TaskScheduler::get_Default()
+		IL_005e: beq.s IL_0067
+
+		IL_0060: ldarg.0
+		IL_0061: ldloc.2
+		IL_0062: stfld object valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_capturedContext
+
+		IL_0067: ldarg.0
+		IL_0068: ldfld class [mscorlib]System.Action`1<object> valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_continuation
+		IL_006d: stloc.0
+		IL_006e: ldloc.0
+		IL_006f: brtrue.s IL_0086
+
+		IL_0071: ldarg.0
+		IL_0072: ldarg.2
+		IL_0073: stfld object valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_continuationState
+		IL_0078: ldarg.0
+		IL_0079: ldflda class [mscorlib]System.Action`1<object> valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_continuation
+		IL_007e: ldarg.1
+		IL_007f: ldnull
+		IL_0080: call !!0 [mscorlib]System.Threading.Interlocked::CompareExchange<class [mscorlib]System.Action`1<object>>(!!0&, !!0, !!0)
+		IL_0085: stloc.0
+
+		IL_0086: ldloc.0
+		IL_0087: brfalse IL_011a
+
+		IL_008c: ldloc.0
+		IL_008d: ldsfld class [mscorlib]System.Action`1<object> System.Threading.Tasks.Sources.ManualResetValueTaskSourceCoreShared::s_sentinel
+		IL_0092: beq.s IL_009a
+
+		IL_0094: newobj instance void [mscorlib]System.InvalidOperationException::.ctor()
+		IL_0099: throw
+
+		IL_009a: ldarg.0
+		IL_009b: ldfld object valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_capturedContext
+		IL_00a0: stloc.s 5
+		IL_00a2: ldloc.s 5
+		IL_00a4: brfalse.s IL_00bf
+
+		IL_00a6: ldloc.s 5
+		IL_00a8: isinst [mscorlib]System.Threading.SynchronizationContext
+		IL_00ad: stloc.3
+		IL_00ae: ldloc.3
+		IL_00af: brtrue.s IL_00d8
+
+		IL_00b1: ldloc.s 5
+		IL_00b3: isinst [mscorlib]System.Threading.Tasks.TaskScheduler
+		IL_00b8: stloc.s 4
+		IL_00ba: ldloc.s 4
+		IL_00bc: brtrue.s IL_0105
+
+		IL_00be: ret
+
+		IL_00bf: call class [mscorlib]System.Threading.Tasks.TaskFactory [mscorlib]System.Threading.Tasks.Task::get_Factory()
+		IL_00c4: ldarg.1
+		IL_00c5: ldarg.2
+		IL_00c6: call valuetype [mscorlib]System.Threading.CancellationToken [mscorlib]System.Threading.CancellationToken::get_None()
+		IL_00cb: ldc.i4.8
+		IL_00cc: call class [mscorlib]System.Threading.Tasks.TaskScheduler [mscorlib]System.Threading.Tasks.TaskScheduler::get_Default()
+		IL_00d1: callvirt instance class [mscorlib]System.Threading.Tasks.Task [mscorlib]System.Threading.Tasks.TaskFactory::StartNew(class [mscorlib]System.Action`1<object>, object, valuetype [mscorlib]System.Threading.CancellationToken, valuetype [mscorlib]System.Threading.Tasks.TaskCreationOptions, class [mscorlib]System.Threading.Tasks.TaskScheduler)
+		IL_00d6: pop
+		IL_00d7: ret
+
+		IL_00d8: ldloc.3
+		IL_00d9: ldsfld class [mscorlib]System.Threading.SendOrPostCallback class System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1/'<>c'<!TResult>::'<>9__19_0'
+		IL_00de: dup
+		IL_00df: brtrue.s IL_00f8
+
+		IL_00e1: pop
+		IL_00e2: ldsfld class System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1/'<>c'<!0> class System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1/'<>c'<!TResult>::'<>9'
+		IL_00e7: ldftn instance void class System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1/'<>c'<!TResult>::'<OnCompleted>b__19_0'(object)
+		IL_00ed: newobj instance void [mscorlib]System.Threading.SendOrPostCallback::.ctor(object, native int)
+		IL_00f2: dup
+		IL_00f3: stsfld class [mscorlib]System.Threading.SendOrPostCallback class System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1/'<>c'<!TResult>::'<>9__19_0'
+
+		IL_00f8: ldarg.1
+		IL_00f9: ldarg.2
+		IL_00fa: call class [mscorlib]System.Tuple`2<!!0, !!1> [mscorlib]System.Tuple::Create<class [mscorlib]System.Action`1<object>, object>(!!0, !!1)
+		IL_00ff: callvirt instance void [mscorlib]System.Threading.SynchronizationContext::Post(class [mscorlib]System.Threading.SendOrPostCallback, object)
+		IL_0104: ret
+
+		IL_0105: call class [mscorlib]System.Threading.Tasks.TaskFactory [mscorlib]System.Threading.Tasks.Task::get_Factory()
+		IL_010a: ldarg.1
+		IL_010b: ldarg.2
+		IL_010c: call valuetype [mscorlib]System.Threading.CancellationToken [mscorlib]System.Threading.CancellationToken::get_None()
+		IL_0111: ldc.i4.8
+		IL_0112: ldloc.s 4
+		IL_0114: callvirt instance class [mscorlib]System.Threading.Tasks.Task [mscorlib]System.Threading.Tasks.TaskFactory::StartNew(class [mscorlib]System.Action`1<object>, object, valuetype [mscorlib]System.Threading.CancellationToken, valuetype [mscorlib]System.Threading.Tasks.TaskCreationOptions, class [mscorlib]System.Threading.Tasks.TaskScheduler)
+		IL_0119: pop
+
+		IL_011a: ret
+	} // end of method ManualResetValueTaskSourceCore`1::OnCompleted
+
+	.method private hidebysig 
+		instance void ValidateToken (
+			int16 token
+		) cil managed 
+	{
+		// Method begins at RVA 0x25f3
+		// Header size: 1
+		// Code size: 16 (0x10)
+		.maxstack 8
+
+		IL_0000: ldarg.1
+		IL_0001: ldarg.0
+		IL_0002: ldfld int16 valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_version
+		IL_0007: beq.s IL_000f
+
+		IL_0009: newobj instance void [mscorlib]System.InvalidOperationException::.ctor()
+		IL_000e: throw
+
+		IL_000f: ret
+	} // end of method ManualResetValueTaskSourceCore`1::ValidateToken
+
+	.method private hidebysig 
+		instance void SignalCompletion () cil managed 
+	{
+		// Method begins at RVA 0x2604
+		// Header size: 12
+		// Code size: 117 (0x75)
+		.maxstack 3
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld bool valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_completed
+		IL_0006: brfalse.s IL_000e
+
+		IL_0008: newobj instance void [mscorlib]System.InvalidOperationException::.ctor()
+		IL_000d: throw
+
+		IL_000e: ldarg.0
+		IL_000f: ldc.i4.1
+		IL_0010: stfld bool valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_completed
+		IL_0015: ldarg.0
+		IL_0016: ldfld class [mscorlib]System.Action`1<object> valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_continuation
+		IL_001b: brtrue.s IL_0030
+
+		IL_001d: ldarg.0
+		IL_001e: ldflda class [mscorlib]System.Action`1<object> valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_continuation
+		IL_0023: ldsfld class [mscorlib]System.Action`1<object> System.Threading.Tasks.Sources.ManualResetValueTaskSourceCoreShared::s_sentinel
+		IL_0028: ldnull
+		IL_0029: call !!0 [mscorlib]System.Threading.Interlocked::CompareExchange<class [mscorlib]System.Action`1<object>>(!!0&, !!0, !!0)
+		IL_002e: brfalse.s IL_0074
+
+		IL_0030: ldarg.0
+		IL_0031: ldfld class [mscorlib]System.Threading.ExecutionContext valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_executionContext
+		IL_0036: brfalse.s IL_006e
+
+		IL_0038: ldarg.0
+		IL_0039: ldfld class [mscorlib]System.Threading.ExecutionContext valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_executionContext
+		IL_003e: ldsfld class [mscorlib]System.Threading.ContextCallback class System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1/'<>c'<!TResult>::'<>9__21_0'
+		IL_0043: dup
+		IL_0044: brtrue.s IL_005d
+
+		IL_0046: pop
+		IL_0047: ldsfld class System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1/'<>c'<!0> class System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1/'<>c'<!TResult>::'<>9'
+		IL_004c: ldftn instance void class System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1/'<>c'<!TResult>::'<SignalCompletion>b__21_0'(object)
+		IL_0052: newobj instance void [mscorlib]System.Threading.ContextCallback::.ctor(object, native int)
+		IL_0057: dup
+		IL_0058: stsfld class [mscorlib]System.Threading.ContextCallback class System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1/'<>c'<!TResult>::'<>9__21_0'
+
+		IL_005d: ldarg.0
+		IL_005e: ldobj valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>
+		IL_0063: box valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>
+		IL_0068: call void [mscorlib]System.Threading.ExecutionContext::Run(class [mscorlib]System.Threading.ExecutionContext, class [mscorlib]System.Threading.ContextCallback, object)
+		IL_006d: ret
+
+		IL_006e: ldarg.0
+		IL_006f: call instance void valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::InvokeContinuation()
+
+		IL_0074: ret
+	} // end of method ManualResetValueTaskSourceCore`1::SignalCompletion
+
+	.method private hidebysig 
+		instance void InvokeContinuation () cil managed 
+	{
+		// Method begins at RVA 0x2688
+		// Header size: 12
+		// Code size: 178 (0xb2)
+		.maxstack 6
+		.locals init (
+			[0] class [mscorlib]System.Threading.SynchronizationContext,
+			[1] class [mscorlib]System.Threading.Tasks.TaskScheduler,
+			[2] object
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld object valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_capturedContext
+		IL_0006: stloc.2
+		IL_0007: ldloc.2
+		IL_0008: brfalse.s IL_001f
+
+		IL_000a: ldloc.2
+		IL_000b: isinst [mscorlib]System.Threading.SynchronizationContext
+		IL_0010: stloc.0
+		IL_0011: ldloc.0
+		IL_0012: brtrue.s IL_005c
+
+		IL_0014: ldloc.2
+		IL_0015: isinst [mscorlib]System.Threading.Tasks.TaskScheduler
+		IL_001a: stloc.1
+		IL_001b: ldloc.1
+		IL_001c: brtrue.s IL_0093
+
+		IL_001e: ret
+
+		IL_001f: ldarg.0
+		IL_0020: call instance bool valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::get_RunContinuationsAsynchronously()
+		IL_0025: brfalse.s IL_004a
+
+		IL_0027: call class [mscorlib]System.Threading.Tasks.TaskFactory [mscorlib]System.Threading.Tasks.Task::get_Factory()
+		IL_002c: ldarg.0
+		IL_002d: ldfld class [mscorlib]System.Action`1<object> valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_continuation
+		IL_0032: ldarg.0
+		IL_0033: ldfld object valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_continuationState
+		IL_0038: call valuetype [mscorlib]System.Threading.CancellationToken [mscorlib]System.Threading.CancellationToken::get_None()
+		IL_003d: ldc.i4.8
+		IL_003e: call class [mscorlib]System.Threading.Tasks.TaskScheduler [mscorlib]System.Threading.Tasks.TaskScheduler::get_Default()
+		IL_0043: callvirt instance class [mscorlib]System.Threading.Tasks.Task [mscorlib]System.Threading.Tasks.TaskFactory::StartNew(class [mscorlib]System.Action`1<object>, object, valuetype [mscorlib]System.Threading.CancellationToken, valuetype [mscorlib]System.Threading.Tasks.TaskCreationOptions, class [mscorlib]System.Threading.Tasks.TaskScheduler)
+		IL_0048: pop
+		IL_0049: ret
+
+		IL_004a: ldarg.0
+		IL_004b: ldfld class [mscorlib]System.Action`1<object> valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_continuation
+		IL_0050: ldarg.0
+		IL_0051: ldfld object valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_continuationState
+		IL_0056: callvirt instance void class [mscorlib]System.Action`1<object>::Invoke(!0)
+		IL_005b: ret
+
+		IL_005c: ldloc.0
+		IL_005d: ldsfld class [mscorlib]System.Threading.SendOrPostCallback class System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1/'<>c'<!TResult>::'<>9__22_0'
+		IL_0062: dup
+		IL_0063: brtrue.s IL_007c
+
+		IL_0065: pop
+		IL_0066: ldsfld class System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1/'<>c'<!0> class System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1/'<>c'<!TResult>::'<>9'
+		IL_006b: ldftn instance void class System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1/'<>c'<!TResult>::'<InvokeContinuation>b__22_0'(object)
+		IL_0071: newobj instance void [mscorlib]System.Threading.SendOrPostCallback::.ctor(object, native int)
+		IL_0076: dup
+		IL_0077: stsfld class [mscorlib]System.Threading.SendOrPostCallback class System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1/'<>c'<!TResult>::'<>9__22_0'
+
+		IL_007c: ldarg.0
+		IL_007d: ldfld class [mscorlib]System.Action`1<object> valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_continuation
+		IL_0082: ldarg.0
+		IL_0083: ldfld object valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_continuationState
+		IL_0088: call class [mscorlib]System.Tuple`2<!!0, !!1> [mscorlib]System.Tuple::Create<class [mscorlib]System.Action`1<object>, object>(!!0, !!1)
+		IL_008d: callvirt instance void [mscorlib]System.Threading.SynchronizationContext::Post(class [mscorlib]System.Threading.SendOrPostCallback, object)
+		IL_0092: ret
+
+		IL_0093: call class [mscorlib]System.Threading.Tasks.TaskFactory [mscorlib]System.Threading.Tasks.Task::get_Factory()
+		IL_0098: ldarg.0
+		IL_0099: ldfld class [mscorlib]System.Action`1<object> valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_continuation
+		IL_009e: ldarg.0
+		IL_009f: ldfld object valuetype System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1<!TResult>::_continuationState
+		IL_00a4: call valuetype [mscorlib]System.Threading.CancellationToken [mscorlib]System.Threading.CancellationToken::get_None()
+		IL_00a9: ldc.i4.8
+		IL_00aa: ldloc.1
+		IL_00ab: callvirt instance class [mscorlib]System.Threading.Tasks.Task [mscorlib]System.Threading.Tasks.TaskFactory::StartNew(class [mscorlib]System.Action`1<object>, object, valuetype [mscorlib]System.Threading.CancellationToken, valuetype [mscorlib]System.Threading.Tasks.TaskCreationOptions, class [mscorlib]System.Threading.Tasks.TaskScheduler)
+		IL_00b0: pop
+		IL_00b1: ret
+	} // end of method ManualResetValueTaskSourceCore`1::InvokeContinuation
+
+	// Properties
+	.property instance bool RunContinuationsAsynchronously()
+	{
+		.get instance bool System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1::get_RunContinuationsAsynchronously()
+		.set instance void System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1::set_RunContinuationsAsynchronously(bool)
+	}
+	.property instance int16 Version()
+	{
+		.get instance int16 System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1::get_Version()
+	}
+
+} // end of class System.Threading.Tasks.Sources.ManualResetValueTaskSourceCore`1
+
+.class private auto ansi abstract sealed beforefieldinit System.Threading.Tasks.Sources.ManualResetValueTaskSourceCoreShared
+	extends [mscorlib]System.Object
+{
+	// Fields
+	.field assembly static initonly class [mscorlib]System.Action`1<object> s_sentinel
+
+	// Methods
+	.method private hidebysig static 
+		void CompletionSentinel (
+			object _
+		) cil managed 
+	{
+		// Method begins at RVA 0x2746
+		// Header size: 1
+		// Code size: 6 (0x6)
+		.maxstack 8
+
+		IL_0000: newobj instance void [mscorlib]System.InvalidOperationException::.ctor()
+		IL_0005: throw
+	} // end of method ManualResetValueTaskSourceCoreShared::CompletionSentinel
+
+	.method private hidebysig specialname rtspecialname static 
+		void .cctor () cil managed 
+	{
+		// Method begins at RVA 0x274d
+		// Header size: 1
+		// Code size: 18 (0x12)
+		.maxstack 8
+
+		IL_0000: ldnull
+		IL_0001: ldftn void System.Threading.Tasks.Sources.ManualResetValueTaskSourceCoreShared::CompletionSentinel(object)
+		IL_0007: newobj instance void class [mscorlib]System.Action`1<object>::.ctor(object, native int)
+		IL_000c: stsfld class [mscorlib]System.Action`1<object> System.Threading.Tasks.Sources.ManualResetValueTaskSourceCoreShared::s_sentinel
+		IL_0011: ret
+	} // end of method ManualResetValueTaskSourceCoreShared::.cctor
+
+} // end of class System.Threading.Tasks.Sources.ManualResetValueTaskSourceCoreShared
+

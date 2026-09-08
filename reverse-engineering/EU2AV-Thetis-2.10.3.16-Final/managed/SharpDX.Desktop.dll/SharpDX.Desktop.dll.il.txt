@@ -1,0 +1,3494 @@
+// IL code: SharpDX.Desktop
+.class private auto ansi '<Module>'
+{
+} // end of class <Module>
+
+.class public auto ansi beforefieldinit SharpDX.MessageFilterHook
+	extends [mscorlib]System.Object
+{
+	// Fields
+	.field private static initonly class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class SharpDX.MessageFilterHook> RegisteredHooks
+	.field private initonly native int defaultWndProc
+	.field private initonly native int hwnd
+	.field private initonly class SharpDX.Win32Native/WndProc newWndProc
+	.field private initonly native int newWndProcPtr
+	.field private class [mscorlib]System.Collections.Generic.List`1<class [System.Windows.Forms]System.Windows.Forms.IMessageFilter> currentFilters
+	.field private bool isDisposed
+
+	// Methods
+	.method private hidebysig specialname rtspecialname 
+		instance void .ctor (
+			native int hwnd
+		) cil managed 
+	{
+		// Method begins at RVA 0x2050
+		// Header size: 12
+		// Code size: 89 (0x59)
+		.maxstack 3
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Object::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: newobj instance void class [mscorlib]System.Collections.Generic.List`1<class [System.Windows.Forms]System.Windows.Forms.IMessageFilter>::.ctor()
+		IL_000c: stfld class [mscorlib]System.Collections.Generic.List`1<class [System.Windows.Forms]System.Windows.Forms.IMessageFilter> SharpDX.MessageFilterHook::currentFilters
+		IL_0011: ldarg.0
+		IL_0012: ldarg.1
+		IL_0013: stfld native int SharpDX.MessageFilterHook::hwnd
+		IL_0018: ldarg.0
+		IL_0019: ldarg.1
+		IL_001a: ldc.i4.s -4
+		IL_001c: call native int SharpDX.Win32Native::GetWindowLong(native int, valuetype SharpDX.Win32Native/WindowLongType)
+		IL_0021: stfld native int SharpDX.MessageFilterHook::defaultWndProc
+		IL_0026: ldarg.0
+		IL_0027: ldarg.0
+		IL_0028: ldftn instance native int SharpDX.MessageFilterHook::WndProc(native int, int32, native int, native int)
+		IL_002e: newobj instance void SharpDX.Win32Native/WndProc::.ctor(object, native int)
+		IL_0033: stfld class SharpDX.Win32Native/WndProc SharpDX.MessageFilterHook::newWndProc
+		IL_0038: ldarg.0
+		IL_0039: ldarg.0
+		IL_003a: ldfld class SharpDX.Win32Native/WndProc SharpDX.MessageFilterHook::newWndProc
+		IL_003f: call native int [mscorlib]System.Runtime.InteropServices.Marshal::GetFunctionPointerForDelegate(class [mscorlib]System.Delegate)
+		IL_0044: stfld native int SharpDX.MessageFilterHook::newWndProcPtr
+		IL_0049: ldarg.1
+		IL_004a: ldc.i4.s -4
+		IL_004c: ldarg.0
+		IL_004d: ldfld native int SharpDX.MessageFilterHook::newWndProcPtr
+		IL_0052: call native int SharpDX.Win32Native::SetWindowLong(native int, valuetype SharpDX.Win32Native/WindowLongType, native int)
+		IL_0057: pop
+		IL_0058: ret
+	} // end of method MessageFilterHook::.ctor
+
+	.method public hidebysig static 
+		void AddMessageFilter (
+			native int hwnd,
+			class [System.Windows.Forms]System.Windows.Forms.IMessageFilter messageFilter
+		) cil managed 
+	{
+		// Method begins at RVA 0x20b8
+		// Header size: 12
+		// Code size: 78 (0x4e)
+		.maxstack 3
+		.locals init (
+			[0] class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class SharpDX.MessageFilterHook>,
+			[1] bool,
+			[2] class SharpDX.MessageFilterHook
+		)
+
+		IL_0000: ldsfld class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class SharpDX.MessageFilterHook> SharpDX.MessageFilterHook::RegisteredHooks
+		IL_0005: stloc.0
+		IL_0006: ldc.i4.0
+		IL_0007: stloc.1
+		.try
+		{
+			IL_0008: ldloc.0
+			IL_0009: ldloca.s 1
+			IL_000b: call void [mscorlib]System.Threading.Monitor::Enter(object, bool&)
+			IL_0010: ldarg.0
+			IL_0011: call native int SharpDX.MessageFilterHook::GetSafeWindowHandle(native int)
+			IL_0016: starg.s hwnd
+			IL_0018: ldsfld class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class SharpDX.MessageFilterHook> SharpDX.MessageFilterHook::RegisteredHooks
+			IL_001d: ldarg.0
+			IL_001e: ldloca.s 2
+			IL_0020: callvirt instance bool class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class SharpDX.MessageFilterHook>::TryGetValue(!0, !1&)
+			IL_0025: brtrue.s IL_003a
+
+			IL_0027: ldarg.0
+			IL_0028: newobj instance void SharpDX.MessageFilterHook::.ctor(native int)
+			IL_002d: stloc.2
+			IL_002e: ldsfld class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class SharpDX.MessageFilterHook> SharpDX.MessageFilterHook::RegisteredHooks
+			IL_0033: ldarg.0
+			IL_0034: ldloc.2
+			IL_0035: callvirt instance void class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class SharpDX.MessageFilterHook>::Add(!0, !1)
+
+			IL_003a: ldloc.2
+			IL_003b: ldarg.1
+			IL_003c: callvirt instance void SharpDX.MessageFilterHook::AddMessageMilter(class [System.Windows.Forms]System.Windows.Forms.IMessageFilter)
+			IL_0041: leave.s IL_004d
+		} // end .try
+		finally
+		{
+			IL_0043: ldloc.1
+			IL_0044: brfalse.s IL_004c
+
+			IL_0046: ldloc.0
+			IL_0047: call void [mscorlib]System.Threading.Monitor::Exit(object)
+
+			IL_004c: endfinally
+		} // end handler
+
+		IL_004d: ret
+	} // end of method MessageFilterHook::AddMessageFilter
+
+	.method public hidebysig static 
+		void RemoveMessageFilter (
+			native int hwnd,
+			class [System.Windows.Forms]System.Windows.Forms.IMessageFilter messageFilter
+		) cil managed 
+	{
+		// Method begins at RVA 0x2124
+		// Header size: 12
+		// Code size: 85 (0x55)
+		.maxstack 3
+		.locals init (
+			[0] class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class SharpDX.MessageFilterHook>,
+			[1] bool,
+			[2] class SharpDX.MessageFilterHook
+		)
+
+		IL_0000: ldsfld class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class SharpDX.MessageFilterHook> SharpDX.MessageFilterHook::RegisteredHooks
+		IL_0005: stloc.0
+		IL_0006: ldc.i4.0
+		IL_0007: stloc.1
+		.try
+		{
+			IL_0008: ldloc.0
+			IL_0009: ldloca.s 1
+			IL_000b: call void [mscorlib]System.Threading.Monitor::Enter(object, bool&)
+			IL_0010: ldarg.0
+			IL_0011: call native int SharpDX.MessageFilterHook::GetSafeWindowHandle(native int)
+			IL_0016: starg.s hwnd
+			IL_0018: ldsfld class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class SharpDX.MessageFilterHook> SharpDX.MessageFilterHook::RegisteredHooks
+			IL_001d: ldarg.0
+			IL_001e: ldloca.s 2
+			IL_0020: callvirt instance bool class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class SharpDX.MessageFilterHook>::TryGetValue(!0, !1&)
+			IL_0025: brfalse.s IL_0048
+
+			IL_0027: ldloc.2
+			IL_0028: ldarg.1
+			IL_0029: callvirt instance void SharpDX.MessageFilterHook::RemoveMessageFilter(class [System.Windows.Forms]System.Windows.Forms.IMessageFilter)
+			IL_002e: ldloc.2
+			IL_002f: ldfld bool SharpDX.MessageFilterHook::isDisposed
+			IL_0034: brfalse.s IL_0048
+
+			IL_0036: ldsfld class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class SharpDX.MessageFilterHook> SharpDX.MessageFilterHook::RegisteredHooks
+			IL_003b: ldarg.0
+			IL_003c: callvirt instance bool class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class SharpDX.MessageFilterHook>::Remove(!0)
+			IL_0041: pop
+			IL_0042: ldloc.2
+			IL_0043: callvirt instance void SharpDX.MessageFilterHook::RestoreWndProc()
+
+			IL_0048: leave.s IL_0054
+		} // end .try
+		finally
+		{
+			IL_004a: ldloc.1
+			IL_004b: brfalse.s IL_0053
+
+			IL_004d: ldloc.0
+			IL_004e: call void [mscorlib]System.Threading.Monitor::Exit(object)
+
+			IL_0053: endfinally
+		} // end handler
+
+		IL_0054: ret
+	} // end of method MessageFilterHook::RemoveMessageFilter
+
+	.method private hidebysig 
+		instance void AddMessageMilter (
+			class [System.Windows.Forms]System.Windows.Forms.IMessageFilter 'filter'
+		) cil managed 
+	{
+		// Method begins at RVA 0x2198
+		// Header size: 12
+		// Code size: 36 (0x24)
+		.maxstack 2
+		.locals init (
+			[0] class [mscorlib]System.Collections.Generic.List`1<class [System.Windows.Forms]System.Windows.Forms.IMessageFilter>
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [mscorlib]System.Collections.Generic.List`1<class [System.Windows.Forms]System.Windows.Forms.IMessageFilter> SharpDX.MessageFilterHook::currentFilters
+		IL_0006: newobj instance void class [mscorlib]System.Collections.Generic.List`1<class [System.Windows.Forms]System.Windows.Forms.IMessageFilter>::.ctor(class [mscorlib]System.Collections.Generic.IEnumerable`1<!0>)
+		IL_000b: stloc.0
+		IL_000c: ldloc.0
+		IL_000d: ldarg.1
+		IL_000e: callvirt instance bool class [mscorlib]System.Collections.Generic.List`1<class [System.Windows.Forms]System.Windows.Forms.IMessageFilter>::Contains(!0)
+		IL_0013: brtrue.s IL_001c
+
+		IL_0015: ldloc.0
+		IL_0016: ldarg.1
+		IL_0017: callvirt instance void class [mscorlib]System.Collections.Generic.List`1<class [System.Windows.Forms]System.Windows.Forms.IMessageFilter>::Add(!0)
+
+		IL_001c: ldarg.0
+		IL_001d: ldloc.0
+		IL_001e: stfld class [mscorlib]System.Collections.Generic.List`1<class [System.Windows.Forms]System.Windows.Forms.IMessageFilter> SharpDX.MessageFilterHook::currentFilters
+		IL_0023: ret
+	} // end of method MessageFilterHook::AddMessageMilter
+
+	.method private hidebysig 
+		instance void RemoveMessageFilter (
+			class [System.Windows.Forms]System.Windows.Forms.IMessageFilter 'filter'
+		) cil managed 
+	{
+		// Method begins at RVA 0x21c8
+		// Header size: 12
+		// Code size: 49 (0x31)
+		.maxstack 2
+		.locals init (
+			[0] class [mscorlib]System.Collections.Generic.List`1<class [System.Windows.Forms]System.Windows.Forms.IMessageFilter>
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [mscorlib]System.Collections.Generic.List`1<class [System.Windows.Forms]System.Windows.Forms.IMessageFilter> SharpDX.MessageFilterHook::currentFilters
+		IL_0006: newobj instance void class [mscorlib]System.Collections.Generic.List`1<class [System.Windows.Forms]System.Windows.Forms.IMessageFilter>::.ctor(class [mscorlib]System.Collections.Generic.IEnumerable`1<!0>)
+		IL_000b: stloc.0
+		IL_000c: ldloc.0
+		IL_000d: ldarg.1
+		IL_000e: callvirt instance bool class [mscorlib]System.Collections.Generic.List`1<class [System.Windows.Forms]System.Windows.Forms.IMessageFilter>::Remove(!0)
+		IL_0013: pop
+		IL_0014: ldloc.0
+		IL_0015: callvirt instance int32 class [mscorlib]System.Collections.Generic.List`1<class [System.Windows.Forms]System.Windows.Forms.IMessageFilter>::get_Count()
+		IL_001a: brtrue.s IL_0029
+
+		IL_001c: ldarg.0
+		IL_001d: ldc.i4.1
+		IL_001e: stfld bool SharpDX.MessageFilterHook::isDisposed
+		IL_0023: ldarg.0
+		IL_0024: call instance void SharpDX.MessageFilterHook::RestoreWndProc()
+
+		IL_0029: ldarg.0
+		IL_002a: ldloc.0
+		IL_002b: stfld class [mscorlib]System.Collections.Generic.List`1<class [System.Windows.Forms]System.Windows.Forms.IMessageFilter> SharpDX.MessageFilterHook::currentFilters
+		IL_0030: ret
+	} // end of method MessageFilterHook::RemoveMessageFilter
+
+	.method private hidebysig 
+		instance void RestoreWndProc () cil managed 
+	{
+		// Method begins at RVA 0x2205
+		// Header size: 1
+		// Code size: 47 (0x2f)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld native int SharpDX.MessageFilterHook::hwnd
+		IL_0006: ldc.i4.s -4
+		IL_0008: call native int SharpDX.Win32Native::GetWindowLong(native int, valuetype SharpDX.Win32Native/WindowLongType)
+		IL_000d: ldarg.0
+		IL_000e: ldfld native int SharpDX.MessageFilterHook::newWndProcPtr
+		IL_0013: call bool [mscorlib]System.IntPtr::op_Equality(native int, native int)
+		IL_0018: brfalse.s IL_002e
+
+		IL_001a: ldarg.0
+		IL_001b: ldfld native int SharpDX.MessageFilterHook::hwnd
+		IL_0020: ldc.i4.s -4
+		IL_0022: ldarg.0
+		IL_0023: ldfld native int SharpDX.MessageFilterHook::defaultWndProc
+		IL_0028: call native int SharpDX.Win32Native::SetWindowLong(native int, valuetype SharpDX.Win32Native/WindowLongType, native int)
+		IL_002d: pop
+
+		IL_002e: ret
+	} // end of method MessageFilterHook::RestoreWndProc
+
+	.method private hidebysig 
+		instance native int WndProc (
+			native int hWnd,
+			int32 msg,
+			native int wParam,
+			native int lParam
+		) cil managed 
+	{
+		// Method begins at RVA 0x2238
+		// Header size: 12
+		// Code size: 148 (0x94)
+		.maxstack 5
+		.locals init (
+			[0] valuetype [System.Windows.Forms]System.Windows.Forms.Message,
+			[1] valuetype [System.Windows.Forms]System.Windows.Forms.Message,
+			[2] valuetype [mscorlib]System.Collections.Generic.List`1/Enumerator<class [System.Windows.Forms]System.Windows.Forms.IMessageFilter>,
+			[3] native int
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld bool SharpDX.MessageFilterHook::isDisposed
+		IL_0006: brfalse.s IL_0010
+
+		IL_0008: ldarg.0
+		IL_0009: call instance void SharpDX.MessageFilterHook::RestoreWndProc()
+		IL_000e: br.s IL_0081
+
+		IL_0010: ldloca.s 1
+		IL_0012: initobj [System.Windows.Forms]System.Windows.Forms.Message
+		IL_0018: ldloca.s 1
+		IL_001a: ldarg.0
+		IL_001b: ldfld native int SharpDX.MessageFilterHook::hwnd
+		IL_0020: call instance void [System.Windows.Forms]System.Windows.Forms.Message::set_HWnd(native int)
+		IL_0025: ldloca.s 1
+		IL_0027: ldarg.s lParam
+		IL_0029: call instance void [System.Windows.Forms]System.Windows.Forms.Message::set_LParam(native int)
+		IL_002e: ldloca.s 1
+		IL_0030: ldarg.2
+		IL_0031: call instance void [System.Windows.Forms]System.Windows.Forms.Message::set_Msg(int32)
+		IL_0036: ldloca.s 1
+		IL_0038: ldarg.3
+		IL_0039: call instance void [System.Windows.Forms]System.Windows.Forms.Message::set_WParam(native int)
+		IL_003e: ldloc.1
+		IL_003f: stloc.0
+		IL_0040: ldarg.0
+		IL_0041: ldfld class [mscorlib]System.Collections.Generic.List`1<class [System.Windows.Forms]System.Windows.Forms.IMessageFilter> SharpDX.MessageFilterHook::currentFilters
+		IL_0046: callvirt instance valuetype [mscorlib]System.Collections.Generic.List`1/Enumerator<!0> class [mscorlib]System.Collections.Generic.List`1<class [System.Windows.Forms]System.Windows.Forms.IMessageFilter>::GetEnumerator()
+		IL_004b: stloc.2
+		.try
+		{
+			IL_004c: br.s IL_0068
+			// loop start (head: IL_0068)
+				IL_004e: ldloca.s 2
+				IL_0050: call instance !0 valuetype [mscorlib]System.Collections.Generic.List`1/Enumerator<class [System.Windows.Forms]System.Windows.Forms.IMessageFilter>::get_Current()
+				IL_0055: ldloca.s 0
+				IL_0057: callvirt instance bool [System.Windows.Forms]System.Windows.Forms.IMessageFilter::PreFilterMessage(valuetype [System.Windows.Forms]System.Windows.Forms.Message&)
+				IL_005c: brfalse.s IL_0068
+
+				IL_005e: ldloca.s 0
+				IL_0060: call instance native int [System.Windows.Forms]System.Windows.Forms.Message::get_Result()
+				IL_0065: stloc.3
+				IL_0066: leave.s IL_0092
+
+				IL_0068: ldloca.s 2
+				IL_006a: call instance bool valuetype [mscorlib]System.Collections.Generic.List`1/Enumerator<class [System.Windows.Forms]System.Windows.Forms.IMessageFilter>::MoveNext()
+				IL_006f: brtrue.s IL_004e
+			// end loop
+
+			IL_0071: leave.s IL_0081
+		} // end .try
+		finally
+		{
+			IL_0073: ldloca.s 2
+			IL_0075: constrained. valuetype [mscorlib]System.Collections.Generic.List`1/Enumerator<class [System.Windows.Forms]System.Windows.Forms.IMessageFilter>
+			IL_007b: callvirt instance void [mscorlib]System.IDisposable::Dispose()
+			IL_0080: endfinally
+		} // end handler
+
+		IL_0081: ldarg.0
+		IL_0082: ldfld native int SharpDX.MessageFilterHook::defaultWndProc
+		IL_0087: ldarg.1
+		IL_0088: ldarg.2
+		IL_0089: ldarg.3
+		IL_008a: ldarg.s lParam
+		IL_008c: call native int SharpDX.Win32Native::CallWindowProc(native int, native int, int32, native int, native int)
+		IL_0091: ret
+
+		IL_0092: ldloc.3
+		IL_0093: ret
+	} // end of method MessageFilterHook::WndProc
+
+	.method private hidebysig static 
+		native int GetSafeWindowHandle (
+			native int hwnd
+		) cil managed 
+	{
+		// Method begins at RVA 0x22e8
+		// Header size: 1
+		// Code size: 26 (0x1a)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldsfld native int [mscorlib]System.IntPtr::Zero
+		IL_0006: call bool [mscorlib]System.IntPtr::op_Equality(native int, native int)
+		IL_000b: brtrue.s IL_000f
+
+		IL_000d: ldarg.0
+		IL_000e: ret
+
+		IL_000f: call class [System]System.Diagnostics.Process [System]System.Diagnostics.Process::GetCurrentProcess()
+		IL_0014: callvirt instance native int [System]System.Diagnostics.Process::get_MainWindowHandle()
+		IL_0019: ret
+	} // end of method MessageFilterHook::GetSafeWindowHandle
+
+	.method private hidebysig specialname rtspecialname static 
+		void .cctor () cil managed 
+	{
+		// Method begins at RVA 0x2303
+		// Header size: 1
+		// Code size: 16 (0x10)
+		.maxstack 8
+
+		IL_0000: ldsfld class [mscorlib]System.Collections.Generic.IEqualityComparer`1<native int> [SharpDX]SharpDX.Collections.EqualityComparer::DefaultIntPtr
+		IL_0005: newobj instance void class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class SharpDX.MessageFilterHook>::.ctor(class [mscorlib]System.Collections.Generic.IEqualityComparer`1<!0>)
+		IL_000a: stsfld class [mscorlib]System.Collections.Generic.Dictionary`2<native int, class SharpDX.MessageFilterHook> SharpDX.MessageFilterHook::RegisteredHooks
+		IL_000f: ret
+	} // end of method MessageFilterHook::.cctor
+
+} // end of class SharpDX.MessageFilterHook
+
+.class private auto ansi beforefieldinit SharpDX.Win32Native
+	extends [mscorlib]System.Object
+{
+	// Nested Types
+	.class nested public sequential unicode sealed beforefieldinit TextMetric
+		extends [mscorlib]System.ValueType
+	{
+		// Fields
+		.field public int32 tmHeight
+		.field public int32 tmAscent
+		.field public int32 tmDescent
+		.field public int32 tmInternalLeading
+		.field public int32 tmExternalLeading
+		.field public int32 tmAveCharWidth
+		.field public int32 tmMaxCharWidth
+		.field public int32 tmWeight
+		.field public int32 tmOverhang
+		.field public int32 tmDigitizedAspectX
+		.field public int32 tmDigitizedAspectY
+		.field public char tmFirstChar
+		.field public char tmLastChar
+		.field public char tmDefaultChar
+		.field public char tmBreakChar
+		.field public uint8 tmItalic
+		.field public uint8 tmUnderlined
+		.field public uint8 tmStruckOut
+		.field public uint8 tmPitchAndFamily
+		.field public uint8 tmCharSet
+
+	} // end of class TextMetric
+
+	.class nested public auto ansi sealed WindowLongType
+		extends [mscorlib]System.Enum
+	{
+		// Fields
+		.field public specialname rtspecialname int32 value__
+		.field public static literal valuetype SharpDX.Win32Native/WindowLongType WndProc = int32(-4)
+		.field public static literal valuetype SharpDX.Win32Native/WindowLongType HInstance = int32(-6)
+		.field public static literal valuetype SharpDX.Win32Native/WindowLongType HwndParent = int32(-8)
+		.field public static literal valuetype SharpDX.Win32Native/WindowLongType Style = int32(-16)
+		.field public static literal valuetype SharpDX.Win32Native/WindowLongType ExtendedStyle = int32(-20)
+		.field public static literal valuetype SharpDX.Win32Native/WindowLongType UserData = int32(-21)
+		.field public static literal valuetype SharpDX.Win32Native/WindowLongType Id = int32(-12)
+
+	} // end of class WindowLongType
+
+	.class nested public auto ansi sealed WndProc
+		extends [mscorlib]System.MulticastDelegate
+	{
+		// Methods
+		.method public hidebysig specialname rtspecialname 
+			instance void .ctor (
+				object 'object',
+				native int 'method'
+			) runtime managed 
+		{
+		} // end of method WndProc::.ctor
+
+		.method public hidebysig newslot virtual 
+			instance native int Invoke (
+				native int hWnd,
+				int32 msg,
+				native int wParam,
+				native int lParam
+			) runtime managed 
+		{
+		} // end of method WndProc::Invoke
+
+		.method public hidebysig newslot virtual 
+			instance class [mscorlib]System.IAsyncResult BeginInvoke (
+				native int hWnd,
+				int32 msg,
+				native int wParam,
+				native int lParam,
+				class [mscorlib]System.AsyncCallback callback,
+				object 'object'
+			) runtime managed 
+		{
+		} // end of method WndProc::BeginInvoke
+
+		.method public hidebysig newslot virtual 
+			instance native int EndInvoke (
+				class [mscorlib]System.IAsyncResult result
+			) runtime managed 
+		{
+		} // end of method WndProc::EndInvoke
+
+	} // end of class WndProc
+
+
+	// Methods
+	.method assembly hidebysig static pinvokeimpl("kernel32.dll" as "CreateFile" unicode lasterr winapi) 
+		native int Create (
+			string fileName,
+			valuetype [SharpDX]SharpDX.IO.NativeFileAccess desiredAccess,
+			valuetype [SharpDX]SharpDX.IO.NativeFileShare shareMode,
+			native int securityAttributes,
+			valuetype [SharpDX]SharpDX.IO.NativeFileMode mode,
+			valuetype [SharpDX]SharpDX.IO.NativeFileOptions flagsAndOptions,
+			native int templateFile
+		) cil managed preservesig 
+	{
+	} // end of method Win32Native::Create
+
+	.method public hidebysig static pinvokeimpl("user32.dll" winapi) 
+		int32 PeekMessage (
+			[out] valuetype [SharpDX]SharpDX.Win32.NativeMessage& lpMsg,
+			native int hWnd,
+			int32 wMsgFilterMin,
+			int32 wMsgFilterMax,
+			int32 wRemoveMsg
+		) cil managed preservesig 
+	{
+	} // end of method Win32Native::PeekMessage
+
+	.method public hidebysig static pinvokeimpl("user32.dll" winapi) 
+		int32 GetMessage (
+			[out] valuetype [SharpDX]SharpDX.Win32.NativeMessage& lpMsg,
+			native int hWnd,
+			int32 wMsgFilterMin,
+			int32 wMsgFilterMax
+		) cil managed preservesig 
+	{
+	} // end of method Win32Native::GetMessage
+
+	.method public hidebysig static pinvokeimpl("user32.dll" winapi) 
+		int32 TranslateMessage (
+			valuetype [SharpDX]SharpDX.Win32.NativeMessage& lpMsg
+		) cil managed preservesig 
+	{
+	} // end of method Win32Native::TranslateMessage
+
+	.method public hidebysig static pinvokeimpl("user32.dll" winapi) 
+		int32 DispatchMessage (
+			valuetype [SharpDX]SharpDX.Win32.NativeMessage& lpMsg
+		) cil managed preservesig 
+	{
+	} // end of method Win32Native::DispatchMessage
+
+	.method public hidebysig static 
+		native int GetWindowLong (
+			native int hWnd,
+			valuetype SharpDX.Win32Native/WindowLongType index
+		) cil managed 
+	{
+		// Method begins at RVA 0x2314
+		// Header size: 1
+		// Code size: 24 (0x18)
+		.maxstack 8
+
+		IL_0000: call int32 [mscorlib]System.IntPtr::get_Size()
+		IL_0005: ldc.i4.4
+		IL_0006: bne.un.s IL_0010
+
+		IL_0008: ldarg.0
+		IL_0009: ldarg.1
+		IL_000a: call native int SharpDX.Win32Native::GetWindowLong32(native int, valuetype SharpDX.Win32Native/WindowLongType)
+		IL_000f: ret
+
+		IL_0010: ldarg.0
+		IL_0011: ldarg.1
+		IL_0012: call native int SharpDX.Win32Native::GetWindowLong64(native int, valuetype SharpDX.Win32Native/WindowLongType)
+		IL_0017: ret
+	} // end of method Win32Native::GetWindowLong
+
+	.method public hidebysig static pinvokeimpl("user32.dll" unicode winapi) 
+		native int GetFocus () cil managed preservesig 
+	{
+	} // end of method Win32Native::GetFocus
+
+	.method private hidebysig static pinvokeimpl("user32.dll" as "GetWindowLong" unicode winapi) 
+		native int GetWindowLong32 (
+			native int hwnd,
+			valuetype SharpDX.Win32Native/WindowLongType index
+		) cil managed preservesig 
+	{
+	} // end of method Win32Native::GetWindowLong32
+
+	.method private hidebysig static pinvokeimpl("user32.dll" as "GetWindowLongPtr" unicode winapi) 
+		native int GetWindowLong64 (
+			native int hwnd,
+			valuetype SharpDX.Win32Native/WindowLongType index
+		) cil managed preservesig 
+	{
+	} // end of method Win32Native::GetWindowLong64
+
+	.method public hidebysig static 
+		native int SetWindowLong (
+			native int hwnd,
+			valuetype SharpDX.Win32Native/WindowLongType index,
+			native int wndProcPtr
+		) cil managed 
+	{
+		// Method begins at RVA 0x232d
+		// Header size: 1
+		// Code size: 26 (0x1a)
+		.maxstack 8
+
+		IL_0000: call int32 [mscorlib]System.IntPtr::get_Size()
+		IL_0005: ldc.i4.4
+		IL_0006: bne.un.s IL_0011
+
+		IL_0008: ldarg.0
+		IL_0009: ldarg.1
+		IL_000a: ldarg.2
+		IL_000b: call native int SharpDX.Win32Native::SetWindowLong32(native int, valuetype SharpDX.Win32Native/WindowLongType, native int)
+		IL_0010: ret
+
+		IL_0011: ldarg.0
+		IL_0012: ldarg.1
+		IL_0013: ldarg.2
+		IL_0014: call native int SharpDX.Win32Native::SetWindowLongPtr64(native int, valuetype SharpDX.Win32Native/WindowLongType, native int)
+		IL_0019: ret
+	} // end of method Win32Native::SetWindowLong
+
+	.method public hidebysig static pinvokeimpl("user32.dll" unicode winapi) 
+		native int SetParent (
+			native int hWnd,
+			native int hWndParent
+		) cil managed preservesig 
+	{
+	} // end of method Win32Native::SetParent
+
+	.method private hidebysig static pinvokeimpl("user32.dll" as "SetWindowLong" unicode winapi) 
+		native int SetWindowLong32 (
+			native int hwnd,
+			valuetype SharpDX.Win32Native/WindowLongType index,
+			native int wndProc
+		) cil managed preservesig 
+	{
+	} // end of method Win32Native::SetWindowLong32
+
+	.method public hidebysig static 
+		bool ShowWindow (
+			native int hWnd,
+			bool windowVisible
+		) cil managed 
+	{
+		// Method begins at RVA 0x2348
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: brtrue.s IL_0007
+
+		IL_0004: ldc.i4.0
+		IL_0005: br.s IL_0008
+
+		IL_0007: ldc.i4.1
+
+		IL_0008: call bool SharpDX.Win32Native::ShowWindow(native int, int32)
+		IL_000d: ret
+	} // end of method Win32Native::ShowWindow
+
+	.method private hidebysig static pinvokeimpl("user32.dll" unicode winapi) 
+		bool ShowWindow (
+			native int hWnd,
+			int32 mCmdShow
+		) cil managed preservesig 
+	{
+	} // end of method Win32Native::ShowWindow
+
+	.method private hidebysig static pinvokeimpl("user32.dll" as "SetWindowLongPtr" unicode winapi) 
+		native int SetWindowLongPtr64 (
+			native int hwnd,
+			valuetype SharpDX.Win32Native/WindowLongType index,
+			native int wndProc
+		) cil managed preservesig 
+	{
+	} // end of method Win32Native::SetWindowLongPtr64
+
+	.method public hidebysig static pinvokeimpl("user32.dll" unicode winapi) 
+		native int CallWindowProc (
+			native int wndProc,
+			native int hwnd,
+			int32 msg,
+			native int wParam,
+			native int lParam
+		) cil managed preservesig 
+	{
+	} // end of method Win32Native::CallWindowProc
+
+	.method public hidebysig static pinvokeimpl("user32.dll" winapi) 
+		bool GetClientRect (
+			native int hWnd,
+			[out] valuetype [SharpDX]SharpDX.Mathematics.Interop.RawRectangle& lpRect
+		) cil managed preservesig 
+	{
+	} // end of method Win32Native::GetClientRect
+
+	.method public hidebysig static pinvokeimpl("kernel32.dll" unicode winapi) 
+		native int GetModuleHandle (
+			string lpModuleName
+		) cil managed preservesig 
+	{
+	} // end of method Win32Native::GetModuleHandle
+
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x2357
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Object::.ctor()
+		IL_0006: ret
+	} // end of method Win32Native::.ctor
+
+} // end of class SharpDX.Win32Native
+
+.class public auto ansi beforefieldinit SharpDX.Windows.RenderControl
+	extends [System.Windows.Forms]System.Windows.Forms.UserControl
+{
+	// Fields
+	.field private class [System.Drawing]System.Drawing.Font fontForDesignMode
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x235f
+		// Header size: 1
+		// Code size: 25 (0x19)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [System.Windows.Forms]System.Windows.Forms.UserControl::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldc.i4 8198
+		IL_000c: ldc.i4.1
+		IL_000d: call instance void [System.Windows.Forms]System.Windows.Forms.Control::SetStyle(valuetype [System.Windows.Forms]System.Windows.Forms.ControlStyles, bool)
+		IL_0012: ldarg.0
+		IL_0013: call instance void [System.Windows.Forms]System.Windows.Forms.Control::UpdateStyles()
+		IL_0018: ret
+	} // end of method RenderControl::.ctor
+
+	.method family hidebysig virtual 
+		instance void OnPaintBackground (
+			class [System.Windows.Forms]System.Windows.Forms.PaintEventArgs e
+		) cil managed 
+	{
+		// Method begins at RVA 0x2379
+		// Header size: 1
+		// Code size: 16 (0x10)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance bool [System]System.ComponentModel.Component::get_DesignMode()
+		IL_0006: brfalse.s IL_000f
+
+		IL_0008: ldarg.0
+		IL_0009: ldarg.1
+		IL_000a: call instance void [System.Windows.Forms]System.Windows.Forms.ScrollableControl::OnPaintBackground(class [System.Windows.Forms]System.Windows.Forms.PaintEventArgs)
+
+		IL_000f: ret
+	} // end of method RenderControl::OnPaintBackground
+
+	.method family hidebysig virtual 
+		instance void OnPaint (
+			class [System.Windows.Forms]System.Windows.Forms.PaintEventArgs e
+		) cil managed 
+	{
+		// Method begins at RVA 0x238c
+		// Header size: 12
+		// Code size: 160 (0xa0)
+		.maxstack 7
+		.locals init (
+			[0] string,
+			[1] valuetype [System.Drawing]System.Drawing.SizeF
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: call instance void [System.Windows.Forms]System.Windows.Forms.Control::OnPaint(class [System.Windows.Forms]System.Windows.Forms.PaintEventArgs)
+		IL_0007: ldarg.0
+		IL_0008: call instance bool [System]System.ComponentModel.Component::get_DesignMode()
+		IL_000d: brfalse IL_009f
+
+		IL_0012: ldarg.0
+		IL_0013: ldfld class [System.Drawing]System.Drawing.Font SharpDX.Windows.RenderControl::fontForDesignMode
+		IL_0018: brtrue.s IL_0030
+
+		IL_001a: ldarg.0
+		IL_001b: ldstr "Calibri"
+		IL_0020: ldc.r4 24
+		IL_0025: ldc.i4.0
+		IL_0026: newobj instance void [System.Drawing]System.Drawing.Font::.ctor(string, float32, valuetype [System.Drawing]System.Drawing.FontStyle)
+		IL_002b: stfld class [System.Drawing]System.Drawing.Font SharpDX.Windows.RenderControl::fontForDesignMode
+
+		IL_0030: ldarg.1
+		IL_0031: callvirt instance class [System.Drawing]System.Drawing.Graphics [System.Windows.Forms]System.Windows.Forms.PaintEventArgs::get_Graphics()
+		IL_0036: call valuetype [System.Drawing]System.Drawing.Color [System.Drawing]System.Drawing.Color::get_WhiteSmoke()
+		IL_003b: callvirt instance void [System.Drawing]System.Drawing.Graphics::Clear(valuetype [System.Drawing]System.Drawing.Color)
+		IL_0040: ldstr "SharpDX RenderControl"
+		IL_0045: stloc.0
+		IL_0046: ldarg.1
+		IL_0047: callvirt instance class [System.Drawing]System.Drawing.Graphics [System.Windows.Forms]System.Windows.Forms.PaintEventArgs::get_Graphics()
+		IL_004c: ldloc.0
+		IL_004d: ldarg.0
+		IL_004e: ldfld class [System.Drawing]System.Drawing.Font SharpDX.Windows.RenderControl::fontForDesignMode
+		IL_0053: callvirt instance valuetype [System.Drawing]System.Drawing.SizeF [System.Drawing]System.Drawing.Graphics::MeasureString(string, class [System.Drawing]System.Drawing.Font)
+		IL_0058: stloc.1
+		IL_0059: ldarg.1
+		IL_005a: callvirt instance class [System.Drawing]System.Drawing.Graphics [System.Windows.Forms]System.Windows.Forms.PaintEventArgs::get_Graphics()
+		IL_005f: ldloc.0
+		IL_0060: ldarg.0
+		IL_0061: ldfld class [System.Drawing]System.Drawing.Font SharpDX.Windows.RenderControl::fontForDesignMode
+		IL_0066: call valuetype [System.Drawing]System.Drawing.Color [System.Drawing]System.Drawing.Color::get_Black()
+		IL_006b: newobj instance void [System.Drawing]System.Drawing.SolidBrush::.ctor(valuetype [System.Drawing]System.Drawing.Color)
+		IL_0070: ldarg.0
+		IL_0071: call instance int32 [System.Windows.Forms]System.Windows.Forms.Control::get_Width()
+		IL_0076: conv.r4
+		IL_0077: ldloca.s 1
+		IL_0079: call instance float32 [System.Drawing]System.Drawing.SizeF::get_Width()
+		IL_007e: sub
+		IL_007f: ldc.r4 2
+		IL_0084: div
+		IL_0085: ldarg.0
+		IL_0086: call instance int32 [System.Windows.Forms]System.Windows.Forms.Control::get_Height()
+		IL_008b: conv.r4
+		IL_008c: ldloca.s 1
+		IL_008e: call instance float32 [System.Drawing]System.Drawing.SizeF::get_Height()
+		IL_0093: sub
+		IL_0094: ldc.r4 2
+		IL_0099: div
+		IL_009a: callvirt instance void [System.Drawing]System.Drawing.Graphics::DrawString(string, class [System.Drawing]System.Drawing.Font, class [System.Drawing]System.Drawing.Brush, float32, float32)
+
+		IL_009f: ret
+	} // end of method RenderControl::OnPaint
+
+} // end of class SharpDX.Windows.RenderControl
+
+.class public auto ansi beforefieldinit SharpDX.Windows.RenderForm
+	extends [System.Windows.Forms]System.Windows.Forms.Form
+{
+	// Fields
+	.field private static literal int32 WM_SIZE = int32(5)
+	.field private static literal int32 SIZE_RESTORED = int32(0)
+	.field private static literal int32 SIZE_MINIMIZED = int32(1)
+	.field private static literal int32 SIZE_MAXIMIZED = int32(2)
+	.field private static literal int32 SIZE_MAXSHOW = int32(3)
+	.field private static literal int32 SIZE_MAXHIDE = int32(4)
+	.field private static literal int32 WM_ACTIVATEAPP = int32(28)
+	.field private static literal int32 WM_POWERBROADCAST = int32(536)
+	.field private static literal int32 WM_MENUCHAR = int32(288)
+	.field private static literal int32 WM_SYSCOMMAND = int32(274)
+	.field private static literal uint32 PBT_APMRESUMESUSPEND = uint32(7)
+	.field private static literal uint32 PBT_APMQUERYSUSPEND = uint32(0)
+	.field private static literal int32 SC_MONITORPOWER = int32(61808)
+	.field private static literal int32 SC_SCREENSAVE = int32(61760)
+	.field private static literal int32 WM_DISPLAYCHANGE = int32(126)
+	.field private static literal int32 MNC_CLOSE = int32(1)
+	.field private valuetype [System.Drawing]System.Drawing.Size cachedSize
+	.field private valuetype [System.Windows.Forms]System.Windows.Forms.FormWindowState previousWindowState
+	.field private bool isUserResizing
+	.field private bool allowUserResizing
+	.field private bool isBackgroundFirstDraw
+	.field private bool isSizeChangedWithoutResizeBegin
+	.field private class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> AppActivated
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.field private class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> AppDeactivated
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.field private class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> MonitorChanged
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.field private class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> PauseRendering
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.field private class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> ResumeRendering
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.field private class [mscorlib]System.EventHandler`1<class [System]System.ComponentModel.CancelEventArgs> Screensaver
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.field private class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SystemResume
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.field private class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SystemSuspend
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.field private class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> UserResized
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.field private bool '<IsFullscreen>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x2438
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldstr "SharpDX"
+		IL_0006: call instance void SharpDX.Windows.RenderForm::.ctor(string)
+		IL_000b: ret
+	} // end of method RenderForm::.ctor
+
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string text
+		) cil managed 
+	{
+		// Method begins at RVA 0x2448
+		// Header size: 12
+		// Code size: 79 (0x4f)
+		.maxstack 3
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [System.Windows.Forms]System.Windows.Forms.Form::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: callvirt instance void [System.Windows.Forms]System.Windows.Forms.Control::set_Text(string)
+		IL_000d: ldarg.0
+		IL_000e: ldc.i4 800
+		IL_0013: ldc.i4 600
+		IL_0018: newobj instance void [System.Drawing]System.Drawing.Size::.ctor(int32, int32)
+		IL_001d: call instance void [System.Windows.Forms]System.Windows.Forms.Form::set_ClientSize(valuetype [System.Drawing]System.Drawing.Size)
+		IL_0022: ldarg.0
+		IL_0023: ldc.i4.1
+		IL_0024: call instance void [System.Windows.Forms]System.Windows.Forms.Control::set_ResizeRedraw(bool)
+		IL_0029: ldarg.0
+		IL_002a: ldc.i4 8194
+		IL_002f: ldc.i4.1
+		IL_0030: call instance void [System.Windows.Forms]System.Windows.Forms.Control::SetStyle(valuetype [System.Windows.Forms]System.Windows.Forms.ControlStyles, bool)
+		IL_0035: ldarg.0
+		IL_0036: call class [System.Drawing]System.Drawing.Icon SharpDX.Desktop.Properties.Resources::get_logo()
+		IL_003b: call instance void [System.Windows.Forms]System.Windows.Forms.Form::set_Icon(class [System.Drawing]System.Drawing.Icon)
+		IL_0040: ldarg.0
+		IL_0041: ldc.i4.0
+		IL_0042: stfld valuetype [System.Windows.Forms]System.Windows.Forms.FormWindowState SharpDX.Windows.RenderForm::previousWindowState
+		IL_0047: ldarg.0
+		IL_0048: ldc.i4.1
+		IL_0049: call instance void SharpDX.Windows.RenderForm::set_AllowUserResizing(bool)
+		IL_004e: ret
+	} // end of method RenderForm::.ctor
+
+	.method public hidebysig specialname 
+		instance void add_AppActivated (
+			class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x24a4
+		// Header size: 12
+		// Code size: 41 (0x29)
+		.maxstack 3
+		.locals init (
+			[0] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>,
+			[1] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>,
+			[2] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::AppActivated
+		IL_0006: stloc.0
+		// loop start (head: IL_0007)
+			IL_0007: ldloc.0
+			IL_0008: stloc.1
+			IL_0009: ldloc.1
+			IL_000a: ldarg.1
+			IL_000b: call class [mscorlib]System.Delegate [mscorlib]System.Delegate::Combine(class [mscorlib]System.Delegate, class [mscorlib]System.Delegate)
+			IL_0010: castclass class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>
+			IL_0015: stloc.2
+			IL_0016: ldarg.0
+			IL_0017: ldflda class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::AppActivated
+			IL_001c: ldloc.2
+			IL_001d: ldloc.1
+			IL_001e: call !!0 [mscorlib]System.Threading.Interlocked::CompareExchange<class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>>(!!0&, !!0, !!0)
+			IL_0023: stloc.0
+			IL_0024: ldloc.0
+			IL_0025: ldloc.1
+			IL_0026: bne.un.s IL_0007
+		// end loop
+		IL_0028: ret
+	} // end of method RenderForm::add_AppActivated
+
+	.method public hidebysig specialname 
+		instance void remove_AppActivated (
+			class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x24dc
+		// Header size: 12
+		// Code size: 41 (0x29)
+		.maxstack 3
+		.locals init (
+			[0] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>,
+			[1] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>,
+			[2] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::AppActivated
+		IL_0006: stloc.0
+		// loop start (head: IL_0007)
+			IL_0007: ldloc.0
+			IL_0008: stloc.1
+			IL_0009: ldloc.1
+			IL_000a: ldarg.1
+			IL_000b: call class [mscorlib]System.Delegate [mscorlib]System.Delegate::Remove(class [mscorlib]System.Delegate, class [mscorlib]System.Delegate)
+			IL_0010: castclass class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>
+			IL_0015: stloc.2
+			IL_0016: ldarg.0
+			IL_0017: ldflda class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::AppActivated
+			IL_001c: ldloc.2
+			IL_001d: ldloc.1
+			IL_001e: call !!0 [mscorlib]System.Threading.Interlocked::CompareExchange<class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>>(!!0&, !!0, !!0)
+			IL_0023: stloc.0
+			IL_0024: ldloc.0
+			IL_0025: ldloc.1
+			IL_0026: bne.un.s IL_0007
+		// end loop
+		IL_0028: ret
+	} // end of method RenderForm::remove_AppActivated
+
+	.method public hidebysig specialname 
+		instance void add_AppDeactivated (
+			class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2514
+		// Header size: 12
+		// Code size: 41 (0x29)
+		.maxstack 3
+		.locals init (
+			[0] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>,
+			[1] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>,
+			[2] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::AppDeactivated
+		IL_0006: stloc.0
+		// loop start (head: IL_0007)
+			IL_0007: ldloc.0
+			IL_0008: stloc.1
+			IL_0009: ldloc.1
+			IL_000a: ldarg.1
+			IL_000b: call class [mscorlib]System.Delegate [mscorlib]System.Delegate::Combine(class [mscorlib]System.Delegate, class [mscorlib]System.Delegate)
+			IL_0010: castclass class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>
+			IL_0015: stloc.2
+			IL_0016: ldarg.0
+			IL_0017: ldflda class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::AppDeactivated
+			IL_001c: ldloc.2
+			IL_001d: ldloc.1
+			IL_001e: call !!0 [mscorlib]System.Threading.Interlocked::CompareExchange<class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>>(!!0&, !!0, !!0)
+			IL_0023: stloc.0
+			IL_0024: ldloc.0
+			IL_0025: ldloc.1
+			IL_0026: bne.un.s IL_0007
+		// end loop
+		IL_0028: ret
+	} // end of method RenderForm::add_AppDeactivated
+
+	.method public hidebysig specialname 
+		instance void remove_AppDeactivated (
+			class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x254c
+		// Header size: 12
+		// Code size: 41 (0x29)
+		.maxstack 3
+		.locals init (
+			[0] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>,
+			[1] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>,
+			[2] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::AppDeactivated
+		IL_0006: stloc.0
+		// loop start (head: IL_0007)
+			IL_0007: ldloc.0
+			IL_0008: stloc.1
+			IL_0009: ldloc.1
+			IL_000a: ldarg.1
+			IL_000b: call class [mscorlib]System.Delegate [mscorlib]System.Delegate::Remove(class [mscorlib]System.Delegate, class [mscorlib]System.Delegate)
+			IL_0010: castclass class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>
+			IL_0015: stloc.2
+			IL_0016: ldarg.0
+			IL_0017: ldflda class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::AppDeactivated
+			IL_001c: ldloc.2
+			IL_001d: ldloc.1
+			IL_001e: call !!0 [mscorlib]System.Threading.Interlocked::CompareExchange<class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>>(!!0&, !!0, !!0)
+			IL_0023: stloc.0
+			IL_0024: ldloc.0
+			IL_0025: ldloc.1
+			IL_0026: bne.un.s IL_0007
+		// end loop
+		IL_0028: ret
+	} // end of method RenderForm::remove_AppDeactivated
+
+	.method public hidebysig specialname 
+		instance void add_MonitorChanged (
+			class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2584
+		// Header size: 12
+		// Code size: 41 (0x29)
+		.maxstack 3
+		.locals init (
+			[0] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>,
+			[1] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>,
+			[2] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::MonitorChanged
+		IL_0006: stloc.0
+		// loop start (head: IL_0007)
+			IL_0007: ldloc.0
+			IL_0008: stloc.1
+			IL_0009: ldloc.1
+			IL_000a: ldarg.1
+			IL_000b: call class [mscorlib]System.Delegate [mscorlib]System.Delegate::Combine(class [mscorlib]System.Delegate, class [mscorlib]System.Delegate)
+			IL_0010: castclass class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>
+			IL_0015: stloc.2
+			IL_0016: ldarg.0
+			IL_0017: ldflda class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::MonitorChanged
+			IL_001c: ldloc.2
+			IL_001d: ldloc.1
+			IL_001e: call !!0 [mscorlib]System.Threading.Interlocked::CompareExchange<class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>>(!!0&, !!0, !!0)
+			IL_0023: stloc.0
+			IL_0024: ldloc.0
+			IL_0025: ldloc.1
+			IL_0026: bne.un.s IL_0007
+		// end loop
+		IL_0028: ret
+	} // end of method RenderForm::add_MonitorChanged
+
+	.method public hidebysig specialname 
+		instance void remove_MonitorChanged (
+			class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x25bc
+		// Header size: 12
+		// Code size: 41 (0x29)
+		.maxstack 3
+		.locals init (
+			[0] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>,
+			[1] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>,
+			[2] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::MonitorChanged
+		IL_0006: stloc.0
+		// loop start (head: IL_0007)
+			IL_0007: ldloc.0
+			IL_0008: stloc.1
+			IL_0009: ldloc.1
+			IL_000a: ldarg.1
+			IL_000b: call class [mscorlib]System.Delegate [mscorlib]System.Delegate::Remove(class [mscorlib]System.Delegate, class [mscorlib]System.Delegate)
+			IL_0010: castclass class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>
+			IL_0015: stloc.2
+			IL_0016: ldarg.0
+			IL_0017: ldflda class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::MonitorChanged
+			IL_001c: ldloc.2
+			IL_001d: ldloc.1
+			IL_001e: call !!0 [mscorlib]System.Threading.Interlocked::CompareExchange<class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>>(!!0&, !!0, !!0)
+			IL_0023: stloc.0
+			IL_0024: ldloc.0
+			IL_0025: ldloc.1
+			IL_0026: bne.un.s IL_0007
+		// end loop
+		IL_0028: ret
+	} // end of method RenderForm::remove_MonitorChanged
+
+	.method public hidebysig specialname 
+		instance void add_PauseRendering (
+			class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x25f4
+		// Header size: 12
+		// Code size: 41 (0x29)
+		.maxstack 3
+		.locals init (
+			[0] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>,
+			[1] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>,
+			[2] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::PauseRendering
+		IL_0006: stloc.0
+		// loop start (head: IL_0007)
+			IL_0007: ldloc.0
+			IL_0008: stloc.1
+			IL_0009: ldloc.1
+			IL_000a: ldarg.1
+			IL_000b: call class [mscorlib]System.Delegate [mscorlib]System.Delegate::Combine(class [mscorlib]System.Delegate, class [mscorlib]System.Delegate)
+			IL_0010: castclass class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>
+			IL_0015: stloc.2
+			IL_0016: ldarg.0
+			IL_0017: ldflda class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::PauseRendering
+			IL_001c: ldloc.2
+			IL_001d: ldloc.1
+			IL_001e: call !!0 [mscorlib]System.Threading.Interlocked::CompareExchange<class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>>(!!0&, !!0, !!0)
+			IL_0023: stloc.0
+			IL_0024: ldloc.0
+			IL_0025: ldloc.1
+			IL_0026: bne.un.s IL_0007
+		// end loop
+		IL_0028: ret
+	} // end of method RenderForm::add_PauseRendering
+
+	.method public hidebysig specialname 
+		instance void remove_PauseRendering (
+			class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x262c
+		// Header size: 12
+		// Code size: 41 (0x29)
+		.maxstack 3
+		.locals init (
+			[0] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>,
+			[1] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>,
+			[2] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::PauseRendering
+		IL_0006: stloc.0
+		// loop start (head: IL_0007)
+			IL_0007: ldloc.0
+			IL_0008: stloc.1
+			IL_0009: ldloc.1
+			IL_000a: ldarg.1
+			IL_000b: call class [mscorlib]System.Delegate [mscorlib]System.Delegate::Remove(class [mscorlib]System.Delegate, class [mscorlib]System.Delegate)
+			IL_0010: castclass class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>
+			IL_0015: stloc.2
+			IL_0016: ldarg.0
+			IL_0017: ldflda class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::PauseRendering
+			IL_001c: ldloc.2
+			IL_001d: ldloc.1
+			IL_001e: call !!0 [mscorlib]System.Threading.Interlocked::CompareExchange<class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>>(!!0&, !!0, !!0)
+			IL_0023: stloc.0
+			IL_0024: ldloc.0
+			IL_0025: ldloc.1
+			IL_0026: bne.un.s IL_0007
+		// end loop
+		IL_0028: ret
+	} // end of method RenderForm::remove_PauseRendering
+
+	.method public hidebysig specialname 
+		instance void add_ResumeRendering (
+			class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2664
+		// Header size: 12
+		// Code size: 41 (0x29)
+		.maxstack 3
+		.locals init (
+			[0] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>,
+			[1] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>,
+			[2] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::ResumeRendering
+		IL_0006: stloc.0
+		// loop start (head: IL_0007)
+			IL_0007: ldloc.0
+			IL_0008: stloc.1
+			IL_0009: ldloc.1
+			IL_000a: ldarg.1
+			IL_000b: call class [mscorlib]System.Delegate [mscorlib]System.Delegate::Combine(class [mscorlib]System.Delegate, class [mscorlib]System.Delegate)
+			IL_0010: castclass class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>
+			IL_0015: stloc.2
+			IL_0016: ldarg.0
+			IL_0017: ldflda class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::ResumeRendering
+			IL_001c: ldloc.2
+			IL_001d: ldloc.1
+			IL_001e: call !!0 [mscorlib]System.Threading.Interlocked::CompareExchange<class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>>(!!0&, !!0, !!0)
+			IL_0023: stloc.0
+			IL_0024: ldloc.0
+			IL_0025: ldloc.1
+			IL_0026: bne.un.s IL_0007
+		// end loop
+		IL_0028: ret
+	} // end of method RenderForm::add_ResumeRendering
+
+	.method public hidebysig specialname 
+		instance void remove_ResumeRendering (
+			class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x269c
+		// Header size: 12
+		// Code size: 41 (0x29)
+		.maxstack 3
+		.locals init (
+			[0] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>,
+			[1] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>,
+			[2] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::ResumeRendering
+		IL_0006: stloc.0
+		// loop start (head: IL_0007)
+			IL_0007: ldloc.0
+			IL_0008: stloc.1
+			IL_0009: ldloc.1
+			IL_000a: ldarg.1
+			IL_000b: call class [mscorlib]System.Delegate [mscorlib]System.Delegate::Remove(class [mscorlib]System.Delegate, class [mscorlib]System.Delegate)
+			IL_0010: castclass class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>
+			IL_0015: stloc.2
+			IL_0016: ldarg.0
+			IL_0017: ldflda class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::ResumeRendering
+			IL_001c: ldloc.2
+			IL_001d: ldloc.1
+			IL_001e: call !!0 [mscorlib]System.Threading.Interlocked::CompareExchange<class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>>(!!0&, !!0, !!0)
+			IL_0023: stloc.0
+			IL_0024: ldloc.0
+			IL_0025: ldloc.1
+			IL_0026: bne.un.s IL_0007
+		// end loop
+		IL_0028: ret
+	} // end of method RenderForm::remove_ResumeRendering
+
+	.method public hidebysig specialname 
+		instance void add_Screensaver (
+			class [mscorlib]System.EventHandler`1<class [System]System.ComponentModel.CancelEventArgs> 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x26d4
+		// Header size: 12
+		// Code size: 41 (0x29)
+		.maxstack 3
+		.locals init (
+			[0] class [mscorlib]System.EventHandler`1<class [System]System.ComponentModel.CancelEventArgs>,
+			[1] class [mscorlib]System.EventHandler`1<class [System]System.ComponentModel.CancelEventArgs>,
+			[2] class [mscorlib]System.EventHandler`1<class [System]System.ComponentModel.CancelEventArgs>
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [mscorlib]System.EventHandler`1<class [System]System.ComponentModel.CancelEventArgs> SharpDX.Windows.RenderForm::Screensaver
+		IL_0006: stloc.0
+		// loop start (head: IL_0007)
+			IL_0007: ldloc.0
+			IL_0008: stloc.1
+			IL_0009: ldloc.1
+			IL_000a: ldarg.1
+			IL_000b: call class [mscorlib]System.Delegate [mscorlib]System.Delegate::Combine(class [mscorlib]System.Delegate, class [mscorlib]System.Delegate)
+			IL_0010: castclass class [mscorlib]System.EventHandler`1<class [System]System.ComponentModel.CancelEventArgs>
+			IL_0015: stloc.2
+			IL_0016: ldarg.0
+			IL_0017: ldflda class [mscorlib]System.EventHandler`1<class [System]System.ComponentModel.CancelEventArgs> SharpDX.Windows.RenderForm::Screensaver
+			IL_001c: ldloc.2
+			IL_001d: ldloc.1
+			IL_001e: call !!0 [mscorlib]System.Threading.Interlocked::CompareExchange<class [mscorlib]System.EventHandler`1<class [System]System.ComponentModel.CancelEventArgs>>(!!0&, !!0, !!0)
+			IL_0023: stloc.0
+			IL_0024: ldloc.0
+			IL_0025: ldloc.1
+			IL_0026: bne.un.s IL_0007
+		// end loop
+		IL_0028: ret
+	} // end of method RenderForm::add_Screensaver
+
+	.method public hidebysig specialname 
+		instance void remove_Screensaver (
+			class [mscorlib]System.EventHandler`1<class [System]System.ComponentModel.CancelEventArgs> 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x270c
+		// Header size: 12
+		// Code size: 41 (0x29)
+		.maxstack 3
+		.locals init (
+			[0] class [mscorlib]System.EventHandler`1<class [System]System.ComponentModel.CancelEventArgs>,
+			[1] class [mscorlib]System.EventHandler`1<class [System]System.ComponentModel.CancelEventArgs>,
+			[2] class [mscorlib]System.EventHandler`1<class [System]System.ComponentModel.CancelEventArgs>
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [mscorlib]System.EventHandler`1<class [System]System.ComponentModel.CancelEventArgs> SharpDX.Windows.RenderForm::Screensaver
+		IL_0006: stloc.0
+		// loop start (head: IL_0007)
+			IL_0007: ldloc.0
+			IL_0008: stloc.1
+			IL_0009: ldloc.1
+			IL_000a: ldarg.1
+			IL_000b: call class [mscorlib]System.Delegate [mscorlib]System.Delegate::Remove(class [mscorlib]System.Delegate, class [mscorlib]System.Delegate)
+			IL_0010: castclass class [mscorlib]System.EventHandler`1<class [System]System.ComponentModel.CancelEventArgs>
+			IL_0015: stloc.2
+			IL_0016: ldarg.0
+			IL_0017: ldflda class [mscorlib]System.EventHandler`1<class [System]System.ComponentModel.CancelEventArgs> SharpDX.Windows.RenderForm::Screensaver
+			IL_001c: ldloc.2
+			IL_001d: ldloc.1
+			IL_001e: call !!0 [mscorlib]System.Threading.Interlocked::CompareExchange<class [mscorlib]System.EventHandler`1<class [System]System.ComponentModel.CancelEventArgs>>(!!0&, !!0, !!0)
+			IL_0023: stloc.0
+			IL_0024: ldloc.0
+			IL_0025: ldloc.1
+			IL_0026: bne.un.s IL_0007
+		// end loop
+		IL_0028: ret
+	} // end of method RenderForm::remove_Screensaver
+
+	.method public hidebysig specialname 
+		instance void add_SystemResume (
+			class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2744
+		// Header size: 12
+		// Code size: 41 (0x29)
+		.maxstack 3
+		.locals init (
+			[0] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>,
+			[1] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>,
+			[2] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::SystemResume
+		IL_0006: stloc.0
+		// loop start (head: IL_0007)
+			IL_0007: ldloc.0
+			IL_0008: stloc.1
+			IL_0009: ldloc.1
+			IL_000a: ldarg.1
+			IL_000b: call class [mscorlib]System.Delegate [mscorlib]System.Delegate::Combine(class [mscorlib]System.Delegate, class [mscorlib]System.Delegate)
+			IL_0010: castclass class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>
+			IL_0015: stloc.2
+			IL_0016: ldarg.0
+			IL_0017: ldflda class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::SystemResume
+			IL_001c: ldloc.2
+			IL_001d: ldloc.1
+			IL_001e: call !!0 [mscorlib]System.Threading.Interlocked::CompareExchange<class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>>(!!0&, !!0, !!0)
+			IL_0023: stloc.0
+			IL_0024: ldloc.0
+			IL_0025: ldloc.1
+			IL_0026: bne.un.s IL_0007
+		// end loop
+		IL_0028: ret
+	} // end of method RenderForm::add_SystemResume
+
+	.method public hidebysig specialname 
+		instance void remove_SystemResume (
+			class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x277c
+		// Header size: 12
+		// Code size: 41 (0x29)
+		.maxstack 3
+		.locals init (
+			[0] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>,
+			[1] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>,
+			[2] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::SystemResume
+		IL_0006: stloc.0
+		// loop start (head: IL_0007)
+			IL_0007: ldloc.0
+			IL_0008: stloc.1
+			IL_0009: ldloc.1
+			IL_000a: ldarg.1
+			IL_000b: call class [mscorlib]System.Delegate [mscorlib]System.Delegate::Remove(class [mscorlib]System.Delegate, class [mscorlib]System.Delegate)
+			IL_0010: castclass class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>
+			IL_0015: stloc.2
+			IL_0016: ldarg.0
+			IL_0017: ldflda class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::SystemResume
+			IL_001c: ldloc.2
+			IL_001d: ldloc.1
+			IL_001e: call !!0 [mscorlib]System.Threading.Interlocked::CompareExchange<class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>>(!!0&, !!0, !!0)
+			IL_0023: stloc.0
+			IL_0024: ldloc.0
+			IL_0025: ldloc.1
+			IL_0026: bne.un.s IL_0007
+		// end loop
+		IL_0028: ret
+	} // end of method RenderForm::remove_SystemResume
+
+	.method public hidebysig specialname 
+		instance void add_SystemSuspend (
+			class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x27b4
+		// Header size: 12
+		// Code size: 41 (0x29)
+		.maxstack 3
+		.locals init (
+			[0] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>,
+			[1] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>,
+			[2] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::SystemSuspend
+		IL_0006: stloc.0
+		// loop start (head: IL_0007)
+			IL_0007: ldloc.0
+			IL_0008: stloc.1
+			IL_0009: ldloc.1
+			IL_000a: ldarg.1
+			IL_000b: call class [mscorlib]System.Delegate [mscorlib]System.Delegate::Combine(class [mscorlib]System.Delegate, class [mscorlib]System.Delegate)
+			IL_0010: castclass class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>
+			IL_0015: stloc.2
+			IL_0016: ldarg.0
+			IL_0017: ldflda class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::SystemSuspend
+			IL_001c: ldloc.2
+			IL_001d: ldloc.1
+			IL_001e: call !!0 [mscorlib]System.Threading.Interlocked::CompareExchange<class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>>(!!0&, !!0, !!0)
+			IL_0023: stloc.0
+			IL_0024: ldloc.0
+			IL_0025: ldloc.1
+			IL_0026: bne.un.s IL_0007
+		// end loop
+		IL_0028: ret
+	} // end of method RenderForm::add_SystemSuspend
+
+	.method public hidebysig specialname 
+		instance void remove_SystemSuspend (
+			class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x27ec
+		// Header size: 12
+		// Code size: 41 (0x29)
+		.maxstack 3
+		.locals init (
+			[0] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>,
+			[1] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>,
+			[2] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::SystemSuspend
+		IL_0006: stloc.0
+		// loop start (head: IL_0007)
+			IL_0007: ldloc.0
+			IL_0008: stloc.1
+			IL_0009: ldloc.1
+			IL_000a: ldarg.1
+			IL_000b: call class [mscorlib]System.Delegate [mscorlib]System.Delegate::Remove(class [mscorlib]System.Delegate, class [mscorlib]System.Delegate)
+			IL_0010: castclass class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>
+			IL_0015: stloc.2
+			IL_0016: ldarg.0
+			IL_0017: ldflda class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::SystemSuspend
+			IL_001c: ldloc.2
+			IL_001d: ldloc.1
+			IL_001e: call !!0 [mscorlib]System.Threading.Interlocked::CompareExchange<class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>>(!!0&, !!0, !!0)
+			IL_0023: stloc.0
+			IL_0024: ldloc.0
+			IL_0025: ldloc.1
+			IL_0026: bne.un.s IL_0007
+		// end loop
+		IL_0028: ret
+	} // end of method RenderForm::remove_SystemSuspend
+
+	.method public hidebysig specialname 
+		instance void add_UserResized (
+			class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2824
+		// Header size: 12
+		// Code size: 41 (0x29)
+		.maxstack 3
+		.locals init (
+			[0] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>,
+			[1] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>,
+			[2] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::UserResized
+		IL_0006: stloc.0
+		// loop start (head: IL_0007)
+			IL_0007: ldloc.0
+			IL_0008: stloc.1
+			IL_0009: ldloc.1
+			IL_000a: ldarg.1
+			IL_000b: call class [mscorlib]System.Delegate [mscorlib]System.Delegate::Combine(class [mscorlib]System.Delegate, class [mscorlib]System.Delegate)
+			IL_0010: castclass class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>
+			IL_0015: stloc.2
+			IL_0016: ldarg.0
+			IL_0017: ldflda class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::UserResized
+			IL_001c: ldloc.2
+			IL_001d: ldloc.1
+			IL_001e: call !!0 [mscorlib]System.Threading.Interlocked::CompareExchange<class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>>(!!0&, !!0, !!0)
+			IL_0023: stloc.0
+			IL_0024: ldloc.0
+			IL_0025: ldloc.1
+			IL_0026: bne.un.s IL_0007
+		// end loop
+		IL_0028: ret
+	} // end of method RenderForm::add_UserResized
+
+	.method public hidebysig specialname 
+		instance void remove_UserResized (
+			class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x285c
+		// Header size: 12
+		// Code size: 41 (0x29)
+		.maxstack 3
+		.locals init (
+			[0] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>,
+			[1] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>,
+			[2] class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::UserResized
+		IL_0006: stloc.0
+		// loop start (head: IL_0007)
+			IL_0007: ldloc.0
+			IL_0008: stloc.1
+			IL_0009: ldloc.1
+			IL_000a: ldarg.1
+			IL_000b: call class [mscorlib]System.Delegate [mscorlib]System.Delegate::Remove(class [mscorlib]System.Delegate, class [mscorlib]System.Delegate)
+			IL_0010: castclass class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>
+			IL_0015: stloc.2
+			IL_0016: ldarg.0
+			IL_0017: ldflda class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::UserResized
+			IL_001c: ldloc.2
+			IL_001d: ldloc.1
+			IL_001e: call !!0 [mscorlib]System.Threading.Interlocked::CompareExchange<class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>>(!!0&, !!0, !!0)
+			IL_0023: stloc.0
+			IL_0024: ldloc.0
+			IL_0025: ldloc.1
+			IL_0026: bne.un.s IL_0007
+		// end loop
+		IL_0028: ret
+	} // end of method RenderForm::remove_UserResized
+
+	.method public hidebysig specialname 
+		instance bool get_AllowUserResizing () cil managed 
+	{
+		// Method begins at RVA 0x2891
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld bool SharpDX.Windows.RenderForm::allowUserResizing
+		IL_0006: ret
+	} // end of method RenderForm::get_AllowUserResizing
+
+	.method public hidebysig specialname 
+		instance void set_AllowUserResizing (
+			bool 'value'
+		) cil managed 
+	{
+		// Method begins at RVA 0x2899
+		// Header size: 1
+		// Code size: 58 (0x3a)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld bool SharpDX.Windows.RenderForm::allowUserResizing
+		IL_0006: ldarg.1
+		IL_0007: beq.s IL_0039
+
+		IL_0009: ldarg.0
+		IL_000a: ldarg.1
+		IL_000b: stfld bool SharpDX.Windows.RenderForm::allowUserResizing
+		IL_0010: ldarg.0
+		IL_0011: ldarg.0
+		IL_0012: ldfld bool SharpDX.Windows.RenderForm::allowUserResizing
+		IL_0017: call instance void [System.Windows.Forms]System.Windows.Forms.Form::set_MaximizeBox(bool)
+		IL_001c: ldarg.0
+		IL_001d: ldarg.0
+		IL_001e: call instance bool SharpDX.Windows.RenderForm::get_IsFullscreen()
+		IL_0023: brtrue.s IL_0033
+
+		IL_0025: ldarg.0
+		IL_0026: ldfld bool SharpDX.Windows.RenderForm::allowUserResizing
+		IL_002b: brtrue.s IL_0030
+
+		IL_002d: ldc.i4.1
+		IL_002e: br.s IL_0034
+
+		IL_0030: ldc.i4.4
+		IL_0031: br.s IL_0034
+
+		IL_0033: ldc.i4.0
+
+		IL_0034: call instance void [System.Windows.Forms]System.Windows.Forms.Form::set_FormBorderStyle(valuetype [System.Windows.Forms]System.Windows.Forms.FormBorderStyle)
+
+		IL_0039: ret
+	} // end of method RenderForm::set_AllowUserResizing
+
+	.method public hidebysig specialname 
+		instance bool get_IsFullscreen () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x28d4
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld bool SharpDX.Windows.RenderForm::'<IsFullscreen>k__BackingField'
+		IL_0006: ret
+	} // end of method RenderForm::get_IsFullscreen
+
+	.method public hidebysig specialname 
+		instance void set_IsFullscreen (
+			bool 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x28dc
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: stfld bool SharpDX.Windows.RenderForm::'<IsFullscreen>k__BackingField'
+		IL_0007: ret
+	} // end of method RenderForm::set_IsFullscreen
+
+	.method family hidebysig virtual 
+		instance void OnResizeBegin (
+			class [mscorlib]System.EventArgs e
+		) cil managed 
+	{
+		// Method begins at RVA 0x28e5
+		// Header size: 1
+		// Code size: 34 (0x22)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldc.i4.1
+		IL_0002: stfld bool SharpDX.Windows.RenderForm::isUserResizing
+		IL_0007: ldarg.0
+		IL_0008: ldarg.1
+		IL_0009: call instance void [System.Windows.Forms]System.Windows.Forms.Form::OnResizeBegin(class [mscorlib]System.EventArgs)
+		IL_000e: ldarg.0
+		IL_000f: ldarg.0
+		IL_0010: call instance valuetype [System.Drawing]System.Drawing.Size [System.Windows.Forms]System.Windows.Forms.Form::get_Size()
+		IL_0015: stfld valuetype [System.Drawing]System.Drawing.Size SharpDX.Windows.RenderForm::cachedSize
+		IL_001a: ldarg.0
+		IL_001b: ldarg.1
+		IL_001c: call instance void SharpDX.Windows.RenderForm::OnPauseRendering(class [mscorlib]System.EventArgs)
+		IL_0021: ret
+	} // end of method RenderForm::OnResizeBegin
+
+	.method family hidebysig virtual 
+		instance void OnResizeEnd (
+			class [mscorlib]System.EventArgs e
+		) cil managed 
+	{
+		// Method begins at RVA 0x2908
+		// Header size: 1
+		// Code size: 56 (0x38)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: call instance void [System.Windows.Forms]System.Windows.Forms.Form::OnResizeEnd(class [mscorlib]System.EventArgs)
+		IL_0007: ldarg.0
+		IL_0008: ldfld bool SharpDX.Windows.RenderForm::isUserResizing
+		IL_000d: brfalse.s IL_0029
+
+		IL_000f: ldarg.0
+		IL_0010: ldfld valuetype [System.Drawing]System.Drawing.Size SharpDX.Windows.RenderForm::cachedSize
+		IL_0015: ldarg.0
+		IL_0016: call instance valuetype [System.Drawing]System.Drawing.Size [System.Windows.Forms]System.Windows.Forms.Form::get_Size()
+		IL_001b: call bool [System.Drawing]System.Drawing.Size::op_Inequality(valuetype [System.Drawing]System.Drawing.Size, valuetype [System.Drawing]System.Drawing.Size)
+		IL_0020: brfalse.s IL_0029
+
+		IL_0022: ldarg.0
+		IL_0023: ldarg.1
+		IL_0024: call instance void SharpDX.Windows.RenderForm::OnUserResized(class [mscorlib]System.EventArgs)
+
+		IL_0029: ldarg.0
+		IL_002a: ldc.i4.0
+		IL_002b: stfld bool SharpDX.Windows.RenderForm::isUserResizing
+		IL_0030: ldarg.0
+		IL_0031: ldarg.1
+		IL_0032: call instance void SharpDX.Windows.RenderForm::OnResumeRendering(class [mscorlib]System.EventArgs)
+		IL_0037: ret
+	} // end of method RenderForm::OnResizeEnd
+
+	.method family hidebysig virtual 
+		instance void OnLoad (
+			class [mscorlib]System.EventArgs e
+		) cil managed 
+	{
+		// Method begins at RVA 0x2941
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: call instance void [System.Windows.Forms]System.Windows.Forms.Form::OnLoad(class [mscorlib]System.EventArgs)
+		IL_0007: ret
+	} // end of method RenderForm::OnLoad
+
+	.method family hidebysig virtual 
+		instance void OnPaintBackground (
+			class [System.Windows.Forms]System.Windows.Forms.PaintEventArgs e
+		) cil managed 
+	{
+		// Method begins at RVA 0x294a
+		// Header size: 1
+		// Code size: 23 (0x17)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld bool SharpDX.Windows.RenderForm::isBackgroundFirstDraw
+		IL_0006: brtrue.s IL_0016
+
+		IL_0008: ldarg.0
+		IL_0009: ldarg.1
+		IL_000a: call instance void [System.Windows.Forms]System.Windows.Forms.ScrollableControl::OnPaintBackground(class [System.Windows.Forms]System.Windows.Forms.PaintEventArgs)
+		IL_000f: ldarg.0
+		IL_0010: ldc.i4.1
+		IL_0011: stfld bool SharpDX.Windows.RenderForm::isBackgroundFirstDraw
+
+		IL_0016: ret
+	} // end of method RenderForm::OnPaintBackground
+
+	.method private hidebysig 
+		instance void OnPauseRendering (
+			class [mscorlib]System.EventArgs e
+		) cil managed 
+	{
+		// Method begins at RVA 0x2962
+		// Header size: 1
+		// Code size: 22 (0x16)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::PauseRendering
+		IL_0006: brfalse.s IL_0015
+
+		IL_0008: ldarg.0
+		IL_0009: ldfld class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::PauseRendering
+		IL_000e: ldarg.0
+		IL_000f: ldarg.1
+		IL_0010: callvirt instance void class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>::Invoke(object, !0)
+
+		IL_0015: ret
+	} // end of method RenderForm::OnPauseRendering
+
+	.method private hidebysig 
+		instance void OnResumeRendering (
+			class [mscorlib]System.EventArgs e
+		) cil managed 
+	{
+		// Method begins at RVA 0x2979
+		// Header size: 1
+		// Code size: 22 (0x16)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::ResumeRendering
+		IL_0006: brfalse.s IL_0015
+
+		IL_0008: ldarg.0
+		IL_0009: ldfld class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::ResumeRendering
+		IL_000e: ldarg.0
+		IL_000f: ldarg.1
+		IL_0010: callvirt instance void class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>::Invoke(object, !0)
+
+		IL_0015: ret
+	} // end of method RenderForm::OnResumeRendering
+
+	.method private hidebysig 
+		instance void OnUserResized (
+			class [mscorlib]System.EventArgs e
+		) cil managed 
+	{
+		// Method begins at RVA 0x2990
+		// Header size: 1
+		// Code size: 22 (0x16)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::UserResized
+		IL_0006: brfalse.s IL_0015
+
+		IL_0008: ldarg.0
+		IL_0009: ldfld class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::UserResized
+		IL_000e: ldarg.0
+		IL_000f: ldarg.1
+		IL_0010: callvirt instance void class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>::Invoke(object, !0)
+
+		IL_0015: ret
+	} // end of method RenderForm::OnUserResized
+
+	.method private hidebysig 
+		instance void OnMonitorChanged (
+			class [mscorlib]System.EventArgs e
+		) cil managed 
+	{
+		// Method begins at RVA 0x29a7
+		// Header size: 1
+		// Code size: 22 (0x16)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::MonitorChanged
+		IL_0006: brfalse.s IL_0015
+
+		IL_0008: ldarg.0
+		IL_0009: ldfld class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::MonitorChanged
+		IL_000e: ldarg.0
+		IL_000f: ldarg.1
+		IL_0010: callvirt instance void class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>::Invoke(object, !0)
+
+		IL_0015: ret
+	} // end of method RenderForm::OnMonitorChanged
+
+	.method private hidebysig 
+		instance void OnAppActivated (
+			class [mscorlib]System.EventArgs e
+		) cil managed 
+	{
+		// Method begins at RVA 0x29be
+		// Header size: 1
+		// Code size: 22 (0x16)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::AppActivated
+		IL_0006: brfalse.s IL_0015
+
+		IL_0008: ldarg.0
+		IL_0009: ldfld class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::AppActivated
+		IL_000e: ldarg.0
+		IL_000f: ldarg.1
+		IL_0010: callvirt instance void class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>::Invoke(object, !0)
+
+		IL_0015: ret
+	} // end of method RenderForm::OnAppActivated
+
+	.method private hidebysig 
+		instance void OnAppDeactivated (
+			class [mscorlib]System.EventArgs e
+		) cil managed 
+	{
+		// Method begins at RVA 0x29d5
+		// Header size: 1
+		// Code size: 22 (0x16)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::AppDeactivated
+		IL_0006: brfalse.s IL_0015
+
+		IL_0008: ldarg.0
+		IL_0009: ldfld class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::AppDeactivated
+		IL_000e: ldarg.0
+		IL_000f: ldarg.1
+		IL_0010: callvirt instance void class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>::Invoke(object, !0)
+
+		IL_0015: ret
+	} // end of method RenderForm::OnAppDeactivated
+
+	.method private hidebysig 
+		instance void OnSystemSuspend (
+			class [mscorlib]System.EventArgs e
+		) cil managed 
+	{
+		// Method begins at RVA 0x29ec
+		// Header size: 1
+		// Code size: 22 (0x16)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::SystemSuspend
+		IL_0006: brfalse.s IL_0015
+
+		IL_0008: ldarg.0
+		IL_0009: ldfld class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::SystemSuspend
+		IL_000e: ldarg.0
+		IL_000f: ldarg.1
+		IL_0010: callvirt instance void class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>::Invoke(object, !0)
+
+		IL_0015: ret
+	} // end of method RenderForm::OnSystemSuspend
+
+	.method private hidebysig 
+		instance void OnSystemResume (
+			class [mscorlib]System.EventArgs e
+		) cil managed 
+	{
+		// Method begins at RVA 0x2a03
+		// Header size: 1
+		// Code size: 22 (0x16)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::SystemResume
+		IL_0006: brfalse.s IL_0015
+
+		IL_0008: ldarg.0
+		IL_0009: ldfld class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SharpDX.Windows.RenderForm::SystemResume
+		IL_000e: ldarg.0
+		IL_000f: ldarg.1
+		IL_0010: callvirt instance void class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>::Invoke(object, !0)
+
+		IL_0015: ret
+	} // end of method RenderForm::OnSystemResume
+
+	.method private hidebysig 
+		instance void OnScreensaver (
+			class [System]System.ComponentModel.CancelEventArgs e
+		) cil managed 
+	{
+		// Method begins at RVA 0x2a1a
+		// Header size: 1
+		// Code size: 22 (0x16)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [mscorlib]System.EventHandler`1<class [System]System.ComponentModel.CancelEventArgs> SharpDX.Windows.RenderForm::Screensaver
+		IL_0006: brfalse.s IL_0015
+
+		IL_0008: ldarg.0
+		IL_0009: ldfld class [mscorlib]System.EventHandler`1<class [System]System.ComponentModel.CancelEventArgs> SharpDX.Windows.RenderForm::Screensaver
+		IL_000e: ldarg.0
+		IL_000f: ldarg.1
+		IL_0010: callvirt instance void class [mscorlib]System.EventHandler`1<class [System]System.ComponentModel.CancelEventArgs>::Invoke(object, !0)
+
+		IL_0015: ret
+	} // end of method RenderForm::OnScreensaver
+
+	.method family hidebysig virtual 
+		instance void OnClientSizeChanged (
+			class [mscorlib]System.EventArgs e
+		) cil managed 
+	{
+		// Method begins at RVA 0x2a34
+		// Header size: 12
+		// Code size: 73 (0x49)
+		.maxstack 2
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: call instance void [System.Windows.Forms]System.Windows.Forms.Control::OnClientSizeChanged(class [mscorlib]System.EventArgs)
+		IL_0007: ldarg.0
+		IL_0008: ldfld bool SharpDX.Windows.RenderForm::isUserResizing
+		IL_000d: brtrue.s IL_0048
+
+		IL_000f: ldarg.0
+		IL_0010: ldfld bool SharpDX.Windows.RenderForm::isSizeChangedWithoutResizeBegin
+		IL_0015: brtrue.s IL_002a
+
+		IL_0017: ldarg.0
+		IL_0018: ldfld valuetype [System.Drawing]System.Drawing.Size SharpDX.Windows.RenderForm::cachedSize
+		IL_001d: ldarg.0
+		IL_001e: call instance valuetype [System.Drawing]System.Drawing.Size [System.Windows.Forms]System.Windows.Forms.Form::get_Size()
+		IL_0023: call bool [System.Drawing]System.Drawing.Size::op_Inequality(valuetype [System.Drawing]System.Drawing.Size, valuetype [System.Drawing]System.Drawing.Size)
+		IL_0028: brfalse.s IL_0048
+
+		IL_002a: ldarg.0
+		IL_002b: ldc.i4.0
+		IL_002c: stfld bool SharpDX.Windows.RenderForm::isSizeChangedWithoutResizeBegin
+		IL_0031: ldarg.0
+		IL_0032: ldarg.0
+		IL_0033: call instance valuetype [System.Drawing]System.Drawing.Size [System.Windows.Forms]System.Windows.Forms.Form::get_Size()
+		IL_0038: stfld valuetype [System.Drawing]System.Drawing.Size SharpDX.Windows.RenderForm::cachedSize
+		IL_003d: ldarg.0
+		IL_003e: ldsfld class [mscorlib]System.EventArgs [mscorlib]System.EventArgs::Empty
+		IL_0043: call instance void SharpDX.Windows.RenderForm::OnUserResized(class [mscorlib]System.EventArgs)
+
+		IL_0048: ret
+	} // end of method RenderForm::OnClientSizeChanged
+
+	.method family hidebysig virtual 
+		instance void WndProc (
+			valuetype [System.Windows.Forms]System.Windows.Forms.Message& m
+		) cil managed 
+	{
+		// Method begins at RVA 0x2a8c
+		// Header size: 12
+		// Code size: 514 (0x202)
+		.maxstack 2
+		.locals init (
+			[0] int64,
+			[1] native int,
+			[2] int32,
+			[3] valuetype [SharpDX]SharpDX.Mathematics.Interop.RawRectangle,
+			[4] class [System]System.ComponentModel.CancelEventArgs
+		)
+
+		IL_0000: ldarg.1
+		IL_0001: call instance native int [System.Windows.Forms]System.Windows.Forms.Message::get_WParam()
+		IL_0006: stloc.1
+		IL_0007: ldloca.s 1
+		IL_0009: call instance int64 [mscorlib]System.IntPtr::ToInt64()
+		IL_000e: stloc.0
+		IL_000f: ldarg.1
+		IL_0010: call instance int32 [System.Windows.Forms]System.Windows.Forms.Message::get_Msg()
+		IL_0015: stloc.2
+		IL_0016: ldloc.2
+		IL_0017: ldc.i4.s 126
+		IL_0019: bgt.s IL_0034
+
+		IL_001b: ldloc.2
+		IL_001c: ldc.i4.5
+		IL_001d: beq.s IL_005a
+
+		IL_001f: ldloc.2
+		IL_0020: ldc.i4.s 28
+		IL_0022: beq IL_0144
+
+		IL_0027: ldloc.2
+		IL_0028: ldc.i4.s 126
+		IL_002a: beq IL_01ef
+
+		IL_002f: br IL_01fa
+
+		IL_0034: ldloc.2
+		IL_0035: ldc.i4 274
+		IL_003a: beq IL_01b0
+
+		IL_003f: ldloc.2
+		IL_0040: ldc.i4 288
+		IL_0045: beq IL_019f
+
+		IL_004a: ldloc.2
+		IL_004b: ldc.i4 536
+		IL_0050: beq IL_0167
+
+		IL_0055: br IL_01fa
+
+		IL_005a: ldloc.0
+		IL_005b: ldc.i4.1
+		IL_005c: conv.i8
+		IL_005d: bne.un.s IL_0076
+
+		IL_005f: ldarg.0
+		IL_0060: ldc.i4.1
+		IL_0061: stfld valuetype [System.Windows.Forms]System.Windows.Forms.FormWindowState SharpDX.Windows.RenderForm::previousWindowState
+		IL_0066: ldarg.0
+		IL_0067: ldsfld class [mscorlib]System.EventArgs [mscorlib]System.EventArgs::Empty
+		IL_006c: call instance void SharpDX.Windows.RenderForm::OnPauseRendering(class [mscorlib]System.EventArgs)
+		IL_0071: br IL_01fa
+
+		IL_0076: ldarg.1
+		IL_0077: call instance native int [System.Windows.Forms]System.Windows.Forms.Message::get_HWnd()
+		IL_007c: ldloca.s 3
+		IL_007e: call bool SharpDX.Win32Native::GetClientRect(native int, valuetype [SharpDX]SharpDX.Mathematics.Interop.RawRectangle&)
+		IL_0083: pop
+		IL_0084: ldloc.3
+		IL_0085: ldfld int32 [SharpDX]SharpDX.Mathematics.Interop.RawRectangle::Bottom
+		IL_008a: ldloc.3
+		IL_008b: ldfld int32 [SharpDX]SharpDX.Mathematics.Interop.RawRectangle::Top
+		IL_0090: sub
+		IL_0091: brfalse IL_01fa
+
+		IL_0096: ldloc.0
+		IL_0097: ldc.i4.2
+		IL_0098: conv.i8
+		IL_0099: bne.un.s IL_00d2
+
+		IL_009b: ldarg.0
+		IL_009c: ldfld valuetype [System.Windows.Forms]System.Windows.Forms.FormWindowState SharpDX.Windows.RenderForm::previousWindowState
+		IL_00a1: ldc.i4.1
+		IL_00a2: bne.un.s IL_00af
+
+		IL_00a4: ldarg.0
+		IL_00a5: ldsfld class [mscorlib]System.EventArgs [mscorlib]System.EventArgs::Empty
+		IL_00aa: call instance void SharpDX.Windows.RenderForm::OnResumeRendering(class [mscorlib]System.EventArgs)
+
+		IL_00af: ldarg.0
+		IL_00b0: ldc.i4.2
+		IL_00b1: stfld valuetype [System.Windows.Forms]System.Windows.Forms.FormWindowState SharpDX.Windows.RenderForm::previousWindowState
+		IL_00b6: ldarg.0
+		IL_00b7: ldsfld class [mscorlib]System.EventArgs [mscorlib]System.EventArgs::Empty
+		IL_00bc: call instance void SharpDX.Windows.RenderForm::OnUserResized(class [mscorlib]System.EventArgs)
+		IL_00c1: ldarg.0
+		IL_00c2: ldarg.0
+		IL_00c3: call instance valuetype [System.Drawing]System.Drawing.Size [System.Windows.Forms]System.Windows.Forms.Form::get_Size()
+		IL_00c8: stfld valuetype [System.Drawing]System.Drawing.Size SharpDX.Windows.RenderForm::cachedSize
+		IL_00cd: br IL_01fa
+
+		IL_00d2: ldloc.0
+		IL_00d3: brtrue IL_01fa
+
+		IL_00d8: ldarg.0
+		IL_00d9: ldfld valuetype [System.Windows.Forms]System.Windows.Forms.FormWindowState SharpDX.Windows.RenderForm::previousWindowState
+		IL_00de: ldc.i4.1
+		IL_00df: bne.un.s IL_00ec
+
+		IL_00e1: ldarg.0
+		IL_00e2: ldsfld class [mscorlib]System.EventArgs [mscorlib]System.EventArgs::Empty
+		IL_00e7: call instance void SharpDX.Windows.RenderForm::OnResumeRendering(class [mscorlib]System.EventArgs)
+
+		IL_00ec: ldarg.0
+		IL_00ed: ldfld bool SharpDX.Windows.RenderForm::isUserResizing
+		IL_00f2: brtrue.s IL_0138
+
+		IL_00f4: ldarg.0
+		IL_00f5: call instance valuetype [System.Drawing]System.Drawing.Size [System.Windows.Forms]System.Windows.Forms.Form::get_Size()
+		IL_00fa: ldarg.0
+		IL_00fb: ldfld valuetype [System.Drawing]System.Drawing.Size SharpDX.Windows.RenderForm::cachedSize
+		IL_0100: call bool [System.Drawing]System.Drawing.Size::op_Inequality(valuetype [System.Drawing]System.Drawing.Size, valuetype [System.Drawing]System.Drawing.Size)
+		IL_0105: brtrue.s IL_0110
+
+		IL_0107: ldarg.0
+		IL_0108: ldfld valuetype [System.Windows.Forms]System.Windows.Forms.FormWindowState SharpDX.Windows.RenderForm::previousWindowState
+		IL_010d: ldc.i4.2
+		IL_010e: bne.un.s IL_0138
+
+		IL_0110: ldarg.0
+		IL_0111: ldc.i4.0
+		IL_0112: stfld valuetype [System.Windows.Forms]System.Windows.Forms.FormWindowState SharpDX.Windows.RenderForm::previousWindowState
+		IL_0117: ldarg.0
+		IL_0118: ldfld valuetype [System.Drawing]System.Drawing.Size SharpDX.Windows.RenderForm::cachedSize
+		IL_011d: ldsfld valuetype [System.Drawing]System.Drawing.Size [System.Drawing]System.Drawing.Size::Empty
+		IL_0122: call bool [System.Drawing]System.Drawing.Size::op_Inequality(valuetype [System.Drawing]System.Drawing.Size, valuetype [System.Drawing]System.Drawing.Size)
+		IL_0127: brfalse IL_01fa
+
+		IL_012c: ldarg.0
+		IL_012d: ldc.i4.1
+		IL_012e: stfld bool SharpDX.Windows.RenderForm::isSizeChangedWithoutResizeBegin
+		IL_0133: br IL_01fa
+
+		IL_0138: ldarg.0
+		IL_0139: ldc.i4.0
+		IL_013a: stfld valuetype [System.Windows.Forms]System.Windows.Forms.FormWindowState SharpDX.Windows.RenderForm::previousWindowState
+		IL_013f: br IL_01fa
+
+		IL_0144: ldloc.0
+		IL_0145: brfalse.s IL_0157
+
+		IL_0147: ldarg.0
+		IL_0148: ldsfld class [mscorlib]System.EventArgs [mscorlib]System.EventArgs::Empty
+		IL_014d: call instance void SharpDX.Windows.RenderForm::OnAppActivated(class [mscorlib]System.EventArgs)
+		IL_0152: br IL_01fa
+
+		IL_0157: ldarg.0
+		IL_0158: ldsfld class [mscorlib]System.EventArgs [mscorlib]System.EventArgs::Empty
+		IL_015d: call instance void SharpDX.Windows.RenderForm::OnAppDeactivated(class [mscorlib]System.EventArgs)
+		IL_0162: br IL_01fa
+
+		IL_0167: ldloc.0
+		IL_0168: brtrue.s IL_0182
+
+		IL_016a: ldarg.0
+		IL_016b: ldsfld class [mscorlib]System.EventArgs [mscorlib]System.EventArgs::Empty
+		IL_0170: call instance void SharpDX.Windows.RenderForm::OnSystemSuspend(class [mscorlib]System.EventArgs)
+		IL_0175: ldarg.1
+		IL_0176: ldc.i4.1
+		IL_0177: newobj instance void [mscorlib]System.IntPtr::.ctor(int32)
+		IL_017c: call instance void [System.Windows.Forms]System.Windows.Forms.Message::set_Result(native int)
+		IL_0181: ret
+
+		IL_0182: ldloc.0
+		IL_0183: ldc.i4.7
+		IL_0184: conv.i8
+		IL_0185: bne.un.s IL_01fa
+
+		IL_0187: ldarg.0
+		IL_0188: ldsfld class [mscorlib]System.EventArgs [mscorlib]System.EventArgs::Empty
+		IL_018d: call instance void SharpDX.Windows.RenderForm::OnSystemResume(class [mscorlib]System.EventArgs)
+		IL_0192: ldarg.1
+		IL_0193: ldc.i4.1
+		IL_0194: newobj instance void [mscorlib]System.IntPtr::.ctor(int32)
+		IL_0199: call instance void [System.Windows.Forms]System.Windows.Forms.Message::set_Result(native int)
+		IL_019e: ret
+
+		IL_019f: ldarg.1
+		IL_01a0: ldc.i4 65536
+		IL_01a5: newobj instance void [mscorlib]System.IntPtr::.ctor(int32)
+		IL_01aa: call instance void [System.Windows.Forms]System.Windows.Forms.Message::set_Result(native int)
+		IL_01af: ret
+
+		IL_01b0: ldloc.0
+		IL_01b1: ldc.i4 65520
+		IL_01b6: conv.i8
+		IL_01b7: and
+		IL_01b8: stloc.0
+		IL_01b9: ldloc.0
+		IL_01ba: ldc.i4 61808
+		IL_01bf: conv.i8
+		IL_01c0: beq.s IL_01cb
+
+		IL_01c2: ldloc.0
+		IL_01c3: ldc.i4 61760
+		IL_01c8: conv.i8
+		IL_01c9: bne.un.s IL_01fa
+
+		IL_01cb: newobj instance void [System]System.ComponentModel.CancelEventArgs::.ctor()
+		IL_01d0: stloc.s 4
+		IL_01d2: ldarg.0
+		IL_01d3: ldloc.s 4
+		IL_01d5: call instance void SharpDX.Windows.RenderForm::OnScreensaver(class [System]System.ComponentModel.CancelEventArgs)
+		IL_01da: ldloc.s 4
+		IL_01dc: callvirt instance bool [System]System.ComponentModel.CancelEventArgs::get_Cancel()
+		IL_01e1: brfalse.s IL_01fa
+
+		IL_01e3: ldarg.1
+		IL_01e4: ldsfld native int [mscorlib]System.IntPtr::Zero
+		IL_01e9: call instance void [System.Windows.Forms]System.Windows.Forms.Message::set_Result(native int)
+		IL_01ee: ret
+
+		IL_01ef: ldarg.0
+		IL_01f0: ldsfld class [mscorlib]System.EventArgs [mscorlib]System.EventArgs::Empty
+		IL_01f5: call instance void SharpDX.Windows.RenderForm::OnMonitorChanged(class [mscorlib]System.EventArgs)
+
+		IL_01fa: ldarg.0
+		IL_01fb: ldarg.1
+		IL_01fc: call instance void [System.Windows.Forms]System.Windows.Forms.Form::WndProc(valuetype [System.Windows.Forms]System.Windows.Forms.Message&)
+		IL_0201: ret
+	} // end of method RenderForm::WndProc
+
+	.method family hidebysig virtual 
+		instance bool ProcessDialogKey (
+			valuetype [System.Windows.Forms]System.Windows.Forms.Keys keyData
+		) cil managed 
+	{
+		// Method begins at RVA 0x2c9a
+		// Header size: 1
+		// Code size: 23 (0x17)
+		.maxstack 8
+
+		IL_0000: ldarg.1
+		IL_0001: ldc.i4 262162
+		IL_0006: beq.s IL_000d
+
+		IL_0008: ldarg.1
+		IL_0009: ldc.i4.s 121
+		IL_000b: bne.un.s IL_000f
+
+		IL_000d: ldc.i4.1
+		IL_000e: ret
+
+		IL_000f: ldarg.0
+		IL_0010: ldarg.1
+		IL_0011: call instance bool [System.Windows.Forms]System.Windows.Forms.Form::ProcessDialogKey(valuetype [System.Windows.Forms]System.Windows.Forms.Keys)
+		IL_0016: ret
+	} // end of method RenderForm::ProcessDialogKey
+
+	// Events
+	.event class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> AppActivated
+	{
+		.addon instance void SharpDX.Windows.RenderForm::add_AppActivated(class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>)
+		.removeon instance void SharpDX.Windows.RenderForm::remove_AppActivated(class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>)
+	}
+
+	.event class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> AppDeactivated
+	{
+		.addon instance void SharpDX.Windows.RenderForm::add_AppDeactivated(class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>)
+		.removeon instance void SharpDX.Windows.RenderForm::remove_AppDeactivated(class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>)
+	}
+
+	.event class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> MonitorChanged
+	{
+		.addon instance void SharpDX.Windows.RenderForm::add_MonitorChanged(class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>)
+		.removeon instance void SharpDX.Windows.RenderForm::remove_MonitorChanged(class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>)
+	}
+
+	.event class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> PauseRendering
+	{
+		.addon instance void SharpDX.Windows.RenderForm::add_PauseRendering(class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>)
+		.removeon instance void SharpDX.Windows.RenderForm::remove_PauseRendering(class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>)
+	}
+
+	.event class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> ResumeRendering
+	{
+		.addon instance void SharpDX.Windows.RenderForm::add_ResumeRendering(class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>)
+		.removeon instance void SharpDX.Windows.RenderForm::remove_ResumeRendering(class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>)
+	}
+
+	.event class [mscorlib]System.EventHandler`1<class [System]System.ComponentModel.CancelEventArgs> Screensaver
+	{
+		.addon instance void SharpDX.Windows.RenderForm::add_Screensaver(class [mscorlib]System.EventHandler`1<class [System]System.ComponentModel.CancelEventArgs>)
+		.removeon instance void SharpDX.Windows.RenderForm::remove_Screensaver(class [mscorlib]System.EventHandler`1<class [System]System.ComponentModel.CancelEventArgs>)
+	}
+
+	.event class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SystemResume
+	{
+		.addon instance void SharpDX.Windows.RenderForm::add_SystemResume(class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>)
+		.removeon instance void SharpDX.Windows.RenderForm::remove_SystemResume(class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>)
+	}
+
+	.event class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> SystemSuspend
+	{
+		.addon instance void SharpDX.Windows.RenderForm::add_SystemSuspend(class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>)
+		.removeon instance void SharpDX.Windows.RenderForm::remove_SystemSuspend(class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>)
+	}
+
+	.event class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs> UserResized
+	{
+		.addon instance void SharpDX.Windows.RenderForm::add_UserResized(class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>)
+		.removeon instance void SharpDX.Windows.RenderForm::remove_UserResized(class [mscorlib]System.EventHandler`1<class [mscorlib]System.EventArgs>)
+	}
+
+
+	// Properties
+	.property instance bool AllowUserResizing()
+	{
+		.get instance bool SharpDX.Windows.RenderForm::get_AllowUserResizing()
+		.set instance void SharpDX.Windows.RenderForm::set_AllowUserResizing(bool)
+	}
+	.property instance bool IsFullscreen()
+	{
+		.get instance bool SharpDX.Windows.RenderForm::get_IsFullscreen()
+		.set instance void SharpDX.Windows.RenderForm::set_IsFullscreen(bool)
+	}
+
+} // end of class SharpDX.Windows.RenderForm
+
+.class public auto ansi beforefieldinit SharpDX.Windows.RenderLoop
+	extends [mscorlib]System.Object
+	implements [mscorlib]System.IDisposable
+{
+	// Nested Types
+	.class nested public auto ansi sealed RenderCallback
+		extends [mscorlib]System.MulticastDelegate
+	{
+		// Methods
+		.method public hidebysig specialname rtspecialname 
+			instance void .ctor (
+				object 'object',
+				native int 'method'
+			) runtime managed 
+		{
+		} // end of method RenderCallback::.ctor
+
+		.method public hidebysig newslot virtual 
+			instance void Invoke () runtime managed 
+		{
+		} // end of method RenderCallback::Invoke
+
+		.method public hidebysig newslot virtual 
+			instance class [mscorlib]System.IAsyncResult BeginInvoke (
+				class [mscorlib]System.AsyncCallback callback,
+				object 'object'
+			) runtime managed 
+		{
+		} // end of method RenderCallback::BeginInvoke
+
+		.method public hidebysig newslot virtual 
+			instance void EndInvoke (
+				class [mscorlib]System.IAsyncResult result
+			) runtime managed 
+		{
+		} // end of method RenderCallback::EndInvoke
+
+	} // end of class RenderCallback
+
+
+	// Fields
+	.field private native int controlHandle
+	.field private class [System.Windows.Forms]System.Windows.Forms.Control control
+	.field private bool isControlAlive
+	.field private bool switchControl
+	.field private bool '<UseApplicationDoEvents>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x2357
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Object::.ctor()
+		IL_0006: ret
+	} // end of method RenderLoop::.ctor
+
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			class [System.Windows.Forms]System.Windows.Forms.Control control
+		) cil managed 
+	{
+		// Method begins at RVA 0x2cb2
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Object::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: call instance void SharpDX.Windows.RenderLoop::set_Control(class [System.Windows.Forms]System.Windows.Forms.Control)
+		IL_000d: ret
+	} // end of method RenderLoop::.ctor
+
+	.method public hidebysig specialname 
+		instance class [System.Windows.Forms]System.Windows.Forms.Control get_Control () cil managed 
+	{
+		// Method begins at RVA 0x2cc1
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [System.Windows.Forms]System.Windows.Forms.Control SharpDX.Windows.RenderLoop::control
+		IL_0006: ret
+	} // end of method RenderLoop::get_Control
+
+	.method public hidebysig specialname 
+		instance void set_Control (
+			class [System.Windows.Forms]System.Windows.Forms.Control 'value'
+		) cil managed 
+	{
+		// Method begins at RVA 0x2ccc
+		// Header size: 12
+		// Code size: 104 (0x68)
+		.maxstack 3
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld class [System.Windows.Forms]System.Windows.Forms.Control SharpDX.Windows.RenderLoop::control
+		IL_0006: ldarg.1
+		IL_0007: bne.un.s IL_000a
+
+		IL_0009: ret
+
+		IL_000a: ldarg.0
+		IL_000b: ldfld class [System.Windows.Forms]System.Windows.Forms.Control SharpDX.Windows.RenderLoop::control
+		IL_0010: brfalse.s IL_0043
+
+		IL_0012: ldarg.0
+		IL_0013: ldfld bool SharpDX.Windows.RenderLoop::switchControl
+		IL_0018: brtrue.s IL_0043
+
+		IL_001a: ldarg.0
+		IL_001b: ldc.i4.0
+		IL_001c: stfld bool SharpDX.Windows.RenderLoop::isControlAlive
+		IL_0021: ldarg.0
+		IL_0022: ldfld class [System.Windows.Forms]System.Windows.Forms.Control SharpDX.Windows.RenderLoop::control
+		IL_0027: ldarg.0
+		IL_0028: ldftn instance void SharpDX.Windows.RenderLoop::ControlDisposed(object, class [mscorlib]System.EventArgs)
+		IL_002e: newobj instance void [mscorlib]System.EventHandler::.ctor(object, native int)
+		IL_0033: callvirt instance void [System]System.ComponentModel.Component::remove_Disposed(class [mscorlib]System.EventHandler)
+		IL_0038: ldarg.0
+		IL_0039: ldsfld native int [mscorlib]System.IntPtr::Zero
+		IL_003e: stfld native int SharpDX.Windows.RenderLoop::controlHandle
+
+		IL_0043: ldarg.1
+		IL_0044: brfalse.s IL_0059
+
+		IL_0046: ldarg.1
+		IL_0047: callvirt instance bool [System.Windows.Forms]System.Windows.Forms.Control::get_IsDisposed()
+		IL_004c: brfalse.s IL_0059
+
+		IL_004e: ldstr "Control is already disposed"
+		IL_0053: newobj instance void [mscorlib]System.InvalidOperationException::.ctor(string)
+		IL_0058: throw
+
+		IL_0059: ldarg.0
+		IL_005a: ldarg.1
+		IL_005b: stfld class [System.Windows.Forms]System.Windows.Forms.Control SharpDX.Windows.RenderLoop::control
+		IL_0060: ldarg.0
+		IL_0061: ldc.i4.1
+		IL_0062: stfld bool SharpDX.Windows.RenderLoop::switchControl
+		IL_0067: ret
+	} // end of method RenderLoop::set_Control
+
+	.method public hidebysig specialname 
+		instance bool get_UseApplicationDoEvents () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2d40
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld bool SharpDX.Windows.RenderLoop::'<UseApplicationDoEvents>k__BackingField'
+		IL_0006: ret
+	} // end of method RenderLoop::get_UseApplicationDoEvents
+
+	.method public hidebysig specialname 
+		instance void set_UseApplicationDoEvents (
+			bool 'value'
+		) cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2d48
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: stfld bool SharpDX.Windows.RenderLoop::'<UseApplicationDoEvents>k__BackingField'
+		IL_0007: ret
+	} // end of method RenderLoop::set_UseApplicationDoEvents
+
+	.method public hidebysig 
+		instance bool NextFrame () cil managed 
+	{
+		// Method begins at RVA 0x2d54
+		// Header size: 12
+		// Code size: 326 (0x146)
+		.maxstack 6
+		.locals init (
+			[0] valuetype [SharpDX]SharpDX.Win32.NativeMessage,
+			[1] valuetype [System.Windows.Forms]System.Windows.Forms.Message,
+			[2] valuetype [System.Windows.Forms]System.Windows.Forms.Message
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld bool SharpDX.Windows.RenderLoop::switchControl
+		IL_0006: brfalse.s IL_0046
+
+		IL_0008: ldarg.0
+		IL_0009: ldfld class [System.Windows.Forms]System.Windows.Forms.Control SharpDX.Windows.RenderLoop::control
+		IL_000e: brfalse.s IL_0046
+
+		IL_0010: ldarg.0
+		IL_0011: ldarg.0
+		IL_0012: ldfld class [System.Windows.Forms]System.Windows.Forms.Control SharpDX.Windows.RenderLoop::control
+		IL_0017: callvirt instance native int [System.Windows.Forms]System.Windows.Forms.Control::get_Handle()
+		IL_001c: stfld native int SharpDX.Windows.RenderLoop::controlHandle
+		IL_0021: ldarg.0
+		IL_0022: ldfld class [System.Windows.Forms]System.Windows.Forms.Control SharpDX.Windows.RenderLoop::control
+		IL_0027: ldarg.0
+		IL_0028: ldftn instance void SharpDX.Windows.RenderLoop::ControlDisposed(object, class [mscorlib]System.EventArgs)
+		IL_002e: newobj instance void [mscorlib]System.EventHandler::.ctor(object, native int)
+		IL_0033: callvirt instance void [System]System.ComponentModel.Component::add_Disposed(class [mscorlib]System.EventHandler)
+		IL_0038: ldarg.0
+		IL_0039: ldc.i4.1
+		IL_003a: stfld bool SharpDX.Windows.RenderLoop::isControlAlive
+		IL_003f: ldarg.0
+		IL_0040: ldc.i4.0
+		IL_0041: stfld bool SharpDX.Windows.RenderLoop::switchControl
+
+		IL_0046: ldarg.0
+		IL_0047: ldfld bool SharpDX.Windows.RenderLoop::isControlAlive
+		IL_004c: brfalse IL_0135
+
+		IL_0051: ldarg.0
+		IL_0052: call instance bool SharpDX.Windows.RenderLoop::get_UseApplicationDoEvents()
+		IL_0057: brfalse.s IL_0063
+
+		IL_0059: call void [System.Windows.Forms]System.Windows.Forms.Application::DoEvents()
+		IL_005e: br IL_0135
+
+		IL_0063: ldarg.0
+		IL_0064: ldfld native int SharpDX.Windows.RenderLoop::controlHandle
+		IL_0069: ldsfld native int [mscorlib]System.IntPtr::Zero
+		IL_006e: call bool [mscorlib]System.IntPtr::op_Inequality(native int, native int)
+		IL_0073: brfalse IL_0135
+
+		IL_0078: br IL_0121
+		// loop start (head: IL_0121)
+			IL_007d: ldloca.s 0
+			IL_007f: ldsfld native int [mscorlib]System.IntPtr::Zero
+			IL_0084: ldc.i4.0
+			IL_0085: ldc.i4.0
+			IL_0086: call int32 SharpDX.Win32Native::GetMessage(valuetype [SharpDX]SharpDX.Win32.NativeMessage&, native int, int32, int32)
+			IL_008b: ldc.i4.m1
+			IL_008c: bne.un.s IL_00b6
+
+			IL_008e: call class [mscorlib]System.Globalization.CultureInfo [mscorlib]System.Globalization.CultureInfo::get_InvariantCulture()
+			IL_0093: ldstr "An error happened in rendering loop while processing windows messages. Error: {0}"
+			IL_0098: ldc.i4.1
+			IL_0099: newarr [mscorlib]System.Object
+			IL_009e: dup
+			IL_009f: ldc.i4.0
+			IL_00a0: call int32 [mscorlib]System.Runtime.InteropServices.Marshal::GetLastWin32Error()
+			IL_00a5: box [mscorlib]System.Int32
+			IL_00aa: stelem.ref
+			IL_00ab: call string [mscorlib]System.String::Format(class [mscorlib]System.IFormatProvider, string, object[])
+			IL_00b0: newobj instance void [mscorlib]System.InvalidOperationException::.ctor(string)
+			IL_00b5: throw
+
+			IL_00b6: ldloc.0
+			IL_00b7: ldfld uint32 [SharpDX]SharpDX.Win32.NativeMessage::msg
+			IL_00bc: ldc.i4 130
+			IL_00c1: bne.un.s IL_00ca
+
+			IL_00c3: ldarg.0
+			IL_00c4: ldc.i4.0
+			IL_00c5: stfld bool SharpDX.Windows.RenderLoop::isControlAlive
+
+			IL_00ca: ldloca.s 2
+			IL_00cc: initobj [System.Windows.Forms]System.Windows.Forms.Message
+			IL_00d2: ldloca.s 2
+			IL_00d4: ldloc.0
+			IL_00d5: ldfld native int [SharpDX]SharpDX.Win32.NativeMessage::handle
+			IL_00da: call instance void [System.Windows.Forms]System.Windows.Forms.Message::set_HWnd(native int)
+			IL_00df: ldloca.s 2
+			IL_00e1: ldloc.0
+			IL_00e2: ldfld native int [SharpDX]SharpDX.Win32.NativeMessage::lParam
+			IL_00e7: call instance void [System.Windows.Forms]System.Windows.Forms.Message::set_LParam(native int)
+			IL_00ec: ldloca.s 2
+			IL_00ee: ldloc.0
+			IL_00ef: ldfld uint32 [SharpDX]SharpDX.Win32.NativeMessage::msg
+			IL_00f4: call instance void [System.Windows.Forms]System.Windows.Forms.Message::set_Msg(int32)
+			IL_00f9: ldloca.s 2
+			IL_00fb: ldloc.0
+			IL_00fc: ldfld native int [SharpDX]SharpDX.Win32.NativeMessage::wParam
+			IL_0101: call instance void [System.Windows.Forms]System.Windows.Forms.Message::set_WParam(native int)
+			IL_0106: ldloc.2
+			IL_0107: stloc.1
+			IL_0108: ldloca.s 1
+			IL_010a: call bool [System.Windows.Forms]System.Windows.Forms.Application::FilterMessage(valuetype [System.Windows.Forms]System.Windows.Forms.Message&)
+			IL_010f: brtrue.s IL_0121
+
+			IL_0111: ldloca.s 0
+			IL_0113: call int32 SharpDX.Win32Native::TranslateMessage(valuetype [SharpDX]SharpDX.Win32.NativeMessage&)
+			IL_0118: pop
+			IL_0119: ldloca.s 0
+			IL_011b: call int32 SharpDX.Win32Native::DispatchMessage(valuetype [SharpDX]SharpDX.Win32.NativeMessage&)
+			IL_0120: pop
+
+			IL_0121: ldloca.s 0
+			IL_0123: ldsfld native int [mscorlib]System.IntPtr::Zero
+			IL_0128: ldc.i4.0
+			IL_0129: ldc.i4.0
+			IL_012a: ldc.i4.0
+			IL_012b: call int32 SharpDX.Win32Native::PeekMessage(valuetype [SharpDX]SharpDX.Win32.NativeMessage&, native int, int32, int32, int32)
+			IL_0130: brtrue IL_007d
+		// end loop
+
+		IL_0135: ldarg.0
+		IL_0136: ldfld bool SharpDX.Windows.RenderLoop::isControlAlive
+		IL_013b: brtrue.s IL_0144
+
+		IL_013d: ldarg.0
+		IL_013e: ldfld bool SharpDX.Windows.RenderLoop::switchControl
+		IL_0143: ret
+
+		IL_0144: ldc.i4.1
+		IL_0145: ret
+	} // end of method RenderLoop::NextFrame
+
+	.method private hidebysig 
+		instance void ControlDisposed (
+			object sender,
+			class [mscorlib]System.EventArgs e
+		) cil managed 
+	{
+		// Method begins at RVA 0x2ea6
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldc.i4.0
+		IL_0002: stfld bool SharpDX.Windows.RenderLoop::isControlAlive
+		IL_0007: ret
+	} // end of method RenderLoop::ControlDisposed
+
+	.method public final hidebysig newslot virtual 
+		instance void Dispose () cil managed 
+	{
+		// Method begins at RVA 0x2eaf
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldnull
+		IL_0002: call instance void SharpDX.Windows.RenderLoop::set_Control(class [System.Windows.Forms]System.Windows.Forms.Control)
+		IL_0007: ret
+	} // end of method RenderLoop::Dispose
+
+	.method public hidebysig static 
+		void Run (
+			class [System.Windows.Forms]System.Windows.Forms.ApplicationContext context,
+			class SharpDX.Windows.RenderLoop/RenderCallback renderCallback
+		) cil managed 
+	{
+		// Method begins at RVA 0x2eb8
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: callvirt instance class [System.Windows.Forms]System.Windows.Forms.Form [System.Windows.Forms]System.Windows.Forms.ApplicationContext::get_MainForm()
+		IL_0006: ldarg.1
+		IL_0007: ldc.i4.0
+		IL_0008: call void SharpDX.Windows.RenderLoop::Run(class [System.Windows.Forms]System.Windows.Forms.Control, class SharpDX.Windows.RenderLoop/RenderCallback, bool)
+		IL_000d: ret
+	} // end of method RenderLoop::Run
+
+	.method public hidebysig static 
+		void Run (
+			class [System.Windows.Forms]System.Windows.Forms.Control form,
+			class SharpDX.Windows.RenderLoop/RenderCallback renderCallback,
+			[opt] bool useApplicationDoEvents
+		) cil managed 
+	{
+		.param [3] = bool(false)
+		// Method begins at RVA 0x2ec8
+		// Header size: 12
+		// Code size: 77 (0x4d)
+		.maxstack 3
+		.locals init (
+			[0] class SharpDX.Windows.RenderLoop
+		)
+
+		IL_0000: ldarg.0
+		IL_0001: brtrue.s IL_000e
+
+		IL_0003: ldstr "form"
+		IL_0008: newobj instance void [mscorlib]System.ArgumentNullException::.ctor(string)
+		IL_000d: throw
+
+		IL_000e: ldarg.1
+		IL_000f: brtrue.s IL_001c
+
+		IL_0011: ldstr "renderCallback"
+		IL_0016: newobj instance void [mscorlib]System.ArgumentNullException::.ctor(string)
+		IL_001b: throw
+
+		IL_001c: ldarg.0
+		IL_001d: callvirt instance void [System.Windows.Forms]System.Windows.Forms.Control::Show()
+		IL_0022: ldarg.0
+		IL_0023: newobj instance void SharpDX.Windows.RenderLoop::.ctor(class [System.Windows.Forms]System.Windows.Forms.Control)
+		IL_0028: dup
+		IL_0029: ldarg.2
+		IL_002a: callvirt instance void SharpDX.Windows.RenderLoop::set_UseApplicationDoEvents(bool)
+		IL_002f: stloc.0
+		.try
+		{
+			IL_0030: br.s IL_0038
+			// loop start (head: IL_0038)
+				IL_0032: ldarg.1
+				IL_0033: callvirt instance void SharpDX.Windows.RenderLoop/RenderCallback::Invoke()
+
+				IL_0038: ldloc.0
+				IL_0039: callvirt instance bool SharpDX.Windows.RenderLoop::NextFrame()
+				IL_003e: brtrue.s IL_0032
+			// end loop
+
+			IL_0040: leave.s IL_004c
+		} // end .try
+		finally
+		{
+			IL_0042: ldloc.0
+			IL_0043: brfalse.s IL_004b
+
+			IL_0045: ldloc.0
+			IL_0046: callvirt instance void [mscorlib]System.IDisposable::Dispose()
+
+			IL_004b: endfinally
+		} // end handler
+
+		IL_004c: ret
+	} // end of method RenderLoop::Run
+
+	.method public hidebysig specialname static 
+		bool get_IsIdle () cil managed 
+	{
+		// Method begins at RVA 0x2f34
+		// Header size: 12
+		// Code size: 19 (0x13)
+		.maxstack 5
+		.locals init (
+			[0] valuetype [SharpDX]SharpDX.Win32.NativeMessage
+		)
+
+		IL_0000: ldloca.s 0
+		IL_0002: ldsfld native int [mscorlib]System.IntPtr::Zero
+		IL_0007: ldc.i4.0
+		IL_0008: ldc.i4.0
+		IL_0009: ldc.i4.0
+		IL_000a: call int32 SharpDX.Win32Native::PeekMessage(valuetype [SharpDX]SharpDX.Win32.NativeMessage&, native int, int32, int32, int32)
+		IL_000f: ldc.i4.0
+		IL_0010: ceq
+		IL_0012: ret
+	} // end of method RenderLoop::get_IsIdle
+
+	// Properties
+	.property instance class [System.Windows.Forms]System.Windows.Forms.Control Control()
+	{
+		.get instance class [System.Windows.Forms]System.Windows.Forms.Control SharpDX.Windows.RenderLoop::get_Control()
+		.set instance void SharpDX.Windows.RenderLoop::set_Control(class [System.Windows.Forms]System.Windows.Forms.Control)
+	}
+	.property instance bool UseApplicationDoEvents()
+	{
+		.get instance bool SharpDX.Windows.RenderLoop::get_UseApplicationDoEvents()
+		.set instance void SharpDX.Windows.RenderLoop::set_UseApplicationDoEvents(bool)
+	}
+	.property bool IsIdle()
+	{
+		.get bool SharpDX.Windows.RenderLoop::get_IsIdle()
+	}
+
+} // end of class SharpDX.Windows.RenderLoop
+
+.class private auto ansi beforefieldinit SharpDX.Desktop.Properties.Resources
+	extends [mscorlib]System.Object
+{
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void [mscorlib]System.Diagnostics.DebuggerNonUserCodeAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.custom instance void [System]System.CodeDom.Compiler.GeneratedCodeAttribute::.ctor(string, string) = (
+		01 00 33 53 79 73 74 65 6d 2e 52 65 73 6f 75 72
+		63 65 73 2e 54 6f 6f 6c 73 2e 53 74 72 6f 6e 67
+		6c 79 54 79 70 65 64 52 65 73 6f 75 72 63 65 42
+		75 69 6c 64 65 72 07 34 2e 30 2e 30 2e 30 00 00
+	)
+	// Fields
+	.field private static class [mscorlib]System.Resources.ResourceManager resourceMan
+	.field private static class [mscorlib]System.Globalization.CultureInfo resourceCulture
+
+	// Methods
+	.method assembly hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x2357
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Object::.ctor()
+		IL_0006: ret
+	} // end of method Resources::.ctor
+
+	.method assembly hidebysig specialname static 
+		class [mscorlib]System.Resources.ResourceManager get_ResourceManager () cil managed 
+	{
+		// Method begins at RVA 0x2f53
+		// Header size: 1
+		// Code size: 48 (0x30)
+		.maxstack 8
+
+		IL_0000: ldsfld class [mscorlib]System.Resources.ResourceManager SharpDX.Desktop.Properties.Resources::resourceMan
+		IL_0005: brtrue.s IL_002a
+
+		IL_0007: ldstr "SharpDX.Desktop.Properties.Resources"
+		IL_000c: ldtoken SharpDX.Desktop.Properties.Resources
+		IL_0011: call class [mscorlib]System.Type [mscorlib]System.Type::GetTypeFromHandle(valuetype [mscorlib]System.RuntimeTypeHandle)
+		IL_0016: call class [mscorlib]System.Reflection.TypeInfo [mscorlib]System.Reflection.IntrospectionExtensions::GetTypeInfo(class [mscorlib]System.Type)
+		IL_001b: callvirt instance class [mscorlib]System.Reflection.Assembly [mscorlib]System.Type::get_Assembly()
+		IL_0020: newobj instance void [mscorlib]System.Resources.ResourceManager::.ctor(string, class [mscorlib]System.Reflection.Assembly)
+		IL_0025: stsfld class [mscorlib]System.Resources.ResourceManager SharpDX.Desktop.Properties.Resources::resourceMan
+
+		IL_002a: ldsfld class [mscorlib]System.Resources.ResourceManager SharpDX.Desktop.Properties.Resources::resourceMan
+		IL_002f: ret
+	} // end of method Resources::get_ResourceManager
+
+	.method assembly hidebysig specialname static 
+		class [mscorlib]System.Globalization.CultureInfo get_Culture () cil managed 
+	{
+		// Method begins at RVA 0x2f84
+		// Header size: 1
+		// Code size: 6 (0x6)
+		.maxstack 8
+
+		IL_0000: ldsfld class [mscorlib]System.Globalization.CultureInfo SharpDX.Desktop.Properties.Resources::resourceCulture
+		IL_0005: ret
+	} // end of method Resources::get_Culture
+
+	.method assembly hidebysig specialname static 
+		void set_Culture (
+			class [mscorlib]System.Globalization.CultureInfo 'value'
+		) cil managed 
+	{
+		// Method begins at RVA 0x2f8b
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: stsfld class [mscorlib]System.Globalization.CultureInfo SharpDX.Desktop.Properties.Resources::resourceCulture
+		IL_0006: ret
+	} // end of method Resources::set_Culture
+
+	.method assembly hidebysig specialname static 
+		class [System.Drawing]System.Drawing.Icon get_logo () cil managed 
+	{
+		// Method begins at RVA 0x2f93
+		// Header size: 1
+		// Code size: 26 (0x1a)
+		.maxstack 8
+
+		IL_0000: call class [mscorlib]System.Resources.ResourceManager SharpDX.Desktop.Properties.Resources::get_ResourceManager()
+		IL_0005: ldstr "logo"
+		IL_000a: ldsfld class [mscorlib]System.Globalization.CultureInfo SharpDX.Desktop.Properties.Resources::resourceCulture
+		IL_000f: callvirt instance object [mscorlib]System.Resources.ResourceManager::GetObject(string, class [mscorlib]System.Globalization.CultureInfo)
+		IL_0014: castclass [System.Drawing]System.Drawing.Icon
+		IL_0019: ret
+	} // end of method Resources::get_logo
+
+	// Properties
+	.property class [mscorlib]System.Resources.ResourceManager ResourceManager()
+	{
+		.custom instance void [System]System.ComponentModel.EditorBrowsableAttribute::.ctor(valuetype [System]System.ComponentModel.EditorBrowsableState) = (
+			01 00 02 00 00 00 00 00
+		)
+		.get class [mscorlib]System.Resources.ResourceManager SharpDX.Desktop.Properties.Resources::get_ResourceManager()
+	}
+	.property class [mscorlib]System.Globalization.CultureInfo Culture()
+	{
+		.custom instance void [System]System.ComponentModel.EditorBrowsableAttribute::.ctor(valuetype [System]System.ComponentModel.EditorBrowsableState) = (
+			01 00 02 00 00 00 00 00
+		)
+		.get class [mscorlib]System.Globalization.CultureInfo SharpDX.Desktop.Properties.Resources::get_Culture()
+		.set void SharpDX.Desktop.Properties.Resources::set_Culture(class [mscorlib]System.Globalization.CultureInfo)
+	}
+	.property class [System.Drawing]System.Drawing.Icon logo()
+	{
+		.get class [System.Drawing]System.Drawing.Icon SharpDX.Desktop.Properties.Resources::get_logo()
+	}
+
+} // end of class SharpDX.Desktop.Properties.Resources
+
+.class public auto ansi abstract sealed beforefieldinit SharpDX.Direct3D.PixHelper
+	extends [mscorlib]System.Object
+{
+	// Methods
+	.method public hidebysig static 
+		int32 BeginEvent (
+			valuetype [SharpDX]SharpDX.Mathematics.Interop.RawColorBGRA color,
+			string name
+		) cil managed 
+	{
+		// Method begins at RVA 0x2fae
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: call int32 SharpDX.Direct3D.PixHelper::D3DPERF_BeginEvent(valuetype [SharpDX]SharpDX.Mathematics.Interop.RawColorBGRA, string)
+		IL_0007: ret
+	} // end of method PixHelper::BeginEvent
+
+	.method public hidebysig static 
+		int32 BeginEvent (
+			valuetype [SharpDX]SharpDX.Mathematics.Interop.RawColorBGRA color,
+			string name,
+			object[] parameters
+		) cil managed 
+	{
+		.param [3]
+			.custom instance void [mscorlib]System.ParamArrayAttribute::.ctor() = (
+				01 00 00 00
+			)
+		// Method begins at RVA 0x2fb7
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: ldarg.2
+		IL_0003: call string [mscorlib]System.String::Format(string, object[])
+		IL_0008: call int32 SharpDX.Direct3D.PixHelper::D3DPERF_BeginEvent(valuetype [SharpDX]SharpDX.Mathematics.Interop.RawColorBGRA, string)
+		IL_000d: ret
+	} // end of method PixHelper::BeginEvent
+
+	.method public hidebysig static 
+		int32 EndEvent () cil managed 
+	{
+		// Method begins at RVA 0x2fc6
+		// Header size: 1
+		// Code size: 6 (0x6)
+		.maxstack 8
+
+		IL_0000: call int32 SharpDX.Direct3D.PixHelper::D3DPERF_EndEvent()
+		IL_0005: ret
+	} // end of method PixHelper::EndEvent
+
+	.method public hidebysig static 
+		void SetMarker (
+			valuetype [SharpDX]SharpDX.Mathematics.Interop.RawColorBGRA color,
+			string name
+		) cil managed 
+	{
+		// Method begins at RVA 0x2fcd
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: call void SharpDX.Direct3D.PixHelper::D3DPERF_SetMarker(valuetype [SharpDX]SharpDX.Mathematics.Interop.RawColorBGRA, string)
+		IL_0007: ret
+	} // end of method PixHelper::SetMarker
+
+	.method public hidebysig static 
+		void SetMarker (
+			valuetype [SharpDX]SharpDX.Mathematics.Interop.RawColorBGRA color,
+			string name,
+			object[] parameters
+		) cil managed 
+	{
+		.param [3]
+			.custom instance void [mscorlib]System.ParamArrayAttribute::.ctor() = (
+				01 00 00 00
+			)
+		// Method begins at RVA 0x2fd6
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: ldarg.2
+		IL_0003: call string [mscorlib]System.String::Format(string, object[])
+		IL_0008: call void SharpDX.Direct3D.PixHelper::D3DPERF_SetMarker(valuetype [SharpDX]SharpDX.Mathematics.Interop.RawColorBGRA, string)
+		IL_000d: ret
+	} // end of method PixHelper::SetMarker
+
+	.method public hidebysig static 
+		void AllowProfiling (
+			bool enableFlag
+		) cil managed 
+	{
+		// Method begins at RVA 0x2fe5
+		// Header size: 1
+		// Code size: 13 (0xd)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: brtrue.s IL_0006
+
+		IL_0003: ldc.i4.1
+		IL_0004: br.s IL_0007
+
+		IL_0006: ldc.i4.0
+
+		IL_0007: call void SharpDX.Direct3D.PixHelper::D3DPERF_SetOptions(int32)
+		IL_000c: ret
+	} // end of method PixHelper::AllowProfiling
+
+	.method public hidebysig specialname static 
+		bool get_IsCurrentlyProfiled () cil managed 
+	{
+		// Method begins at RVA 0x2ff3
+		// Header size: 1
+		// Code size: 9 (0x9)
+		.maxstack 8
+
+		IL_0000: call int32 SharpDX.Direct3D.PixHelper::D3DPERF_GetStatus()
+		IL_0005: ldc.i4.0
+		IL_0006: cgt.un
+		IL_0008: ret
+	} // end of method PixHelper::get_IsCurrentlyProfiled
+
+	.method private hidebysig static pinvokeimpl("d3d9.dll" unicode winapi) 
+		int32 D3DPERF_BeginEvent (
+			valuetype [SharpDX]SharpDX.Mathematics.Interop.RawColorBGRA color,
+			string name
+		) cil managed preservesig 
+	{
+	} // end of method PixHelper::D3DPERF_BeginEvent
+
+	.method private hidebysig static pinvokeimpl("d3d9.dll" unicode winapi) 
+		int32 D3DPERF_EndEvent () cil managed preservesig 
+	{
+	} // end of method PixHelper::D3DPERF_EndEvent
+
+	.method private hidebysig static pinvokeimpl("d3d9.dll" unicode winapi) 
+		void D3DPERF_SetMarker (
+			valuetype [SharpDX]SharpDX.Mathematics.Interop.RawColorBGRA color,
+			string wszName
+		) cil managed preservesig 
+	{
+	} // end of method PixHelper::D3DPERF_SetMarker
+
+	.method private hidebysig static pinvokeimpl("d3d9.dll" unicode winapi) 
+		void D3DPERF_SetOptions (
+			int32 options
+		) cil managed preservesig 
+	{
+	} // end of method PixHelper::D3DPERF_SetOptions
+
+	.method private hidebysig static pinvokeimpl("d3d9.dll" unicode winapi) 
+		int32 D3DPERF_GetStatus () cil managed preservesig 
+	{
+	} // end of method PixHelper::D3DPERF_GetStatus
+
+	// Properties
+	.property bool IsCurrentlyProfiled()
+	{
+		.get bool SharpDX.Direct3D.PixHelper::get_IsCurrentlyProfiled()
+	}
+
+} // end of class SharpDX.Direct3D.PixHelper
+
+.class public auto ansi sealed beforefieldinit SharpDX.Diagnostics.VSGraphicsDebugger
+	extends [SharpDX]SharpDX.DisposeBase
+{
+	// Nested Types
+	.class nested public sequential ansi sealed beforefieldinit CaptureToken
+		extends [mscorlib]System.ValueType
+		implements [mscorlib]System.IDisposable
+	{
+		// Fields
+		.field private initonly class SharpDX.Diagnostics.VSGraphicsDebugger debugger
+
+		// Methods
+		.method assembly hidebysig specialname rtspecialname 
+			instance void .ctor (
+				class SharpDX.Diagnostics.VSGraphicsDebugger debugger
+			) cil managed 
+		{
+			// Method begins at RVA 0x3044
+			// Header size: 1
+			// Code size: 15 (0xf)
+			.maxstack 8
+
+			IL_0000: ldarg.0
+			IL_0001: initobj SharpDX.Diagnostics.VSGraphicsDebugger/CaptureToken
+			IL_0007: ldarg.0
+			IL_0008: ldarg.1
+			IL_0009: stfld class SharpDX.Diagnostics.VSGraphicsDebugger SharpDX.Diagnostics.VSGraphicsDebugger/CaptureToken::debugger
+			IL_000e: ret
+		} // end of method CaptureToken::.ctor
+
+		.method public final hidebysig newslot virtual 
+			instance void Dispose () cil managed 
+		{
+			// Method begins at RVA 0x3054
+			// Header size: 1
+			// Code size: 12 (0xc)
+			.maxstack 8
+
+			IL_0000: ldarg.0
+			IL_0001: ldfld class SharpDX.Diagnostics.VSGraphicsDebugger SharpDX.Diagnostics.VSGraphicsDebugger/CaptureToken::debugger
+			IL_0006: callvirt instance void SharpDX.Diagnostics.VSGraphicsDebugger::EndCapture()
+			IL_000b: ret
+		} // end of method CaptureToken::Dispose
+
+	} // end of class CaptureToken
+
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string logFileName
+		) cil managed 
+	{
+		// Method begins at RVA 0x2ffd
+		// Header size: 1
+		// Code size: 13 (0xd)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [SharpDX]SharpDX.DisposeBase::.ctor()
+		IL_0006: ldarg.1
+		IL_0007: call void SharpDX.Diagnostics.VSGraphicsDebugger::VsgDbgInit(string)
+		IL_000c: ret
+	} // end of method VSGraphicsDebugger::.ctor
+
+	.method public hidebysig 
+		instance void CopyLogFile (
+			string destinationFileName
+		) cil managed 
+	{
+		// Method begins at RVA 0x300b
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.1
+		IL_0001: call void SharpDX.Diagnostics.VSGraphicsDebugger::VsgDbgCopy(string)
+		IL_0006: ret
+	} // end of method VSGraphicsDebugger::CopyLogFile
+
+	.method public hidebysig 
+		instance void ToggleHUD () cil managed 
+	{
+		// Method begins at RVA 0x3013
+		// Header size: 1
+		// Code size: 6 (0x6)
+		.maxstack 8
+
+		IL_0000: call void SharpDX.Diagnostics.VSGraphicsDebugger::VsgDbgToggleHUD()
+		IL_0005: ret
+	} // end of method VSGraphicsDebugger::ToggleHUD
+
+	.method public hidebysig 
+		instance void AddHUDMessage (
+			string message
+		) cil managed 
+	{
+		// Method begins at RVA 0x301a
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.1
+		IL_0001: call void SharpDX.Diagnostics.VSGraphicsDebugger::VsgDbgAddHUDMessage(string)
+		IL_0006: ret
+	} // end of method VSGraphicsDebugger::AddHUDMessage
+
+	.method public hidebysig 
+		instance void CaptureCurrentFrame () cil managed 
+	{
+		// Method begins at RVA 0x3022
+		// Header size: 1
+		// Code size: 6 (0x6)
+		.maxstack 8
+
+		IL_0000: call void SharpDX.Diagnostics.VSGraphicsDebugger::VsgDbgCaptureCurrentFrame()
+		IL_0005: ret
+	} // end of method VSGraphicsDebugger::CaptureCurrentFrame
+
+	.method public hidebysig 
+		instance valuetype SharpDX.Diagnostics.VSGraphicsDebugger/CaptureToken BeginCapture () cil managed 
+	{
+		// Method begins at RVA 0x3029
+		// Header size: 1
+		// Code size: 12 (0xc)
+		.maxstack 8
+
+		IL_0000: call void SharpDX.Diagnostics.VSGraphicsDebugger::VsgDbgBeginCapture()
+		IL_0005: ldarg.0
+		IL_0006: newobj instance void SharpDX.Diagnostics.VSGraphicsDebugger/CaptureToken::.ctor(class SharpDX.Diagnostics.VSGraphicsDebugger)
+		IL_000b: ret
+	} // end of method VSGraphicsDebugger::BeginCapture
+
+	.method public hidebysig 
+		instance void EndCapture () cil managed 
+	{
+		// Method begins at RVA 0x3036
+		// Header size: 1
+		// Code size: 6 (0x6)
+		.maxstack 8
+
+		IL_0000: call void SharpDX.Diagnostics.VSGraphicsDebugger::VsgDbgEndCapture()
+		IL_0005: ret
+	} // end of method VSGraphicsDebugger::EndCapture
+
+	.method family hidebysig virtual 
+		instance void Dispose (
+			bool disposing
+		) cil managed 
+	{
+		// Method begins at RVA 0x303d
+		// Header size: 1
+		// Code size: 6 (0x6)
+		.maxstack 8
+
+		IL_0000: call void SharpDX.Diagnostics.VSGraphicsDebugger::VsgDbgUnInit()
+		IL_0005: ret
+	} // end of method VSGraphicsDebugger::Dispose
+
+	.method private hidebysig static pinvokeimpl("VsGraphicsHelper.dll" unicode winapi) 
+		void VsgDbgInit (
+			string logName
+		) cil managed preservesig 
+	{
+	} // end of method VSGraphicsDebugger::VsgDbgInit
+
+	.method private hidebysig static pinvokeimpl("VsGraphicsHelper.dll" unicode winapi) 
+		void VsgDbgUnInit () cil managed preservesig 
+	{
+	} // end of method VSGraphicsDebugger::VsgDbgUnInit
+
+	.method private hidebysig static pinvokeimpl("VsGraphicsHelper.dll" unicode winapi) 
+		void VsgDbgToggleHUD () cil managed preservesig 
+	{
+	} // end of method VSGraphicsDebugger::VsgDbgToggleHUD
+
+	.method private hidebysig static pinvokeimpl("VsGraphicsHelper.dll" unicode winapi) 
+		void VsgDbgCaptureCurrentFrame () cil managed preservesig 
+	{
+	} // end of method VSGraphicsDebugger::VsgDbgCaptureCurrentFrame
+
+	.method private hidebysig static pinvokeimpl("VsGraphicsHelper.dll" unicode winapi) 
+		void VsgDbgBeginCapture () cil managed preservesig 
+	{
+	} // end of method VSGraphicsDebugger::VsgDbgBeginCapture
+
+	.method private hidebysig static pinvokeimpl("VsGraphicsHelper.dll" unicode winapi) 
+		void VsgDbgEndCapture () cil managed preservesig 
+	{
+	} // end of method VSGraphicsDebugger::VsgDbgEndCapture
+
+	.method private hidebysig static pinvokeimpl("VsGraphicsHelper.dll" unicode winapi) 
+		void VsgDbgCopy (
+			string newLogName
+		) cil managed preservesig 
+	{
+	} // end of method VSGraphicsDebugger::VsgDbgCopy
+
+	.method private hidebysig static pinvokeimpl("VsGraphicsHelper.dll" unicode winapi) 
+		void VsgDbgAddHUDMessage (
+			string message
+		) cil managed preservesig 
+	{
+	} // end of method VSGraphicsDebugger::VsgDbgAddHUDMessage
+
+} // end of class SharpDX.Diagnostics.VSGraphicsDebugger
+

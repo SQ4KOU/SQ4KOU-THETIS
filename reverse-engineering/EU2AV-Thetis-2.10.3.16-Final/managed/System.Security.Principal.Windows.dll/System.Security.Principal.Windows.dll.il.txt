@@ -1,0 +1,678 @@
+// IL code: System.Security.Principal.Windows
+.class private auto ansi '<Module>'
+{
+} // end of class <Module>
+
+.class private auto ansi abstract beforefieldinit System.Runtime.Versioning.OSPlatformAttribute
+	extends [mscorlib]System.Attribute
+{
+	// Fields
+	.field private initonly string '<PlatformName>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+
+	// Methods
+	.method famandassem hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string platformName
+		) cil managed 
+	{
+		// Method begins at RVA 0x2050
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld string System.Runtime.Versioning.OSPlatformAttribute::'<PlatformName>k__BackingField'
+		IL_000d: ret
+	} // end of method OSPlatformAttribute::.ctor
+
+	.method public hidebysig specialname 
+		instance string get_PlatformName () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x205f
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld string System.Runtime.Versioning.OSPlatformAttribute::'<PlatformName>k__BackingField'
+		IL_0006: ret
+	} // end of method OSPlatformAttribute::get_PlatformName
+
+	// Properties
+	.property instance string PlatformName()
+	{
+		.get instance string System.Runtime.Versioning.OSPlatformAttribute::get_PlatformName()
+	}
+
+} // end of class System.Runtime.Versioning.OSPlatformAttribute
+
+.class private auto ansi sealed beforefieldinit System.Runtime.Versioning.TargetPlatformAttribute
+	extends System.Runtime.Versioning.OSPlatformAttribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 01 00 00 00 02 00 54 02 0d 41 6c 6c 6f 77
+		4d 75 6c 74 69 70 6c 65 00 54 02 09 49 6e 68 65
+		72 69 74 65 64 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string platformName
+		) cil managed 
+	{
+		// Method begins at RVA 0x2067
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: call instance void System.Runtime.Versioning.OSPlatformAttribute::.ctor(string)
+		IL_0007: ret
+	} // end of method TargetPlatformAttribute::.ctor
+
+} // end of class System.Runtime.Versioning.TargetPlatformAttribute
+
+.class private auto ansi sealed beforefieldinit System.Runtime.Versioning.SupportedOSPlatformAttribute
+	extends System.Runtime.Versioning.OSPlatformAttribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 ff 03 00 00 02 00 54 02 0d 41 6c 6c 6f 77
+		4d 75 6c 74 69 70 6c 65 01 54 02 09 49 6e 68 65
+		72 69 74 65 64 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string platformName
+		) cil managed 
+	{
+		// Method begins at RVA 0x2070
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: call instance void System.Runtime.Versioning.OSPlatformAttribute::.ctor(string)
+		IL_0007: ret
+	} // end of method SupportedOSPlatformAttribute::.ctor
+
+} // end of class System.Runtime.Versioning.SupportedOSPlatformAttribute
+
+.class private auto ansi sealed beforefieldinit System.Runtime.Versioning.UnsupportedOSPlatformAttribute
+	extends System.Runtime.Versioning.OSPlatformAttribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 ff 03 00 00 02 00 54 02 0d 41 6c 6c 6f 77
+		4d 75 6c 74 69 70 6c 65 01 54 02 09 49 6e 68 65
+		72 69 74 65 64 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string platformName
+		) cil managed 
+	{
+		// Method begins at RVA 0x2079
+		// Header size: 1
+		// Code size: 8 (0x8)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldarg.1
+		IL_0002: call instance void System.Runtime.Versioning.OSPlatformAttribute::.ctor(string)
+		IL_0007: ret
+	} // end of method UnsupportedOSPlatformAttribute::.ctor
+
+} // end of class System.Runtime.Versioning.UnsupportedOSPlatformAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.AllowNullAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 80 09 00 00 01 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x2082
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ret
+	} // end of method AllowNullAttribute::.ctor
+
+} // end of class System.Diagnostics.CodeAnalysis.AllowNullAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.DisallowNullAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 80 09 00 00 01 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x208a
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ret
+	} // end of method DisallowNullAttribute::.ctor
+
+} // end of class System.Diagnostics.CodeAnalysis.DisallowNullAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.MaybeNullAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 80 29 00 00 01 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x2092
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ret
+	} // end of method MaybeNullAttribute::.ctor
+
+} // end of class System.Diagnostics.CodeAnalysis.MaybeNullAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.NotNullAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 80 29 00 00 01 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x209a
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ret
+	} // end of method NotNullAttribute::.ctor
+
+} // end of class System.Diagnostics.CodeAnalysis.NotNullAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.MaybeNullWhenAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 00 08 00 00 01 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00
+	)
+	// Fields
+	.field private initonly bool '<ReturnValue>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			bool returnValue
+		) cil managed 
+	{
+		// Method begins at RVA 0x20a2
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld bool System.Diagnostics.CodeAnalysis.MaybeNullWhenAttribute::'<ReturnValue>k__BackingField'
+		IL_000d: ret
+	} // end of method MaybeNullWhenAttribute::.ctor
+
+	.method public hidebysig specialname 
+		instance bool get_ReturnValue () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x20b1
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld bool System.Diagnostics.CodeAnalysis.MaybeNullWhenAttribute::'<ReturnValue>k__BackingField'
+		IL_0006: ret
+	} // end of method MaybeNullWhenAttribute::get_ReturnValue
+
+	// Properties
+	.property instance bool ReturnValue()
+	{
+		.get instance bool System.Diagnostics.CodeAnalysis.MaybeNullWhenAttribute::get_ReturnValue()
+	}
+
+} // end of class System.Diagnostics.CodeAnalysis.MaybeNullWhenAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.NotNullWhenAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 00 08 00 00 01 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00
+	)
+	// Fields
+	.field private initonly bool '<ReturnValue>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			bool returnValue
+		) cil managed 
+	{
+		// Method begins at RVA 0x20b9
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld bool System.Diagnostics.CodeAnalysis.NotNullWhenAttribute::'<ReturnValue>k__BackingField'
+		IL_000d: ret
+	} // end of method NotNullWhenAttribute::.ctor
+
+	.method public hidebysig specialname 
+		instance bool get_ReturnValue () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x20c8
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld bool System.Diagnostics.CodeAnalysis.NotNullWhenAttribute::'<ReturnValue>k__BackingField'
+		IL_0006: ret
+	} // end of method NotNullWhenAttribute::get_ReturnValue
+
+	// Properties
+	.property instance bool ReturnValue()
+	{
+		.get instance bool System.Diagnostics.CodeAnalysis.NotNullWhenAttribute::get_ReturnValue()
+	}
+
+} // end of class System.Diagnostics.CodeAnalysis.NotNullWhenAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.NotNullIfNotNullAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 80 28 00 00 02 00 54 02 0d 41 6c 6c 6f 77
+		4d 75 6c 74 69 70 6c 65 01 54 02 09 49 6e 68 65
+		72 69 74 65 64 00
+	)
+	// Fields
+	.field private initonly string '<ParameterName>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string parameterName
+		) cil managed 
+	{
+		// Method begins at RVA 0x20d0
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld string System.Diagnostics.CodeAnalysis.NotNullIfNotNullAttribute::'<ParameterName>k__BackingField'
+		IL_000d: ret
+	} // end of method NotNullIfNotNullAttribute::.ctor
+
+	.method public hidebysig specialname 
+		instance string get_ParameterName () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x20df
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld string System.Diagnostics.CodeAnalysis.NotNullIfNotNullAttribute::'<ParameterName>k__BackingField'
+		IL_0006: ret
+	} // end of method NotNullIfNotNullAttribute::get_ParameterName
+
+	// Properties
+	.property instance string ParameterName()
+	{
+		.get instance string System.Diagnostics.CodeAnalysis.NotNullIfNotNullAttribute::get_ParameterName()
+	}
+
+} // end of class System.Diagnostics.CodeAnalysis.NotNullIfNotNullAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.DoesNotReturnAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 40 00 00 00 01 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00
+	)
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor () cil managed 
+	{
+		// Method begins at RVA 0x20e7
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ret
+	} // end of method DoesNotReturnAttribute::.ctor
+
+} // end of class System.Diagnostics.CodeAnalysis.DoesNotReturnAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.DoesNotReturnIfAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 00 08 00 00 01 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00
+	)
+	// Fields
+	.field private initonly bool '<ParameterValue>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			bool parameterValue
+		) cil managed 
+	{
+		// Method begins at RVA 0x20ef
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld bool System.Diagnostics.CodeAnalysis.DoesNotReturnIfAttribute::'<ParameterValue>k__BackingField'
+		IL_000d: ret
+	} // end of method DoesNotReturnIfAttribute::.ctor
+
+	.method public hidebysig specialname 
+		instance bool get_ParameterValue () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x20fe
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld bool System.Diagnostics.CodeAnalysis.DoesNotReturnIfAttribute::'<ParameterValue>k__BackingField'
+		IL_0006: ret
+	} // end of method DoesNotReturnIfAttribute::get_ParameterValue
+
+	// Properties
+	.property instance bool ParameterValue()
+	{
+		.get instance bool System.Diagnostics.CodeAnalysis.DoesNotReturnIfAttribute::get_ParameterValue()
+	}
+
+} // end of class System.Diagnostics.CodeAnalysis.DoesNotReturnIfAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.MemberNotNullAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 c0 00 00 00 02 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00 54 02 0d 41 6c 6c 6f 77 4d 75 6c
+		74 69 70 6c 65 01
+	)
+	// Fields
+	.field private initonly string[] '<Members>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string member
+		) cil managed 
+	{
+		// Method begins at RVA 0x2106
+		// Header size: 1
+		// Code size: 23 (0x17)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldc.i4.1
+		IL_0008: newarr [mscorlib]System.String
+		IL_000d: dup
+		IL_000e: ldc.i4.0
+		IL_000f: ldarg.1
+		IL_0010: stelem.ref
+		IL_0011: stfld string[] System.Diagnostics.CodeAnalysis.MemberNotNullAttribute::'<Members>k__BackingField'
+		IL_0016: ret
+	} // end of method MemberNotNullAttribute::.ctor
+
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			string[] members
+		) cil managed 
+	{
+		.param [1]
+			.custom instance void [mscorlib]System.ParamArrayAttribute::.ctor() = (
+				01 00 00 00
+			)
+		// Method begins at RVA 0x211e
+		// Header size: 1
+		// Code size: 14 (0xe)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld string[] System.Diagnostics.CodeAnalysis.MemberNotNullAttribute::'<Members>k__BackingField'
+		IL_000d: ret
+	} // end of method MemberNotNullAttribute::.ctor
+
+	.method public hidebysig specialname 
+		instance string[] get_Members () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x212d
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld string[] System.Diagnostics.CodeAnalysis.MemberNotNullAttribute::'<Members>k__BackingField'
+		IL_0006: ret
+	} // end of method MemberNotNullAttribute::get_Members
+
+	// Properties
+	.property instance string[] Members()
+	{
+		.get instance string[] System.Diagnostics.CodeAnalysis.MemberNotNullAttribute::get_Members()
+	}
+
+} // end of class System.Diagnostics.CodeAnalysis.MemberNotNullAttribute
+
+.class private auto ansi sealed beforefieldinit System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute
+	extends [mscorlib]System.Attribute
+{
+	.custom instance void [mscorlib]System.AttributeUsageAttribute::.ctor(valuetype [mscorlib]System.AttributeTargets) = (
+		01 00 c0 00 00 00 02 00 54 02 09 49 6e 68 65 72
+		69 74 65 64 00 54 02 0d 41 6c 6c 6f 77 4d 75 6c
+		74 69 70 6c 65 01
+	)
+	// Fields
+	.field private initonly bool '<ReturnValue>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+	.field private initonly string[] '<Members>k__BackingField'
+	.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+		01 00 00 00
+	)
+
+	// Methods
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			bool returnValue,
+			string member
+		) cil managed 
+	{
+		// Method begins at RVA 0x2135
+		// Header size: 1
+		// Code size: 30 (0x1e)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld bool System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute::'<ReturnValue>k__BackingField'
+		IL_000d: ldarg.0
+		IL_000e: ldc.i4.1
+		IL_000f: newarr [mscorlib]System.String
+		IL_0014: dup
+		IL_0015: ldc.i4.0
+		IL_0016: ldarg.2
+		IL_0017: stelem.ref
+		IL_0018: stfld string[] System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute::'<Members>k__BackingField'
+		IL_001d: ret
+	} // end of method MemberNotNullWhenAttribute::.ctor
+
+	.method public hidebysig specialname rtspecialname 
+		instance void .ctor (
+			bool returnValue,
+			string[] members
+		) cil managed 
+	{
+		.param [2]
+			.custom instance void [mscorlib]System.ParamArrayAttribute::.ctor() = (
+				01 00 00 00
+			)
+		// Method begins at RVA 0x2154
+		// Header size: 1
+		// Code size: 21 (0x15)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: call instance void [mscorlib]System.Attribute::.ctor()
+		IL_0006: ldarg.0
+		IL_0007: ldarg.1
+		IL_0008: stfld bool System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute::'<ReturnValue>k__BackingField'
+		IL_000d: ldarg.0
+		IL_000e: ldarg.2
+		IL_000f: stfld string[] System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute::'<Members>k__BackingField'
+		IL_0014: ret
+	} // end of method MemberNotNullWhenAttribute::.ctor
+
+	.method public hidebysig specialname 
+		instance bool get_ReturnValue () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x216a
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld bool System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute::'<ReturnValue>k__BackingField'
+		IL_0006: ret
+	} // end of method MemberNotNullWhenAttribute::get_ReturnValue
+
+	.method public hidebysig specialname 
+		instance string[] get_Members () cil managed 
+	{
+		.custom instance void [mscorlib]System.Runtime.CompilerServices.CompilerGeneratedAttribute::.ctor() = (
+			01 00 00 00
+		)
+		// Method begins at RVA 0x2172
+		// Header size: 1
+		// Code size: 7 (0x7)
+		.maxstack 8
+
+		IL_0000: ldarg.0
+		IL_0001: ldfld string[] System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute::'<Members>k__BackingField'
+		IL_0006: ret
+	} // end of method MemberNotNullWhenAttribute::get_Members
+
+	// Properties
+	.property instance bool ReturnValue()
+	{
+		.get instance bool System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute::get_ReturnValue()
+	}
+	.property instance string[] Members()
+	{
+		.get instance string[] System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute::get_Members()
+	}
+
+} // end of class System.Diagnostics.CodeAnalysis.MemberNotNullWhenAttribute
+

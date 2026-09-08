@@ -1,0 +1,153 @@
+Microsoft (R) COFF/PE Dumper Version 14.51.36256.0
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+Dump of file D:\a\_temp\eu2av-final-re\installed\OpenHPSDR\Thetis\specbleach.dll
+
+File Type: DLL
+
+  Section contains the following exports for specbleach.dll
+
+    00000000 characteristics
+           0 time date stamp
+        0.00 version
+           1 ordinal base
+         125 number of functions
+         125 number of names
+
+    ordinal hint RVA      name
+
+          1    0 00003430 absolute_hearing_thresholds_free
+          2    1 00002FF0 absolute_hearing_thresholds_initialize
+          3    2 00004290 apply_noise_scaling_criteria
+          4    3 00003480 apply_thresholds_as_floor
+          5    4 00004D50 compute_backward_fft
+          6    5 00003B40 compute_critical_bands_spectrum
+          7    6 00004D20 compute_forward_fft
+          8    7 00003EB0 compute_masking_thresholds
+          9    8 00003B10 critical_bands_free
+         10    9 000034F0 critical_bands_initialize
+         11    A 00005440 denoise_mixer_free
+         12    B 000053B0 denoise_mixer_initialize
+         13    C 00005480 denoise_mixer_run
+         14    D 00006100 direct_matrix_to_vector_spectral_convolution
+         15    E 00001DC0 estimate_gains
+         16    F 00006210 fft_bin_to_freq
+         17   10 00004CC0 fft_get_output_samples
+         18   11 00004C60 fft_load_input_samples
+         19   12 00004C00 fft_transform_free
+         20   13 00004A80 fft_transform_initialize
+         21   14 00004B60 fft_transform_initialize_bins
+         22   15 00006230 freq_to_fft_bin
+         23   16 000055F0 from_db_to_coefficient
+         24   17 00003BD0 get_band_indexes
+         25   18 00004D80 get_fft_input_buffer
+         26   19 00004D90 get_fft_output_buffer
+         27   1A 00004C50 get_fft_real_spectrum_size
+         28   1B 00004C40 get_fft_size
+         29   1C 00005980 get_fft_window
+         30   1D 00004ED0 get_full_buffer_block
+         31   1E 00004ED0 get_magnitude_spectrum
+         32   1F 00005640 get_next_divisible_two
+         33   20 00005680 get_next_power_two
+         34   21 000029C0 get_noise_profile
+         35   22 000029E0 get_noise_profile_blocks_averaged
+         36   23 000029D0 get_noise_profile_size
+         37   24 00003BF0 get_number_of_critical_bands
+         38   25 000029C0 get_phase_spectrum
+         39   26 00005740 get_power_spectrum
+         40   27 00006460 get_rolling_mean_spectrum
+         41   28 00006680 get_rolling_median_spectrum
+         42   29 00005750 get_spectral_feature
+         43   2A 000029E0 get_spectrum_buffer_size
+         44   2B 000029D0 get_spectrum_size
+         45   2C 000051B0 get_stft_fft_size
+         46   2D 000029D0 get_stft_latency
+         47   2E 000051C0 get_stft_real_spectrum_size
+         48   2F 000029C0 get_trailing_spectral_buffer
+         49   30 00002A60 increment_blocks_averaged
+         50   31 00005C30 initialize_spectrum_with_value
+         51   32 00004E40 is_buffer_full
+         52   33 000029B0 is_noise_estimation_available
+         53   34 00001200 load_adaptive_reduction_parameters
+         54   35 00001560 load_reduction_parameters
+         55   36 00002480 louizou_estimator_free
+         56   37 00002230 louizou_estimator_initialize
+         57   38 000024F0 louizou_estimator_run
+         58   39 00003E50 masking_estimation_free
+         59   3A 00003C00 masking_estimation_initialize
+         60   3B 00005CA0 max_spectral_value
+         61   3C 00005F80 max_spectrum
+         62   3D 00005D50 min_spectral_value
+         63   3E 00005E00 min_spectrum
+         64   3F 00002840 noise_estimation_free
+         65   40 000027F0 noise_estimation_initialize
+         66   41 00002860 noise_estimation_run
+         67   42 00002980 noise_profile_free
+         68   43 00002940 noise_profile_initialize
+         69   44 00004240 noise_scaling_criterias_free
+         70   45 00004160 noise_scaling_criterias_initialize
+         71   46 00002B90 postfilter_apply
+         72   47 00002B50 postfilter_free
+         73   48 00002AD0 postfilter_initialize
+         74   49 00005610 remap_percentage_log_like_unity
+         75   4A 00002A90 reset_noise_profile
+         76   4B 000055C0 sanitize_denormal
+         77   4C 00002A00 set_noise_profile
+         78   4D 000029F0 set_noise_profile_available
+         79   4E 000017E0 specbleach_adaptive_free
+         80   4F 00001810 specbleach_adaptive_get_latency
+         81   50 00001720 specbleach_adaptive_initialize
+         82   51 00001870 specbleach_adaptive_load_parameters
+         83   52 00001820 specbleach_adaptive_process
+         84   53 00001AD0 specbleach_free
+         85   54 00001B10 specbleach_get_latency
+         86   55 00001B80 specbleach_get_noise_profile
+         87   56 00001B70 specbleach_get_noise_profile_blocks_averaged
+         88   57 00001810 specbleach_get_noise_profile_size
+         89   58 000019E0 specbleach_initialize
+         90   59 00001B90 specbleach_load_noise_profile
+         91   5A 00001C30 specbleach_load_parameters
+         92   5B 00001C20 specbleach_noise_profile_available
+         93   5C 00001B20 specbleach_process
+         94   5D 00001BF0 specbleach_reset_noise_profile
+         95   5E 00001170 spectral_adaptive_denoiser_free
+         96   5F 00001000 spectral_adaptive_denoiser_initialize
+         97   60 00001220 spectral_adaptive_denoiser_run
+         98   61 000014E0 spectral_denoiser_free
+         99   62 00001390 spectral_denoiser_initialize
+        100   63 00001580 spectral_denoiser_run
+        101   64 00005710 spectral_features_free
+        102   65 000056B0 spectral_features_initialize
+        103   66 00006260 spectral_flux
+        104   67 00004750 spectral_smoothing_free
+        105   68 000046D0 spectral_smoothing_initialize
+        106   69 00004790 spectral_smoothing_run
+        107   6A 00002980 spectral_trailing_buffer_free
+        108   6B 000058D0 spectral_trailing_buffer_initialize
+        109   6C 00005920 spectral_trailing_buffer_push_back
+        110   6D 00002EB0 spectral_whitening_free
+        111   6E 00002E10 spectral_whitening_initialize
+        112   6F 00002EE0 spectral_whitening_run
+        113   70 00004E80 stft_buffer_advance_block
+        114   71 00004E50 stft_buffer_fill
+        115   72 00004E10 stft_buffer_free
+        116   73 00004DA0 stft_buffer_initialize
+        117   74 00004FE0 stft_processor_free
+        118   75 00004EE0 stft_processor_initialize
+        119   76 00005030 stft_processor_run
+        120   77 00005320 stft_window_apply
+        121   78 00003B10 stft_window_free
+        122   79 000051D0 stft_window_initialize
+        123   7A 000049C0 transient_detector_free
+        124   7B 00004970 transient_detector_initialize
+        125   7C 000049F0 transient_detector_run
+
+  Summary
+
+        1000 .data
+        1000 .pdata
+        3000 .rdata
+        1000 .reloc
+        1000 .rsrc
+        7000 .text
