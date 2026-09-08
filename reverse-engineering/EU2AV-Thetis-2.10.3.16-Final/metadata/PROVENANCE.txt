@@ -1,0 +1,18 @@
+generated_utc=2026-09-08T12:28:20.5304227Z
+source_url=https://eu2av.net/download/file.php?id=2070
+package_size=75987169
+package_sha256=abe00caf8e217efa86e6f70994743e4518ba6a7f21a87de8fdace9f8b58ef110
+package_magic=52 61 72 21 1A 07 01 00 82 AD C7 91 0D 01 05 09
+thetis_exe_sha256=e25bf32f10b1502c6d84dbb5423a41197117bab7904d03c7c945061ac71c7f76
+msi_product_version=2.10.3.16
+thetis_file_version=2.10.3.16
+thetis_product_version=2.10.3.16
+source_lock_sha256=fd68edf94642818f95f88f8b18aed998edfe70506d35c82d0c11dbaedde63063
+ilspy=ilspycmd: 11.0.0.9375
+ICSharpCode.Decompiler: 11.0.0.9375
+ghidra=Ghidra_12.1.3_build
+fxc=C:\Program Files (x86)\Windows Kits\10\bin\10.0.26100.0\x64\fxc.exe
+dxc=C:\Program Files (x86)\Windows Kits\10\Redist\D3D\x64\dxc.exe
+dumpbin=C:\Program Files\Microsoft Visual Studio\18\Enterprise\VC\Tools\MSVC\14.51.36231\bin\Hostx64\x64\dumpbin.exe
+java_version=openjdk version "21.0.12.1" 2026-08-18 LTS | OpenJDK Runtime Environment Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS) | OpenJDK 64-Bit Server VM Temurin-21.0.12.1+1 (build 21.0.12.1+1-LTS, mixed mode, sharing)
+dotnet_version=10.0.400

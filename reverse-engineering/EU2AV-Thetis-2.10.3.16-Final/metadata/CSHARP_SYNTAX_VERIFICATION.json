@@ -1,0 +1,6 @@
+{
+  "scope": "CSharp syntax only; not compilation or semantic equivalence",
+  "result": "PASS",
+  "files_checked": 10120,
+  "syntax_errors": 0
+}

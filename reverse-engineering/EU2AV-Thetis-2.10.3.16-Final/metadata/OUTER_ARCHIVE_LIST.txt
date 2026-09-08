@@ -1,0 +1,25 @@
+
+7-Zip 26.02 (x64) : Copyright (c) 1999-2026 Igor Pavlov : 2026-06-25
+
+Scanning the drive for archives:
+1 file, 75987169 bytes (73 MiB)
+
+Listing archive: D:\a\_temp\eu2av-final-re\Thetis-v2.10.3.16-extended.x64.download
+
+--
+Path = D:\a\_temp\eu2av-final-re\Thetis-v2.10.3.16-extended.x64.download
+Type = Rar5
+Physical Size = 75987169
+Characteristics = Locator QuickOpen:75987048
+Encrypted = -
+Solid = -
+Blocks = 1
+Method = v6:32M:m5
+Multivolume = -
+Volumes = 1
+
+   Date      Time    Attr         Size   Compressed  Name
+------------------- ----- ------------ ------------  ------------------------
+2026-08-08 14:51:15 ....A     77230080     75986955  Thetis-v2.10.3.16-extended.x64.msi
+------------------- ----- ------------ ------------  ------------------------
+2026-08-08 14:51:15           77230080     75986955  1 files
