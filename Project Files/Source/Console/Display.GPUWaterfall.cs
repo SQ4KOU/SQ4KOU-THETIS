@@ -6,13 +6,13 @@ namespace Thetis
     {
         // SQ4KOU GPU Waterfall V3.
         // GPU FFT remains optional and any failure falls back to the existing CPU/WDSP path.
-        private static bool _waterfallUseGPU = true;
-        private static int _gpuWaterfallFFTSize = 32768;
-        private static int _gpuWaterfallWindowType = 0;          // Hann
-        private static float _gpuWaterfallKaiserBeta = 8.6f;
-        private static int _gpuWaterfallMagnitudeMode = 0;       // dBFS
-        private static bool _gpuWaterfallAutoOverlap = true;
-        private static float _gpuWaterfallOverlapPercent = 75.0f;
+        private static bool _waterfallUseGPU = false;
+        private static int _gpuWaterfallFFTSize = 16384;
+        private static int _gpuWaterfallWindowType = 4;          // Nuttall
+        private static float _gpuWaterfallKaiserBeta = 6.0f;
+        private static int _gpuWaterfallMagnitudeMode = 2;       // Peak Power
+        private static bool _gpuWaterfallAutoOverlap = false;
+        private static float _gpuWaterfallOverlapPercent = 85.0f;
         private static int _gpuWaterfallLanczosWindow = 3;
         private static int _gpuWaterfallResamplingMode = 1;      // Power Average
 
@@ -57,10 +57,10 @@ namespace Thetis
             get { return _gpuWaterfallWindowType; }
             set
             {
-                int v = Math.Max(0, Math.Min(3, value));
+                int v = Math.Max(0, Math.Min(5, value));
                 if (_gpuWaterfallWindowType == v) return;
                 _gpuWaterfallWindowType = v;
-                ResetGPUWaterfallState();
+                ReconfigureGPUWaterfallRuntime();
             }
         }
 
@@ -72,7 +72,7 @@ namespace Thetis
                 float v = Math.Max(0.0f, Math.Min(20.0f, value));
                 if (Math.Abs(_gpuWaterfallKaiserBeta - v) < 0.0001f) return;
                 _gpuWaterfallKaiserBeta = v;
-                ResetGPUWaterfallState();
+                ReconfigureGPUWaterfallRuntime();
             }
         }
 
@@ -81,10 +81,10 @@ namespace Thetis
             get { return _gpuWaterfallMagnitudeMode; }
             set
             {
-                int v = Math.Max(0, Math.Min(1, value));
+                int v = Math.Max(0, Math.Min(2, value));
                 if (_gpuWaterfallMagnitudeMode == v) return;
                 _gpuWaterfallMagnitudeMode = v;
-                ResetGPUWaterfallState();
+                ReconfigureGPUWaterfallRuntime();
             }
         }
 
@@ -95,7 +95,7 @@ namespace Thetis
             {
                 if (_gpuWaterfallAutoOverlap == value) return;
                 _gpuWaterfallAutoOverlap = value;
-                ResetGPUWaterfallState();
+                ReconfigureGPUWaterfallRuntime();
             }
         }
 
@@ -107,7 +107,7 @@ namespace Thetis
                 float v = Math.Max(0.0f, Math.Min(95.0f, value));
                 if (Math.Abs(_gpuWaterfallOverlapPercent - v) < 0.01f) return;
                 _gpuWaterfallOverlapPercent = v;
-                ResetGPUWaterfallState();
+                ReconfigureGPUWaterfallRuntime();
             }
         }
 
@@ -119,7 +119,7 @@ namespace Thetis
                 int v = Math.Max(2, Math.Min(4, value));
                 if (_gpuWaterfallLanczosWindow == v) return;
                 _gpuWaterfallLanczosWindow = v;
-                ResetGPUWaterfallState();
+                ReconfigureGPUWaterfallRuntime();
             }
         }
 
@@ -131,7 +131,7 @@ namespace Thetis
                 int v = Math.Max(0, Math.Min(3, value));
                 if (_gpuWaterfallResamplingMode == v) return;
                 _gpuWaterfallResamplingMode = v;
-                ResetGPUWaterfallState();
+                ReconfigureGPUWaterfallRuntime();
             }
         }
 
@@ -212,6 +212,29 @@ namespace Thetis
             }
         }
 
+        private static void ReconfigureGPUWaterfallRuntime()
+        {
+            for (int ch = 0; ch < 2; ch++)
+            {
+                // A configuration change starts a new coherent waterfall history,
+                // but it must not tear down the D3D device or IQ ring.
+                _gpuPrevValid[ch] = false;
+                _gpuCalibrationValid[ch] = false;
+                _gpuCalibrationOffset[ch] = 0.0f;
+                _gpuCalibrationFrame[ch] = 0;
+
+                if (_gpuWaterfallConfiguredFFT[ch] != 0 && !_gpuWaterfallFailed[ch])
+                {
+                    if (!ConfigureGPUWaterfall(ch))
+                    {
+                        try { GPUWaterfallNative.CM_GPUWaterfall_Free(ch); } catch { }
+                        _gpuWaterfallConfiguredFFT[ch] = 0;
+                        // Allow the normal EnsureGPUWaterfall path to retry cleanly.
+                        _gpuWaterfallFailed[ch] = false;
+                    }
+                }
+            }
+        }
         private static bool ConfigureGPUWaterfall(int channel)
         {
             try

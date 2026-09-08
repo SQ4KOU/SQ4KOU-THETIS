@@ -689,7 +689,12 @@
     <Compile Include="WaterfallPixelWriter.cs" />
     <Compile Include="GPUWaterfallNative.cs" />
     <Compile Include="Display.GPUWaterfall.cs" />
-    <Compile Include="Setup.GPUWaterfall.cs" />
+    <Compile Include="Setup.GPUWaterfall.cs" />
+    <Compile Include="GPUDetectorNative.cs" />
+    <Compile Include="GPUDetector.cs" />
+    <Compile Include="GPUWaterfallEnums.cs" />
+    <Compile Include="NoiseFloorPro.cs" />
+    <Compile Include="Display.EU2AVWaterfallCompat.cs" />
     <Compile Include="WaterfallPalette.cs" />
     <Compile Include="DiversityForm.cs">
       <SubType>Form</SubType>

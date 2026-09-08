@@ -6,430 +6,1121 @@ namespace Thetis
 {
     public partial class Setup
     {
-        // SQ4KOU V4 - Waterfall Pro page modelled on Thetis 2.10.3.16 Extended Final.
-        // Built programmatically so the very large setup.designer.cs remains untouched.
-        private TabPage tpWaterfall;
-        private GroupBoxTS grpWaterfallPro;
-        private GroupBoxTS grpWFNoiseFloor;
-        private GroupBoxTS grpWFEnhancement;
-        private GroupBoxTS grpGPUWaterfallFFT;
-        private GroupBoxTS grpGPUAcceleration;
 
-        private ComboBoxTS comboWFNFMode;
-        private NumericUpDownTS udWFNFLow;
-        private NumericUpDownTS udWFNFHigh;
-        private CheckBoxTS chkWFNFAutoHigh;
-        private NumericUpDownTS udWFNFAutoHighDb;
-        private ComboBoxTS comboWFAGCSmooth;
-        private ComboBoxTS comboWFDetect;
-        private CheckBoxTS chkWFZoomAdaptive;
-
-        private ComboBoxTS comboWFRender;
-        private LabelTS lblWFPipeline;
-        private ComboBoxTS comboWFToneMap;
-        private ComboBoxTS comboWFTemporal;
-        private TrackBarTS tbWFPaletteSharp;
-        private TrackBarTS tbWFPaletteContrast;
-        private LabelTS lblWFPaletteSharpValue;
-        private LabelTS lblWFPaletteContrastValue;
-
-        private CheckBoxTS chkGPUWaterfallFFT;
-        private ComboBoxTS comboGPUWaterfallFFTSize;
-        private CheckBoxTS chkGPUWaterfallAutoOverlap;
-        private NumericUpDownTS udGPUWaterfallOverlap;
-        private ComboBoxTS comboGPUWaterfallWindow;
-        private ComboBoxTS comboGPUWaterfallMagnitudeMode;
+        private TabPage _tpWaterfall;
+        private GroupBoxTS wfProGroup;
+        private bool _renderQualityItemsUpdating;
+        private bool _renderFilterPending;
+        private bool _paletteItemsUpdating;
+        private static readonly string[] _wfPaletteItemsGPU = new string[5] { "Console 256", "Thermal 256", "DeepBlue 256", "Enhanced 256", "BlackWhite 256" };
+        private static readonly string[] _wfPaletteItemsAll = new string[12] { "Console 256", "Thermal 256", "DeepBlue 256", "Enhanced 256", "BlackWhite 256", "Enhanced", "Spectran", "BlackWhite", "LinLog", "LinRad", "LinAuto", "Custom" };
+        private LabelTS lblNFProSep; private ComboBoxTS comboNFMode; private LabelTS lblNFMode;
+        private NumericUpDownTS udNFLowPct; private LabelTS lblNFLowPct; private NumericUpDownTS udNFHighPct; private LabelTS lblNFHighPct;
+        private CheckBoxTS chkAutoHigh; private NumericUpDownTS udAutoHighMargin; private LabelTS lblAutoHighMargin;
+        private ComboBoxTS comboAGCSmooth; private LabelTS lblAGCSmooth; private ComboBoxTS comboWFDetector; private LabelTS lblWFDetector;
+        private CheckBoxTS chkZoomAdaptive; private LabelTS lblZoomHint; private ComboBoxTS comboToneMap; private LabelTS lblToneMap; private LabelTS lblToneMapSep;
+        private ComboBoxTS comboTemporal; private LabelTS lblTemporal; private LabelTS lblGPUSep; private LabelTS lblPalSharp; private TrackBarTS tbPalSharp;
+        private LabelTS lblPalSharpVal; private LabelTS lblPalContrast; private TrackBarTS tbPalContrast; private LabelTS lblPalContrastVal;
+        private ComboBoxTS comboGPU; private LabelTS lblGPU; private LabelTS lblGPUInfo; private ButtonTS btnTestGPU; private System.Windows.Forms.Timer _gpuStatusTimer;
+        private LabelTS lblWaterfallRenderQuality; private ComboBoxTS comboWaterfallRenderQuality; private LabelTS lblWaterfallRenderQualityHint;
+        private CheckBoxTS chkGPUWaterfallFFT; private LabelTS lblGPUWaterfallFFTSize; private ComboBoxTS comboGPUWaterfallFFTSize;
+        private LabelTS lblGPUWaterfallWindow; private ComboBoxTS comboGPUWaterfallWindow; private LabelTS lblGPUWaterfallKaiserBeta; private NumericUpDownTS udGPUWaterfallKaiserBeta;
+        private LabelTS lblGPUWaterfallMagnitudeMode; private ComboBoxTS comboGPUWaterfallMagnitudeMode; private LabelTS lblGPUWaterfallOverlap; private NumericUpDownTS udGPUWaterfallOverlap;
+        private CheckBoxTS chkGPUWaterfallAutoOverlap; private LabelTS lblGPUWaterfallEffectiveOverlap; private LabelTS lblGPUWaterfallLanczos; private ComboBoxTS comboGPUWaterfallLanczos;
         private ComboBoxTS comboGPUWaterfallResampling;
-        private ComboBoxTS comboGPUWaterfallLanczos;
 
-        private ComboBoxTS comboGPUAcceleration;
-        private LabelTS lblGPUAdapter;
-        private LabelTS lblGPUFeatureLevel;
-        private LabelTS lblGPUCapabilities;
-        private LabelTS lblGPURX1Runtime;
-        private LabelTS lblGPURX2Runtime;
-        private LabelTS lblGPUDropped;
-        private LabelTS lblGPUCalibration;
-        private ButtonTS btnGPUTest;
-        private ButtonTS btnGPUDefaults;
-        private ButtonTS btnGPUResetCalibration;
-        private System.Windows.Forms.Timer gpuWaterfallStatusTimer;
 
-        private static LabelTS GPUWFLabel(string text, int x, int y, int width)
-        {
-            LabelTS l = new LabelTS();
-            l.Text = text;
-            l.Location = new Point(x, y + 3);
-            l.Size = new Size(width, 20);
-            return l;
-        }
-
-        private static ComboBoxTS GPUWFCombo(string name, int x, int y, int width, params object[] items)
-        {
-            ComboBoxTS c = new ComboBoxTS();
-            c.Name = name;
-            c.DropDownStyle = ComboBoxStyle.DropDownList;
-            c.Location = new Point(x, y);
-            c.Size = new Size(width, 22);
-            c.Items.AddRange(items);
-            return c;
-        }
-
+        // SQ4KOU test: exact Setup > Display > Waterfall window recovered from
+        // Thetis 2.10.3.16 Extended Final. No visual reconstruction.
         private void InitGPUWaterfallSetupUI()
         {
-            if (tpWaterfall != null || tcDisplay == null) return;
-
-            // V4 controls use new DB names, so old V3 test values cannot silently
-            // override the Extended reference defaults on the first V4 run.
-            Display.ApplyGPUWaterfallEU2AVDefaults();
-            WaterfallEnhancer.SetQuality(WaterfallEnhancer.QualityLevel.Vivid); // Render: Medium
-            WaterfallEnhancer.SetGamma(1.0f);                                  // Tone Map: Off
-
-            tpWaterfall = new TabPage();
-            tpWaterfall.Name = "tpWaterfallV4";
-            tpWaterfall.Text = "Waterfall";
-            tpWaterfall.BackColor = SystemColors.Control;
-            tpWaterfall.Padding = new Padding(6);
-            tpWaterfall.AutoScroll = true;
-
-            grpWaterfallPro = new GroupBoxTS();
-            grpWaterfallPro.Name = "grpWaterfallProV4";
-            grpWaterfallPro.Text = "Waterfall Pro";
-            grpWaterfallPro.Location = new Point(8, 6);
-            grpWaterfallPro.Size = new Size(694, 365);
-
-            BuildWFNoiseFloorGroup();
-            BuildWFEnhancementGroup();
-            BuildGPUFFTGroup();
-            BuildGPUAccelerationGroup();
-
-            grpWaterfallPro.Controls.Add(grpWFNoiseFloor);
-            grpWaterfallPro.Controls.Add(grpWFEnhancement);
-            grpWaterfallPro.Controls.Add(grpGPUWaterfallFFT);
-            grpWaterfallPro.Controls.Add(grpGPUAcceleration);
-            tpWaterfall.Controls.Add(grpWaterfallPro);
-            tcDisplay.TabPages.Add(tpWaterfall);
-
-            gpuWaterfallStatusTimer = new System.Windows.Forms.Timer();
-            gpuWaterfallStatusTimer.Interval = 750;
-            gpuWaterfallStatusTimer.Tick += delegate { UpdateGPUWaterfallDiagnostics(); };
-            gpuWaterfallStatusTimer.Start();
-
-            this.VisibleChanged += delegate
-            {
-                if (gpuWaterfallStatusTimer != null)
-                    gpuWaterfallStatusTimer.Enabled = this.Visible;
-            };
-
-            UpdateGPUWaterfallSetupEnableState();
-            UpdateGPUWaterfallDiagnostics();
+            InitWaterfallTab();
+            if (_tpWaterfall != null && grpDisplayDriverEngine != null)
+                InitNoiseFloorProControls(grpDisplayDriverEngine, 0);
         }
 
-        private void BuildWFNoiseFloorGroup()
-        {
-            grpWFNoiseFloor = new GroupBoxTS();
-            grpWFNoiseFloor.Name = "grpWFNoiseFloorV4";
-            grpWFNoiseFloor.Text = "Noise Floor Pro";
-            grpWFNoiseFloor.Location = new Point(12, 22);
-            grpWFNoiseFloor.Size = new Size(320, 180);
 
-            grpWFNoiseFloor.Controls.Add(GPUWFLabel("NF Mode:", 12, 22, 85));
-            comboWFNFMode = GPUWFCombo("comboWFNFModeV4", 102, 20, 130, "Off", "Percentile");
-            comboWFNFMode.SelectedIndex = Display.GPUWaterfallNFMode;
-            comboWFNFMode.SelectedIndexChanged += delegate { Display.GPUWaterfallNFMode = comboWFNFMode.SelectedIndex; };
-            grpWFNoiseFloor.Controls.Add(comboWFNFMode);
+	private void InitWaterfallTab()
+	{
+		if (tcDisplay != null && _tpWaterfall == null)
+		{
+			_tpWaterfall = new TabPage();
+			_tpWaterfall.BackColor = SystemColors.Control;
+			_tpWaterfall.Location = new Point(4, 22);
+			_tpWaterfall.Name = "tpWaterfall";
+			_tpWaterfall.Padding = new Padding(3);
+			_tpWaterfall.Size = new Size(721, 403);
+			_tpWaterfall.Text = "Waterfall";
+			_tpWaterfall.AutoScroll = false;
+			_tpWaterfall.UseVisualStyleBackColor = true;
+			tcDisplay.Controls.Add(_tpWaterfall);
+			tcDisplay.Controls.SetChildIndex(_tpWaterfall, 1);
+		}
+	}
 
-            grpWFNoiseFloor.Controls.Add(GPUWFLabel("NF Low %:", 12, 52, 85));
-            udWFNFLow = new NumericUpDownTS();
-            udWFNFLow.Name = "udWFNFLowV4";
-            udWFNFLow.Minimum = 0; udWFNFLow.Maximum = 49; udWFNFLow.Value = Display.GPUWaterfallNFLowPercent;
-            udWFNFLow.Location = new Point(102, 50); udWFNFLow.Size = new Size(55, 22);
-            udWFNFLow.ValueChanged += delegate { Display.GPUWaterfallNFLowPercent = (int)udWFNFLow.Value; };
-            grpWFNoiseFloor.Controls.Add(udWFNFLow);
-            grpWFNoiseFloor.Controls.Add(GPUWFLabel("High:", 170, 52, 45));
-            udWFNFHigh = new NumericUpDownTS();
-            udWFNFHigh.Name = "udWFNFHighV4";
-            udWFNFHigh.Minimum = 51; udWFNFHigh.Maximum = 100; udWFNFHigh.Value = Display.GPUWaterfallNFHighPercent;
-            udWFNFHigh.Location = new Point(220, 50); udWFNFHigh.Size = new Size(55, 22);
-            udWFNFHigh.ValueChanged += delegate { Display.GPUWaterfallNFHighPercent = (int)udWFNFHigh.Value; };
-            grpWFNoiseFloor.Controls.Add(udWFNFHigh);
 
-            chkWFNFAutoHigh = new CheckBoxTS();
-            chkWFNFAutoHigh.Name = "chkWFNFAutoHighV4";
-            chkWFNFAutoHigh.Text = "Auto High";
-            chkWFNFAutoHigh.Location = new Point(12, 82); chkWFNFAutoHigh.Size = new Size(90, 22);
-            chkWFNFAutoHigh.Checked = Display.GPUWaterfallNFAutoHigh;
-            chkWFNFAutoHigh.CheckedChanged += delegate { Display.GPUWaterfallNFAutoHigh = chkWFNFAutoHigh.Checked; udWFNFAutoHighDb.Enabled = chkWFNFAutoHigh.Checked; };
-            grpWFNoiseFloor.Controls.Add(chkWFNFAutoHigh);
-            grpWFNoiseFloor.Controls.Add(GPUWFLabel("+dB:", 120, 82, 38));
-            udWFNFAutoHighDb = new NumericUpDownTS();
-            udWFNFAutoHighDb.Name = "udWFNFAutoHighDbV4";
-            udWFNFAutoHighDb.Minimum = -30; udWFNFAutoHighDb.Maximum = 30; udWFNFAutoHighDb.DecimalPlaces = 1; udWFNFAutoHighDb.Increment = 0.5M;
-            udWFNFAutoHighDb.Value = (decimal)Display.GPUWaterfallNFAutoHighDb;
-            udWFNFAutoHighDb.Location = new Point(160, 80); udWFNFAutoHighDb.Size = new Size(65, 22);
-            udWFNFAutoHighDb.ValueChanged += delegate { Display.GPUWaterfallNFAutoHighDb = (float)udWFNFAutoHighDb.Value; };
-            grpWFNoiseFloor.Controls.Add(udWFNFAutoHighDb);
+	private void InitNoiseFloorProControls(GroupBox grp, int startY)
+	{
+		if (comboNFMode != null)
+		{
+			return;
+		}
+		wfProGroup = new GroupBoxTS();
+		wfProGroup.Text = "Waterfall Pro";
+		wfProGroup.Location = new Point(8, 8);
+		wfProGroup.Size = new Size(700, 380);
+		int num = 22;
+		lblNFProSep = new LabelTS();
+		lblNFProSep.Text = "── Noise Floor Pro ──";
+		lblNFProSep.Location = new Point(12, num);
+		lblNFProSep.Size = new Size(160, 16);
+		lblNFProSep.ForeColor = Color.SlateGray;
+		wfProGroup.Controls.Add(lblNFProSep);
+		num += 24;
+		lblNFMode = new LabelTS();
+		lblNFMode.Text = "NF Mode:";
+		lblNFMode.Location = new Point(12, num + 3);
+		lblNFMode.Size = new Size(80, 16);
+		wfProGroup.Controls.Add(lblNFMode);
+		comboNFMode = new ComboBoxTS();
+		comboNFMode.Name = "comboNFMode";
+		comboNFMode.DropDownStyle = ComboBoxStyle.DropDownList;
+		comboNFMode.Items.AddRange(new object[2] { "Average", "Percentile" });
+		comboNFMode.Location = new Point(92, num);
+		comboNFMode.Size = new Size(100, 21);
+		comboNFMode.SelectedIndex = 0;
+		comboNFMode.SelectedIndexChanged += comboNFMode_SelectedIndexChanged;
+		wfProGroup.Controls.Add(comboNFMode);
+		num += 28;
+		lblNFLowPct = new LabelTS();
+		lblNFLowPct.Text = "NF Low %:";
+		lblNFLowPct.Location = new Point(12, num + 3);
+		lblNFLowPct.Size = new Size(80, 16);
+		wfProGroup.Controls.Add(lblNFLowPct);
+		udNFLowPct = new NumericUpDownTS();
+		udNFLowPct.Name = "udNFLowPct";
+		udNFLowPct.Minimum = 1m;
+		udNFLowPct.Maximum = 25m;
+		udNFLowPct.DecimalPlaces = 0;
+		udNFLowPct.Value = 10m;
+		udNFLowPct.Location = new Point(92, num);
+		udNFLowPct.Size = new Size(46, 21);
+		udNFLowPct.ValueChanged += udNFLowPct_ValueChanged;
+		wfProGroup.Controls.Add(udNFLowPct);
+		lblNFHighPct = new LabelTS();
+		lblNFHighPct.Text = "High %:";
+		lblNFHighPct.Location = new Point(144, num + 3);
+		lblNFHighPct.Size = new Size(42, 16);
+		wfProGroup.Controls.Add(lblNFHighPct);
+		udNFHighPct = new NumericUpDownTS();
+		udNFHighPct.Name = "udNFHighPct";
+		udNFHighPct.Minimum = 90m;
+		udNFHighPct.Maximum = 99m;
+		udNFHighPct.DecimalPlaces = 0;
+		udNFHighPct.Value = 99m;
+		udNFHighPct.Location = new Point(188, num);
+		udNFHighPct.Size = new Size(42, 21);
+		udNFHighPct.ValueChanged += udNFHighPct_ValueChanged;
+		wfProGroup.Controls.Add(udNFHighPct);
+		num += 28;
+		chkAutoHigh = new CheckBoxTS();
+		chkAutoHigh.Name = "chkAutoHigh";
+		chkAutoHigh.Text = "Auto High";
+		chkAutoHigh.AutoSize = true;
+		chkAutoHigh.Location = new Point(12, num + 1);
+		chkAutoHigh.Checked = false;
+		chkAutoHigh.CheckedChanged += chkAutoHigh_CheckedChanged;
+		wfProGroup.Controls.Add(chkAutoHigh);
+		lblAutoHighMargin = new LabelTS();
+		lblAutoHighMargin.Text = "+dB:";
+		lblAutoHighMargin.Location = new Point(90, num + 3);
+		lblAutoHighMargin.Size = new Size(28, 16);
+		wfProGroup.Controls.Add(lblAutoHighMargin);
+		udAutoHighMargin = new NumericUpDownTS();
+		udAutoHighMargin.Name = "udAutoHighMargin";
+		udAutoHighMargin.Minimum = 0m;
+		udAutoHighMargin.Maximum = 20m;
+		udAutoHighMargin.DecimalPlaces = 0;
+		udAutoHighMargin.Value = 6m;
+		udAutoHighMargin.Location = new Point(120, num);
+		udAutoHighMargin.Size = new Size(40, 21);
+		udAutoHighMargin.ValueChanged += udAutoHighMargin_ValueChanged;
+		wfProGroup.Controls.Add(udAutoHighMargin);
+		num += 28;
+		lblAGCSmooth = new LabelTS();
+		lblAGCSmooth.Text = "AGC Smooth:";
+		lblAGCSmooth.Location = new Point(12, num + 3);
+		lblAGCSmooth.Size = new Size(80, 16);
+		wfProGroup.Controls.Add(lblAGCSmooth);
+		comboAGCSmooth = new ComboBoxTS();
+		comboAGCSmooth.Name = "comboAGCSmooth";
+		comboAGCSmooth.DropDownStyle = ComboBoxStyle.DropDownList;
+		comboAGCSmooth.Items.AddRange(new object[3] { "Slow", "Medium", "Fast" });
+		comboAGCSmooth.Location = new Point(92, num);
+		comboAGCSmooth.Size = new Size(80, 21);
+		comboAGCSmooth.SelectedIndex = 1;
+		comboAGCSmooth.SelectedIndexChanged += comboAGCSmooth_SelectedIndexChanged;
+		wfProGroup.Controls.Add(comboAGCSmooth);
+		num += 28;
+		lblWFDetector = new LabelTS();
+		lblWFDetector.Text = "WF Detect:";
+		lblWFDetector.Location = new Point(12, num + 3);
+		lblWFDetector.Size = new Size(80, 16);
+		wfProGroup.Controls.Add(lblWFDetector);
+		comboWFDetector = new ComboBoxTS();
+		comboWFDetector.Name = "comboWFDetector";
+		comboWFDetector.DropDownStyle = ComboBoxStyle.DropDownList;
+		comboWFDetector.Items.AddRange(new object[3] { "Peak", "Average", "Sample" });
+		comboWFDetector.Location = new Point(92, num);
+		comboWFDetector.Size = new Size(80, 21);
+		comboWFDetector.SelectedIndex = 0;
+		comboWFDetector.SelectedIndexChanged += comboWFDetector_SelectedIndexChanged;
+		wfProGroup.Controls.Add(comboWFDetector);
+		num += 28;
+		chkZoomAdaptive = new CheckBoxTS();
+		chkZoomAdaptive.Name = "chkZoomAdaptive";
+		chkZoomAdaptive.Text = "Zoom Adaptive";
+		chkZoomAdaptive.AutoSize = true;
+		chkZoomAdaptive.Location = new Point(12, num + 1);
+		chkZoomAdaptive.Checked = true;
+		chkZoomAdaptive.CheckedChanged += chkZoomAdaptive_CheckedChanged;
+		wfProGroup.Controls.Add(chkZoomAdaptive);
+		lblZoomHint = new LabelTS();
+		lblZoomHint.Text = "(auto-adjusts Tone Map + Temporal)";
+		lblZoomHint.Location = new Point(132, num + 3);
+		lblZoomHint.Size = new Size(180, 16);
+		lblZoomHint.ForeColor = Color.SlateGray;
+		wfProGroup.Controls.Add(lblZoomHint);
+		num += 36;
+		LabelTS labelTS = new LabelTS();
+		labelTS.Text = "── GPU FFT Waterfall ──";
+		labelTS.Location = new Point(12, num);
+		labelTS.Size = new Size(160, 16);
+		labelTS.ForeColor = Color.SlateGray;
+		wfProGroup.Controls.Add(labelTS);
+		num += 24;
+		chkGPUWaterfallFFT = new CheckBoxTS();
+		chkGPUWaterfallFFT.Name = "chkGPUWaterfallFFT";
+		chkGPUWaterfallFFT.Text = "GPU FFT Waterfall";
+		chkGPUWaterfallFFT.AutoSize = true;
+		chkGPUWaterfallFFT.Location = new Point(12, num);
+		chkGPUWaterfallFFT.Visible = false;
+		chkGPUWaterfallFFT.CheckedChanged += chkGPUWaterfallFFT_CheckedChanged;
+		wfProGroup.Controls.Add(chkGPUWaterfallFFT);
+		chkGPUWaterfallFFT.BringToFront();
+		num += 24;
+		int num2 = num;
+		lblGPUWaterfallFFTSize = new LabelTS();
+		lblGPUWaterfallFFTSize.Text = "FFT size:";
+		lblGPUWaterfallFFTSize.Location = new Point(12, num2 + 3);
+		lblGPUWaterfallFFTSize.Size = new Size(52, 16);
+		wfProGroup.Controls.Add(lblGPUWaterfallFFTSize);
+		lblGPUWaterfallFFTSize.BringToFront();
+		comboGPUWaterfallFFTSize = new ComboBoxTS();
+		comboGPUWaterfallFFTSize.Name = "comboGPUWaterfallFFTSize";
+		comboGPUWaterfallFFTSize.DropDownStyle = ComboBoxStyle.DropDownList;
+		comboGPUWaterfallFFTSize.Items.AddRange(new object[9] { "1024", "2048", "4096", "8192", "16384", "32768", "65536", "131072", "262144" });
+		comboGPUWaterfallFFTSize.Location = new Point(70, num2);
+		comboGPUWaterfallFFTSize.Size = new Size(70, 21);
+		comboGPUWaterfallFFTSize.SelectedIndex = 4;
+		comboGPUWaterfallFFTSize.SelectedIndexChanged += comboGPUWaterfallFFTSize_SelectedIndexChanged;
+		wfProGroup.Controls.Add(comboGPUWaterfallFFTSize);
+		comboGPUWaterfallFFTSize.BringToFront();
+		lblGPUWaterfallOverlap = new LabelTS();
+		lblGPUWaterfallOverlap.Text = "Overlap %:";
+		lblGPUWaterfallOverlap.Location = new Point(150, num2 + 3);
+		lblGPUWaterfallOverlap.Size = new Size(60, 16);
+		wfProGroup.Controls.Add(lblGPUWaterfallOverlap);
+		lblGPUWaterfallOverlap.BringToFront();
+		udGPUWaterfallOverlap = new NumericUpDownTS();
+		udGPUWaterfallOverlap.Name = "udGPUWaterfallOverlap";
+		udGPUWaterfallOverlap.Minimum = 0m;
+		udGPUWaterfallOverlap.Maximum = 95m;
+		udGPUWaterfallOverlap.DecimalPlaces = 0;
+		udGPUWaterfallOverlap.Value = 85m;
+		udGPUWaterfallOverlap.Increment = 1m;
+		udGPUWaterfallOverlap.Location = new Point(212, num2);
+		udGPUWaterfallOverlap.Size = new Size(50, 21);
+		udGPUWaterfallOverlap.ValueChanged += udGPUWaterfallOverlap_ValueChanged;
+		wfProGroup.Controls.Add(udGPUWaterfallOverlap);
+		udGPUWaterfallOverlap.BringToFront();
+		chkGPUWaterfallAutoOverlap = new CheckBoxTS();
+		chkGPUWaterfallAutoOverlap.Name = "chkGPUWaterfallAutoOverlap";
+		chkGPUWaterfallAutoOverlap.Text = "Auto";
+		chkGPUWaterfallAutoOverlap.AutoSize = true;
+		chkGPUWaterfallAutoOverlap.Location = new Point(267, num2 + 2);
+		chkGPUWaterfallAutoOverlap.Checked = false;
+		chkGPUWaterfallAutoOverlap.CheckedChanged += chkGPUWaterfallAutoOverlap_CheckedChanged;
+		wfProGroup.Controls.Add(chkGPUWaterfallAutoOverlap);
+		chkGPUWaterfallAutoOverlap.BringToFront();
+		lblGPUWaterfallEffectiveOverlap = new LabelTS();
+		lblGPUWaterfallEffectiveOverlap.Text = "";
+		lblGPUWaterfallEffectiveOverlap.Location = new Point(317, num2 + 4);
+		lblGPUWaterfallEffectiveOverlap.Size = new Size(80, 16);
+		lblGPUWaterfallEffectiveOverlap.ForeColor = Color.SlateGray;
+		wfProGroup.Controls.Add(lblGPUWaterfallEffectiveOverlap);
+		lblGPUWaterfallEffectiveOverlap.BringToFront();
+		num += 24;
+		lblGPUWaterfallWindow = new LabelTS();
+		lblGPUWaterfallWindow.Text = "Window:";
+		lblGPUWaterfallWindow.Location = new Point(12, num + 3);
+		lblGPUWaterfallWindow.Size = new Size(48, 16);
+		wfProGroup.Controls.Add(lblGPUWaterfallWindow);
+		lblGPUWaterfallWindow.BringToFront();
+		comboGPUWaterfallWindow = new ComboBoxTS();
+		comboGPUWaterfallWindow.Name = "comboGPUWaterfallWindow";
+		comboGPUWaterfallWindow.DropDownStyle = ComboBoxStyle.DropDownList;
+		ComboBox.ObjectCollection items = comboGPUWaterfallWindow.Items;
+		object[] names = Enum.GetNames(typeof(GPUWaterfallWindowType));
+		items.AddRange(names);
+		comboGPUWaterfallWindow.Location = new Point(70, num);
+		comboGPUWaterfallWindow.Size = new Size(100, 21);
+		comboGPUWaterfallWindow.SelectedIndex = 4;
+		comboGPUWaterfallWindow.SelectedIndexChanged += comboGPUWaterfallWindow_SelectedIndexChanged;
+		wfProGroup.Controls.Add(comboGPUWaterfallWindow);
+		comboGPUWaterfallWindow.BringToFront();
+		lblGPUWaterfallKaiserBeta = new LabelTS();
+		lblGPUWaterfallKaiserBeta.Text = "Beta:";
+		lblGPUWaterfallKaiserBeta.Location = new Point(176, num + 3);
+		lblGPUWaterfallKaiserBeta.Size = new Size(34, 16);
+		lblGPUWaterfallKaiserBeta.Visible = false;
+		wfProGroup.Controls.Add(lblGPUWaterfallKaiserBeta);
+		lblGPUWaterfallKaiserBeta.BringToFront();
+		udGPUWaterfallKaiserBeta = new NumericUpDownTS();
+		udGPUWaterfallKaiserBeta.Name = "udGPUWaterfallKaiserBeta";
+		udGPUWaterfallKaiserBeta.Minimum = 0m;
+		udGPUWaterfallKaiserBeta.Maximum = 20m;
+		udGPUWaterfallKaiserBeta.DecimalPlaces = 1;
+		udGPUWaterfallKaiserBeta.Value = 6.0m;
+		udGPUWaterfallKaiserBeta.Increment = 0.5m;
+		udGPUWaterfallKaiserBeta.Location = new Point(210, num);
+		udGPUWaterfallKaiserBeta.Size = new Size(50, 21);
+		udGPUWaterfallKaiserBeta.ValueChanged += udGPUWaterfallKaiserBeta_ValueChanged;
+		udGPUWaterfallKaiserBeta.Visible = false;
+		wfProGroup.Controls.Add(udGPUWaterfallKaiserBeta);
+		udGPUWaterfallKaiserBeta.BringToFront();
+		num += 24;
+		lblGPUWaterfallMagnitudeMode = new LabelTS();
+		lblGPUWaterfallMagnitudeMode.Text = "Mag mode:";
+		lblGPUWaterfallMagnitudeMode.Location = new Point(12, num + 3);
+		lblGPUWaterfallMagnitudeMode.Size = new Size(58, 16);
+		wfProGroup.Controls.Add(lblGPUWaterfallMagnitudeMode);
+		lblGPUWaterfallMagnitudeMode.BringToFront();
+		comboGPUWaterfallMagnitudeMode = new ComboBoxTS();
+		comboGPUWaterfallMagnitudeMode.Name = "comboGPUWaterfallMagnitudeMode";
+		comboGPUWaterfallMagnitudeMode.DropDownStyle = ComboBoxStyle.DropDownList;
+		comboGPUWaterfallMagnitudeMode.Items.AddRange(new object[3] { "Peak Amp", "Avg Power", "Peak Power" });
+		comboGPUWaterfallMagnitudeMode.Location = new Point(74, num);
+		comboGPUWaterfallMagnitudeMode.Size = new Size(96, 21);
+		comboGPUWaterfallMagnitudeMode.SelectedIndex = 2;
+		comboGPUWaterfallMagnitudeMode.SelectedIndexChanged += comboGPUWaterfallMagnitudeMode_SelectedIndexChanged;
+		wfProGroup.Controls.Add(comboGPUWaterfallMagnitudeMode);
+		comboGPUWaterfallMagnitudeMode.BringToFront();
+		lblGPUWaterfallLanczos = new LabelTS();
+		lblGPUWaterfallLanczos.Text = "Upsample:";
+		lblGPUWaterfallLanczos.Location = new Point(180, num + 3);
+		lblGPUWaterfallLanczos.Size = new Size(55, 16);
+		wfProGroup.Controls.Add(lblGPUWaterfallLanczos);
+		lblGPUWaterfallLanczos.BringToFront();
+		comboGPUWaterfallLanczos = new ComboBoxTS();
+		comboGPUWaterfallLanczos.Name = "comboGPUWaterfallLanczos";
+		comboGPUWaterfallLanczos.DropDownStyle = ComboBoxStyle.DropDownList;
+		comboGPUWaterfallLanczos.Items.AddRange(new object[4] { "Linear", "Lanczos 2", "Lanczos 3", "Lanczos 4" });
+		comboGPUWaterfallLanczos.Location = new Point(237, num);
+		comboGPUWaterfallLanczos.Size = new Size(80, 21);
+		comboGPUWaterfallLanczos.SelectedIndex = 2;
+		comboGPUWaterfallLanczos.SelectedIndexChanged += comboGPUWaterfallLanczos_SelectedIndexChanged;
+		wfProGroup.Controls.Add(comboGPUWaterfallLanczos);
+		comboGPUWaterfallLanczos.BringToFront();
+		int num3 = 22;
+		lblWaterfallRenderQuality = new LabelTS();
+		lblWaterfallRenderQuality.Text = "Render:";
+		lblWaterfallRenderQuality.Location = new Point(340, num3 + 3);
+		lblWaterfallRenderQuality.Size = new Size(44, 16);
+		wfProGroup.Controls.Add(lblWaterfallRenderQuality);
+		lblWaterfallRenderQuality.BringToFront();
+		comboWaterfallRenderQuality = new ComboBoxTS();
+		comboWaterfallRenderQuality.Name = "comboWaterfallRenderQuality";
+		comboWaterfallRenderQuality.DropDownStyle = ComboBoxStyle.DropDownList;
+		comboWaterfallRenderQuality.Items.AddRange(new object[3] { "Low", "Medium", "High" });
+		comboWaterfallRenderQuality.Location = new Point(388, num3);
+		comboWaterfallRenderQuality.Size = new Size(90, 21);
+		comboWaterfallRenderQuality.SelectedIndex = 2;
+		comboWaterfallRenderQuality.SelectedIndexChanged += comboWaterfallRenderQuality_SelectedIndexChanged;
+		wfProGroup.Controls.Add(comboWaterfallRenderQuality);
+		comboWaterfallRenderQuality.BringToFront();
+		lblWaterfallRenderQualityHint = new LabelTS();
+		lblWaterfallRenderQualityHint.Text = "GPU pipeline";
+		lblWaterfallRenderQualityHint.Location = new Point(482, num3 + 3);
+		lblWaterfallRenderQualityHint.Size = new Size(150, 16);
+		lblWaterfallRenderQualityHint.ForeColor = Color.SlateGray;
+		wfProGroup.Controls.Add(lblWaterfallRenderQualityHint);
+		lblWaterfallRenderQualityHint.BringToFront();
+		num3 += 24;
+		lblToneMapSep = new LabelTS();
+		lblToneMapSep.Text = "── Enhancement ──";
+		lblToneMapSep.Location = new Point(340, num3);
+		lblToneMapSep.Size = new Size(120, 16);
+		lblToneMapSep.ForeColor = Color.SlateGray;
+		wfProGroup.Controls.Add(lblToneMapSep);
+		num3 += 24;
+		lblToneMap = new LabelTS();
+		lblToneMap.Text = "Tone Map:";
+		lblToneMap.Location = new Point(340, num3 + 3);
+		lblToneMap.Size = new Size(80, 16);
+		wfProGroup.Controls.Add(lblToneMap);
+		comboToneMap = new ComboBoxTS();
+		comboToneMap.Name = "comboToneMap";
+		comboToneMap.DropDownStyle = ComboBoxStyle.DropDownList;
+		comboToneMap.Items.AddRange(new object[3] { "Off", "Reinhard", "ACES" });
+		comboToneMap.Location = new Point(420, num3);
+		comboToneMap.Size = new Size(90, 21);
+		comboToneMap.SelectedIndex = 0;
+		comboToneMap.SelectedIndexChanged += comboToneMap_SelectedIndexChanged;
+		wfProGroup.Controls.Add(comboToneMap);
+		num3 += 28;
+		lblTemporal = new LabelTS();
+		lblTemporal.Text = "Temporal:";
+		lblTemporal.Location = new Point(340, num3 + 3);
+		lblTemporal.Size = new Size(80, 16);
+		wfProGroup.Controls.Add(lblTemporal);
+		comboTemporal = new ComboBoxTS();
+		comboTemporal.Name = "comboTemporal";
+		comboTemporal.DropDownStyle = ComboBoxStyle.DropDownList;
+		comboTemporal.Items.AddRange(new object[4] { "Off", "Light", "Medium", "Strong" });
+		comboTemporal.Location = new Point(420, num3);
+		comboTemporal.Size = new Size(90, 21);
+		comboTemporal.SelectedIndex = 0;
+		comboTemporal.SelectedIndexChanged += comboTemporal_SelectedIndexChanged;
+		wfProGroup.Controls.Add(comboTemporal);
+		num3 += 36;
+		lblPalSharp = new LabelTS();
+		lblPalSharp.Text = "Pal Sharp:";
+		lblPalSharp.Location = new Point(340, num3 + 3);
+		lblPalSharp.Size = new Size(80, 16);
+		wfProGroup.Controls.Add(lblPalSharp);
+		tbPalSharp = new TrackBarTS();
+		tbPalSharp.Name = "tbPalSharp";
+		tbPalSharp.Minimum = 0;
+		tbPalSharp.Maximum = 150;
+		tbPalSharp.Value = 0;
+		tbPalSharp.TickFrequency = 25;
+		tbPalSharp.Location = new Point(420, num3 - 2);
+		tbPalSharp.Size = new Size(140, 28);
+		tbPalSharp.Scroll += tbPalSharp_Scroll;
+		wfProGroup.Controls.Add(tbPalSharp);
+		lblPalSharpVal = new LabelTS();
+		lblPalSharpVal.Text = "0";
+		lblPalSharpVal.Location = new Point(564, num3 + 3);
+		lblPalSharpVal.Size = new Size(30, 16);
+		wfProGroup.Controls.Add(lblPalSharpVal);
+		num3 += 47;
+		lblPalContrast = new LabelTS();
+		lblPalContrast.Text = "Pal Contrast:";
+		lblPalContrast.Location = new Point(340, num3 + 3);
+		lblPalContrast.Size = new Size(80, 16);
+		wfProGroup.Controls.Add(lblPalContrast);
+		tbPalContrast = new TrackBarTS();
+		tbPalContrast.Name = "tbPalContrast";
+		tbPalContrast.Minimum = 0;
+		tbPalContrast.Maximum = 150;
+		tbPalContrast.Value = 0;
+		tbPalContrast.TickFrequency = 25;
+		tbPalContrast.Location = new Point(420, num3 - 2);
+		tbPalContrast.Size = new Size(140, 28);
+		tbPalContrast.Scroll += tbPalContrast_Scroll;
+		wfProGroup.Controls.Add(tbPalContrast);
+		lblPalContrastVal = new LabelTS();
+		lblPalContrastVal.Text = "0";
+		lblPalContrastVal.Location = new Point(564, num3 + 3);
+		lblPalContrastVal.Size = new Size(30, 16);
+		wfProGroup.Controls.Add(lblPalContrastVal);
+		num3 += 69;
+		lblGPUSep = new LabelTS();
+		lblGPUSep.Text = "── GPU Acceleration ──";
+		lblGPUSep.Location = new Point(340, num3);
+		lblGPUSep.Size = new Size(160, 16);
+		lblGPUSep.ForeColor = Color.SlateGray;
+		wfProGroup.Controls.Add(lblGPUSep);
+		num3 += 24;
+		lblGPU = new LabelTS();
+		lblGPU.Text = "Mode:";
+		lblGPU.Location = new Point(340, num3 + 3);
+		lblGPU.Size = new Size(80, 16);
+		wfProGroup.Controls.Add(lblGPU);
+		comboGPU = new ComboBoxTS();
+		comboGPU.Name = "comboGPU";
+		comboGPU.DropDownStyle = ComboBoxStyle.DropDownList;
+		comboGPU.Items.AddRange(new object[4] { "Auto", "Level 0 (CPU)", "Level 1 (Basic)", "Level 2 (Advanced)" });
+		comboGPU.Location = new Point(420, num3);
+		comboGPU.Size = new Size(130, 21);
+		comboGPU.SelectedIndex = 0;
+		comboGPU.SelectedIndexChanged += comboGPU_SelectedIndexChanged;
+		wfProGroup.Controls.Add(comboGPU);
+		if (_gpuStatusTimer == null)
+		{
+			_gpuStatusTimer = new System.Windows.Forms.Timer();
+			_gpuStatusTimer.Interval = 2000;
+			_gpuStatusTimer.Tick += delegate
+			{
+				try
+				{
+					UpdateGPUInfoLabel();
+				}
+				catch
+				{
+				}
+				try
+				{
+					UpdateWaterfallPaletteItems(Display.GPUEffectsEnabled);
+				}
+				catch
+				{
+				}
+			};
+			_gpuStatusTimer.Start();
+		}
+		num3 += 28;
+		lblGPUInfo = new LabelTS();
+		lblGPUInfo.Text = "Detecting...";
+		lblGPUInfo.Location = new Point(340, num3);
+		lblGPUInfo.Size = new Size(330, 36);
+		lblGPUInfo.ForeColor = Color.SlateGray;
+		wfProGroup.Controls.Add(lblGPUInfo);
+		num3 += 40;
+		btnTestGPU = new ButtonTS();
+		btnTestGPU.Name = "btnTestGPU";
+		btnTestGPU.Text = "Test GPU";
+		btnTestGPU.Location = new Point(340, num3);
+		btnTestGPU.Size = new Size(80, 24);
+		btnTestGPU.Click += btnTestGPU_Click;
+		wfProGroup.Controls.Add(btnTestGPU);
+		if (chkGPUWaterfallFFT != null)
+		{
+			chkGPUWaterfallFFT.Checked = Display.GPUWaterfallPipelineEnabled;
+		}
+		if (comboGPUWaterfallFFTSize != null)
+		{
+			string value = Display.GPUWaterfallFFTSize.ToString();
+			int num4 = comboGPUWaterfallFFTSize.Items.IndexOf(value);
+			if (num4 >= 0)
+			{
+				comboGPUWaterfallFFTSize.SelectedIndex = num4;
+			}
+		}
+		if (comboGPUWaterfallWindow != null)
+		{
+			comboGPUWaterfallWindow.SelectedIndex = (int)Display.GPUWaterfallWindowType;
+			UpdateKaiserBetaVisibility();
+		}
+		if (udGPUWaterfallKaiserBeta != null)
+		{
+			udGPUWaterfallKaiserBeta.Value = (decimal)Display.GPUWaterfallKaiserBeta;
+		}
+		if (comboGPUWaterfallMagnitudeMode != null)
+		{
+			comboGPUWaterfallMagnitudeMode.SelectedIndex = (int)Display.GPUWaterfallMagnitudeMode;
+		}
+		if (udGPUWaterfallOverlap != null)
+		{
+			udGPUWaterfallOverlap.Value = Display.GPUWaterfallOverlapPercent;
+		}
+		if (chkGPUWaterfallAutoOverlap != null)
+		{
+			chkGPUWaterfallAutoOverlap.Checked = Display.GPUWaterfallAutoOverlap;
+		}
+		if (comboGPUWaterfallLanczos != null)
+		{
+			int gPUWaterfallLanczosWindow = Display.GPUWaterfallLanczosWindow;
+			int num5 = ((gPUWaterfallLanczosWindow > 1) ? (gPUWaterfallLanczosWindow - 1) : 0);
+			if (num5 >= 0 && num5 < comboGPUWaterfallLanczos.Items.Count)
+			{
+				comboGPUWaterfallLanczos.SelectedIndex = num5;
+			}
+		}
+		if (comboGPUWaterfallResampling != null)
+		{
+			int gPUWaterfallResamplingMode = (int)Display.GPUWaterfallResamplingMode;
+			if (gPUWaterfallResamplingMode >= 0 && gPUWaterfallResamplingMode < comboGPUWaterfallResampling.Items.Count)
+			{
+				comboGPUWaterfallResampling.SelectedIndex = gPUWaterfallResamplingMode;
+			}
+		}
+		try
+		{
+			if (_tpWaterfall != null)
+			{
+				_tpWaterfall.Controls.Add(wfProGroup);
+				wfProGroup.Location = new Point(8, 8);
+				wfProGroup.BringToFront();
+			}
+			else
+			{
+				grp.Parent.Controls.Add(wfProGroup);
+				wfProGroup.BringToFront();
+			}
+		}
+		catch (Exception ex)
+		{
+			LogTool.AddLogEntry("Waterfall Pro group reparent failed: " + ex.Message, "SETUP");
+			grp.Parent.Controls.Add(wfProGroup);
+			wfProGroup.BringToFront();
+		}
+		Display.GPUWaterfallEffectiveOverlapChanged -= OnGPUWaterfallEffectiveOverlapChanged;
+		Display.GPUWaterfallEffectiveOverlapChanged += OnGPUWaterfallEffectiveOverlapChanged;
+	}
 
-            grpWFNoiseFloor.Controls.Add(GPUWFLabel("AGC Smooth:", 12, 112, 85));
-            comboWFAGCSmooth = GPUWFCombo("comboWFAGCSmoothV4", 102, 110, 130, "Off", "Fast", "Medium", "Slow");
-            comboWFAGCSmooth.SelectedIndex = Display.GPUWaterfallNFAGCSmooth;
-            comboWFAGCSmooth.SelectedIndexChanged += delegate { Display.GPUWaterfallNFAGCSmooth = comboWFAGCSmooth.SelectedIndex; };
-            grpWFNoiseFloor.Controls.Add(comboWFAGCSmooth);
 
-            grpWFNoiseFloor.Controls.Add(GPUWFLabel("WF Detect:", 12, 142, 85));
-            comboWFDetect = GPUWFCombo("comboWFDetectV4", 102, 140, 130, "Peak", "Average");
-            comboWFDetect.SelectedIndex = Display.GPUWaterfallDetectMode;
-            comboWFDetect.SelectedIndexChanged += delegate { Display.GPUWaterfallDetectMode = comboWFDetect.SelectedIndex; };
-            grpWFNoiseFloor.Controls.Add(comboWFDetect);
+	private void UpdateNFLowHighEnabledState()
+	{
+		bool enabled = comboNFMode != null && comboNFMode.SelectedIndex == 1;
+		if (udNFLowPct != null)
+		{
+			udNFLowPct.Enabled = enabled;
+		}
+		if (udNFHighPct != null)
+		{
+			udNFHighPct.Enabled = enabled;
+		}
+	}
 
-            chkWFZoomAdaptive = new CheckBoxTS();
-            chkWFZoomAdaptive.Name = "chkWFZoomAdaptiveV4";
-            chkWFZoomAdaptive.Text = "Zoom Adaptive";
-            chkWFZoomAdaptive.Location = new Point(235, 140); chkWFZoomAdaptive.Size = new Size(82, 22);
-            chkWFZoomAdaptive.Checked = Display.GPUWaterfallZoomAdaptive;
-            chkWFZoomAdaptive.CheckedChanged += delegate { Display.GPUWaterfallZoomAdaptive = chkWFZoomAdaptive.Checked; };
-            grpWFNoiseFloor.Controls.Add(chkWFZoomAdaptive);
-        }
 
-        private void BuildWFEnhancementGroup()
-        {
-            grpWFEnhancement = new GroupBoxTS();
-            grpWFEnhancement.Name = "grpWFEnhancementV4";
-            grpWFEnhancement.Text = "Enhancement";
-            grpWFEnhancement.Location = new Point(344, 22);
-            grpWFEnhancement.Size = new Size(334, 180);
+	private void UpdateGPUInfoLabel()
+	{
+		try
+		{
+			string text = Display.GPUName ?? "unknown";
+			int gPUDetectionLevel = Display.GPUDetectionLevel;
+			string text2 = GPUDetector.FeaturesList ?? "";
+			if (string.IsNullOrEmpty(text2))
+			{
+				text2 = "(none detected)";
+			}
+			string text3 = ((!GPUDetector.HasDeviceContext) ? "Pending... (connect radio to detect)" : ((!Display.GPUEffectsEnabled) ? "INACTIVE (CPU mode)" : "ACTIVE ✓ (GPU post-processing ON)"));
+			lblGPUInfo.Text = text + "\nLevel " + gPUDetectionLevel + ": " + text2 + "\n" + text3;
+		}
+		catch
+		{
+			lblGPUInfo.Text = "(info unavailable)";
+		}
+	}
 
-            grpWFEnhancement.Controls.Add(GPUWFLabel("Render:", 12, 22, 65));
-            comboWFRender = GPUWFCombo("comboWaterfallRenderQualityV4", 82, 20, 115, "Low", "Medium", "High", "Ultra");
-            comboWFRender.SelectedIndex = 1;
-            comboWFRender.SelectedIndexChanged += delegate
-            {
-                WaterfallEnhancer.SetQuality((WaterfallEnhancer.QualityLevel)Math.Max(0, Math.Min(3, comboWFRender.SelectedIndex)));
-                UpdateGPUWaterfallDiagnostics();
-            };
-            grpWFEnhancement.Controls.Add(comboWFRender);
 
-            lblWFPipeline = GPUWFLabel("CPU pipeline, 8-bit, Linear", 202, 22, 126);
-            lblWFPipeline.Name = "lblWFPipelineV4";
-            grpWFEnhancement.Controls.Add(lblWFPipeline);
+	private void ApplyGPUSelection(int selectedIndex)
+	{
+		int gPUDetectionLevel = Display.GPUDetectionLevel;
+		int num = selectedIndex switch
+		{
+			1 => 0, 
+			2 => 1, 
+			3 => 2, 
+			_ => gPUDetectionLevel, 
+		};
+		bool hasDeviceContext = GPUDetector.HasDeviceContext;
+		Display.GPUEffectsEnabled = num >= 1 && GPUDetector.HasBuiltInEffects;
+		Display.AutoEnableGPU = num >= 1;
+		if (hasDeviceContext || selectedIndex != 0)
+		{
+			UpdateWaterfallRenderQualityItems(num);
+		}
+		else
+		{
+			_renderFilterPending = true;
+		}
+		UpdateWaterfallPaletteItems(num >= 1);
+		SyncGPUWaterfallPipelineEnabled(num);
+		if (hasDeviceContext)
+		{
+			if (num >= 2 && !GPUDetector.HasCustomShaders)
+			{
+				MessageBox.Show("Custom HLSL shaders (Level 2) are not available in this build.\nUsing Level 1 (Built-in Effects) instead.", "GPU Acceleration", MessageBoxButtons.OK, MessageBoxIcon.Asterisk, MessageBoxDefaultButton.Button1, (MessageBoxOptions)262144);
+			}
+			else if (num >= 1 && !GPUDetector.HasBuiltInEffects)
+			{
+				MessageBox.Show("Built-in D2D Effects are not available on this system.\nUsing CPU post-processing (Level 0).", "GPU Acceleration", MessageBoxButtons.OK, MessageBoxIcon.Asterisk, MessageBoxDefaultButton.Button1, (MessageBoxOptions)262144);
+			}
+		}
+	}
 
-            grpWFEnhancement.Controls.Add(GPUWFLabel("Tone Map:", 12, 54, 65));
-            comboWFToneMap = GPUWFCombo("comboWFToneMapV4", 82, 52, 115, "Off", "Soft", "Strong");
-            comboWFToneMap.SelectedIndex = 0;
-            comboWFToneMap.SelectedIndexChanged += delegate
-            {
-                float gamma = comboWFToneMap.SelectedIndex == 1 ? 0.85f : (comboWFToneMap.SelectedIndex == 2 ? 0.70f : 1.0f);
-                WaterfallEnhancer.SetGamma(gamma);
-            };
-            grpWFEnhancement.Controls.Add(comboWFToneMap);
 
-            grpWFEnhancement.Controls.Add(GPUWFLabel("Temporal:", 12, 84, 65));
-            comboWFTemporal = GPUWFCombo("comboWFTemporalV4", 82, 82, 115, "Off", "Fast", "Smooth");
-            comboWFTemporal.SelectedIndex = Display.GPUWaterfallTemporalMode;
-            comboWFTemporal.SelectedIndexChanged += delegate { Display.GPUWaterfallTemporalMode = comboWFTemporal.SelectedIndex; };
-            grpWFEnhancement.Controls.Add(comboWFTemporal);
+	private void UpdateWaterfallRenderQualityItems(int target)
+	{
+		if (comboWaterfallRenderQuality == null)
+		{
+			return;
+		}
+		_renderFilterPending = false;
+		_renderQualityItemsUpdating = true;
+		try
+		{
+			bool flag = target >= 1;
+			string value = comboWaterfallRenderQuality.SelectedItem as string;
+			if (string.IsNullOrEmpty(value))
+			{
+				value = (flag ? "High" : "Medium");
+			}
+			comboWaterfallRenderQuality.BeginUpdate();
+			comboWaterfallRenderQuality.Items.Clear();
+			if (flag)
+			{
+				comboWaterfallRenderQuality.Items.Add("High");
+			}
+			else
+			{
+				comboWaterfallRenderQuality.Items.Add("Low");
+				comboWaterfallRenderQuality.Items.Add("Medium");
+			}
+			int num = comboWaterfallRenderQuality.Items.IndexOf(value);
+			if (num < 0)
+			{
+				num = ((!flag) ? comboWaterfallRenderQuality.Items.IndexOf("Medium") : 0);
+			}
+			comboWaterfallRenderQuality.SelectedIndex = num;
+			comboWaterfallRenderQuality.EndUpdate();
+		}
+		finally
+		{
+			_renderQualityItemsUpdating = false;
+		}
+		Display.WaterfallQuality = SelectedRenderQuality();
+		SyncGPUWaterfallPipelineEnabled(target);
+		UpdateWaterfallRenderQualityHint();
+	}
 
-            grpWFEnhancement.Controls.Add(GPUWFLabel("Pal Sharp:", 12, 114, 65));
-            tbWFPaletteSharp = new TrackBarTS();
-            tbWFPaletteSharp.Name = "tbWFPaletteSharpV4";
-            tbWFPaletteSharp.Minimum = 0; tbWFPaletteSharp.Maximum = 100; tbWFPaletteSharp.TickFrequency = 20;
-            tbWFPaletteSharp.Value = (int)Math.Round(Display.GPUWaterfallPaletteSharpness * 100.0f);
-            tbWFPaletteSharp.Location = new Point(82, 108); tbWFPaletteSharp.Size = new Size(190, 32);
-            lblWFPaletteSharpValue = GPUWFLabel(tbWFPaletteSharp.Value.ToString(), 278, 114, 42);
-            tbWFPaletteSharp.ValueChanged += delegate { Display.GPUWaterfallPaletteSharpness = tbWFPaletteSharp.Value / 100.0f; lblWFPaletteSharpValue.Text = tbWFPaletteSharp.Value.ToString(); };
-            grpWFEnhancement.Controls.Add(tbWFPaletteSharp); grpWFEnhancement.Controls.Add(lblWFPaletteSharpValue);
 
-            grpWFEnhancement.Controls.Add(GPUWFLabel("Pal Contrast:", 12, 146, 70));
-            tbWFPaletteContrast = new TrackBarTS();
-            tbWFPaletteContrast.Name = "tbWFPaletteContrastV4";
-            tbWFPaletteContrast.Minimum = 0; tbWFPaletteContrast.Maximum = 100; tbWFPaletteContrast.TickFrequency = 20;
-            tbWFPaletteContrast.Value = (int)Math.Round(Display.GPUWaterfallPaletteContrast * 100.0f);
-            tbWFPaletteContrast.Location = new Point(82, 140); tbWFPaletteContrast.Size = new Size(190, 32);
-            lblWFPaletteContrastValue = GPUWFLabel(tbWFPaletteContrast.Value.ToString(), 278, 146, 42);
-            tbWFPaletteContrast.ValueChanged += delegate { Display.GPUWaterfallPaletteContrast = tbWFPaletteContrast.Value / 100.0f; lblWFPaletteContrastValue.Text = tbWFPaletteContrast.Value.ToString(); };
-            grpWFEnhancement.Controls.Add(tbWFPaletteContrast); grpWFEnhancement.Controls.Add(lblWFPaletteContrastValue);
-        }
+	private void UpdateOnePaletteCombo(ComboBoxTS combo, bool gpuMode)
+	{
+		if (combo == null)
+		{
+			return;
+		}
+		string[] array = (gpuMode ? _wfPaletteItemsGPU : _wfPaletteItemsAll);
+		if (combo.Items.Count == array.Length)
+		{
+			bool flag = true;
+			for (int i = 0; i < array.Length; i++)
+			{
+				if (!string.Equals(combo.Items[i] as string, array[i]))
+				{
+					flag = false;
+					break;
+				}
+			}
+			if (flag)
+			{
+				if (gpuMode && Array.IndexOf(_wfPaletteItemsGPU, combo.Text) < 0)
+				{
+					combo.Text = "Console 256";
+				}
+				return;
+			}
+		}
+		string value = combo.Text;
+		combo.Items.Clear();
+		ComboBox.ObjectCollection items = combo.Items;
+		object[] items2 = array;
+		items.AddRange(items2);
+		if (Array.IndexOf(array, value) >= 0)
+		{
+			combo.Text = value;
+		}
+		else
+		{
+			combo.Text = "Console 256";
+		}
+	}
 
-        private void BuildGPUFFTGroup()
-        {
-            grpGPUWaterfallFFT = new GroupBoxTS();
-            grpGPUWaterfallFFT.Name = "grpGPUWaterfallFFTV4";
-            grpGPUWaterfallFFT.Text = "GPU FFT Waterfall";
-            grpGPUWaterfallFFT.Location = new Point(12, 210);
-            grpGPUWaterfallFFT.Size = new Size(320, 142);
 
-            chkGPUWaterfallFFT = new CheckBoxTS();
-            chkGPUWaterfallFFT.Name = "chkGPUWaterfallFFTV4";
-            chkGPUWaterfallFFT.Text = "GPU FFT";
-            chkGPUWaterfallFFT.Location = new Point(12, 22); chkGPUWaterfallFFT.Size = new Size(78, 22);
-            chkGPUWaterfallFFT.Checked = Display.WaterfallUseGPU;
-            chkGPUWaterfallFFT.CheckedChanged += delegate { Display.WaterfallUseGPU = chkGPUWaterfallFFT.Checked; UpdateGPUWaterfallSetupEnableState(); };
-            grpGPUWaterfallFFT.Controls.Add(chkGPUWaterfallFFT);
+	private void UpdateWaterfallPaletteItems(bool gpuMode)
+	{
+		if (_paletteItemsUpdating)
+		{
+			return;
+		}
+		_paletteItemsUpdating = true;
+		try
+		{
+			UpdateOnePaletteCombo(comboColorPalette, gpuMode);
+			UpdateOnePaletteCombo(comboRX2ColorPalette, gpuMode);
+			UpdateOnePaletteCombo(comboColorPalette_tx, gpuMode);
+		}
+		finally
+		{
+			_paletteItemsUpdating = false;
+		}
+	}
 
-            grpGPUWaterfallFFT.Controls.Add(GPUWFLabel("FFT size:", 94, 22, 58));
-            comboGPUWaterfallFFTSize = GPUWFCombo("comboGPUWaterfallFFTSizeV4", 154, 20, 95,
-                "1024", "2048", "4096", "8192", "16384", "32768", "65536", "131072", "262144");
-            comboGPUWaterfallFFTSize.Text = Display.GPUWaterfallFFTSize.ToString();
-            comboGPUWaterfallFFTSize.SelectedIndexChanged += delegate { int v; if (Int32.TryParse(comboGPUWaterfallFFTSize.Text, out v)) Display.GPUWaterfallFFTSize = v; };
-            grpGPUWaterfallFFT.Controls.Add(comboGPUWaterfallFFTSize);
 
-            grpGPUWaterfallFFT.Controls.Add(GPUWFLabel("Overlap %:", 12, 54, 68));
-            udGPUWaterfallOverlap = new NumericUpDownTS();
-            udGPUWaterfallOverlap.Name = "udGPUWaterfallOverlapV4";
-            udGPUWaterfallOverlap.Minimum = 0; udGPUWaterfallOverlap.Maximum = 95; udGPUWaterfallOverlap.Value = (decimal)Display.GPUWaterfallOverlapPercent;
-            udGPUWaterfallOverlap.Location = new Point(82, 52); udGPUWaterfallOverlap.Size = new Size(55, 22);
-            udGPUWaterfallOverlap.ValueChanged += delegate { Display.GPUWaterfallOverlapPercent = (float)udGPUWaterfallOverlap.Value; };
-            grpGPUWaterfallFFT.Controls.Add(udGPUWaterfallOverlap);
-            chkGPUWaterfallAutoOverlap = new CheckBoxTS();
-            chkGPUWaterfallAutoOverlap.Name = "chkGPUWaterfallAutoOverlapV4";
-            chkGPUWaterfallAutoOverlap.Text = "Auto";
-            chkGPUWaterfallAutoOverlap.Location = new Point(145, 52); chkGPUWaterfallAutoOverlap.Size = new Size(55, 22);
-            chkGPUWaterfallAutoOverlap.Checked = Display.GPUWaterfallAutoOverlap;
-            chkGPUWaterfallAutoOverlap.CheckedChanged += delegate { Display.GPUWaterfallAutoOverlap = chkGPUWaterfallAutoOverlap.Checked; UpdateGPUWaterfallSetupEnableState(); };
-            grpGPUWaterfallFFT.Controls.Add(chkGPUWaterfallAutoOverlap);
+	private void SyncGPUWaterfallPipelineEnabled(int target)
+	{
+		Display.GPUWaterfallPipelineEnabled = target >= 1 && Display.WaterfallQuality == Display.WaterfallRenderQuality.High;
+	}
 
-            grpGPUWaterfallFFT.Controls.Add(GPUWFLabel("Window:", 12, 84, 60));
-            comboGPUWaterfallWindow = GPUWFCombo("comboGPUWaterfallWindowV4", 82, 82, 118, "Hann", "Hamming", "Blackman-Harris", "Kaiser");
-            comboGPUWaterfallWindow.SelectedIndex = Math.Max(0, Math.Min(3, Display.GPUWaterfallWindowType));
-            comboGPUWaterfallWindow.SelectedIndexChanged += delegate { Display.GPUWaterfallWindowType = comboGPUWaterfallWindow.SelectedIndex; };
-            grpGPUWaterfallFFT.Controls.Add(comboGPUWaterfallWindow);
 
-            grpGPUWaterfallFFT.Controls.Add(GPUWFLabel("Mag:", 12, 114, 40));
-            comboGPUWaterfallMagnitudeMode = GPUWFCombo("comboGPUWaterfallMagnitudeModeV4", 52, 112, 100, "Peak Amp", "PSD");
-            comboGPUWaterfallMagnitudeMode.SelectedIndex = Math.Max(0, Math.Min(1, Display.GPUWaterfallMagnitudeMode));
-            comboGPUWaterfallMagnitudeMode.SelectedIndexChanged += delegate { Display.GPUWaterfallMagnitudeMode = comboGPUWaterfallMagnitudeMode.SelectedIndex; };
-            grpGPUWaterfallFFT.Controls.Add(comboGPUWaterfallMagnitudeMode);
+	private int CurrentGPUTarget()
+	{
+		if (comboGPU == null)
+		{
+			return 0;
+		}
+		return comboGPU.SelectedIndex switch
+		{
+			1 => 0, 
+			2 => 1, 
+			3 => 2, 
+			_ => Display.GPUDetectionLevel, 
+		};
+	}
 
-            grpGPUWaterfallFFT.Controls.Add(GPUWFLabel("Upsample:", 158, 114, 62));
-            comboGPUWaterfallResampling = GPUWFCombo("comboGPUWaterfallResamplingV4", 220, 112, 92, "Linear", "Power Avg", "Peak", "Lanczos");
-            comboGPUWaterfallResampling.SelectedIndex = Math.Max(0, Math.Min(3, Display.GPUWaterfallResamplingMode));
-            comboGPUWaterfallResampling.SelectedIndexChanged += delegate { Display.GPUWaterfallResamplingMode = comboGPUWaterfallResampling.SelectedIndex; UpdateGPUWaterfallSetupEnableState(); };
-            grpGPUWaterfallFFT.Controls.Add(comboGPUWaterfallResampling);
 
-            comboGPUWaterfallLanczos = GPUWFCombo("comboGPUWaterfallLanczosV4", 258, 82, 54, "2", "3", "4");
-            comboGPUWaterfallLanczos.Text = Display.GPUWaterfallLanczosWindow.ToString();
-            comboGPUWaterfallLanczos.SelectedIndexChanged += delegate { int v; if (Int32.TryParse(comboGPUWaterfallLanczos.Text, out v)) Display.GPUWaterfallLanczosWindow = v; };
-            grpGPUWaterfallFFT.Controls.Add(comboGPUWaterfallLanczos);
-        }
+	private Display.WaterfallRenderQuality SelectedRenderQuality()
+	{
+		return (comboWaterfallRenderQuality?.SelectedItem as string) switch
+		{
+			"Low" => Display.WaterfallRenderQuality.Low, 
+			"Medium" => Display.WaterfallRenderQuality.Medium, 
+			"High" => Display.WaterfallRenderQuality.High, 
+			_ => Display.WaterfallRenderQuality.High, 
+		};
+	}
 
-        private void BuildGPUAccelerationGroup()
-        {
-            grpGPUAcceleration = new GroupBoxTS();
-            grpGPUAcceleration.Name = "grpGPUAccelerationV4";
-            grpGPUAcceleration.Text = "GPU Acceleration";
-            grpGPUAcceleration.Location = new Point(344, 210);
-            grpGPUAcceleration.Size = new Size(334, 142);
 
-            comboGPUAcceleration = GPUWFCombo("comboGPUAccelerationV4", 12, 20, 175, "Auto (GPU preferred)", "Level 0 (CPU)");
-            comboGPUAcceleration.SelectedIndex = Display.WaterfallUseGPU ? 0 : 1;
-            comboGPUAcceleration.SelectedIndexChanged += delegate
-            {
-                Display.WaterfallUseGPU = comboGPUAcceleration.SelectedIndex == 0;
-                chkGPUWaterfallFFT.Checked = Display.WaterfallUseGPU;
-                UpdateGPUWaterfallSetupEnableState();
-            };
-            grpGPUAcceleration.Controls.Add(comboGPUAcceleration);
+	private void UpdateWaterfallRenderQualityHint()
+	{
+		if (lblWaterfallRenderQualityHint != null && comboWaterfallRenderQuality != null)
+		{
+			bool flag = WaterfallEnhancer.Depth == WaterfallEnhancer.ColorDepth.Bit16;
+			bool gPUEffectsEnabled = Display.GPUEffectsEnabled;
+			switch (comboWaterfallRenderQuality.SelectedItem as string)
+			{
+			case "Low":
+				lblWaterfallRenderQualityHint.Text = (gPUEffectsEnabled ? "GPU pipeline, NN" : "CPU pipeline, 8-bit, NN");
+				break;
+			case "Medium":
+				lblWaterfallRenderQualityHint.Text = (gPUEffectsEnabled ? "GPU pipeline, Linear" : "CPU pipeline, 8-bit, Linear");
+				break;
+			case "High":
+				lblWaterfallRenderQualityHint.Text = (flag ? "GPU pipeline + FFT, 16-bit" : "GPU pipeline + FFT, 8-bit");
+				break;
+			default:
+				lblWaterfallRenderQualityHint.Text = "";
+				break;
+			}
+		}
+	}
 
-            lblGPUAdapter = GPUWFLabel("GPU: detecting...", 12, 47, 310); lblGPUAdapter.Name = "lblGPUAdapterV4";
-            lblGPUFeatureLevel = GPUWFLabel("Feature Level: ...", 12, 66, 150); lblGPUFeatureLevel.Name = "lblGPUFeatureLevelV4";
-            lblGPUCapabilities = GPUWFLabel("Capabilities: ...", 12, 85, 310); lblGPUCapabilities.Name = "lblGPUCapabilitiesV4";
-            lblGPURX1Runtime = GPUWFLabel("RX1: ...", 12, 104, 150); lblGPURX1Runtime.Name = "lblGPURX1RuntimeV4";
-            lblGPURX2Runtime = GPUWFLabel("RX2: ...", 165, 104, 157); lblGPURX2Runtime.Name = "lblGPURX2RuntimeV4";
-            grpGPUAcceleration.Controls.Add(lblGPUAdapter); grpGPUAcceleration.Controls.Add(lblGPUFeatureLevel);
-            grpGPUAcceleration.Controls.Add(lblGPUCapabilities); grpGPUAcceleration.Controls.Add(lblGPURX1Runtime); grpGPUAcceleration.Controls.Add(lblGPURX2Runtime);
 
-            btnGPUTest = new ButtonTS();
-            btnGPUTest.Name = "btnGPUTestV4"; btnGPUTest.Text = "Test GPU";
-            btnGPUTest.Location = new Point(205, 18); btnGPUTest.Size = new Size(75, 26);
-            btnGPUTest.Click += delegate
-            {
-                bool ok = Display.TestGPUWaterfallHardware();
-                MessageBox.Show(ok ? "DirectCompute GPU test: PASS\n" + Display.GPUWaterfallAdapterName : "DirectCompute GPU test: FAIL\nCPU fallback remains available.",
-                    "GPU Waterfall", MessageBoxButtons.OK, ok ? MessageBoxIcon.Information : MessageBoxIcon.Warning);
-                UpdateGPUWaterfallDiagnostics();
-            };
-            grpGPUAcceleration.Controls.Add(btnGPUTest);
+	private void UpdateKaiserBetaVisibility()
+	{
+		if (lblGPUWaterfallKaiserBeta != null && udGPUWaterfallKaiserBeta != null && comboGPUWaterfallWindow.SelectedItem != null)
+		{
+			bool visible = comboGPUWaterfallWindow.SelectedItem.ToString() == GPUWaterfallWindowType.Kaiser.ToString();
+			lblGPUWaterfallKaiserBeta.Visible = visible;
+			udGPUWaterfallKaiserBeta.Visible = visible;
+		}
+	}
 
-            btnGPUDefaults = new ButtonTS();
-            btnGPUDefaults.Name = "btnGPUDefaultsV4"; btnGPUDefaults.Text = "EU2AV defaults";
-            btnGPUDefaults.Location = new Point(205, 44); btnGPUDefaults.Size = new Size(112, 24);
-            btnGPUDefaults.Click += delegate { ApplyGPUWaterfallDefaultsToControls(); };
-            grpGPUAcceleration.Controls.Add(btnGPUDefaults);
 
-            btnGPUResetCalibration = new ButtonTS();
-            btnGPUResetCalibration.Name = "btnGPUResetCalibrationV4"; btnGPUResetCalibration.Text = "Reset A/B";
-            btnGPUResetCalibration.Location = new Point(205, 70); btnGPUResetCalibration.Size = new Size(112, 24);
-            btnGPUResetCalibration.Click += delegate { Display.ResetGPUWaterfallCalibration(); UpdateGPUWaterfallDiagnostics(); };
-            grpGPUAcceleration.Controls.Add(btnGPUResetCalibration);
+	private void btnTestGPU_Click(object sender, EventArgs e)
+	{
+		UpdateGPUInfoLabel();
+		MessageBox.Show("GPU: " + (Display.GPUName ?? "unknown") + "\nDetected Level: " + Display.GPUDetectionLevel + "\nFeatures: " + (GPUDetector.FeaturesList ?? "(none)") + "\nHasDeviceContext: " + GPUDetector.HasDeviceContext + "\nHasBuiltInEffects: " + GPUDetector.HasBuiltInEffects + "\nHasCustomShaders: " + GPUDetector.HasCustomShaders + "\n\nDirect3D11 / DirectCompute detection result.", "GPU Test", MessageBoxButtons.OK, MessageBoxIcon.Asterisk, MessageBoxDefaultButton.Button1, (MessageBoxOptions)262144);
+	}
 
-            lblGPUDropped = GPUWFLabel("Dropped RX1/RX2: 0 / 0", 12, 123, 190); lblGPUDropped.Name = "lblGPUDroppedV4";
-            lblGPUCalibration = GPUWFLabel("A/B: 0.00 / 0.00 dB", 205, 123, 125); lblGPUCalibration.Name = "lblGPUCalibrationV4";
-            grpGPUAcceleration.Controls.Add(lblGPUDropped); grpGPUAcceleration.Controls.Add(lblGPUCalibration);
-        }
 
-        private void ApplyGPUWaterfallDefaultsToControls()
-        {
-            Display.ApplyGPUWaterfallEU2AVDefaults();
-            if (chkGPUWaterfallFFT != null) chkGPUWaterfallFFT.Checked = true;
-            if (comboGPUAcceleration != null) comboGPUAcceleration.SelectedIndex = 0;
-            if (comboGPUWaterfallFFTSize != null) comboGPUWaterfallFFTSize.Text = "16384";
-            if (udGPUWaterfallOverlap != null) udGPUWaterfallOverlap.Value = 0;
-            if (chkGPUWaterfallAutoOverlap != null) chkGPUWaterfallAutoOverlap.Checked = false;
-            if (comboGPUWaterfallWindow != null) comboGPUWaterfallWindow.SelectedIndex = 1;
-            if (comboGPUWaterfallMagnitudeMode != null) comboGPUWaterfallMagnitudeMode.SelectedIndex = 0;
-            if (comboGPUWaterfallResampling != null) comboGPUWaterfallResampling.SelectedIndex = 0;
-            if (comboWFNFMode != null) comboWFNFMode.SelectedIndex = 1;
-            if (udWFNFLow != null) udWFNFLow.Value = 1;
-            if (udWFNFHigh != null) udWFNFHigh.Value = 99;
-            if (chkWFNFAutoHigh != null) chkWFNFAutoHigh.Checked = true;
-            if (udWFNFAutoHighDb != null) udWFNFAutoHighDb.Value = 0;
-            if (comboWFAGCSmooth != null) comboWFAGCSmooth.SelectedIndex = 1;
-            if (comboWFDetect != null) comboWFDetect.SelectedIndex = 0;
-            if (chkWFZoomAdaptive != null) chkWFZoomAdaptive.Checked = false;
-            if (comboWFRender != null) comboWFRender.SelectedIndex = 1;
-            if (comboWFToneMap != null) comboWFToneMap.SelectedIndex = 0;
-            if (comboWFTemporal != null) comboWFTemporal.SelectedIndex = 0;
-            if (tbWFPaletteSharp != null) tbWFPaletteSharp.Value = 0;
-            if (tbWFPaletteContrast != null) tbWFPaletteContrast.Value = 0;
-            UpdateGPUWaterfallSetupEnableState();
-            UpdateGPUWaterfallDiagnostics();
-        }
+	private void comboGPU_SelectedIndexChanged(object sender, EventArgs e)
+	{
+		if (!initializing)
+		{
+			ApplyGPUSelection(comboGPU.SelectedIndex);
+		}
+	}
 
-        private void UpdateGPUWaterfallSetupEnableState()
-        {
-            if (chkGPUWaterfallFFT == null) return;
-            bool enabled = chkGPUWaterfallFFT.Checked;
-            comboGPUWaterfallFFTSize.Enabled = enabled;
-            chkGPUWaterfallAutoOverlap.Enabled = enabled;
-            udGPUWaterfallOverlap.Enabled = enabled && !chkGPUWaterfallAutoOverlap.Checked;
-            comboGPUWaterfallWindow.Enabled = enabled;
-            comboGPUWaterfallMagnitudeMode.Enabled = enabled;
-            comboGPUWaterfallResampling.Enabled = enabled;
-            comboGPUWaterfallLanczos.Enabled = enabled && comboGPUWaterfallResampling.SelectedIndex == 3;
-        }
 
-        private void UpdateGPUWaterfallDiagnostics()
-        {
-            if (lblGPUAdapter == null) return;
+	private void comboNFMode_SelectedIndexChanged(object sender, EventArgs e)
+	{
+		if (!initializing)
+		{
+			Display.NFMode = ((comboNFMode.SelectedIndex == 1) ? NoiseFloorPro.DetectionMode.Percentile : NoiseFloorPro.DetectionMode.Average);
+			UpdateNFLowHighEnabledState();
+		}
+	}
 
-            lblGPUAdapter.Text = "GPU: " + Display.GPUWaterfallAdapterName;
-            lblGPUFeatureLevel.Text = "Feature Level: " + Display.GPUWaterfallFeatureLevel;
-            lblGPUCapabilities.Text = Display.GPUWaterfallCapabilities;
-            lblGPURX1Runtime.Text = "RX1: " + Display.GPUWaterfallRuntimeTextRX1;
-            lblGPURX2Runtime.Text = "RX2: " + Display.GPUWaterfallRuntimeTextRX2;
-            lblGPUDropped.Text = "Dropped RX1/RX2: " + Display.GPUWaterfallDroppedSamplesRX1 + " / " + Display.GPUWaterfallDroppedSamplesRX2;
-            lblGPUCalibration.Text = "A/B: " + Display.GPUWaterfallCalibrationOffsetRX1.ToString("0.00") + " / " + Display.GPUWaterfallCalibrationOffsetRX2.ToString("0.00") + " dB";
 
-            string depth;
-            switch (WaterfallEnhancer.Depth)
-            {
-                case WaterfallEnhancer.ColorDepth.Bit10: depth = "10-bit"; break;
-                case WaterfallEnhancer.ColorDepth.Bit16: depth = "16-bit"; break;
-                default: depth = "8-bit"; break;
-            }
-            string resample = comboGPUWaterfallResampling == null || comboGPUWaterfallResampling.Text.Length == 0 ? "Linear" : comboGPUWaterfallResampling.Text;
-            string pipeline = (Display.GPUWaterfallRuntimeLevelRX1 >= 2 || Display.GPUWaterfallRuntimeLevelRX2 >= 2) ? "GPU FFT pipeline" : "CPU pipeline";
-            if (lblWFPipeline != null) lblWFPipeline.Text = pipeline + ", " + depth + ", " + resample;
-        }
+	private void udNFLowPct_ValueChanged(object sender, EventArgs e)
+	{
+		if (!initializing)
+		{
+			Display.NFLowPct = (float)udNFLowPct.Value;
+		}
+	}
+
+
+	private void udNFHighPct_ValueChanged(object sender, EventArgs e)
+	{
+		if (!initializing)
+		{
+			Display.NFHighPct = (float)udNFHighPct.Value;
+		}
+	}
+
+
+	private void chkAutoHigh_CheckedChanged(object sender, EventArgs e)
+	{
+		if (!initializing)
+		{
+			Display.AutoHighEnabledRX1 = chkAutoHigh.Checked;
+			Display.AutoHighEnabledRX2 = chkAutoHigh.Checked;
+		}
+	}
+
+
+	private void udAutoHighMargin_ValueChanged(object sender, EventArgs e)
+	{
+		if (!initializing)
+		{
+			Display.AutoHighMarginDb = (float)udAutoHighMargin.Value;
+		}
+	}
+
+
+	private void comboAGCSmooth_SelectedIndexChanged(object sender, EventArgs e)
+	{
+		if (!initializing)
+		{
+			float waterfallAgcSmoothing = 0.4f;
+			switch (comboAGCSmooth.SelectedIndex)
+			{
+			case 0:
+				waterfallAgcSmoothing = 0.2f;
+				break;
+			case 1:
+				waterfallAgcSmoothing = 0.4f;
+				break;
+			case 2:
+				waterfallAgcSmoothing = 0.6f;
+				break;
+			}
+			Display.WaterfallAgcSmoothing = waterfallAgcSmoothing;
+		}
+	}
+
+
+	private void comboWFDetector_SelectedIndexChanged(object sender, EventArgs e)
+	{
+		if (!initializing)
+		{
+			int num = comboWFDetector.SelectedIndex switch
+			{
+				1 => 2, 
+				2 => 3, 
+				_ => 0, 
+			};
+			if (comboDispWFDetector != null && comboDispWFDetector.SelectedIndex != num)
+			{
+				comboDispWFDetector.SelectedIndex = num;
+			}
+			if (comboRX2DispWFDetector != null && comboRX2DispWFDetector.SelectedIndex != num)
+			{
+				comboRX2DispWFDetector.SelectedIndex = num;
+			}
+			if (console != null && console.specRX != null)
+			{
+				console.specRX.GetSpecRX(0).DetTypeWF = num;
+				console.specRX.GetSpecRX(1).DetTypeWF = num;
+			}
+		}
+	}
+
+
+	private void chkZoomAdaptive_CheckedChanged(object sender, EventArgs e)
+	{
+		if (!initializing)
+		{
+			bool flag = (Display.ZoomAdaptiveEnabled = chkZoomAdaptive.Checked);
+			if (comboToneMap != null)
+			{
+				comboToneMap.Enabled = !flag;
+			}
+			if (comboTemporal != null)
+			{
+				comboTemporal.Enabled = !flag;
+			}
+		}
+	}
+
+
+	private void comboToneMap_SelectedIndexChanged(object sender, EventArgs e)
+	{
+		if (!initializing)
+		{
+			WaterfallEnhancer.SetToneMap(comboToneMap.SelectedIndex switch
+			{
+				1 => WaterfallEnhancer.ToneMapMode.Reinhard, 
+				2 => WaterfallEnhancer.ToneMapMode.ACES, 
+				_ => WaterfallEnhancer.ToneMapMode.None, 
+			});
+		}
+	}
+
+
+	private void comboTemporal_SelectedIndexChanged(object sender, EventArgs e)
+	{
+		if (!initializing)
+		{
+			float num = (Display.TemporalStrength = comboTemporal.SelectedIndex switch
+			{
+				1 => 0.15f, 
+				2 => 0.3f, 
+				3 => 0.45f, 
+				_ => 0f, 
+			});
+			Display.TemporalEnabled = num > 0f;
+		}
+	}
+
+
+	private void tbPalSharp_Scroll(object sender, EventArgs e)
+	{
+		float paletteSharpness = (float)tbPalSharp.Value / 100f;
+		lblPalSharpVal.Text = tbPalSharp.Value.ToString();
+		WaterfallEnhancer.SetPaletteSharpness(paletteSharpness);
+	}
+
+
+	private void tbPalContrast_Scroll(object sender, EventArgs e)
+	{
+		float paletteContrast = (float)tbPalContrast.Value / 100f;
+		lblPalContrastVal.Text = tbPalContrast.Value.ToString();
+		WaterfallEnhancer.SetPaletteContrast(paletteContrast);
+	}
+
+
+	private void comboWaterfallRenderQuality_SelectedIndexChanged(object sender, EventArgs e)
+	{
+		if (!initializing && !_renderQualityItemsUpdating && comboWaterfallRenderQuality != null && comboWaterfallRenderQuality.SelectedIndex >= 0)
+		{
+			Display.WaterfallQuality = SelectedRenderQuality();
+			SyncGPUWaterfallPipelineEnabled(CurrentGPUTarget());
+			UpdateWaterfallRenderQualityHint();
+		}
+	}
+
+
+	private void chkGPUWaterfallFFT_CheckedChanged(object sender, EventArgs e)
+	{
+		if (!initializing)
+		{
+			Display.GPUWaterfallPipelineEnabled = chkGPUWaterfallFFT.Checked;
+		}
+	}
+
+
+	private void comboGPUWaterfallFFTSize_SelectedIndexChanged(object sender, EventArgs e)
+	{
+		if (!initializing && comboGPUWaterfallFFTSize.SelectedItem != null && int.TryParse(comboGPUWaterfallFFTSize.SelectedItem.ToString(), out var result))
+		{
+			Display.GPUWaterfallFFTSize = result;
+		}
+	}
+
+
+	private void comboGPUWaterfallWindow_SelectedIndexChanged(object sender, EventArgs e)
+	{
+		if (!initializing && comboGPUWaterfallWindow.SelectedItem != null)
+		{
+			if (Enum.TryParse<GPUWaterfallWindowType>(comboGPUWaterfallWindow.SelectedItem.ToString(), out var result))
+			{
+				Display.GPUWaterfallWindowType = (int)result;
+			}
+			UpdateKaiserBetaVisibility();
+		}
+	}
+
+
+	private void udGPUWaterfallKaiserBeta_ValueChanged(object sender, EventArgs e)
+	{
+		if (!initializing)
+		{
+			Display.GPUWaterfallKaiserBeta = (float)udGPUWaterfallKaiserBeta.Value;
+		}
+	}
+
+
+	private void comboGPUWaterfallMagnitudeMode_SelectedIndexChanged(object sender, EventArgs e)
+	{
+		if (!initializing && comboGPUWaterfallMagnitudeMode.SelectedItem != null)
+		{
+			Display.GPUWaterfallMagnitudeMode = comboGPUWaterfallMagnitudeMode.SelectedIndex;
+		}
+	}
+
+
+	private void udGPUWaterfallOverlap_ValueChanged(object sender, EventArgs e)
+	{
+		if (!initializing)
+		{
+			Display.GPUWaterfallOverlapPercent = (int)udGPUWaterfallOverlap.Value;
+		}
+	}
+
+
+	private void chkGPUWaterfallAutoOverlap_CheckedChanged(object sender, EventArgs e)
+	{
+		if (!initializing)
+		{
+			Display.GPUWaterfallAutoOverlap = chkGPUWaterfallAutoOverlap.Checked;
+		}
+	}
+
+
+	private void comboGPUWaterfallLanczos_SelectedIndexChanged(object sender, EventArgs e)
+	{
+		if (!initializing && comboGPUWaterfallLanczos != null && comboGPUWaterfallLanczos.SelectedIndex >= 0)
+		{
+			int selectedIndex = comboGPUWaterfallLanczos.SelectedIndex;
+			Display.GPUWaterfallLanczosWindow = ((selectedIndex != 0) ? (selectedIndex + 1) : 0);
+		}
+	}
+
+
+	private void comboGPUWaterfallResampling_SelectedIndexChanged(object sender, EventArgs e)
+	{
+		if (!initializing && comboGPUWaterfallResampling != null && comboGPUWaterfallResampling.SelectedIndex >= 0)
+		{
+			Display.GPUWaterfallResamplingMode = comboGPUWaterfallResampling.SelectedIndex;
+		}
+	}
+
+
+	private void OnGPUWaterfallEffectiveOverlapChanged(int rx, double overlap)
+	{
+		if (lblGPUWaterfallEffectiveOverlap == null || lblGPUWaterfallEffectiveOverlap.IsDisposed || !base.IsHandleCreated || base.IsDisposed)
+		{
+			return;
+		}
+		if (base.InvokeRequired)
+		{
+			try
+			{
+				BeginInvoke((Action)delegate
+				{
+					OnGPUWaterfallEffectiveOverlapChanged(rx, overlap);
+				});
+				return;
+			}
+			catch
+			{
+				return;
+			}
+		}
+		try
+		{
+			lblGPUWaterfallEffectiveOverlap.Text = $"Eff: {overlap * 100.0:F0}%";
+		}
+		catch
+		{
+		}
+	}
     }
 }

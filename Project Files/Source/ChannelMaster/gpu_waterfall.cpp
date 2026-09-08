@@ -180,7 +180,7 @@ struct GPUWaterfallState
     bool ready;
     HRESULT lastError;
 
-    int windowType;          // 0 Hann, 1 Hamming, 2 Blackman-Harris, 3 Kaiser
+    int windowType;          // 0 Hann, 1 Hamming, 2 Blackman, 3 Blackman-Harris, 4 Nuttall, 5 Kaiser
     float kaiserBeta;
     int magnitudeMode;       // 0 dBFS, 1 PSD dBFS/Hz
     bool autoOverlap;
@@ -278,10 +278,16 @@ static void BuildWindow(GPUWaterfallState& s)
         case 1: // Hamming
             w = 0.54 - 0.46 * cos(pi2 * t);
             break;
-        case 2: // Blackman-Harris 4-term
+        case 2: // Blackman
+            w = 0.42 - 0.5 * cos(pi2 * t) + 0.08 * cos(2.0 * pi2 * t);
+            break;
+        case 3: // Blackman-Harris 4-term
             w = 0.35875 - 0.48829 * cos(pi2 * t) + 0.14128 * cos(2.0 * pi2 * t) - 0.01168 * cos(3.0 * pi2 * t);
             break;
-        case 3: // Kaiser
+        case 4: // Nuttall
+            w = 0.355768 - 0.487396 * cos(pi2 * t) + 0.144232 * cos(2.0 * pi2 * t) - 0.012604 * cos(3.0 * pi2 * t);
+            break;
+        case 5: // Kaiser
         {
             double x = 2.0 * t - 1.0;
             double a = 1.0 - x * x;
@@ -665,11 +671,11 @@ extern "C" __declspec(dllexport) int __cdecl CM_GPUWaterfall_Configure(int chann
     GPUWaterfallState& s = g_gpuWaterfall[channel];
 
     if (windowType < 0) windowType = 0;
-    if (windowType > 3) windowType = 3;
+    if (windowType > 5) windowType = 5;
     if (kaiserBeta < 0.0f) kaiserBeta = 0.0f;
     if (kaiserBeta > 20.0f) kaiserBeta = 20.0f;
     if (magnitudeMode < 0) magnitudeMode = 0;
-    if (magnitudeMode > 1) magnitudeMode = 1;
+    if (magnitudeMode > 2) magnitudeMode = 2;
     if (overlapPercent < 0.0f) overlapPercent = 0.0f;
     if (overlapPercent > 95.0f) overlapPercent = 95.0f;
     if (lanczosWindow < 2) lanczosWindow = 2;
