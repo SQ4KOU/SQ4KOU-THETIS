@@ -25,7 +25,7 @@ jobs:
           git fetch origin reference/eu2av-2.10.3.16-final-decompiled:refs/remotes/origin/reference/eu2av-2.10.3.16-final-decompiled
           git rev-parse origin/reference/eu2av-2.10.3.16-final-decompiled
 
-      - name: Normalize integrator anchor for current SQ4KOU cmaster ABI
+      - name: Normalize integrator for current SQ4KOU source
         shell: pwsh
         run: |
           @'
@@ -33,16 +33,32 @@ jobs:
           import re
           p = Path('tools/integrate_gpu_waterfall_16final.py')
           s = p.read_text(encoding='utf-8')
+
+          # Current SQ4KOU/ramdor cmaster.cs uses an explicit EntryPoint.
           pattern = r'''(marker\s*=\s*'\s*\[DllImport\("ChannelMaster\.dll",\s*)CallingConvention\s*=\s*CallingConvention\.Cdecl(\)\])'''
           repl = r'''\1EntryPoint = "SendpOutboundTCIRxIQ", CallingConvention = CallingConvention.Cdecl\2'''
           s2, n = re.subn(pattern, repl, s, count=1)
           if n == 1:
-              p.write_text(s2, encoding='utf-8')
+              s = s2
               print('GPU16_PRECHECK: updated cmaster.cs interop anchor for SQ4KOU/ramdor syntax')
           elif 'EntryPoint = "SendpOutboundTCIRxIQ", CallingConvention = CallingConvention.Cdecl' in s:
-              print('GPU16_PRECHECK: anchor already current')
+              print('GPU16_PRECHECK: cmaster anchor already current')
           else:
               raise SystemExit(f'GPU16_PRECHECK_FAIL: cmaster marker regex matches={n}')
+
+          # CRITICAL: str.replace('</Project>', ...) corrupts nested <Project>{GUID}</Project>
+          # ProjectReference metadata. Insert shader ItemGroup only before the root closing tag.
+          old = "    t = t.replace('</Project>', res + '</Project>')"
+          new = "    root_close = t.rfind('</Project>')\n    if root_close < 0: die('Thetis.csproj root closing tag missing')\n    t = t[:root_close] + res + t[root_close:]"
+          if old in s:
+              s = s.replace(old, new, 1)
+              print('GPU16_PRECHECK: fixed root-only Thetis.csproj resource insertion')
+          elif "root_close = t.rfind('</Project>')" in s:
+              print('GPU16_PRECHECK: root-only csproj insertion already current')
+          else:
+              raise SystemExit('GPU16_PRECHECK_FAIL: Thetis.csproj root insertion anchor not found')
+
+          p.write_text(s, encoding='utf-8')
           '@ | python -
 
       - name: Integrate recovered 16 Final GPU sources
@@ -65,7 +81,7 @@ jobs:
             Write-Host "PASS shader $n $a"
           }
 
-      - name: Normalize legacy ProjectReference metadata for MSBuild 18
+      - name: Verify ProjectReference metadata survived integration
         shell: pwsh
         run: |
           @'
@@ -73,21 +89,16 @@ jobs:
           import re
           p = Path(r'Project Files/Source/Console/Thetis.csproj')
           s = p.read_text(encoding='utf-8-sig')
-          refs = [r'..\Midi2Cat\Midi2Cat.csproj', r'..\RawInput\RawInput.csproj']
-          changed = 0
-          for ref in refs:
-              pat = r'(<ProjectReference\s+Include="' + re.escape(ref) + r'">\s*)<Project>[^<]+</Project>\s*'
-              s, n = re.subn(pat, r'\1', s, count=1)
-              if n == 1:
-                  changed += 1
-                  print('MSBUILD18_PROJECTREF_FIX: removed legacy Project GUID metadata for ' + ref)
-              elif re.search(r'<ProjectReference\s+Include="' + re.escape(ref) + r'">', s):
-                  print('MSBUILD18_PROJECTREF_FIX: legacy Project metadata already absent for ' + ref)
-              else:
-                  raise SystemExit('MSBUILD18_PROJECTREF_FAIL: ProjectReference not found: ' + ref)
-          if changed:
-              p.write_text(s, encoding='utf-8-sig')
-          print(f'MSBUILD18_PROJECTREF_FIX=PASS changed={changed}')
+          refs = {
+              r'..\Midi2Cat\Midi2Cat.csproj': '{66ADE184-31BA-4F5B-8007-F39EF1B90F95}',
+              r'..\RawInput\RawInput.csproj': '{4143D085-38CF-4640-BB05-2FDFFAF94D76}',
+          }
+          for ref, guid in refs.items():
+              pat = r'<ProjectReference\s+Include="' + re.escape(ref) + r'">\s*<Project>\s*' + re.escape(guid) + r'\s*</Project>'
+              if not re.search(pat, s, flags=re.IGNORECASE):
+                  raise SystemExit('GPU16_PROJECTREF_FAIL: invalid/corrupted Project metadata for ' + ref)
+              print('PASS ProjectReference ' + ref + ' ' + guid)
+          print('GPU16_PROJECTREF_METADATA=PASS')
           '@ | python -
 
       - name: Setup NuGet
