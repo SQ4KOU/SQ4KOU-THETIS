@@ -170,12 +170,34 @@ foreach ($row in $shaderRows) {
     $safe = Safe-Name ($row.path -replace '/','__')
     $asm = Join-Path "$Root/dxbc" ($safe + '.asm.txt')
     Require-File $asm 100
-    if (-not (Select-String -LiteralPath $asm -Pattern 'cs_[456]_[0-9]|Compute Shader|DXBC' -Quiet)) {
-        Fail "shader disassembly lacks a recognized DXBC compute profile: $($row.path)"
+    $expectedProfile = if ([IO.Path]::GetFileName($row.path) -ieq 'waterfall_postproc.bin') { 'ps_5_0' } else { 'cs_5_0' }
+    if (-not (Select-String -LiteralPath $asm -Pattern ("^\s*" + $expectedProfile + "\s*$") -Quiet)) {
+        Fail "shader profile mismatch, expected ${expectedProfile}: $($row.path)"
     }
 }
 $asmFiles = @(Get-ChildItem -LiteralPath "$Root/dxbc" -File -Filter *.asm.txt)
 if ($asmFiles.Count -ne $shaderRows.Count) { Fail "shader coverage mismatch: payload=$($shaderRows.Count), output=$($asmFiles.Count)" }
+
+
+# Presence of exported C#/IL and a DLL name are not correctness or relevance proofs.
+# An independently reviewed report must bind evidence to this exact source and each exception.
+$reviewPath = "$Root/metadata/SEMANTIC_VERIFICATION.json"
+Require-File $reviewPath 100
+$review = Get-Content -LiteralPath $reviewPath -Raw | ConvertFrom-Json
+if ($review.package_sha256 -ne $prov.package_sha256 -or $review.result -ne 'PASS') {
+    Fail 'semantic verification is missing, incomplete, or bound to a different package'
+}
+foreach ($field in @('managed_csharp_validation','managed_il_validation','gpu_waterfall_validation')) {
+    if ($review.$field.result -ne 'PASS') { Fail "semantic check incomplete: $field" }
+    Require-File (Join-Path $Root $review.$field.evidence_path) 100
+}
+foreach ($fallback in $documentedFallbacks) {
+    $proof = @($review.native_exceptions | Where-Object { $_.module -eq $fallback.module -and $_.entry -eq $fallback.entry })
+    if ($proof.Count -ne 1 -or $proof[0].relevance -ne 'PROVEN_IRRELEVANT') {
+        Fail "native exception lacks function-specific relevance proof: $($fallback.module) $($fallback.entry)"
+    }
+    Require-File (Join-Path $Root $proof[0].evidence_path) 100
+}
 
 $summary = [ordered]@{
     result = 'PASS'
