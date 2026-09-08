@@ -1,0 +1,15 @@
+{
+  "locked_utc": "2026-09-08T06:01:52.4758221Z",
+  "source_url": "https://eu2av.net/download/file.php?id=2070",
+  "independent_downloads": 2,
+  "package_sha256": "abe00caf8e217efa86e6f70994743e4518ba6a7f21a87de8fdace9f8b58ef110",
+  "package_size": 75987169,
+  "package_magic": "52 61 72 21 1A 07 01 00 82 AD C7 91 0D 01 05 09",
+  "msi_name": "Thetis-v2.10.3.16-extended.x64.msi",
+  "msi_sha256": "3733ee186214db691184cb1332c94c8d6017e048012624931f28e9676a36083f",
+  "msi_product_version": "2.10.3.16",
+  "thetis_sha256": "e25bf32f10b1502c6d84dbb5423a41197117bab7904d03c7c945061ac71c7f76",
+  "thetis_size": 10698752,
+  "thetis_file_version": "2.10.3.16",
+  "thetis_product_version": "2.10.3.16"
+}
