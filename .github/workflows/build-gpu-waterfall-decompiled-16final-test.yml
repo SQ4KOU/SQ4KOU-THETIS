@@ -1,0 +1,130 @@
+name: Build GPU Waterfall Decompiled 16Final Test
+
+on:
+  push:
+    branches:
+      - test/gpu-waterfall-decompiled-16final
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-msi:
+    runs-on: windows-2025
+    steps:
+      - name: Checkout test branch
+        uses: actions/checkout@v4
+        with:
+          ref: test/gpu-waterfall-decompiled-16final
+          fetch-depth: 0
+
+      - name: Fetch locked decompiled Final reference
+        shell: pwsh
+        run: |
+          git fetch origin reference/eu2av-2.10.3.16-final-decompiled:refs/remotes/origin/reference/eu2av-2.10.3.16-final-decompiled
+
+      - name: Integrate recovered Final GPU pipeline
+        shell: pwsh
+        run: |
+          python tools/integrate_gpu_waterfall_decompiled_test.py
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Enable long paths
+        shell: pwsh
+        run: git config --global core.longpaths true
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+        with:
+          nuget-version: latest
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+        with:
+          msbuild-architecture: x86
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) { choco install wixtoolset -y --no-progress }
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) {
+            $targets = Get-ChildItem "C:\Program Files (x86)\WiX Toolset*\Wix.targets" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          }
+          if (-not $targets) { throw "WiX 3.x Wix.targets not found" }
+          "WIX_TARGETS=$($targets.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore NuGet packages
+        shell: pwsh
+        run: nuget restore "Project Files\Source\Thetis_VS2026.sln" -NonInteractive
+
+      - name: Build Release x64 and MSI
+        shell: pwsh
+        run: |
+          msbuild "Project Files\Source\Thetis_VS2026.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Verify recovered GPU payload
+        shell: pwsh
+        run: |
+          $bin = "Project Files\bin\x64\Release"
+          $required = @(
+            "$bin\Thetis.exe",
+            "$bin\ChannelMaster.dll",
+            "$bin\waterfall_fft_bitreverse_cs.bin",
+            "$bin\waterfall_fft_magnitude_cs.bin",
+            "$bin\waterfall_fft_stage_ab_cs.bin",
+            "$bin\waterfall_fft_stage_ba_cs.bin"
+          )
+          foreach ($p in $required) { if (-not (Test-Path $p)) { throw "Missing test payload: $p" } }
+          Get-ChildItem $bin | Where-Object { $_.Name -match 'Thetis.exe|ChannelMaster.dll|waterfall_fft_.*\.bin' } | Select-Object Name,Length,LastWriteTime
+
+      - name: Locate MSI
+        id: msi
+        shell: pwsh
+        run: |
+          $m = Get-ChildItem -Path "Project Files" -Recurse -Filter *.msi | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $m) { throw "MSI not found after successful solution build" }
+          Write-Host "MSI: $($m.FullName)"
+          "path=$($m.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+
+      - name: Commit verified integration source
+        shell: pwsh
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -- `
+            "Project Files/Source/Console/GPUWaterfallPipeline.cs" `
+            "Project Files/Source/Console/GPUWaterfallMagnitudeMode.cs" `
+            "Project Files/Source/Console/GPUWaterfallResamplingMode.cs" `
+            "Project Files/Source/Console/GPUWaterfallWindowType.cs" `
+            "Project Files/Source/Console/GPUWaterfallNative.cs" `
+            "Project Files/Source/Console/Display.GPUWaterfall.cs" `
+            "Project Files/Source/Console/Setup.GPUWaterfall.cs" `
+            "Project Files/Source/Console/Thetis.csproj" `
+            "Project Files/Source/Console/waterfall_fft_bitreverse_cs.bin" `
+            "Project Files/Source/Console/waterfall_fft_magnitude_cs.bin" `
+            "Project Files/Source/Console/waterfall_fft_stage_ab_cs.bin" `
+            "Project Files/Source/Console/waterfall_fft_stage_ba_cs.bin"
+          if (-not (git diff --cached --quiet)) {
+            git commit -m "GPU waterfall test: verified decompiled 2.10.3.16 Final pipeline [skip ci]"
+            git push origin HEAD:test/gpu-waterfall-decompiled-16final
+          } else {
+            Write-Host "Verified integration already committed."
+          }
+
+      - name: Upload MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-GPU-DECOMPILED-16FINAL-TEST-MSI
+          path: ${{ steps.msi.outputs.path }}
+          if-no-files-found: error
+
+      - name: Upload portable test runtime
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-GPU-DECOMPILED-16FINAL-TEST-RUNTIME
+          path: Project Files/bin/x64/Release
+          if-no-files-found: error
