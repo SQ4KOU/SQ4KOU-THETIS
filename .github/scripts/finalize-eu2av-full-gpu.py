@@ -164,7 +164,11 @@ new_process_nf = r'''private static void processNoiseFloor(int rx, int averageCo
             bAlreadyCalculated = true;
         }'''
 
-display = replace_method(display, 'private static void processNoiseFloor(int rx, int averageCount, float averageSum, int width, bool waterfall)', new_process_nf)
+# IMPORTANT: match the active method including its line indentation. There is an
+# older commented-out processNoiseFloor above it; matching the bare signature
+# would modify the commented reference block and can consume unrelated display code.
+active_nf_signature = '\n        private static void processNoiseFloor(int rx, int averageCount, float averageSum, int width, bool waterfall)'
+display = replace_method(display, active_nf_signature, '\n        ' + new_process_nf)
 
 # Replace the old always-CPU colour post-processing with the recovered policy:
 # temporal first, then only the operations not handled by the active D2D effect.
