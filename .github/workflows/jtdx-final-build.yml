@@ -21,10 +21,12 @@ jobs:
         shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
-          $parts = Get-ChildItem "$env:GITHUB_WORKSPACE\jtdx-final\bundle.part*" | Sort-Object Name
-          if ($parts.Count -ne 14) { throw "Expected 14 bundle parts, got $($parts.Count)" }
           $b64 = ''
-          foreach ($p in $parts) { $b64 += [IO.File]::ReadAllText($p.FullName).Trim() }
+          for ($i = 0; $i -lt 14; $i++) {
+            $p = Join-Path "$env:GITHUB_WORKSPACE\jtdx-final" ("bundle.part{0:D2}" -f $i)
+            if (-not (Test-Path $p)) { throw "Missing bundle part: $p" }
+            $b64 += [IO.File]::ReadAllText($p).Trim()
+          }
           $zip = "$env:RUNNER_TEMP\JTDX_SUPERHOUND_MSI_FINAL.zip"
           [IO.File]::WriteAllBytes($zip, [Convert]::FromBase64String($b64))
           $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLower()
