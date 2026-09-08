@@ -1,5 +1,6 @@
 param(
-    [string]$OutputRoot = "reverse-engineering/EU2AV-Thetis-2.10.3.16-Final"
+    [string]$OutputRoot = "reverse-engineering/EU2AV-Thetis-2.10.3.16-Final",
+    [string]$SourceLock = "tools/reverse-engineering/EU2AV_FINAL_SOURCE_LOCK.json"
 )
 
 $ErrorActionPreference = 'Stop'
@@ -8,6 +9,9 @@ Set-StrictMode -Version Latest
 
 $RepoRoot = (Get-Location).Path
 $OutputRoot = Join-Path $RepoRoot $OutputRoot
+$SourceLock = Join-Path $RepoRoot $SourceLock
+if (-not (Test-Path -LiteralPath $SourceLock -PathType Leaf)) { throw "Verified source lock missing: $SourceLock" }
+$sourceLockData = Get-Content -LiteralPath $SourceLock -Raw | ConvertFrom-Json
 $TempRoot = Join-Path $env:RUNNER_TEMP 'eu2av-final-re'
 $DownloadUrl = 'https://eu2av.net/download/file.php?id=2070'
 $Package = Join-Path $TempRoot 'Thetis-v2.10.3.16-extended.x64.download'
@@ -59,6 +63,11 @@ if ($pkgInfo.Length -lt 10MB) {
 $packageHash = Sha256 $Package
 $packageMagic = Get-Magic $Package
 Write-Host "Package size=$($pkgInfo.Length) SHA256=$packageHash magic=$packageMagic"
+if ($packageHash -ne ([string]$sourceLockData.package_sha256).ToLowerInvariant()) { throw "Package SHA-256 differs from verified source lock" }
+if ($pkgInfo.Length -ne [long]$sourceLockData.package_size) { throw "Package size differs from verified source lock" }
+if ($packageMagic -ne [string]$sourceLockData.package_magic) { throw "Package magic differs from verified source lock" }
+& $sevenZip t $Package
+if ($LASTEXITCODE -ne 0) { throw "Package integrity test failed with 7-Zip exit code $LASTEXITCODE" }
 
 # 2. Extract the outer distribution archive and MSI while preserving installed layout.
 $cmd7z = Get-Command 7z.exe -ErrorAction SilentlyContinue
@@ -79,7 +88,15 @@ if ($oleMagic -eq 'D0CF11E0A1B11AE1') {
 }
 
 $msi = Get-ChildItem $ArchiveRoot -Recurse -File -Filter *.msi | Sort-Object Length -Descending | Select-Object -First 1
+$msiProductVersion = ''
 if ($msi) {
+    $installer = New-Object -ComObject WindowsInstaller.Installer
+    $db = $installer.GetType().InvokeMember('OpenDatabase','InvokeMethod',$null,$installer,@($msi.FullName,0))
+    $view = $db.GetType().InvokeMember('OpenView','InvokeMethod',$null,$db,@("SELECT `Value` FROM `Property` WHERE `Property`='ProductVersion'"))
+    [void]$view.GetType().InvokeMember('Execute','InvokeMethod',$null,$view,$null)
+    $record = $view.GetType().InvokeMember('Fetch','InvokeMethod',$null,$view,$null)
+    $msiProductVersion = [string]$record.GetType().InvokeMember('StringData','GetProperty',$null,$record,1)
+    if ($msiProductVersion -ne '2.10.3.16' -or $msiProductVersion -ne [string]$sourceLockData.msi_product_version) { throw "MSI ProductVersion mismatch: $msiProductVersion" }
     Write-Host "Administrative MSI extraction: $($msi.FullName)"
     $p = Start-Process msiexec.exe -ArgumentList @('/a',"`"$($msi.FullName)`"",'/qn',"TARGETDIR=`"$InstallRoot`"") -Wait -PassThru
     if ($p.ExitCode -ne 0) {
@@ -102,7 +119,12 @@ if (-not $thetis) {
     if ($thetis) { $InstallRoot = Split-Path $thetis.FullName -Parent }
 }
 if (-not $thetis) { throw 'Thetis.exe was not found after extracting the EU2AV Final package.' }
-Write-Host "Thetis.exe: $($thetis.FullName) size=$($thetis.Length) SHA256=$(Sha256 $thetis.FullName)"
+$thetisHash = Sha256 $thetis.FullName
+$thetisVersionInfo = [Diagnostics.FileVersionInfo]::GetVersionInfo($thetis.FullName)
+if ($thetisHash -ne ([string]$sourceLockData.thetis_sha256).ToLowerInvariant()) { throw 'Thetis.exe SHA-256 differs from verified source lock' }
+if ($thetisVersionInfo.FileVersion -notmatch '^2\.10\.3\.16(?:\.|$)') { throw "Thetis.exe FileVersion mismatch: $($thetisVersionInfo.FileVersion)" }
+if ($thetisVersionInfo.ProductVersion -notmatch '^2\.10\.3\.16(?:\.|$)') { throw "Thetis.exe ProductVersion mismatch: $($thetisVersionInfo.ProductVersion)" }
+Write-Host "Thetis.exe: $($thetis.FullName) size=$($thetis.Length) SHA256=$thetisHash FileVersion=$($thetisVersionInfo.FileVersion)"
 $PayloadRoot = Split-Path $thetis.FullName -Parent
 
 # 3. Exact installed payload inventory and PE classification.
@@ -269,7 +291,11 @@ $toolLines = @(
     "package_size=$($pkgInfo.Length)",
     "package_sha256=$packageHash",
     "package_magic=$packageMagic",
-    "thetis_exe_sha256=$(Sha256 $thetis.FullName)",
+    "thetis_exe_sha256=$thetisHash",
+    "msi_product_version=$msiProductVersion",
+    "thetis_file_version=$($thetisVersionInfo.FileVersion)",
+    "thetis_product_version=$($thetisVersionInfo.ProductVersion)",
+    "source_lock_sha256=$(Sha256 $SourceLock)",
     "ilspy=$ilspyVersion",
     "ghidra=$ghidraVersion",
     "fxc=$fxc",
