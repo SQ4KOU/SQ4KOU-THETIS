@@ -14,6 +14,7 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 concurrency:
   group: eu2av-2.10.3.16-final-decompile
@@ -51,25 +52,27 @@ jobs:
             }
           }
 
-      - name: Set up Java for Ghidra
-        uses: actions/setup-java@v4
+      - name: Restore preserved export for verification
+        uses: actions/download-artifact@v4
         with:
-          distribution: temurin
-          java-version: '21'
+          name: EU2AV-2.10.3.16-Final-verification-failure
+          run-id: 34222077364
+          github-token: ${{ github.token }}
+          path: reverse-engineering/EU2AV-Thetis-2.10.3.16-Final
 
-      - name: Set up .NET runtimes for ILSpy
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: |
-            8.0.x
-            9.0.x
-            10.0.x
-
-      - name: Full managed/native/DXBC reverse engineering
+      - name: Inspect preserved shader profiles and decompiler diagnostics
         shell: pwsh
         run: |
-          ./tools/reverse-engineering/decompile-eu2av-final.ps1
-
+          $root = 'reverse-engineering/EU2AV-Thetis-2.10.3.16-Final'
+          Get-ChildItem "$root/dxbc" -Filter *.asm.txt | ForEach-Object {
+            Write-Host "SHADER: $($_.Name)"
+            Get-Content -LiteralPath $_.FullName -TotalCount 45
+          }
+          $hits = @(Get-ChildItem "$root/managed" -Recurse -Filter *.cs |
+            Select-String -Pattern 'Error decompiling|ICSharpCode.Decompiler.DecompilerException|Invalid IL code')
+          Write-Host "MANAGED_DIAGNOSTIC_MATCHES=$($hits.Count)"
+          $hits | Select-Object -First 30 | ForEach-Object { Write-Host $_ }
+          
       - name: Strict binary-grounded verification
         shell: pwsh
         run: |
