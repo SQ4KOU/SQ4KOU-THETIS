@@ -6,6 +6,8 @@ import ghidra.app.decompiler.DecompileResults;
 import ghidra.app.script.GhidraScript;
 import ghidra.program.model.listing.Function;
 import ghidra.program.model.listing.FunctionIterator;
+import ghidra.program.model.listing.Instruction;
+import ghidra.program.model.listing.InstructionIterator;
 
 import java.io.BufferedWriter;
 import java.nio.charset.StandardCharsets;
@@ -99,11 +101,26 @@ public class ExportDecomp extends GhidraScript {
             if (body != null) {
                 ok++;
             } else {
-                status = (lastException == null ? "FAILED: " : "EXCEPTION: ") + lastError;
-                body = "/* DECOMPILATION FAILED AFTER ALL STRICT RETRIES: " + lastError + " */\n";
+                status = "ASSEMBLY_FALLBACK";
+                StringBuilder assembly = new StringBuilder();
+                assembly.append("/* ASSEMBLY FALLBACK AFTER PSEUDOCODE FAILURE\n");
+                assembly.append("   DECOMPILER ERROR: ").append(lastError).append("\n");
+                assembly.append("   This is an instruction-complete Ghidra listing for the function body. */\n");
+                InstructionIterator instructions =
+                        currentProgram.getListing().getInstructions(f.getBody(), true);
+                int instructionCount = 0;
+                while (instructions.hasNext()) {
+                    Instruction instruction = instructions.next();
+                    assembly.append(instruction.getAddress()).append("  ")
+                            .append(instruction.toString()).append("\n");
+                    instructionCount++;
+                }
+                assembly.append("/* ASSEMBLY INSTRUCTIONS: ").append(instructionCount).append(" */\n");
+                body = assembly.toString();
                 failed++;
-                println("STRICT_DECOMP_FAILURE entry=" + f.getEntryPoint() +
-                        " name=" + f.getName() + " error=" + lastError);
+                println("STRICT_DECOMP_ASSEMBLY_FALLBACK entry=" + f.getEntryPoint() +
+                        " name=" + f.getName() + " instructions=" + instructionCount +
+                        " error=" + lastError);
             }
 
             String header = "\n/* ========================================================================\n" +
