@@ -30,6 +30,30 @@ jobs:
           python tools/integrate_gpu_waterfall_decompiled_test.py
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Normalize legacy ProjectReference metadata for VS2026
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $p = 'Project Files\Source\Console\Thetis.csproj'
+          $s = [IO.File]::ReadAllText($p)
+          $before = $s
+          # MSBuild 18/VS2026 may reject the legacy Project GUID metadata even when
+          # the referenced project itself is valid. Modern MSBuild resolves the
+          # project directly from Include, so remove only the obsolete metadata.
+          $s = $s.Replace('      <Project>{66ade184-31ba-4f5b-8007-f39ef1b90f95}</Project>' + [Environment]::NewLine, '')
+          $s = $s.Replace('      <Project>{4143d085-38cf-4640-bb05-2fdffaf94d76}</Project>' + [Environment]::NewLine, '')
+          if ($s -eq $before) {
+            # Handle LF-only checkout deterministically.
+            $s = $s.Replace("      <Project>{66ade184-31ba-4f5b-8007-f39ef1b90f95}</Project>`n", '')
+            $s = $s.Replace("      <Project>{4143d085-38cf-4640-bb05-2fdffaf94d76}</Project>`n", '')
+          }
+          if ($s -match '<Project>\{66ade184-31ba-4f5b-8007-f39ef1b90f95\}</Project>' -or
+              $s -match '<Project>\{4143d085-38cf-4640-bb05-2fdffaf94d76\}</Project>') {
+            throw 'Legacy ProjectReference GUID metadata was not removed'
+          }
+          [IO.File]::WriteAllText($p, $s, [Text.UTF8Encoding]::new($true))
+          Write-Host 'VS2026 ProjectReference metadata normalized.'
+
       - name: Enable long paths
         shell: pwsh
         run: git config --global core.longpaths true
@@ -63,7 +87,7 @@ jobs:
       - name: Build Release x64 and MSI
         shell: pwsh
         run: |
-          msbuild "Project Files\Source\Thetis_VS2026.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal
+          msbuild "Project Files\Source\Thetis_VS2026.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:LangVersion=latest /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
       - name: Verify recovered GPU payload
