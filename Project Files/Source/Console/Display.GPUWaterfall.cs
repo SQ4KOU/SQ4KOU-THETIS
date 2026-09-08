@@ -1,452 +1,874 @@
 using System;
+using System.Diagnostics;
+using SharpDX;
 
 namespace Thetis
 {
     partial class Display
     {
-        // SQ4KOU GPU Waterfall V3.
-        // GPU FFT remains optional and any failure falls back to the existing CPU/WDSP path.
-        private static bool _waterfallUseGPU = false;
+        private static WaterfallGPURenderer _waterfallGPU1 = null;
+
+        private static WaterfallGPURenderer _waterfallGPU2 = null;
+
+        private static GPUWaterfallPipeline _gpuFFT1 = null;
+
+        private static GPUWaterfallPipeline _gpuFFT2 = null;
+
+        private static float[] _gpuIQbufI = null;
+
+        private static float[] _gpuIQbufQ = null;
+
+        private static float[] _gpuIQaccumI = null;
+
+        private static float[] _gpuIQaccumQ = null;
+
+        private static float[][] _gpuIQringI = new float[2][];
+
+        private static float[][] _gpuIQringQ = new float[2][];
+
+        private static int[] _gpuIQringHead = new int[2];
+
+        private static int[] _gpuIQringCount = new int[2];
+
+        private static int[] _gpuSampleCredit = new int[2];
+
+        private static bool[] _gpuFirstFillDone = new bool[2];
+
+        private static int _gpuWaterfallDebugSkip = 0;
+
+        private static int[] _gpuRowLogSkip = new int[2];
+
+        private static bool[] _gpuPipeFailLogged = new bool[2];
+
+        private static long[] _gpuLastDropLogMs = new long[2];
+
+        private static readonly int[] _gpuCalOutlierSkip = new int[2];
+
+        private static float _gpuCalOffsetRX1 = 0f;
+
+        private static float _gpuCalOffsetRX2 = 0f;
+
+        private static double[] _gpuLastEffectiveOverlap = new double[2] { -1.0, -1.0 };
+
+        private static bool _gpuCalInitRX1 = false;
+
+        private static bool _gpuCalInitRX2 = false;
+
+        private static int _gpuCalStartupCountRX1 = 0;
+
+        private static int _gpuCalStartupCountRX2 = 0;
+
+        private const int GPU_CAL_STARTUP_FRAMES = 10;
+
+        private static int _gpuLastFFTSizeRX1 = 0;
+
+        private static int _gpuLastFFTSizeRX2 = 0;
+
+        private static float[] _gpuCalReferenceRowRX1 = null;
+
+        private static float[] _gpuCalReferenceRowRX2 = null;
+
+        private static float[] _gpuMedianBuffer = null;
+
+        private const int GPU_WATERFALL_IQ_CAPACITY = 524288;
+
+        private static bool _gpuWaterfallPipelineEnabled = false;
+
         private static int _gpuWaterfallFFTSize = 16384;
-        private static int _gpuWaterfallWindowType = 4;          // Nuttall
-        private static float _gpuWaterfallKaiserBeta = 6.0f;
-        private static int _gpuWaterfallMagnitudeMode = 2;       // Peak Power
+
+        private static int _gpuWaterfallOverlapPercent = 85;
+
+        private static GPUWaterfallWindowType _gpuWaterfallWindowType = GPUWaterfallWindowType.Nuttall;
+
+        private static double _gpuWaterfallKaiserBeta = 6.0;
+
+        private static GPUWaterfallMagnitudeMode _gpuWaterfallMagnitudeMode = GPUWaterfallMagnitudeMode.PeakHoldPower;
+
         private static bool _gpuWaterfallAutoOverlap = false;
-        private static float _gpuWaterfallOverlapPercent = 85.0f;
+
         private static int _gpuWaterfallLanczosWindow = 3;
-        private static int _gpuWaterfallResamplingMode = 1;      // Power Average
 
-        private static readonly int[] _gpuWaterfallConfiguredFFT = new int[2];
-        private static readonly bool[] _gpuWaterfallFailed = new bool[2];
+        private static GPUWaterfallResamplingMode _gpuWaterfallResamplingMode = GPUWaterfallResamplingMode.Quality;
 
-        // V2/V3 post-processing state.
-        private static readonly float[][] _gpuRawRow = new float[2][];
-        private static readonly float[][] _gpuPrevRow = new float[2][];
-        private static readonly float[][] _gpuCpuReference = new float[2][];
-        private static readonly float[][] _gpuCalibrationScratch = new float[2][];
-        private static readonly bool[] _gpuPrevValid = new bool[2];
-        private static readonly bool[] _gpuCalibrationValid = new bool[2];
-        private static readonly float[] _gpuCalibrationOffset = new float[2];
-        private static readonly int[] _gpuCalibrationFrame = new int[2];
+        private static bool _gpuWaterfallLinearDraw = true;
 
-        public static bool WaterfallUseGPU
+        private static float[] _gpuPaletteUpload = new float[4096];
+
+        public static event Action<int, double> GPUWaterfallEffectiveOverlapChanged;
+
+        public static bool GPUWaterfallPipelineEnabled
         {
-            get { return _waterfallUseGPU; }
+            get
+            {
+                return _gpuWaterfallPipelineEnabled;
+            }
             set
             {
-                if (_waterfallUseGPU == value) return;
-                _waterfallUseGPU = value;
-                ResetGPUWaterfallState();
+                if (_gpuWaterfallPipelineEnabled != value)
+                {
+                    _gpuWaterfallPipelineEnabled = value;
+                    try
+                    {
+                        SetNativeWaterfallIQEnabled(value);
+                    }
+                    catch
+                    {
+                    }
+                    ResetWaterfallBmp();
+                    ResetWaterfallBmp2();
+                    ResetGPUWaterfallState(1);
+                    ResetGPUWaterfallState(2);
+                }
             }
         }
 
         public static int GPUWaterfallFFTSize
         {
-            get { return _gpuWaterfallFFTSize; }
+            get
+            {
+                return _gpuWaterfallFFTSize;
+            }
             set
             {
-                int v = ClampGPUFFTSize(value);
-                if (_gpuWaterfallFFTSize == v) return;
-                _gpuWaterfallFFTSize = v;
-                ResetGPUWaterfallState();
+                int num = value;
+                if (num < 1024)
+                {
+                    num = 1024;
+                }
+                if (num > 262144)
+                {
+                    num = 262144;
+                }
+                num = PowerOfTwo(num);
+                if (_gpuWaterfallFFTSize != num)
+                {
+                    LogGPU($"GPUWaterfallFFTSize changed from {_gpuWaterfallFFTSize} to {num}. Stack trace:\n{new StackTrace()}");
+                    _gpuWaterfallFFTSize = num;
+                    if (_gpuWaterfallPipelineEnabled)
+                    {
+                        ResetGPUWaterfallState(1);
+                        ResetGPUWaterfallState(2);
+                    }
+                }
             }
         }
 
-        public static int GPUWaterfallWindowType
+        public static bool GPUWaterfallLinearDraw
         {
-            get { return _gpuWaterfallWindowType; }
+            get
+            {
+                return _gpuWaterfallLinearDraw;
+            }
             set
             {
-                int v = Math.Max(0, Math.Min(5, value));
-                if (_gpuWaterfallWindowType == v) return;
-                _gpuWaterfallWindowType = v;
-                ReconfigureGPUWaterfallRuntime();
+                _gpuWaterfallLinearDraw = value;
             }
         }
 
-        public static float GPUWaterfallKaiserBeta
+        public static GPUWaterfallWindowType GPUWaterfallWindowType
         {
-            get { return _gpuWaterfallKaiserBeta; }
+            get
+            {
+                return _gpuWaterfallWindowType;
+            }
             set
             {
-                float v = Math.Max(0.0f, Math.Min(20.0f, value));
-                if (Math.Abs(_gpuWaterfallKaiserBeta - v) < 0.0001f) return;
-                _gpuWaterfallKaiserBeta = v;
-                ReconfigureGPUWaterfallRuntime();
+                if (_gpuWaterfallWindowType != value)
+                {
+                    _gpuWaterfallWindowType = value;
+                    if (_gpuFFT1 != null && _gpuFFT1.IsInitialized)
+                    {
+                        _gpuFFT1.WindowType = value;
+                    }
+                    if (_gpuFFT2 != null && _gpuFFT2.IsInitialized)
+                    {
+                        _gpuFFT2.WindowType = value;
+                    }
+                }
             }
         }
 
-        public static int GPUWaterfallMagnitudeMode
+        public static double GPUWaterfallKaiserBeta
         {
-            get { return _gpuWaterfallMagnitudeMode; }
+            get
+            {
+                return _gpuWaterfallKaiserBeta;
+            }
             set
             {
-                int v = Math.Max(0, Math.Min(2, value));
-                if (_gpuWaterfallMagnitudeMode == v) return;
-                _gpuWaterfallMagnitudeMode = v;
-                ReconfigureGPUWaterfallRuntime();
+                double num = value;
+                if (num < 0.0)
+                {
+                    num = 0.0;
+                }
+                if (num > 20.0)
+                {
+                    num = 20.0;
+                }
+                if (!(Math.Abs(_gpuWaterfallKaiserBeta - num) < 0.01))
+                {
+                    _gpuWaterfallKaiserBeta = num;
+                    if (_gpuFFT1 != null && _gpuFFT1.IsInitialized)
+                    {
+                        _gpuFFT1.KaiserBeta = num;
+                    }
+                    if (_gpuFFT2 != null && _gpuFFT2.IsInitialized)
+                    {
+                        _gpuFFT2.KaiserBeta = num;
+                    }
+                }
+            }
+        }
+
+        public static GPUWaterfallMagnitudeMode GPUWaterfallMagnitudeMode
+        {
+            get
+            {
+                return _gpuWaterfallMagnitudeMode;
+            }
+            set
+            {
+                if (_gpuWaterfallMagnitudeMode != value)
+                {
+                    _gpuWaterfallMagnitudeMode = value;
+                    if (_gpuFFT1 != null && _gpuFFT1.IsInitialized)
+                    {
+                        _gpuFFT1.MagnitudeMode = value;
+                    }
+                    if (_gpuFFT2 != null && _gpuFFT2.IsInitialized)
+                    {
+                        _gpuFFT2.MagnitudeMode = value;
+                    }
+                }
+            }
+        }
+
+        public static int GPUWaterfallOverlapPercent
+        {
+            get
+            {
+                return _gpuWaterfallOverlapPercent;
+            }
+            set
+            {
+                int num = value;
+                if (num < 0)
+                {
+                    num = 0;
+                }
+                if (num > 95)
+                {
+                    num = 95;
+                }
+                if (_gpuWaterfallOverlapPercent != num)
+                {
+                    _gpuWaterfallOverlapPercent = num;
+                    ResetGPUWaterfallState(1, resetCalibration: false);
+                    ResetGPUWaterfallState(2, resetCalibration: false);
+                }
             }
         }
 
         public static bool GPUWaterfallAutoOverlap
         {
-            get { return _gpuWaterfallAutoOverlap; }
-            set
+            get
             {
-                if (_gpuWaterfallAutoOverlap == value) return;
-                _gpuWaterfallAutoOverlap = value;
-                ReconfigureGPUWaterfallRuntime();
+                return _gpuWaterfallAutoOverlap;
             }
-        }
-
-        public static float GPUWaterfallOverlapPercent
-        {
-            get { return _gpuWaterfallOverlapPercent; }
             set
             {
-                float v = Math.Max(0.0f, Math.Min(95.0f, value));
-                if (Math.Abs(_gpuWaterfallOverlapPercent - v) < 0.01f) return;
-                _gpuWaterfallOverlapPercent = v;
-                ReconfigureGPUWaterfallRuntime();
+                if (_gpuWaterfallAutoOverlap != value)
+                {
+                    _gpuWaterfallAutoOverlap = value;
+                    ResetGPUWaterfallState(1, resetCalibration: false);
+                    ResetGPUWaterfallState(2, resetCalibration: false);
+                }
             }
         }
 
         public static int GPUWaterfallLanczosWindow
         {
-            get { return _gpuWaterfallLanczosWindow; }
+            get
+            {
+                return _gpuWaterfallLanczosWindow;
+            }
             set
             {
-                int v = Math.Max(2, Math.Min(4, value));
-                if (_gpuWaterfallLanczosWindow == v) return;
-                _gpuWaterfallLanczosWindow = v;
-                ReconfigureGPUWaterfallRuntime();
-            }
-        }
-
-        public static int GPUWaterfallResamplingMode
-        {
-            get { return _gpuWaterfallResamplingMode; }
-            set
-            {
-                int v = Math.Max(0, Math.Min(3, value));
-                if (_gpuWaterfallResamplingMode == v) return;
-                _gpuWaterfallResamplingMode = v;
-                ReconfigureGPUWaterfallRuntime();
-            }
-        }
-
-        public static ulong GPUWaterfallDroppedSamplesRX1
-        {
-            get { return GetGPUWaterfallDroppedSamples(0); }
-        }
-
-        public static ulong GPUWaterfallDroppedSamplesRX2
-        {
-            get { return GetGPUWaterfallDroppedSamples(1); }
-        }
-
-        public static float GPUWaterfallCalibrationOffsetRX1
-        {
-            get { return _gpuCalibrationOffset[0]; }
-        }
-
-        public static float GPUWaterfallCalibrationOffsetRX2
-        {
-            get { return _gpuCalibrationOffset[1]; }
-        }
-
-        private static int ClampGPUFFTSize(int value)
-        {
-            if (value < 1024) value = 1024;
-            if (value > 262144) value = 262144;
-            int p = 1024;
-            while (p < value && p < 262144) p <<= 1;
-            return p;
-        }
-
-        private static ulong GetGPUWaterfallDroppedSamples(int channel)
-        {
-            try { return GPUWaterfallNative.CM_WaterfallIQ_DroppedSamples(channel); }
-            catch { return 0; }
-        }
-
-        private static void EnsureRowBuffer(ref float[] buffer, int width)
-        {
-            if (buffer == null || buffer.Length < width)
-                buffer = new float[width];
-        }
-
-        private static bool IsFinite(float value)
-        {
-            return !float.IsNaN(value) && !float.IsInfinity(value);
-        }
-
-        public static void ResetGPUWaterfallCalibration()
-        {
-            for (int ch = 0; ch < 2; ch++)
-            {
-                _gpuPrevValid[ch] = false;
-                _gpuCalibrationValid[ch] = false;
-                _gpuCalibrationOffset[ch] = 0.0f;
-                _gpuCalibrationFrame[ch] = 0;
-            }
-        }
-
-        public static void ResetGPUWaterfallState()
-        {
-            for (int ch = 0; ch < 2; ch++)
-            {
-                try { GPUWaterfallNative.CM_GPUWaterfall_Free(ch); }
-                catch { }
-
-                _gpuWaterfallConfiguredFFT[ch] = 0;
-                _gpuWaterfallFailed[ch] = false;
-                _gpuPrevValid[ch] = false;
-                _gpuCalibrationValid[ch] = false;
-                _gpuCalibrationOffset[ch] = 0.0f;
-                _gpuCalibrationFrame[ch] = 0;
-                _gpuRawRow[ch] = null;
-                _gpuPrevRow[ch] = null;
-                _gpuCpuReference[ch] = null;
-                _gpuCalibrationScratch[ch] = null;
-            }
-        }
-
-        private static void ReconfigureGPUWaterfallRuntime()
-        {
-            for (int ch = 0; ch < 2; ch++)
-            {
-                // A configuration change starts a new coherent waterfall history,
-                // but it must not tear down the D3D device or IQ ring.
-                _gpuPrevValid[ch] = false;
-                _gpuCalibrationValid[ch] = false;
-                _gpuCalibrationOffset[ch] = 0.0f;
-                _gpuCalibrationFrame[ch] = 0;
-
-                if (_gpuWaterfallConfiguredFFT[ch] != 0 && !_gpuWaterfallFailed[ch])
+                int num = value;
+                if (num < 0)
                 {
-                    if (!ConfigureGPUWaterfall(ch))
+                    num = 0;
+                }
+                if (num > 4)
+                {
+                    num = 4;
+                }
+                if (num == 1)
+                {
+                    num = 2;
+                }
+                if (_gpuWaterfallLanczosWindow != num)
+                {
+                    _gpuWaterfallLanczosWindow = num;
+                    if (_gpuFFT1 != null && _gpuFFT1.IsInitialized)
                     {
-                        try { GPUWaterfallNative.CM_GPUWaterfall_Free(ch); } catch { }
-                        _gpuWaterfallConfiguredFFT[ch] = 0;
-                        // Allow the normal EnsureGPUWaterfall path to retry cleanly.
-                        _gpuWaterfallFailed[ch] = false;
+                        _gpuFFT1.LanczosWindow = num;
+                    }
+                    if (_gpuFFT2 != null && _gpuFFT2.IsInitialized)
+                    {
+                        _gpuFFT2.LanczosWindow = num;
                     }
                 }
             }
         }
-        private static bool ConfigureGPUWaterfall(int channel)
+
+        public static GPUWaterfallResamplingMode GPUWaterfallResamplingMode
         {
-            try
+            get
             {
-                return GPUWaterfallNative.CM_GPUWaterfall_Configure(
-                    channel,
-                    _gpuWaterfallWindowType,
-                    _gpuWaterfallKaiserBeta,
-                    _gpuWaterfallMagnitudeMode,
-                    _gpuWaterfallAutoOverlap ? 1 : 0,
-                    _gpuWaterfallOverlapPercent,
-                    _gpuWaterfallLanczosWindow,
-                    _gpuWaterfallResamplingMode) != 0;
+                return _gpuWaterfallResamplingMode;
             }
-            catch
+            set
             {
-                return false;
-            }
-        }
-
-        private static bool EnsureGPUWaterfall(int channel)
-        {
-            if (channel < 0 || channel > 1 || _gpuWaterfallFailed[channel]) return false;
-            int fftSize = _gpuWaterfallFFTSize;
-
-            if (_gpuWaterfallConfiguredFFT[channel] == fftSize)
-            {
-                try { return GPUWaterfallNative.CM_GPUWaterfall_IsReady(channel) != 0; }
-                catch
+                if (_gpuWaterfallResamplingMode != value)
                 {
-                    _gpuWaterfallFailed[channel] = true;
-                    return false;
-                }
-            }
-
-            try
-            {
-                int ringCapacity = Math.Max(1048576, fftSize * 4);
-                if (GPUWaterfallNative.CM_GPUWaterfall_Init(channel, fftSize, ringCapacity) != 0)
-                {
-                    if (!ConfigureGPUWaterfall(channel))
+                    _gpuWaterfallResamplingMode = value;
+                    if (_gpuFFT1 != null && _gpuFFT1.IsInitialized)
                     {
-                        try { GPUWaterfallNative.CM_GPUWaterfall_Free(channel); } catch { }
-                        _gpuWaterfallFailed[channel] = true;
-                        return false;
+                        _gpuFFT1.ResamplingMode = value;
                     }
-
-                    _gpuWaterfallConfiguredFFT[channel] = fftSize;
-                    _gpuPrevValid[channel] = false;
-                    _gpuCalibrationValid[channel] = false;
-                    _gpuCalibrationOffset[channel] = 0.0f;
-                    _gpuCalibrationFrame[channel] = 0;
-                    GPUWaterfallNative.CM_WaterfallIQ_ResetDropped(channel);
-                    return true;
+                    if (_gpuFFT2 != null && _gpuFFT2.IsInitialized)
+                    {
+                        _gpuFFT2.ResamplingMode = value;
+                    }
                 }
             }
-            catch { }
-
-            _gpuWaterfallFailed[channel] = true;
-            _gpuWaterfallConfiguredFFT[channel] = 0;
-            return false;
         }
 
-        // Robust A/B level calibration. It is intentionally used only in dBFS mode.
-        // PSD mode represents a different physical quantity and therefore must not be
-        // forced to the CPU/WDSP dBFS row.
-        private static void UpdateGPUCalibration(int channel, float[] cpu, float[] gpu, int width)
+        public static ulong GPUWaterfallDroppedSamplesRX1 => GPUWaterfallNative.CM_WaterfallIQ_DroppedSamples(0);
+        public static ulong GPUWaterfallDroppedSamplesRX2 => GPUWaterfallNative.CM_WaterfallIQ_DroppedSamples(1);
+        public static float GPUWaterfallCalibrationOffsetRX1 => _gpuCalOffsetRX1;
+        public static float GPUWaterfallCalibrationOffsetRX2 => _gpuCalOffsetRX2;
+
+        private static void EnsureGPUWaterfallPipeline(int rx, int width, int height)
         {
-            if (_gpuWaterfallMagnitudeMode != 0) return;
-
-            _gpuCalibrationFrame[channel]++;
-            if ((_gpuCalibrationFrame[channel] & 7) != 0) return;
-
-            EnsureRowBuffer(ref _gpuCalibrationScratch[channel], width);
-            float[] scratch = _gpuCalibrationScratch[channel];
-            int count = 0;
-
-            for (int i = 0; i < width; i++)
+            if (!_gpuWaterfallPipelineEnabled || !_gpuEffectsEnabled)
             {
-                float c = cpu[i];
-                float g = gpu[i];
-                if (!IsFinite(c) || !IsFinite(g)) continue;
-                if (c < -220.0f || c > 60.0f || g < -280.0f || g > 80.0f) continue;
-
-                float d = c - g;
-                if (d < -80.0f || d > 80.0f) continue;
-                scratch[count++] = d;
-            }
-
-            if (count < Math.Max(32, width / 8)) return;
-
-            Array.Sort(scratch, 0, count);
-            float median;
-            if ((count & 1) != 0)
-                median = scratch[count / 2];
-            else
-                median = 0.5f * (scratch[count / 2 - 1] + scratch[count / 2]);
-
-            if (median < -60.0f) median = -60.0f;
-            if (median > 60.0f) median = 60.0f;
-
-            if (!_gpuCalibrationValid[channel])
-            {
-                _gpuCalibrationOffset[channel] = median;
-                _gpuCalibrationValid[channel] = true;
-            }
-            else
-            {
-                _gpuCalibrationOffset[channel] += 0.08f * (median - _gpuCalibrationOffset[channel]);
-            }
-        }
-
-        // Adaptive temporal filter. Quiet noise is stabilised strongly, while a real
-        // signal appearing/disappearing is followed quickly so CW/SSB edges stay sharp.
-        private static void PostProcessGPUWaterfallRow(int channel, float[] raw, float[] target, int width)
-        {
-            EnsureRowBuffer(ref _gpuPrevRow[channel], width);
-            float[] prev = _gpuPrevRow[channel];
-            float offset = (_gpuWaterfallMagnitudeMode == 0 && _gpuCalibrationValid[channel])
-                ? _gpuCalibrationOffset[channel] : 0.0f;
-
-            if (!_gpuPrevValid[channel])
-            {
-                for (int i = 0; i < width; i++)
+                if (rx == 1)
                 {
-                    float v = raw[i] + offset;
-                    target[i] = v;
-                    prev[i] = v;
+                    Utilities.Dispose(ref _gpuFFT1);
                 }
-                _gpuPrevValid[channel] = true;
+                else
+                {
+                    Utilities.Dispose(ref _gpuFFT2);
+                }
                 return;
             }
-
-            for (int i = 0; i < width; i++)
+            int num = cmaster.GetInputRate(0, rx - 1);
+            if (num <= 0)
             {
-                float current = raw[i] + offset;
-                float old = prev[i];
-                float delta = Math.Abs(current - old);
-
-                float alpha;
-                if (delta >= 12.0f)
-                    alpha = 0.90f;
-                else if (delta >= 6.0f)
-                    alpha = 0.70f;
-                else if (delta >= 2.5f)
-                    alpha = 0.45f;
+                num = ((rx == 1) ? SampleRateRX1 : SampleRateRX2);
+            }
+            GPUWaterfallPipeline gPUWaterfallPipeline = ((rx == 1) ? _gpuFFT1 : _gpuFFT2);
+            bool num2 = gPUWaterfallPipeline == null;
+            if (num2)
+            {
+                gPUWaterfallPipeline = new GPUWaterfallPipeline(_device, _gpuWaterfallFFTSize, width, num);
+                if (rx == 1)
+                {
+                    _gpuFFT1 = gPUWaterfallPipeline;
+                }
                 else
-                    alpha = 0.28f;
+                {
+                    _gpuFFT2 = gPUWaterfallPipeline;
+                }
+            }
+            else
+            {
+                gPUWaterfallPipeline.Resize(_gpuWaterfallFFTSize, width, num);
+            }
+            if (num2)
+            {
+                ResetGPUWaterfallState(rx);
+            }
+            if (gPUWaterfallPipeline.IsInitialized)
+            {
+                gPUWaterfallPipeline.WindowType = _gpuWaterfallWindowType;
+                gPUWaterfallPipeline.KaiserBeta = _gpuWaterfallKaiserBeta;
+                gPUWaterfallPipeline.MagnitudeMode = _gpuWaterfallMagnitudeMode;
+                gPUWaterfallPipeline.LanczosWindow = _gpuWaterfallLanczosWindow;
+                gPUWaterfallPipeline.ResamplingMode = _gpuWaterfallResamplingMode;
+            }
+            LogGPU($"InitOrResizeGPUWaterfall RX{rx}: FFT={_gpuWaterfallFFTSize}, width={width}, SR={num}, window={_gpuWaterfallWindowType}, kaiser={_gpuWaterfallKaiserBeta:F1}, magnitude={_gpuWaterfallMagnitudeMode}, resampling={_gpuWaterfallResamplingMode}, overlap={_gpuWaterfallOverlapPercent}%, initialized={gPUWaterfallPipeline.IsInitialized}");
+        }
 
-                float filtered = old + alpha * (current - old);
-                prev[i] = filtered;
-                target[i] = filtered;
+        private static void ResetGPUWaterfallState(int rx, bool resetCalibration = true)
+        {
+            lock (_objDX2Lock)
+            {
+                int num = rx - 1;
+                _gpuSampleCredit[num] = 0;
+                _gpuIQringHead[num] = 0;
+                _gpuIQringCount[num] = 0;
+                _gpuFirstFillDone[num] = false;
+                _gpuRendererHasData[num] = false;
+                if (_gpuIQringI[num] != null)
+                {
+                    Array.Clear(_gpuIQringI[num], 0, _gpuIQringI[num].Length);
+                }
+                if (_gpuIQringQ[num] != null)
+                {
+                    Array.Clear(_gpuIQringQ[num], 0, _gpuIQringQ[num].Length);
+                }
+                if (resetCalibration)
+                {
+                    if (rx == 1)
+                    {
+                        _gpuCalInitRX1 = false;
+                        _gpuCalStartupCountRX1 = 0;
+                        _gpuLastFFTSizeRX1 = 0;
+                    }
+                    else
+                    {
+                        _gpuCalInitRX2 = false;
+                        _gpuCalStartupCountRX2 = 0;
+                        _gpuLastFFTSizeRX2 = 0;
+                    }
+                }
             }
         }
 
-        // Called immediately before the unchanged SQ4KOU CPU waterfall ready/copy block.
-        private static void TryUpdateGPUWaterfallRow(int rx, int width, bool localMox)
+        private static float[] ProcessGPUWaterfall(int rx, int width)
         {
-            if (!_waterfallUseGPU || localMox || width <= 0 || !console.PowerOn) return;
-
-            int channel = rx == 2 ? 1 : 0;
-            if (!EnsureGPUWaterfall(channel)) return;
-
-            float[] target = rx == 2 ? new_waterfall_data_bottom : new_waterfall_data;
-            if (target == null || target.Length < width) return;
-
-            bool cpuReady = rx == 2 ? waterfall_data_ready_bottom : waterfall_data_ready;
-            if (cpuReady)
+            if (!_gpuWaterfallPipelineEnabled)
             {
-                EnsureRowBuffer(ref _gpuCpuReference[channel], width);
-                Array.Copy(target, _gpuCpuReference[channel], width);
+                return null;
             }
-
-            EnsureRowBuffer(ref _gpuRawRow[channel], width);
-            float[] raw = _gpuRawRow[channel];
-
-            int sampleRate = rx == 2 ? SampleRateRX2 : SampleRateRX1;
-            float lowHz = rx == 2 ? RX2DisplayLow : RXDisplayLow;
-            float highHz = rx == 2 ? RX2DisplayHigh : RXDisplayHigh;
-
-            try
+            GPUWaterfallPipeline gPUWaterfallPipeline = ((rx == 1) ? _gpuFFT1 : _gpuFFT2);
+            if (gPUWaterfallPipeline == null || !gPUWaterfallPipeline.IsInitialized)
             {
-                int rc = GPUWaterfallNative.CM_GPUWaterfall_Process(channel, width, sampleRate, lowHz, highHz, raw);
-                if (rc > 0)
+                EnsureGPUWaterfallPipeline(rx, width, 1);
+                gPUWaterfallPipeline = ((rx == 1) ? _gpuFFT1 : _gpuFFT2);
+            }
+            if (gPUWaterfallPipeline != null && gPUWaterfallPipeline.IsInitialized && gPUWaterfallPipeline.FFTSize != _gpuWaterfallFFTSize)
+            {
+                EnsureGPUWaterfallPipeline(rx, width, 1);
+                gPUWaterfallPipeline = ((rx == 1) ? _gpuFFT1 : _gpuFFT2);
+            }
+            int inputRate = cmaster.GetInputRate(0, rx - 1);
+            if (gPUWaterfallPipeline != null && inputRate > 0 && Math.Abs(gPUWaterfallPipeline.SampleRate - (float)inputRate) > 1f)
+            {
+                EnsureGPUWaterfallPipeline(rx, width, 1);
+                gPUWaterfallPipeline = ((rx == 1) ? _gpuFFT1 : _gpuFFT2);
+                ResetGPUWaterfallState(rx);
+            }
+            if (gPUWaterfallPipeline == null || !gPUWaterfallPipeline.IsInitialized)
+            {
+                if (!_gpuPipeFailLogged[rx - 1])
                 {
-                    if (cpuReady)
-                        UpdateGPUCalibration(channel, _gpuCpuReference[channel], raw, width);
-
-                    PostProcessGPUWaterfallRow(channel, raw, target, width);
-
-                    if (rx == 2)
-                        waterfall_data_ready_bottom = true;
-                    else
-                        waterfall_data_ready = true;
+                    _gpuPipeFailLogged[rx - 1] = true;
+                    LogGPU(string.Format("ProcessGPUWaterfall RX{0}: pipe {1}", rx, (gPUWaterfallPipeline == null) ? "null" : "not initialized"));
                 }
-                else if (rc < 0)
-                {
-                    _gpuWaterfallFailed[channel] = true;
-                    _gpuWaterfallConfiguredFFT[channel] = 0;
-                    _gpuPrevValid[channel] = false;
-                    _gpuCalibrationValid[channel] = false;
-                    try { GPUWaterfallNative.CM_GPUWaterfall_Free(channel); } catch { }
-                }
+                return null;
             }
-            catch
+            _gpuPipeFailLogged[rx - 1] = false;
+            int fFTSize = gPUWaterfallPipeline.FFTSize;
+            int num = ((rx == 1) ? _gpuLastFFTSizeRX1 : _gpuLastFFTSizeRX2);
+            if (fFTSize != num)
             {
-                _gpuWaterfallFailed[channel] = true;
-                _gpuWaterfallConfiguredFFT[channel] = 0;
-                _gpuPrevValid[channel] = false;
-                _gpuCalibrationValid[channel] = false;
-                try { GPUWaterfallNative.CM_GPUWaterfall_Free(channel); } catch { }
+                if (rx == 1)
+                {
+                    _gpuCalInitRX1 = false;
+                    _gpuLastFFTSizeRX1 = fFTSize;
+                }
+                else
+                {
+                    _gpuCalInitRX2 = false;
+                    _gpuLastFFTSizeRX2 = fFTSize;
+                }
             }
+            int num2 = rx - 1;
+            if (fFTSize != num)
+            {
+                _gpuSampleCredit[num2] = 0;
+            }
+            if (_gpuIQringI[num2] == null || _gpuIQringI[num2].Length < 524288)
+            {
+                _gpuIQringI[num2] = new float[524288];
+                _gpuIQringQ[num2] = new float[524288];
+                _gpuIQringHead[num2] = 0;
+                _gpuIQringCount[num2] = 0;
+                _gpuFirstFillDone[num2] = false;
+            }
+            if (_gpuIQbufI == null || _gpuIQbufI.Length < 524288)
+            {
+                _gpuIQbufI = new float[524288];
+                _gpuIQbufQ = new float[524288];
+            }
+            int stream = ((rx != 1) ? 1 : 0);
+            int num3 = 0;
+            int waterfallIQDroppedSamples = (int)Math.Min((ulong)int.MaxValue, GPUWaterfallNative.CM_WaterfallIQ_DroppedSamples(stream));
+            if (waterfallIQDroppedSamples > 0)
+            {
+                long num4 = Environment.TickCount;
+                if (num4 - _gpuLastDropLogMs[num2] >= 1000)
+                {
+                    _gpuLastDropLogMs[num2] = num4;
+                    LogGPU($"RX{rx} I/Q ring dropped {waterfallIQDroppedSamples} samples (reader lagged behind writer)");
+                }
+                GPUWaterfallNative.CM_WaterfallIQ_ResetDropped(stream);
+            }
+            int num5 = _gpuIQringCount[num2];
+            int num6 = _gpuIQringHead[num2];
+            int num7 = GPUWaterfallNative.CM_WaterfallIQ_Available(stream);
+            if (num7 > 0)
+            {
+                int maxSamples = Math.Min(num7, 2 * fFTSize);
+                if (_gpuIQaccumI == null || _gpuIQaccumI.Length < 524288)
+                {
+                    _gpuIQaccumI = new float[524288];
+                    _gpuIQaccumQ = new float[524288];
+                }
+                num3 = ReadWaterfallIQ(stream, _gpuIQaccumI, _gpuIQaccumQ, maxSamples);
+                if (num3 > 0)
+                {
+                    float[] array = _gpuIQringI[num2];
+                    float[] array2 = _gpuIQringQ[num2];
+                    for (int i = 0; i < num3; i++)
+                    {
+                        array[num6] = _gpuIQaccumI[i];
+                        array2[num6] = _gpuIQaccumQ[i];
+                        num6 = (num6 + 1) % fFTSize;
+                    }
+                    num5 = Math.Min(num5 + num3, fFTSize);
+                    _gpuIQringHead[num2] = num6;
+                    _gpuIQringCount[num2] = num5;
+                    _gpuSampleCredit[num2] += num3;
+                }
+            }
+            if (num5 < fFTSize)
+            {
+                return null;
+            }
+            double num8 = (double)_gpuWaterfallOverlapPercent / 100.0;
+            int num9 = Math.Max(1, Math.Min(fFTSize, (int)Math.Round((double)fFTSize * (1.0 - num8))));
+            if (_gpuWaterfallAutoOverlap)
+            {
+                double num10 = Math.Max(1.0, m_nFps);
+                int num11 = Math.Max(1, (rx == 1) ? waterfall_update_period : rx2_waterfall_update_period);
+                double num12 = ((gPUWaterfallPipeline.SampleRate > 1f) ? gPUWaterfallPipeline.SampleRate : 192000f);
+                double num13 = Math.Min(num10 / (double)num11, 30.0);
+                double num14 = num12 / (0.05 * (double)fFTSize);
+                if (num13 > num14)
+                {
+                    num13 = num14;
+                }
+                num9 = Math.Max(1, Math.Min(fFTSize, (int)Math.Round(num12 / num13)));
+            }
+            double num15 = 1.0 - (double)num9 / (double)fFTSize;
+            if (Math.Abs(num15 - _gpuLastEffectiveOverlap[num2]) > 0.005)
+            {
+                _gpuLastEffectiveOverlap[num2] = num15;
+                GPUWaterfallEffectiveOverlapChanged?.Invoke(rx, num15);
+            }
+            if (!_gpuFirstFillDone[num2])
+            {
+                _gpuFirstFillDone[num2] = true;
+                _gpuSampleCredit[num2] = 0;
+            }
+            else
+            {
+                if (_gpuSampleCredit[num2] < num9)
+                {
+                    return null;
+                }
+                _gpuSampleCredit[num2] -= num9;
+            }
+            int num16 = num9 * 2;
+            if (_gpuSampleCredit[num2] > num16)
+            {
+                _gpuSampleCredit[num2] = num16;
+            }
+            float[] array3 = _gpuIQringI[num2];
+            float[] array4 = _gpuIQringQ[num2];
+            for (int j = 0; j < fFTSize; j++)
+            {
+                int num20 = (_gpuIQringHead[num2] + j) % fFTSize;
+                _gpuIQbufI[j] = array3[num20];
+                _gpuIQbufQ[j] = array4[num20];
+            }
+            int num24;
+            int num25;
+            if (localMox(rx))
+            {
+                num24 = ((!DisplayDuplex) ? 1 : 0);
+                if (num24 != 0)
+                {
+                    num25 = tx_display_low;
+                    goto IL_05a5;
+                }
+            }
+            else
+            {
+                num24 = 0;
+            }
+            num25 = ((rx == 1) ? RXDisplayLow : RX2DisplayLow);
+            IL_05a5:
+            float num26 = num25;
+            float num27 = ((num24 != 0) ? tx_display_high : ((rx == 1) ? RXDisplayHigh : RX2DisplayHigh));
+            bool flag = ++_gpuRowLogSkip[num2] >= 30;
+            if (flag)
+            {
+                _gpuRowLogSkip[num2] = 0;
+            }
+            if (flag)
+            {
+                LogGPU($"ProcessGPUWaterfall RX{rx}: span set lowFreq={num26:F0}, highFreq={num27:F0}, width={width}, fftSize={fFTSize}");
+            }
+            gPUWaterfallPipeline.SetFrequencySpan(num26, num27);
+            float[] array5 = gPUWaterfallPipeline.Process(_gpuIQbufI, _gpuIQbufQ, fFTSize);
+            if (flag)
+            {
+                LogGPU(string.Format("ProcessGPUWaterfall RX{0}: available={1}, got={2}, credit={3}, row={4}, width={5}", rx, num7, num3, _gpuSampleCredit[num2], (array5 != null) ? ("len=" + array5.Length) : "null", width));
+            }
+            if (array5 != null && array5.Length < width)
+            {
+                return null;
+            }
+            if (array5 != null)
+            {
+                float[] array6 = ((rx == 1) ? _gpuCalReferenceRowRX1 : _gpuCalReferenceRowRX2);
+                int num28 = Math.Min(width, (array6 != null) ? array6.Length : 0);
+                float num29 = ((rx == 1) ? _gpuCalOffsetRX1 : _gpuCalOffsetRX2);
+                if (num28 > 0)
+                {
+                    float num31 = CalculateMedian(array6, num28);
+                    if (num31 > -180f)
+                    {
+                        float num32 = CalculateMedian(array5, num28);
+                        float num33 = num31 - num32;
+                        if (float.IsNaN(num33)) num33 = 0f;
+                        if (num33 > 200f) num33 = 200f;
+                        if (num33 < -200f) num33 = -200f;
+                        if (num33 >= -12f && num33 <= 7f)
+                        {
+                            bool num34 = ((rx == 1) ? _gpuCalInitRX1 : _gpuCalInitRX2);
+                            int num35 = ((rx == 1) ? _gpuCalStartupCountRX1 : _gpuCalStartupCountRX2);
+                            float num36 = ((!num34 || num35 < 10) ? 0.3f : 0.1f);
+                            num29 = num29 * (1f - num36) + num33 * num36;
+                            float num37 = ((rx == 1) ? _gpuCalOffsetRX1 : _gpuCalOffsetRX2);
+                            if (!num34) num29 = num33;
+                            else if (num29 > num37 + 1f) num29 = num37 + 1f;
+                            else if (num29 < num37 - 1f) num29 = num37 - 1f;
+                            if (!num34)
+                            {
+                                if (rx == 1) { _gpuCalInitRX1 = true; _gpuCalStartupCountRX1 = 1; }
+                                else { _gpuCalInitRX2 = true; _gpuCalStartupCountRX2 = 1; }
+                            }
+                            else if (rx == 1 && num35 < 10) _gpuCalStartupCountRX1++;
+                            else if (rx == 2 && num35 < 10) _gpuCalStartupCountRX2++;
+                            if (rx == 1) _gpuCalOffsetRX1 = num29;
+                            else _gpuCalOffsetRX2 = num29;
+                        }
+                    }
+                }
+                for (int k = 0; k < width; k++) array5[k] += num29;
+            }
+            return array5;
+        }
+
+        private static float CalculateMedian(float[] data, int length)
+        {
+            if (data == null || length <= 0) return -200f;
+            if (_gpuMedianBuffer == null || _gpuMedianBuffer.Length < length) _gpuMedianBuffer = new float[length];
+            Array.Copy(data, _gpuMedianBuffer, length);
+            Array.Sort(_gpuMedianBuffer, 0, length);
+            int mid = length / 2;
+            return (length & 1) == 1 ? _gpuMedianBuffer[mid] : (_gpuMedianBuffer[mid - 1] + _gpuMedianBuffer[mid]) * 0.5f;
+        }
+
+        private static void LogGPU(string message)
+        {
+            GPUWaterfallLogger.Log("GPU-DISP", message);
+        }
+
+        private static readonly bool[] _gpuRendererHasData = new bool[2];
+
+        private static void SetNativeWaterfallIQEnabled(bool enabled)
+        {
+            for (int ch = 0; ch < 2; ch++)
+            {
+                try
+                {
+                    if (enabled) GPUWaterfallNative.CM_WaterfallIQ_Init(ch, GPU_WATERFALL_IQ_CAPACITY);
+                    GPUWaterfallNative.CM_WaterfallIQ_SetEnabled(ch, enabled ? 1 : 0);
+                    if (!enabled) GPUWaterfallNative.CM_WaterfallIQ_ResetDropped(ch);
+                }
+                catch (Exception ex)
+                {
+                    LogGPU("Native IQ control failed ch" + ch + ": " + ex.Message);
+                }
+            }
+        }
+
+        private static int ReadWaterfallIQ(int stream, float[] outI, float[] outQ, int maxSamples)
+        {
+            if (outI == null || outQ == null || outI.Length < maxSamples || outQ.Length < maxSamples) return 0;
+            int n;
+            try { n = GPUWaterfallNative.CM_WaterfallIQ_Get(stream, maxSamples, outI, outQ); }
+            catch { return 0; }
+            for (int i = 0; i < n; i++)
+            {
+                float t = outI[i]; outI[i] = outQ[i]; outQ[i] = t;
+            }
+            return n;
+        }
+
+        private static int PowerOfTwo(int value)
+        {
+            int p = 1;
+            while (p < value && p < 262144) p <<= 1;
+            return p > 262144 ? 262144 : p;
+        }
+
+        private static void CaptureGPUCalibrationReference(int rx, float[] cpuRow, int cpuWidth, int gpuWidth)
+        {
+            if (cpuRow == null || cpuWidth <= 0 || gpuWidth <= 0) return;
+            float[] dst = rx == 1 ? _gpuCalReferenceRowRX1 : _gpuCalReferenceRowRX2;
+            if (dst == null || dst.Length != gpuWidth) dst = new float[gpuWidth];
+            if (cpuWidth == gpuWidth) Array.Copy(cpuRow, dst, gpuWidth);
+            else
+            {
+                for (int x = 0; x < gpuWidth; x++)
+                {
+                    int src = (int)((long)x * cpuWidth / gpuWidth);
+                    if (src >= cpuWidth) src = cpuWidth - 1;
+                    dst[x] = cpuRow[src];
+                }
+            }
+            if (rx == 1) _gpuCalReferenceRowRX1 = dst; else _gpuCalReferenceRowRX2 = dst;
+        }
+
+        private static GPUWaterfallPipeline GetGPUWaterfallPipeline(int rx) => rx == 1 ? _gpuFFT1 : _gpuFFT2;
+        private static float GetGPUWaterfallCalibrationOffset(int rx) => rx == 1 ? _gpuCalOffsetRX1 : _gpuCalOffsetRX2;
+        private static bool ManagedGPUFFTRequested => _gpuWaterfallPipelineEnabled && _gpuEffectsEnabled && _waterfallRenderQuality == WaterfallRenderQuality.High;
+
+        private static WaterfallGPURenderer EnsureGPUWaterfallRenderer(int rx, int width, int height)
+        {
+            if (!_gpuEffectsEnabled || width <= 0 || height <= 0) return null;
+            if (!(_d2dRenderTarget is SharpDX.Direct2D1.DeviceContext dc)) return null;
+            SharpDX.DXGI.Format format = WaterfallPixelWriter.DxgiFormat;
+            if (format != SharpDX.DXGI.Format.B8G8R8A8_UNorm && format != SharpDX.DXGI.Format.R16G16B16A16_Float) return null;
+            WaterfallGPURenderer renderer = rx == 1 ? _waterfallGPU1 : _waterfallGPU2;
+            if (renderer == null)
+            {
+                renderer = new WaterfallGPURenderer(_device, dc, width, height, format);
+                if (rx == 1) _waterfallGPU1 = renderer; else _waterfallGPU2 = renderer;
+            }
+            else renderer.Resize(dc, width, height, format);
+            return renderer;
+        }
+
+        private static bool IsGPUWaterfallPaletteScheme(ColorScheme scheme)
+        {
+            return scheme == ColorScheme.Console || scheme == ColorScheme.Thermal || scheme == ColorScheme.DeepBlue || scheme == ColorScheme.Custom;
+        }
+
+        private static void UploadPaletteToGPU(WaterfallGPURenderer renderer, WaterfallPalette palette)
+        {
+            if (renderer == null || palette == null) return;
+            for (int i = 0; i < 256; i++)
+            {
+                palette.Sample((float)i / 255f, out float r, out float g, out float b);
+                int n = i * 4;
+                _gpuPaletteUpload[n] = r; _gpuPaletteUpload[n + 1] = g; _gpuPaletteUpload[n + 2] = b; _gpuPaletteUpload[n + 3] = 1f;
+            }
+            renderer.SetPalette(_gpuPaletteUpload, 256);
+        }
+
+        private static void UploadCustomGradientToGPU(WaterfallGPURenderer renderer, System.Drawing.Color[] colours)
+        {
+            if (renderer == null || colours == null || colours.Length < 2) return;
+            int count = Math.Min(1024, colours.Length);
+            for (int i = 0; i < count; i++)
+            {
+                int n = i * 4;
+                _gpuPaletteUpload[n] = colours[i].R / 255f;
+                _gpuPaletteUpload[n + 1] = colours[i].G / 255f;
+                _gpuPaletteUpload[n + 2] = colours[i].B / 255f;
+                _gpuPaletteUpload[n + 3] = 1f;
+            }
+            renderer.SetPalette(_gpuPaletteUpload, count);
+        }
+
+        private static WaterfallPalette GetGPUWaterfallPalette(ColorScheme scheme)
+        {
+            if (scheme == ColorScheme.Console) return GetPaletteConsole();
+            if (scheme == ColorScheme.Thermal) return GetPaletteThermal();
+            if (scheme == ColorScheme.DeepBlue) return GetPaletteDeepBlue();
+            return null;
+        }
+
+        private static bool UpdateManagedGPUWaterfallRenderer(int rx, int width, int height, int horizontalShiftPixels, bool addRow, bool clearExisting,
+            ColorScheme scheme, bool localMox, float lowThreshold, float highThreshold, float fOffset,
+            GPUWaterfallPipeline pipeline, bool gpuRowReady, float gpuCalOffset)
+        {
+            int index = rx - 1;
+            if (index < 0 || index > 1 || localMox || !ManagedGPUFFTRequested || !IsGPUWaterfallPaletteScheme(scheme))
+            {
+                if (index >= 0 && index < 2) _gpuRendererHasData[index] = false;
+                return false;
+            }
+            WaterfallGPURenderer renderer = EnsureGPUWaterfallRenderer(rx, width, height);
+            if (renderer == null || !renderer.IsInitialized || pipeline == null || !pipeline.IsInitialized)
+            {
+                _gpuRendererHasData[index] = false;
+                return false;
+            }
+            bool paletteReady = true;
+            if (scheme == ColorScheme.Custom)
+            {
+                System.Drawing.Color[] colours = rx == 1 ? _rx1_waterfall_grad : _rx2_waterfall_grad;
+                bool ok = rx == 1 ? _rx1_waterfall_grad_ok : _rx2_waterfall_grad_ok;
+                if (!ok) paletteReady = false; else UploadCustomGradientToGPU(renderer, colours);
+            }
+            else
+            {
+                WaterfallPalette palette = GetGPUWaterfallPalette(scheme);
+                if (palette == null) paletteReady = false; else UploadPaletteToGPU(renderer, palette);
+            }
+            if (!paletteReady) { _gpuRendererHasData[index] = false; return false; }
+            if (clearExisting) renderer.Clear();
+            bool inserted = addRow && gpuRowReady && pipeline.MagSpectrumView != null && !pipeline.MagSpectrumView.IsDisposed;
+            if (inserted)
+            {
+                float gamma = WaterfallEnhancer.Gamma;
+                float invGamma = gamma != 0f ? 1f / gamma : 1f;
+                renderer.ProcessRow(pipeline.MagSpectrumView, width, 1,
+                    lowThreshold - gpuCalOffset - fOffset, highThreshold - gpuCalOffset - fOffset,
+                    gamma, invGamma, (int)WaterfallEnhancer.ToneMap,
+                    WaterfallEnhancer.SaturationBoost, WaterfallEnhancer.ContrastBoost,
+                    WaterfallEnhancer.DitherEnabled, WaterfallEnhancer.Levels,
+                    _temporalEnabled ? _temporalAlpha : 0f, 0.05f, true, scheme == ColorScheme.Custom,
+                    WaterfallEnhancer.PaletteSharpness, WaterfallEnhancer.PaletteContrast);
+            }
+            renderer.AdvanceRow(horizontalShiftPixels, inserted);
+            if (inserted) { _gpuRendererHasData[index] = true; recordWaterfallAdvance(rx, height); }
+            return _gpuRendererHasData[index];
+        }
+
+        private static bool CanDrawManagedGPUWaterfall(int rx, ColorScheme scheme, int width, int height)
+        {
+            int index = rx - 1;
+            if (index < 0 || index > 1 || !_gpuRendererHasData[index] || !ManagedGPUFFTRequested || !IsGPUWaterfallPaletteScheme(scheme)) return false;
+            WaterfallGPURenderer renderer = rx == 1 ? _waterfallGPU1 : _waterfallGPU2;
+            return renderer != null && renderer.IsInitialized && renderer.Width == width && renderer.Height == height;
+        }
+
+        private static void DrawManagedGPUWaterfall(int rx, int nVerticalShift, float opacity)
+        {
+            WaterfallGPURenderer renderer = rx == 1 ? _waterfallGPU1 : _waterfallGPU2;
+            if (renderer != null && renderer.IsInitialized) renderer.Draw(0, nVerticalShift + 20, opacity, null, _gpuWaterfallLinearDraw);
         }
     }
 }
