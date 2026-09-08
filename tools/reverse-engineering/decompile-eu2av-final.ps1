@@ -165,8 +165,19 @@ foreach ($asm in $managedAssemblies) {
     $ilFile = Join-Path $out ($safe + '.il.txt')
     & $ilspy --ilcode $asm.FullName 2>&1 | Out-File $ilFile -Encoding utf8
     if ($LASTEXITCODE -ne 0) {
-        'IL dump unavailable with this ilspycmd version. C# decompilation remains available.' | Set-Content $ilFile -Encoding utf8
+        throw "IL dump failed for managed assembly $($asm.FullName)"
     }
+    $csCount = @(Get-ChildItem -LiteralPath $out -Recurse -File -Filter *.cs).Count
+    $ilBytes = (Get-Item -LiteralPath $ilFile).Length
+    if ($csCount -lt 1 -or $ilBytes -lt 1000) { throw "Managed recovery incomplete for $($asm.FullName): C#=$csCount IL-bytes=$ilBytes" }
+    @(
+        "status=PASS",
+        "assembly=$($asm.FullName)",
+        "assembly_sha256=$(Sha256 $asm.FullName)",
+        "csharp_files=$csCount",
+        "il_bytes=$ilBytes",
+        "ilspy=$ilspyVersion"
+    ) | Out-File -LiteralPath $log -Encoding utf8 -Append
 }
 
 # 5. DXBC shader disassembly. Every EU2AV waterfall shader must be represented.
