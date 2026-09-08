@@ -1,0 +1,91 @@
+name: Audit EU2AV GPU Waterfall Frequency Reference
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/eu2av-gpu-waterfall-sq4kou
+          fetch-depth: 1
+
+      - name: Recover EU2AV Final GPU sources
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $pkg = Join-Path $env:RUNNER_TEMP 'Thetis-Extended-Final.7z'
+          Invoke-WebRequest -Uri 'https://eu2av.net/download/file.php?id=2070' -OutFile $pkg -UseBasicParsing
+          if ((Get-Item $pkg).Length -lt 10MB) { throw 'EU2AV package is unexpectedly small' }
+          $unpack = Join-Path $env:RUNNER_TEMP 'eu2av'; New-Item -ItemType Directory -Force -Path $unpack | Out-Null
+          & 7z x $pkg "-o$unpack" -y | Out-Null
+          $msi = Get-ChildItem $unpack -Recurse -Filter *.msi | Select-Object -First 1
+          if (-not $msi) { throw 'EU2AV MSI not found' }
+          $installed = Join-Path $env:RUNNER_TEMP 'eu2av-installed'; New-Item -ItemType Directory -Force -Path $installed | Out-Null
+          $p = Start-Process msiexec.exe -ArgumentList @('/a', "`"$($msi.FullName)`"", '/qn', "TARGETDIR=`"$installed`"") -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "MSI extraction failed: $($p.ExitCode)" }
+          $exe = Get-ChildItem $installed -Recurse -Filter Thetis.exe | Sort-Object Length -Descending | Select-Object -First 1
+          if (-not $exe) { throw 'Thetis.exe not found' }
+          dotnet tool install --global ilspycmd --version 11.0.0.9375
+          $env:PATH = "$env:USERPROFILE\.dotnet\tools;$env:PATH"
+          $rec = Join-Path $env:RUNNER_TEMP 'recovered'; New-Item -ItemType Directory -Force -Path $rec | Out-Null
+          foreach ($t in @('Thetis.Display','Thetis.Console','Thetis.GPUWaterfallPipeline','Thetis.SharedWaterfallState','Thetis.GPUDetector')) {
+            ilspycmd --disable-updatecheck -t $t -o $rec $exe.FullName
+          }
+          "RECOVERED=$rec" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Produce exact frequency-reference audit
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $out = Join-Path $env:RUNNER_TEMP 'GPU_FREQUENCY_AUDIT.txt'
+          function Add-Hits([string]$title, [string]$path, [string[]]$patterns, [int]$ctx=12) {
+            Add-Content $out "`r`n================ $title ================"
+            Add-Content $out "FILE: $path"
+            if (-not (Test-Path $path)) { Add-Content $out 'MISSING'; return }
+            $lines = Get-Content $path
+            foreach ($pat in $patterns) {
+              Add-Content $out "`r`n--- PATTERN: $pat ---"
+              $hits = Select-String -InputObject $lines -Pattern $pat -SimpleMatch
+              if (-not $hits) { Add-Content $out 'NO MATCH'; continue }
+              foreach ($h in $hits) {
+                $n = $h.LineNumber
+                $a = [Math]::Max(1,$n-$ctx); $b = [Math]::Min($lines.Count,$n+$ctx)
+                for ($i=$a; $i -le $b; $i++) { Add-Content $out ('{0,6}: {1}' -f $i,$lines[$i-1]) }
+              }
+            }
+          }
+
+          $display = 'Project Files\Source\Console\display.cs'
+          $console = 'Project Files\Source\Console\console.cs'
+          $gpuManaged = 'Project Files\Source\Console\Display.GPUWaterfall.cs'
+          $gpuNative = 'Project Files\Source\ChannelMaster\gpu_waterfall.cpp'
+          $cmaster = 'Project Files\Source\ChannelMaster\cmaster.c'
+
+          Add-Hits 'SQ4KOU DISPLAY' $display @('SetPendingWaterfallPixelRef','captureWaterfallPixelRefForRow','prepareWaterfallBitmapShift','_currentWaterfallPixelRef','_waterfallBitmapCenterHz','RXDisplayLow','RX2DisplayLow') 16
+          Add-Hits 'SQ4KOU CONSOLE' $console @('Process_Waterfall','SetPendingWaterfallPixelRef','GetPixels(1','pixel_ref','CTUN','ctun') 16
+          Add-Hits 'SQ4KOU GPU MANAGED' $gpuManaged @('TryUpdateGPUWaterfallRow','CM_GPUWaterfall_Process','PostProcessGPUWaterfallRow','UpdateGPUCalibration','RXDisplayLow','RX2DisplayLow') 20
+          Add-Hits 'SQ4KOU GPU NATIVE' $gpuNative @('CM_GPUWaterfall_Process','displayLowHz','displayHighHz','lowHz','highHz','CM_WaterfallIQ_Available','RunFFT') 25
+          Add-Hits 'SQ4KOU CHANNELMASTER TAP' $cmaster @('CM_WaterfallIQ_Push','Spectrum0','xnob') 20
+
+          $recFiles = Get-ChildItem $env:RECOVERED -Recurse -Filter *.cs
+          foreach ($f in $recFiles) {
+            Add-Hits ('EU2AV ' + $f.BaseName) $f.FullName @('GPUWaterfall','ProcessGPUWaterfall','pixel_ref','PixelRef','SetPendingWaterfallPixelRef','captureWaterfallPixelRefForRow','prepareWaterfallBitmapShift','CTUN','DisplayLow','DisplayHigh','Center','center','DoNotWait') 20
+          }
+
+          Write-Host '===== GPU FREQUENCY AUDIT BEGIN ====='
+          Get-Content $out
+          Write-Host '===== GPU FREQUENCY AUDIT END ====='
+          Copy-Item $out "$PWD\GPU_FREQUENCY_AUDIT.txt" -Force
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GPU-FREQUENCY-AUDIT
+          path: GPU_FREQUENCY_AUDIT.txt
+          if-no-files-found: error
