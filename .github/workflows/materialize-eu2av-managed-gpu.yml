@@ -45,6 +45,7 @@ jobs:
           $rec = Join-Path $env:RUNNER_TEMP 'recovered-project'
           New-Item -ItemType Directory -Force -Path $rec | Out-Null
           ilspycmd --disable-updatecheck -p -o $rec $exe.FullName
+          if ($LASTEXITCODE -ne 0) { throw "ILSpy failed: $LASTEXITCODE" }
           "REC=$rec" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           "EUROOT=$installed" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
 
@@ -140,5 +141,14 @@ jobs:
           git add -- 'Project Files/Source/Console/GPUWaterfallPipeline.cs' 'Project Files/Source/Console/WaterfallGPURenderer.cs' 'Project Files/Source/Console/GPUWaterfallLogger.cs' 'Project Files/Source/Console/SharedWaterfallState.cs' 'Project Files/Source/Console/GPUWaterfallWindowType.cs' 'Project Files/Source/Console/GPUWaterfallMagnitudeMode.cs' 'Project Files/Source/Console/GPUWaterfallResamplingMode.cs' 'Project Files/Source/Console/waterfall_fft_bitreverse_cs.bin' 'Project Files/Source/Console/waterfall_fft_stage_ab_cs.bin' 'Project Files/Source/Console/waterfall_fft_stage_ba_cs.bin' 'Project Files/Source/Console/waterfall_fft_magnitude_cs.bin' 'Project Files/Source/Console/waterfall_row_cs.bin' 'Project Files/Source/Console/waterfall_postproc.bin' 'Project Files/Source/Console/waterfall_resolve_cs.bin' '.github/recovered/eu2av-2.10.3.16'
           if (git diff --cached --quiet) { throw 'Recovery produced no changes to commit' }
           git commit -m 'Materialize exact EU2AV 2.10.3.16 managed GPU source of truth'
+          if ($LASTEXITCODE -ne 0) { throw "git commit failed: $LASTEXITCODE" }
+          git fetch origin feature/eu2av-gpu-waterfall-sq4kou
+          if ($LASTEXITCODE -ne 0) { throw "git fetch failed: $LASTEXITCODE" }
+          git rebase origin/feature/eu2av-gpu-waterfall-sq4kou
+          if ($LASTEXITCODE -ne 0) { throw "git rebase failed: $LASTEXITCODE" }
           git push origin HEAD:feature/eu2av-gpu-waterfall-sq4kou
-          git rev-parse HEAD
+          if ($LASTEXITCODE -ne 0) { throw "git push failed: $LASTEXITCODE" }
+          $local = (git rev-parse HEAD).Trim()
+          $remote = (git ls-remote origin refs/heads/feature/eu2av-gpu-waterfall-sq4kou).Split("`t")[0].Trim()
+          if ($local -ne $remote) { throw "Remote verification failed: local=$local remote=$remote" }
+          Write-Host "MATERIALIZED_SOURCE_SHA=$local"
