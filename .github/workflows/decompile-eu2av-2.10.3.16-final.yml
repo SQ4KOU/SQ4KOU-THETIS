@@ -79,6 +79,7 @@ jobs:
           dotnet-version: '8.0.x'
 
       - name: Validate all recovered CSharp syntax using Roslyn
+        id: syntax
         shell: pwsh
         run: |
           $root = 'reverse-engineering/EU2AV-Thetis-2.10.3.16-Final'
@@ -115,6 +116,7 @@ jobs:
           $errors | Select-Object -First 20 | ForEach-Object { Write-Host $_.diagnostic }
 
       - name: Strict binary-grounded verification
+        id: strict
         shell: pwsh
         run: |
           ./tools/reverse-engineering/verify-eu2av-final.ps1
@@ -129,9 +131,45 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-      - name: Commit decompiled reference snapshot to branch
+      - name: Commit working decompilation with explicit verification status
+        if: ${{ !cancelled() && steps.syntax.outcome == 'success' && (steps.strict.outcome == 'success' || steps.strict.outcome == 'failure') }}
         shell: pwsh
+        env:
+          STRICT_OUTCOME: ${{ steps.strict.outcome }}
         run: |
+          $root = 'reverse-engineering/EU2AV-Thetis-2.10.3.16-Final'
+          $syntax = Get-Content "$root/metadata/CSHARP_SYNTAX_VERIFICATION.json" -Raw | ConvertFrom-Json
+          if ($syntax.result -ne 'PASS') { throw 'CSharp syntax validation failed; refusing working snapshot' }
+          $lock = Get-Content 'tools/reverse-engineering/EU2AV_FINAL_SOURCE_LOCK.json' -Raw | ConvertFrom-Json
+          $provenance = Get-Content "$root/metadata/PROVENANCE.txt" -Raw
+          if (-not $provenance.Contains($lock.package_sha256)) { throw 'Source lock mismatch' }
+          [ordered]@{
+            status = 'WORKING_DECOMPILATION'
+            original_export_run = 34222077364
+            package_sha256 = $lock.package_sha256
+            csharp_syntax = $syntax
+            strict_verification = $env:STRICT_OUTCOME
+            limitations = @('Compilation not verified','IL semantic equivalence not verified','GPU behavior not verified','21 Skia assembly fallbacks require relevance review')
+          } | ConvertTo-Json -Depth 6 | Set-Content "$root/metadata/WORKING_SOURCE_STATUS.json"
+          $notice = @(
+            '# EU2AV Thetis 2.10.3.16 Final — working decompilation',
+            '',
+            'This snapshot is available for code inspection and further reconstruction.',
+            'It is not a verified rebuild of the original application and has no full STRICT PASS.',
+            '',
+            '- managed/: recovered C# and IL',
+            '- native/: native pseudocode, function indexes and assembly fallbacks',
+            '- dxbc/: all seven waterfall shader disassemblies',
+            '- metadata/: source provenance, manifests, syntax results and exception register',
+            '',
+            'C# syntax was checked independently. Compilation, IL equivalence, GPU behavior,',
+            'and function-specific relevance of 21 Skia fallbacks remain unverified.',
+            'The original export README is preserved as EXPORT_README.md.'
+          )
+          if (-not (Test-Path "$root/EXPORT_README.md")) {
+            Copy-Item "$root/README.md" "$root/EXPORT_README.md"
+          }
+          $notice | Set-Content "$root/README.md"
           git config user.name 'SQ4KOU Reverse Engineering Bot'
           git config user.email 'actions@users.noreply.github.com'
           git add -- 'reverse-engineering/EU2AV-Thetis-2.10.3.16-Final'
@@ -139,7 +177,7 @@ jobs:
             Write-Host 'No generated changes to commit.'
             exit 0
           }
-          git commit -m 'Reference: full EU2AV 2.10.3.16 Final decompilation'
+          git commit -m 'Deliver working EU2AV decompilation with explicit verification gaps'
           git push origin HEAD:reference/eu2av-2.10.3.16-final-decompiled
 
       - name: Upload provenance and status artifact
