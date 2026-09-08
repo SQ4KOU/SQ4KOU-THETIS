@@ -1,0 +1,35 @@
+name: Snapshot Managed GPU Integration Sources
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/eu2av-gpu-waterfall-sq4kou]
+    paths: [.github/workflows/snapshot-managed-gpu-integration.yml]
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/eu2av-gpu-waterfall-sq4kou
+      - name: Collect integration sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p snapshot
+          cp 'Project Files/Source/Console/display.cs' snapshot/display.cs
+          cp 'Project Files/Source/Console/Display.GPUWaterfall.cs' snapshot/Display.GPUWaterfall.cs
+          cp 'Project Files/Source/Console/Display.EU2AVWaterfallCompat.cs' snapshot/Display.EU2AVWaterfallCompat.cs || true
+          cp 'Project Files/Source/Console/Setup.GPUWaterfall.cs' snapshot/Setup.GPUWaterfall.cs || true
+          cp 'Project Files/Source/Console/Thetis.csproj' snapshot/Thetis.csproj
+          cp 'Project Files/Source/Console/GPUWaterfallNative.cs' snapshot/GPUWaterfallNative.cs || true
+          cp '.github/recovered/eu2av-2.10.3.16/Display.EU2AV.2.10.3.16.cs.txt' snapshot/Display.EU2AV.2.10.3.16.cs.txt
+          cp '.github/recovered/eu2av-2.10.3.16/Setup.EU2AV.2.10.3.16.cs.txt' snapshot/Setup.EU2AV.2.10.3.16.cs.txt || true
+          cp '.github/recovered/eu2av-2.10.3.16/Thetis.EU2AV.2.10.3.16.csproj.txt' snapshot/Thetis.EU2AV.2.10.3.16.csproj.txt || true
+      - uses: actions/upload-artifact@v4
+        with:
+          name: managed-gpu-integration-snapshot
+          path: snapshot
+          if-no-files-found: error
+          retention-days: 3
