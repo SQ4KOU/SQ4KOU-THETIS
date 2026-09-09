@@ -1,4 +1,4 @@
-//=================================================================
+﻿//=================================================================
 // display.cs
 //=================================================================
 // Thetis is a C# implementation of a Software Defined Radio.
@@ -3746,7 +3746,28 @@ namespace Thetis
 
                     _factory1.MakeWindowAssociation(displayTarget.Handle, WindowAssociationFlags.IgnoreAll);
 
-                    _swapChain = new SwapChain(_factory1, _device, desc);
+                    // SQ4KOU_DXGI_EACCESSDENIED_FALLBACK
+                    // Keep the normal flip-model path. Some Windows/driver combinations reject
+                    // DXGI CreateSwapChain with E_ACCESSDENIED (0x80070005). In that exact case
+                    // retry once with the already-supported legacy bitblt swap effect. No other
+                    // DirectX/GPU-waterfall failure is hidden by this fallback.
+                    try
+                    {
+                        _swapChain = new SwapChain(_factory1, _device, desc);
+                    }
+                    catch (SharpDX.SharpDXException ex)
+                        when (ex.HResult == unchecked((int)0x80070005) && desc.SwapEffect != SwapEffect.Discard)
+                    {
+                        Debug.WriteLine("DXGI CreateSwapChain returned E_ACCESSDENIED; retrying legacy Discard swap chain.");
+                        _bUseLegacyBuffers = true;
+                        bFlipPresent = false;
+                        swapEffect = SwapEffect.Discard;
+                        _nBufferCount = 1;
+                        desc.SwapEffect = SwapEffect.Discard;
+                        desc.BufferCount = 1;
+                        desc.Flags = SwapChainFlags.None;
+                        _swapChain = new SwapChain(_factory1, _device, desc);
+                    }
                     _swapChain1 = _swapChain.QueryInterface<SwapChain1>();
 
                     // Yurij-eu2av - 2026-07-04: Factory1 (Direct2D 1.1) is required to
