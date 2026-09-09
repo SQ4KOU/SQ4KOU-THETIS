@@ -20,7 +20,23 @@ function Write-Utf8NoBom([string]$Path, [string]$Text) {
     [System.IO.File]::WriteAllText($Path, $Text, [System.Text.UTF8Encoding]::new($false))
 }
 
-# 1. Reproduce the 2.10.3.16 Extended Final packaging model exactly:
+function Replace-MethodBefore([string]$Text, [string]$MethodSignature, [string]$NextSignature, [string]$Replacement) {
+    $start = $Text.IndexOf($MethodSignature, [System.StringComparison]::Ordinal)
+    if ($start -lt 0) { throw "Method signature not found: $MethodSignature" }
+
+    $lineStart = $Text.LastIndexOf("`n", $start)
+    if ($lineStart -lt 0) { $lineStart = 0 } else { $lineStart++ }
+
+    $next = $Text.IndexOf($NextSignature, $start, [System.StringComparison]::Ordinal)
+    if ($next -lt 0) { throw "Following signature not found: $NextSignature" }
+
+    $nextLineStart = $Text.LastIndexOf("`n", $next)
+    if ($nextLineStart -lt 0) { $nextLineStart = $next } else { $nextLineStart++ }
+
+    return $Text.Substring(0, $lineStart) + $Replacement.TrimEnd("`r", "`n") + "`r`n`r`n" + $Text.Substring($nextLineStart)
+}
+
+# 1. Reproduce the recovered 2.10.3.16 Extended Final packaging model:
 #    all seven shader binaries are manifest resources named Thetis.<filename>.
 $projectText = [System.IO.File]::ReadAllText($csproj)
 foreach ($shader in $shaders) {
@@ -31,7 +47,7 @@ foreach ($shader in $shaders) {
     if ($projectText -match $contentPattern) {
         $projectText = [regex]::Replace($projectText, $contentPattern, $embedded, 1)
     }
-    elseif ($projectText -notmatch ('<EmbeddedResource Include="' + $escaped + '"[^>]*>.*?<LogicalName>Thetis\.' + $escaped + '</LogicalName>.*?</EmbeddedResource>|<EmbeddedResource Include="' + $escaped + '"\s+LogicalName="Thetis\.' + $escaped + '"\s*/>')) {
+    elseif ($projectText -notmatch ('<EmbeddedResource Include="' + $escaped + '"')) {
         throw "Shader project item not found in expected Content or EmbeddedResource form: $shader"
     }
 }
@@ -39,8 +55,7 @@ Write-Utf8NoBom $csproj $projectText
 
 # 2. FFT loader: embedded resource first, loose file only as fallback.
 $pipelineText = [System.IO.File]::ReadAllText($pipeline)
-if ($pipelineText -notmatch 'GetManifestResourceStream\("Thetis\." \+ filename\)') {
-    $pattern = '(?s)\tprivate static byte\[\] LoadBytecode\(string filename\)\s*\{.*?\n\t\}\n\n\tprivate static int Log2'
+if ($pipelineText -notmatch 'GetManifestResourceStream\(resourceName\)') {
     $replacement = @'
 	private static byte[] LoadBytecode(string filename)
 	{
@@ -87,18 +102,14 @@ if ($pipelineText -notmatch 'GetManifestResourceStream\("Thetis\." \+ filename\)
 			return null;
 		}
 	}
-
-	private static int Log2
 '@
-    $newPipeline = [regex]::Replace($pipelineText, $pattern, $replacement, 1)
-    if ($newPipeline -eq $pipelineText) { throw 'GPUWaterfallPipeline.LoadBytecode patch did not match' }
-    Write-Utf8NoBom $pipeline $newPipeline
+    $pipelineText = Replace-MethodBefore $pipelineText 'private static byte[] LoadBytecode(string filename)' 'private static int Log2' $replacement
+    Write-Utf8NoBom $pipeline $pipelineText
 }
 
 # 3. Waterfall row renderer loader: same resource-first policy.
 $rendererText = [System.IO.File]::ReadAllText($renderer)
-if ($rendererText -notmatch 'GetManifestResourceStream\("Thetis\.waterfall_row_cs\.bin"\)') {
-    $pattern = '(?s)\tprivate static byte\[\] LoadShaderBytecode\(\)\s*\{.*?\n\t\}\n\n\tprivate static void LogGPU'
+if ($rendererText -notmatch 'Thetis\.waterfall_row_cs\.bin' -or $rendererText -notmatch 'GetManifestResourceStream\(resourceName\)') {
     $replacement = @'
 	private static byte[] LoadShaderBytecode()
 	{
@@ -146,12 +157,9 @@ if ($rendererText -notmatch 'GetManifestResourceStream\("Thetis\.waterfall_row_c
 			return null;
 		}
 	}
-
-	private static void LogGPU
 '@
-    $newRenderer = [regex]::Replace($rendererText, $pattern, $replacement, 1)
-    if ($newRenderer -eq $rendererText) { throw 'WaterfallGPURenderer.LoadShaderBytecode patch did not match' }
-    Write-Utf8NoBom $renderer $newRenderer
+    $rendererText = Replace-MethodBefore $rendererText 'private static byte[] LoadShaderBytecode()' 'private static void LogGPU' $replacement
+    Write-Utf8NoBom $renderer $rendererText
 }
 
 # 4. Static gate before compilation.
@@ -162,8 +170,12 @@ foreach ($shader in $shaders) {
 }
 $pipelineText = [System.IO.File]::ReadAllText($pipeline)
 $rendererText = [System.IO.File]::ReadAllText($renderer)
-if ($pipelineText -notmatch 'GetManifestResourceStream\("Thetis\." \+ filename\)') { throw 'FFT resource-first loader verification failed' }
-if ($rendererText -notmatch 'GetManifestResourceStream\("Thetis\.waterfall_row_cs\.bin"\)') { throw 'Row resource-first loader verification failed' }
+if ($pipelineText -notmatch 'string resourceName = "Thetis\." \+ filename;' -or $pipelineText -notmatch 'GetManifestResourceStream\(resourceName\)') {
+    throw 'FFT resource-first loader verification failed'
+}
+if ($rendererText -notmatch 'const string resourceName = "Thetis\.waterfall_row_cs\.bin";' -or $rendererText -notmatch 'GetManifestResourceStream\(resourceName\)') {
+    throw 'Row resource-first loader verification failed'
+}
 
 Write-Host 'GPU shader embedding patch OK.'
 Write-Host 'Embedded resources:'
