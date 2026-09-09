@@ -15,14 +15,23 @@ jobs:
         with:
           ref: feature/eu2av-gpu-waterfall-sq4kou
           fetch-depth: 0
-      - name: Locate Diversity and cmASIO implementation
+      - name: Show exact implementation contexts
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
-          $root='Project Files\Source\Console'
-          Write-Host '=== FILE NAMES: diversity / cmASIO ==='
-          Get-ChildItem $root -Recurse -File | Where-Object { $_.Name -match 'divers|cmasio|cmASIO' } | ForEach-Object { Write-Host $_.FullName }
-          Write-Host '=== DIVERSITY TEXT MATCHES ==='
-          Get-ChildItem $root -Recurse -Include *.cs -File | Select-String -Pattern 'Diversity|diversity|Phase|Gain' | Select-Object -First 250 | ForEach-Object { Write-Host ("{0}:{1}: {2}" -f $_.Path,$_.LineNumber,$_.Line.Trim()) }
-          Write-Host '=== CMASIO TEXT MATCHES ==='
-          Get-ChildItem $root -Recurse -Include *.cs -File | Select-String -Pattern 'cmASIO|CMASIO|cmAsio|cm_asio' | Select-Object -First 250 | ForEach-Object { Write-Host ("{0}:{1}: {2}" -f $_.Path,$_.LineNumber,$_.Line.Trim()) }
+          function Show-Context([string]$path,[string]$needle,[int]$before,[int]$after){
+            $lines=[System.IO.File]::ReadAllLines($path)
+            $idx=-1
+            for($i=0;$i -lt $lines.Length;$i++){if($lines[$i].Contains($needle)){$idx=$i;break}}
+            if($idx -lt 0){throw "Needle not found: $needle in $path"}
+            $s=[Math]::Max(0,$idx-$before); $e=[Math]::Min($lines.Length-1,$idx+$after)
+            Write-Host "=== $path :: $needle :: line $($idx+1) ==="
+            for($i=$s;$i -le $e;$i++){Write-Host ("{0,6}: {1}" -f ($i+1),$lines[$i])}
+          }
+          $d='Project Files\Source\Console\DiversityForm.cs'
+          $s='Project Files\Source\Console\setup.cs'
+          Show-Context $d 'private void picRadar_MouseDown' 12 55
+          Show-Context $d 'private void picRadar_MouseUp' 8 35
+          Show-Context $d 'private void DiversityForm_Closing' 8 18
+          Show-Context $d 'this.ClientSize = new System.Drawing.Size(313, 598);' 12 24
+          Show-Context $s 'public void SetupCMAsio' 8 55
