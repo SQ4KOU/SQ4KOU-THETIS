@@ -1,4 +1,4 @@
-name: JTDX BANDSAFE DIAG
+name: JTDX BANDSAFE FINAL
 
 on:
   push:
@@ -37,14 +37,27 @@ jobs:
           $root="$dst\JTDX_SUPERHOUND_MSI_FINAL"
           "FINAL_ROOT=$root" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Apply overlays
+      - name: Apply overlays and BANDSAFE compile fix
         shell: powershell
         run: |
           $ErrorActionPreference='Stop'
           python "$env:GITHUB_WORKSPACE\jtdx-final\apply_tci_bandfix_overlay.py" "$env:FINAL_ROOT"
           python "$env:GITHUB_WORKSPACE\jtdx-final\apply_jt9_shutdown_fix_overlay.py" "$env:FINAL_ROOT"
           python "$env:GITHUB_WORKSPACE\jtdx-final\apply_tci_bandsafe_overlay.py" "$env:FINAL_ROOT"
+
+          $pp="$env:FINAL_ROOT\patch_superhound.py"
+          $pt=[IO.File]::ReadAllText($pp)
+          $old='return (index >= 0 && index < args.size()) ? args.at(index) : QString();'
+          $new='return args.value(index);'
+          if($pt.Contains($old)){
+            $pt=$pt.Replace($old,$new)
+            [IO.File]::WriteAllText($pp,$pt)
+          } elseif(-not $pt.Contains($new)) {
+            throw 'BANDSAFE safe-argument helper anchor missing'
+          }
+          if(([IO.File]::ReadAllText($pp)).Contains('? arg(index) : QString()')){throw 'BANDSAFE recursive argument helper still present'}
           python -m py_compile "$env:FINAL_ROOT\patch_superhound.py"
+
           $b="$env:FINAL_ROOT\BUILD_JTDX_SUPERHOUND_MSI.ps1"
           $t=[IO.File]::ReadAllText($b)
           $t=$t.Replace("'--foreground','--signal=TERM','180s',","'--foreground','--signal=TERM','1800s',")
@@ -87,6 +100,53 @@ jobs:
           $c=$LASTEXITCODE
           Write-Host "BUILDER_EXIT=$c"
           if($c -ne 0){exit $c}
+
+      - name: Audit BANDSAFE source
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $p="$env:FINAL_ROOT\WORK\jtdx\TCITransceiver.cpp"
+          if(-not (Test-Path $p)){throw 'TCITransceiver.cpp missing'}
+          $t=[IO.File]::ReadAllText($p)
+          $required=@(
+            'err_index >= 0 && err_index < errortable.size()',
+            'return args.value(index);',
+            'band_change = !HPSDR &&',
+            'commander_ && inConnected && commander_->state() == QAbstractSocket::ConnectedState',
+            'bool const rx_superseded',
+            'bool const tx_superseded'
+          )
+          foreach($n in $required){if(-not $t.Contains($n)){throw "BANDSAFE audit missing: $n"}}
+          if($t.Contains('? arg(index) : QString()')){throw 'recursive arg helper found'}
+          Write-Host 'TCI_BANDSAFE_SOURCE_AUDIT=PASS'
+
+      - name: Validate FINAL MSI
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $msi=Get-ChildItem "$env:FINAL_ROOT\OUTPUT\JTDX-SuperHound*.msi" -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if(-not $msi){throw 'FINAL BANDSAFE MSI not found'}
+          if($msi.Length -lt 1000000){throw "MSI too small: $($msi.Length)"}
+          $hash=(Get-FileHash $msi.FullName -Algorithm SHA256).Hash.ToLower()
+          Write-Host "FINAL_MSI=$($msi.Name)"
+          Write-Host "FINAL_MSI_SIZE=$($msi.Length)"
+          Write-Host "FINAL_MSI_SHA256=$hash"
+          @(
+            "FINAL_MSI=$($msi.Name)",
+            "FINAL_MSI_SIZE=$($msi.Length)",
+            "FINAL_MSI_SHA256=$hash",
+            'TCI_BANDSAFE_SOURCE_AUDIT=PASS'
+          ) | Set-Content "$env:FINAL_ROOT\OUTPUT\FINAL_BUILD_INFO.txt" -Encoding UTF8
+
+      - name: Upload FINAL BANDSAFE artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: JTDX-SuperHound-FINAL-TCI-BANDSAFE
+          path: |
+            ${{ env.FINAL_ROOT }}\OUTPUT\*.msi
+            ${{ env.FINAL_ROOT }}\OUTPUT\FINAL_BUILD_INFO.txt
+            ${{ env.FINAL_ROOT }}\LOGS\*.log
+          if-no-files-found: error
 
       - name: Collect diagnostics
         if: failure()
