@@ -22,9 +22,7 @@ namespace Thetis
                     picRadar.DoubleClick += DiversityLayout_DoubleClick;
             }
 
-            // Default opening state is the complete original Thetis Diversity window.
-            // The PA3GHM engine remains available in code, but its extra panel must not
-            // alter the operator window geometry.
+            // Default: complete Thetis Diversity UI plus the PA3GHM pane.
             _sq4kouCompactDiversity = false;
             ApplyDiversityLayout();
         }
@@ -42,11 +40,6 @@ namespace Thetis
 
             try
             {
-                // The requested operator UI is the stock Thetis Diversity form.
-                // Do not let the native PA3GHM extension widen or cover it.
-                if (grpPA3GHMNative != null)
-                    grpPA3GHMNative.Visible = false;
-
                 if (_sq4kouCompactDiversity)
                 {
                     // Compact mode: title bar + radar only.
@@ -59,6 +52,9 @@ namespace Thetis
                     if (chkAlwaysOnTop != null)
                         chkAlwaysOnTop.Visible = false;
 
+                    if (grpPA3GHMNative != null)
+                        grpPA3GHMNative.Visible = false;
+
                     if (picRadar != null)
                     {
                         picRadar.Visible = true;
@@ -70,9 +66,9 @@ namespace Thetis
                 }
                 else
                 {
-                    // Expanded mode: exact original 313 x 598 client layout.
-                    this.MinimumSize = new Size(329, 637);
-                    this.ClientSize = new Size(313, 598);
+                    // Full mode: original 313 px Thetis column + native PA3GHM pane.
+                    this.MinimumSize = new Size(736, 637);
+                    this.ClientSize = new Size(720, 598);
 
                     if (panelDivControls != null)
                     {
@@ -97,6 +93,17 @@ namespace Thetis
                         picRadar.Anchor = AnchorStyles.Top | AnchorStyles.Left;
                         picRadar.Location = new Point(4, 289);
                         picRadar.Size = new Size(305, 305);
+                    }
+
+                    if (grpPA3GHMNative != null)
+                    {
+                        grpPA3GHMNative.Visible = true;
+                        grpPA3GHMNative.Anchor = AnchorStyles.Top | AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
+                        grpPA3GHMNative.Location = new Point(320, 6);
+                        grpPA3GHMNative.Size = new Size(
+                            Math.Max(392, ClientSize.Width - 328),
+                            Math.Max(582, ClientSize.Height - 12));
+                        grpPA3GHMNative.BringToFront();
                     }
                 }
 
