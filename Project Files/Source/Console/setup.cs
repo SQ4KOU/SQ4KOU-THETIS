@@ -1,4 +1,4 @@
-﻿//=================================================================
+//=================================================================
 // setup.cs
 //=================================================================
 // Thetis is a C# implementation of a Software Defined Radio.
@@ -12132,6 +12132,17 @@ namespace Thetis
                 console.RX1ColourScheme = ColorScheme.DeepBlue;
                 clrbtnWaterfallLow.Visible = false;
             }
+            // SQ4KOU_GPU_PALETTE_256_ALIAS: recovered 2.10.3.16 Final UI names mapped to existing schemes.
+            else if (comboColorPalette.Text == "Enhanced 256")
+            {
+                console.RX1ColourScheme = ColorScheme.enhanced;
+                clrbtnWaterfallLow.Visible = false;
+            }
+            else if (comboColorPalette.Text == "BlackWhite 256")
+            {
+                console.RX1ColourScheme = ColorScheme.BLACKWHITE;
+                clrbtnWaterfallLow.Visible = false;
+            }
         }
         private void showHideWaterfallControls(int rx, bool show)
         {
@@ -12213,6 +12224,16 @@ namespace Thetis
             else if (comboRX2ColorPalette.Text == "DeepBlue 256")
             {
                 console.RX2ColourScheme = ColorScheme.DeepBlue;
+                clrbtnRX2WaterfallLow.Visible = false;
+            }
+            else if (comboRX2ColorPalette.Text == "Enhanced 256")
+            {
+                console.RX2ColourScheme = ColorScheme.enhanced;
+                clrbtnRX2WaterfallLow.Visible = false;
+            }
+            else if (comboRX2ColorPalette.Text == "BlackWhite 256")
+            {
+                console.RX2ColourScheme = ColorScheme.BLACKWHITE;
                 clrbtnRX2WaterfallLow.Visible = false;
             }
         }
@@ -34438,6 +34459,16 @@ namespace Thetis
             else if (comboColorPalette_tx.Text == "DeepBlue 256")
             {
                 console.TXColourScheme = ColorScheme.DeepBlue;
+                clrbtnWaterfallLow_tx.Visible = false;
+            }
+            else if (comboColorPalette_tx.Text == "Enhanced 256")
+            {
+                console.TXColourScheme = ColorScheme.enhanced;
+                clrbtnWaterfallLow_tx.Visible = false;
+            }
+            else if (comboColorPalette_tx.Text == "BlackWhite 256")
+            {
+                console.TXColourScheme = ColorScheme.BLACKWHITE;
                 clrbtnWaterfallLow_tx.Visible = false;
             }
         }

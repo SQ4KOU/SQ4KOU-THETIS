@@ -782,7 +782,8 @@ namespace Thetis
             {
                 palette.Sample((float)i / 255f, out float r, out float g, out float b);
                 int n = i * 4;
-                _gpuPaletteUpload[n] = r; _gpuPaletteUpload[n + 1] = g; _gpuPaletteUpload[n + 2] = b; _gpuPaletteUpload[n + 3] = 1f;
+                // SQ4KOU_GPU_PALETTE_NORMALIZED: D2D shader LUT is float4 in 0..1, while WaterfallPalette.Sample returns RGB in 0..255.
+                _gpuPaletteUpload[n] = r / 255f; _gpuPaletteUpload[n + 1] = g / 255f; _gpuPaletteUpload[n + 2] = b / 255f; _gpuPaletteUpload[n + 3] = 1f;
             }
             renderer.SetPalette(_gpuPaletteUpload, 256);
         }
@@ -859,9 +860,9 @@ namespace Thetis
                 }
 
                 int n = i * 4;
-                _gpuPaletteUpload[n] = r;
-                _gpuPaletteUpload[n + 1] = g;
-                _gpuPaletteUpload[n + 2] = b;
+                _gpuPaletteUpload[n] = r / 255f;
+                _gpuPaletteUpload[n + 1] = g / 255f;
+                _gpuPaletteUpload[n + 2] = b / 255f;
                 _gpuPaletteUpload[n + 3] = 1f;
             }
             renderer.SetPalette(_gpuPaletteUpload, 256);
