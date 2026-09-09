@@ -16,23 +16,29 @@ jobs:
         with:
           ref: fix/diversity-gpu-waterfall-test
           fetch-depth: 1
-      - name: Extract exact recovered threshold controls
+      - name: Extract exact recovered threshold implementation
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          $p = '.github\recovered\eu2av-2.10.3.16\Setup.EU2AV.2.10.3.16.cs.txt'
+          $sources = @(
+            '.github\recovered\eu2av-2.10.3.16\Setup.EU2AV.2.10.3.16.cs.txt',
+            '.github\recovered\eu2av-2.10.3.16\Display.EU2AV.2.10.3.16.cs.txt'
+          )
           $out = '.github\recovered\threshold-snippet.txt'
-          $lines = Get-Content $p
-          $patterns = @('chkAutoThreshold =','lblAutoThHint =','udAutoThFine =','lblAutoThFineHint =','chkAutoThreshold_CheckedChanged','udAutoThFine_ValueChanged','AutoThreshold','AutoThFine')
+          $patterns = @('chkAutoThreshold.Checked =','udAutoThFine.Value =','AutoThresholdEnabled','AutoThresholdFineOffset')
           $sb = [System.Text.StringBuilder]::new()
-          foreach($pattern in $patterns) {
-            [void]$sb.AppendLine("===== PATTERN: $pattern =====")
-            $matches = Select-String -Path $p -SimpleMatch -Pattern $pattern
-            foreach($m in $matches) {
-              [void]$sb.AppendLine("--- MATCH LINE $($m.LineNumber) ---")
-              $from=[Math]::Max(0,$m.LineNumber-35)
-              $to=[Math]::Min($lines.Count-1,$m.LineNumber+55)
-              for($i=$from;$i -le $to;$i++) { [void]$sb.AppendLine(('{0,7}: {1}' -f ($i+1),$lines[$i])) }
+          foreach($p in $sources) {
+            [void]$sb.AppendLine("===== SOURCE: $p =====")
+            $lines = Get-Content $p
+            foreach($pattern in $patterns) {
+              [void]$sb.AppendLine("===== PATTERN: $pattern =====")
+              $matches = Select-String -Path $p -SimpleMatch -Pattern $pattern
+              foreach($m in $matches) {
+                [void]$sb.AppendLine("--- MATCH LINE $($m.LineNumber) ---")
+                $from=[Math]::Max(0,$m.LineNumber-30)
+                $to=[Math]::Min($lines.Count-1,$m.LineNumber+45)
+                for($i=$from;$i -le $to;$i++) { [void]$sb.AppendLine(('{0,7}: {1}' -f ($i+1),$lines[$i])) }
+              }
             }
           }
           [System.IO.File]::WriteAllText($out,$sb.ToString(),[System.Text.UTF8Encoding]::new($false))
@@ -40,6 +46,6 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add $out
           if(-not (git diff --cached --quiet)) {
-            git commit -m 'Diagnostic: extract exact recovered threshold implementation [skip ci]'
+            git commit -m 'Diagnostic: extract recovered threshold runtime [skip ci]'
             git push origin HEAD:fix/diversity-gpu-waterfall-test
           }
