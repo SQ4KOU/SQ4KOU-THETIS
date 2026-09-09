@@ -199,5 +199,29 @@ namespace Thetis
             }
             _d2dRenderTarget.DrawBitmap(bmp, new SharpDX.RectangleF(0f, nVerticalShift + topMargin, bmp.Size.Width, bmp.Size.Height), opacity, _gpuWaterfallLinearDraw ? BitmapInterpolationMode.Linear : BitmapInterpolationMode.NearestNeighbor);
         }
+        private static void OnD2DDeviceContextRecreated(SharpDX.Direct2D1.DeviceContext dc)
+        {
+            if (dc == null || dc.IsDisposed) return;
+            try { if (_waterfallGPU1 != null) _waterfallGPU1.UpdateDeviceContext(dc); } catch { }
+            try { if (_waterfallGPU2 != null) _waterfallGPU2.UpdateDeviceContext(dc); } catch { }
+            WaterfallEffect.Reset();
+            DetectGPUCapabilitiesFromD2D();
+        }
+
+        private static void ShutdownManagedGPUWaterfallResources()
+        {
+            try { if (_waterfallGPU1 != null) _waterfallGPU1.Dispose(); } catch { }
+            _waterfallGPU1 = null;
+            try { if (_waterfallGPU2 != null) _waterfallGPU2.Dispose(); } catch { }
+            _waterfallGPU2 = null;
+            try { if (_gpuFFT1 != null) _gpuFFT1.Dispose(); } catch { }
+            _gpuFFT1 = null;
+            try { if (_gpuFFT2 != null) _gpuFFT2.Dispose(); } catch { }
+            _gpuFFT2 = null;
+            _gpuEffectsEnabled = false;
+            ResetTemporalWaterfallState();
+            WaterfallEffect.Reset();
+        }
+
     }
 }

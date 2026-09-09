@@ -28,6 +28,11 @@ namespace Thetis
         private LabelTS lblGPUWaterfallMagnitudeMode; private ComboBoxTS comboGPUWaterfallMagnitudeMode; private LabelTS lblGPUWaterfallOverlap; private NumericUpDownTS udGPUWaterfallOverlap;
         private CheckBoxTS chkGPUWaterfallAutoOverlap; private LabelTS lblGPUWaterfallEffectiveOverlap; private LabelTS lblGPUWaterfallLanczos; private ComboBoxTS comboGPUWaterfallLanczos;
         private ComboBoxTS comboGPUWaterfallResampling;
+        private CheckBoxTS chkAutoThreshold;
+        private LabelTS lblAutoThHint;
+        private NumericUpDownTS udAutoThFine;
+        private LabelTS lblAutoThFineHint;
+        private LabelTS lblGPUWaterfallResampling;
 
 
         // SQ4KOU test: exact Setup > Display > Waterfall window recovered from
@@ -35,10 +40,81 @@ namespace Thetis
         private void InitGPUWaterfallSetupUI()
         {
             InitWaterfallTab();
+            InitGeneralTabWaterfallControls();
             if (_tpWaterfall != null && grpDisplayDriverEngine != null)
                 InitNoiseFloorProControls(grpDisplayDriverEngine, 0);
         }
 
+
+        private void InitGeneralTabWaterfallControls()
+        {
+            if (comboGPUWaterfallResampling != null || tpDisplayGeneral == null)
+                return;
+
+            GroupBoxTS groupBoxTS = new GroupBoxTS();
+            groupBoxTS.Text = "Waterfall thresholds (auto)";
+            groupBoxTS.Location = new Point(392, 148);
+            groupBoxTS.Size = new Size(170, 112);
+            groupBoxTS.Name = "grpWaterfallThresholdsAuto";
+
+            chkAutoThreshold = new CheckBoxTS();
+            chkAutoThreshold.Name = "chkAutoThreshold";
+            chkAutoThreshold.Text = "Auto";
+            chkAutoThreshold.AutoSize = true;
+            chkAutoThreshold.Location = new Point(8, 19);
+            chkAutoThreshold.Checked = Display.AutoThresholdEnabled;
+            chkAutoThreshold.CheckedChanged += chkAutoThreshold_CheckedChanged;
+
+            lblAutoThHint = new LabelTS();
+            lblAutoThHint.AutoSize = true;
+            lblAutoThHint.Location = new Point(76, 20);
+            lblAutoThHint.Text = "thresholds";
+
+            udAutoThFine = new NumericUpDownTS();
+            udAutoThFine.Name = "udAutoThFine";
+            udAutoThFine.Location = new Point(48, 44);
+            udAutoThFine.Size = new Size(56, 20);
+            udAutoThFine.Minimum = -20m;
+            udAutoThFine.Maximum = 20m;
+            udAutoThFine.DecimalPlaces = 0;
+            udAutoThFine.Increment = 1m;
+            decimal fine = (decimal)Display.AutoThresholdFineOffset;
+            if (fine < udAutoThFine.Minimum) fine = udAutoThFine.Minimum;
+            if (fine > udAutoThFine.Maximum) fine = udAutoThFine.Maximum;
+            udAutoThFine.Value = fine;
+            udAutoThFine.ValueChanged += udAutoThFine_ValueChanged;
+
+            lblAutoThFineHint = new LabelTS();
+            lblAutoThFineHint.AutoSize = true;
+            lblAutoThFineHint.Location = new Point(8, 46);
+            lblAutoThFineHint.Text = "Fine";
+
+            lblGPUWaterfallResampling = new LabelTS();
+            lblGPUWaterfallResampling.AutoSize = true;
+            lblGPUWaterfallResampling.Location = new Point(8, 75);
+            lblGPUWaterfallResampling.Text = "GPU scale";
+
+            comboGPUWaterfallResampling = new ComboBoxTS();
+            comboGPUWaterfallResampling.Name = "comboGPUWaterfallResampling";
+            comboGPUWaterfallResampling.DropDownStyle = ComboBoxStyle.DropDownList;
+            comboGPUWaterfallResampling.Location = new Point(80, 72);
+            comboGPUWaterfallResampling.Size = new Size(82, 21);
+            comboGPUWaterfallResampling.Items.AddRange(new object[2] { "Fast", "Quality" });
+            int resampling = (int)Display.GPUWaterfallResamplingMode;
+            if (resampling < 0) resampling = 0;
+            if (resampling > 1) resampling = 1;
+            comboGPUWaterfallResampling.SelectedIndex = resampling;
+            comboGPUWaterfallResampling.SelectedIndexChanged += comboGPUWaterfallResampling_SelectedIndexChanged;
+
+            groupBoxTS.Controls.Add(chkAutoThreshold);
+            groupBoxTS.Controls.Add(lblAutoThHint);
+            groupBoxTS.Controls.Add(lblAutoThFineHint);
+            groupBoxTS.Controls.Add(udAutoThFine);
+            groupBoxTS.Controls.Add(lblGPUWaterfallResampling);
+            groupBoxTS.Controls.Add(comboGPUWaterfallResampling);
+            tpDisplayGeneral.Controls.Add(groupBoxTS);
+            groupBoxTS.BringToFront();
+        }
 
 	private void InitWaterfallTab()
 	{
@@ -461,23 +537,24 @@ namespace Thetis
 		{
 			_gpuStatusTimer = new System.Windows.Forms.Timer();
 			_gpuStatusTimer.Interval = 2000;
-			_gpuStatusTimer.Tick += delegate
-			{
-				try
-				{
-					UpdateGPUInfoLabel();
-				}
-				catch
-				{
-				}
-				try
-				{
-					UpdateWaterfallPaletteItems(Display.GPUEffectsEnabled);
-				}
-				catch
-				{
-				}
-			};
+            _gpuStatusTimer.Tick += delegate
+            {
+                try
+                {
+                    Display.DetectGPUCapabilitiesFromD2D();
+                    if (_renderFilterPending && GPUDetector.HasDeviceContext && comboGPU != null)
+                    {
+                        _renderFilterPending = false;
+                        ApplyGPUSelection(comboGPU.SelectedIndex);
+                    }
+                    UpdateGPUInfoLabel();
+                    UpdateWaterfallPaletteItems(Display.GPUEffectsEnabled);
+                }
+                catch
+                {
+                }
+            };
+
 			_gpuStatusTimer.Start();
 		}
 		num3 += 28;
@@ -606,41 +683,59 @@ namespace Thetis
 	}
 
 
-	private void ApplyGPUSelection(int selectedIndex)
-	{
-		int gPUDetectionLevel = Display.GPUDetectionLevel;
-		int num = selectedIndex switch
-		{
-			1 => 0, 
-			2 => 1, 
-			3 => 2, 
-			_ => gPUDetectionLevel, 
-		};
-		bool hasDeviceContext = GPUDetector.HasDeviceContext;
-		Display.GPUEffectsEnabled = num >= 1 && GPUDetector.HasBuiltInEffects;
-		Display.AutoEnableGPU = num >= 1;
-		if (hasDeviceContext || selectedIndex != 0)
-		{
-			UpdateWaterfallRenderQualityItems(num);
-		}
-		else
-		{
-			_renderFilterPending = true;
-		}
-		UpdateWaterfallPaletteItems(num >= 1);
-		SyncGPUWaterfallPipelineEnabled(num);
-		if (hasDeviceContext)
-		{
-			if (num >= 2 && !GPUDetector.HasCustomShaders)
-			{
-				MessageBox.Show("Custom HLSL shaders (Level 2) are not available in this build.\nUsing Level 1 (Built-in Effects) instead.", "GPU Acceleration", MessageBoxButtons.OK, MessageBoxIcon.Asterisk, MessageBoxDefaultButton.Button1, (MessageBoxOptions)262144);
-			}
-			else if (num >= 1 && !GPUDetector.HasBuiltInEffects)
-			{
-				MessageBox.Show("Built-in D2D Effects are not available on this system.\nUsing CPU post-processing (Level 0).", "GPU Acceleration", MessageBoxButtons.OK, MessageBoxIcon.Asterisk, MessageBoxDefaultButton.Button1, (MessageBoxOptions)262144);
-			}
-		}
-	}
+        private void ApplyGPUSelection(int selectedIndex)
+        {
+            Display.DetectGPUCapabilitiesFromD2D();
+            if (selectedIndex < 0) selectedIndex = 0;
+
+            bool auto = selectedIndex == 0;
+            bool wantsGPU = selectedIndex != 1;
+            if (!GPUDetector.HasDeviceContext && wantsGPU)
+            {
+                _renderFilterPending = true;
+                Display.AutoEnableGPU = true;
+                Display.GPUEffectsEnabled = false;
+                UpdateWaterfallPaletteItems(false);
+                SyncGPUWaterfallPipelineEnabled(0);
+                UpdateGPUInfoLabel();
+                return;
+            }
+
+            int detectedLevel = Display.GPUDetectionLevel;
+            int requestedLevel = selectedIndex switch
+            {
+                1 => 0,
+                2 => 1,
+                3 => 2,
+                _ => detectedLevel,
+            };
+            int effectiveLevel = requestedLevel;
+            if (effectiveLevel >= 2 && !GPUDetector.HasCustomShaders)
+                effectiveLevel = GPUDetector.HasBuiltInEffects ? 1 : 0;
+            if (effectiveLevel >= 1 && !GPUDetector.HasBuiltInEffects)
+                effectiveLevel = 0;
+
+            _renderFilterPending = false;
+            Display.GPUEffectsEnabled = effectiveLevel >= 1 && GPUDetector.HasBuiltInEffects;
+            Display.AutoEnableGPU = auto || effectiveLevel >= 1;
+            UpdateWaterfallRenderQualityItems(effectiveLevel);
+            UpdateWaterfallPaletteItems(effectiveLevel >= 1);
+            SyncGPUWaterfallPipelineEnabled(effectiveLevel);
+            UpdateGPUInfoLabel();
+
+            if (GPUDetector.HasDeviceContext)
+            {
+                if (requestedLevel >= 2 && !GPUDetector.HasCustomShaders)
+                {
+                    MessageBox.Show("Custom HLSL shaders (Level 2) are not available.\nUsing Level 1 (Built-in Effects) instead.", "GPU Acceleration", MessageBoxButtons.OK, MessageBoxIcon.Asterisk, MessageBoxDefaultButton.Button1, (MessageBoxOptions)262144);
+                }
+                else if (requestedLevel >= 1 && !GPUDetector.HasBuiltInEffects)
+                {
+                    MessageBox.Show("Built-in D2D Effects are not available on this system.\nUsing CPU post-processing (Level 0).", "GPU Acceleration", MessageBoxButtons.OK, MessageBoxIcon.Asterisk, MessageBoxDefaultButton.Button1, (MessageBoxOptions)262144);
+                }
+            }
+        }
+
 
 
 	private void UpdateWaterfallRenderQualityItems(int target)
@@ -1083,6 +1178,18 @@ namespace Thetis
 		}
 	}
 
+
+        private void chkAutoThreshold_CheckedChanged(object sender, EventArgs e)
+        {
+            if (!initializing)
+                Display.AutoThresholdEnabled = chkAutoThreshold.Checked;
+        }
+
+        private void udAutoThFine_ValueChanged(object sender, EventArgs e)
+        {
+            if (!initializing)
+                Display.AutoThresholdFineOffset = (float)udAutoThFine.Value;
+        }
 
 	private void comboGPUWaterfallResampling_SelectedIndexChanged(object sender, EventArgs e)
 	{

@@ -3238,6 +3238,7 @@ namespace Thetis
         {
             lock (_objDX2Lock)
             {
+                ShutdownManagedGPUWaterfallResources();
                 if (!_bDX2Setup) return;
 
                 try
@@ -3536,6 +3537,7 @@ namespace Thetis
 
                 // 4. Bind it as the render target.
                 ctx.Target = _d2dTargetBitmap;
+                OnD2DDeviceContextRecreated(ctx);
 
                 // 5. Yurij-eu2av - 2026-07-04: explicitly set the context DPI to 96.
                 // DeviceContext stroke widths and font sizes are DPI-scaled; if the
@@ -3757,6 +3759,7 @@ namespace Thetis
                     // buffer (was: new RenderTarget(factory, surface, rtp)).
                     createD2DRenderTarget();
 
+                    DetectGPUCapabilitiesFromD2D();
                     if (debug == DeviceCreationFlags.Debug)
                     {
                         _device.DebugName = "DeviceDB";
@@ -6057,51 +6060,59 @@ namespace Thetis
         //        _bNoiseFloorAlreadyCalculatedRX2 = true;
         //    }
         //}
-        private static void processNoiseFloor(int rx, int averageCount, float averageSum, int width, bool waterfall)
+        private static void processNoiseFloor(int rx, int averageCount, float averageSum, int width, bool waterfall, float[] fullData = null, int dataCount = 0)
         {
-            //[2.10.3.9]MW0LGE refactor to use refs, simplifies the code, removes unnecessary branching, general speed improvements
             if (rx != 1 && rx != 2) return;
             ref bool bAlreadyCalculated = ref (rx == 1 ? ref _bNoiseFloorAlreadyCalculatedRX1 : ref _bNoiseFloorAlreadyCalculatedRX2);
             if (bAlreadyCalculated) return;
 
-            int fpsComputed = waterfall ? m_nFps / waterfall_update_period : m_nFps;
-            int requireSamples = (int)(width * (_NFsensitivity / 20f));
-
+            int fps = waterfall ? m_nFps / Math.Max(1, rx == 2 ? rx2_waterfall_update_period : waterfall_update_period) : m_nFps;
+            if (fps < 1) fps = 1;
+            int minSamples = (int)((float)width * ((float)_NFsensitivity / 20f));
             ref bool fastAttack = ref (rx == 1 ? ref m_bFastAttackNoiseFloorRX1 : ref m_bFastAttackNoiseFloorRX2);
             ref float fftBinAverage = ref (rx == 1 ? ref m_fFFTBinAverageRX1 : ref m_fFFTBinAverageRX2);
             ref float lerpAverage = ref (rx == 1 ? ref m_fLerpAverageRX1 : ref m_fLerpAverageRX2);
-            ref float attackTimeInMs = ref (rx == 1 ? ref m_fAttackTimeInMSForRX1 : ref m_fAttackTimeInMSForRX2);
-            ref double lastFastAttackTime = ref (rx == 1 ? ref _fLastFastAttackEnabledTimeRX1 : ref _fLastFastAttackEnabledTimeRX2);
-            ref float fftFillTime = ref (rx == 1 ? ref _fft_fill_timeRX1 : ref _fft_fill_timeRX2);
+            ref float attackMs = ref (rx == 1 ? ref m_fAttackTimeInMSForRX1 : ref m_fAttackTimeInMSForRX2);
+            ref double lastFastAttack = ref (rx == 1 ? ref _fLastFastAttackEnabledTimeRX1 : ref _fLastFastAttackEnabledTimeRX2);
+            ref float fftFill = ref (rx == 1 ? ref _fft_fill_timeRX1 : ref _fft_fill_timeRX2);
 
-            if (averageCount >= requireSamples)
+            if (_nfMode == NoiseFloorPro.DetectionMode.Percentile && fullData != null && dataCount > 0)
             {
-                float linearAverage = averageSum / (float)averageCount;
+                float[] scratch = _nfScratch;
+                if (scratch == null || scratch.Length < dataCount) scratch = (_nfScratch = new float[dataCount]);
+                Array.Copy(fullData, 0, scratch, 0, dataCount);
+                NoiseFloorPro.ComputeLowHigh(scratch, dataCount, _nfLowPct, _nfHighPct, out var lowDbm, out var highDbm);
                 float oldLinear = fastPow10Raw(fftBinAverage);
-                float newLinear = (linearAverage + oldLinear) * 0.5f;
-
-                fftBinAverage = 10f * (float)Math.Log10(newLinear + 1e-60); // 1e-60 fix potential NaN
+                float mixed = (fastPow10Raw(lowDbm) + oldLinear) * 0.5f;
+                fftBinAverage = 10f * (float)Math.Log10((double)mixed + 1E-60);
+                if (rx == 1) _autoHighRX1 = _autoHighRX1 * 0.85f + highDbm * 0.15f;
+                else _autoHighRX2 = _autoHighRX2 * 0.85f + highDbm * 0.15f;
+            }
+            else if (averageCount >= minSamples)
+            {
+                float average = averageSum / (float)averageCount;
+                float oldLinear = fastPow10Raw(fftBinAverage);
+                float mixed = (average + oldLinear) * 0.5f;
+                fftBinAverage = 10f * (float)Math.Log10((double)mixed + 1E-60);
+                float highEstimate = fftBinAverage + 15f;
+                if (rx == 1) _autoHighRX1 = _autoHighRX1 * 0.85f + highEstimate * 0.15f;
+                else _autoHighRX2 = _autoHighRX2 * 0.85f + highEstimate * 0.15f;
             }
             else
             {
                 fftBinAverage += fastAttack ? 3f : 1f;
             }
 
-            fftBinAverage = fftBinAverage < -200f ? -200f : fftBinAverage > 200f ? 200f : fftBinAverage;
-
-            int framesInAttack = fastAttack ? 0 : (int)((fpsComputed / 1000f) * (double)attackTimeInMs);
-            framesInAttack++;
-
-            float difference = lerpAverage - fftBinAverage;
-            lerpAverage -= difference / framesInAttack;
-
+            fftBinAverage = fftBinAverage < -200f ? -200f : (fftBinAverage > 200f ? 200f : fftBinAverage);
+            int lerpCount = !fastAttack ? (int)((double)((float)fps / 1000f) * (double)attackMs) : 0;
+            lerpCount++;
+            float delta = lerpAverage - fftBinAverage;
+            lerpAverage -= delta / (float)lerpCount;
             if (fastAttack)
             {
-                float tmpDelay = Math.Max(1000f, fftFillTime + (_wdsp_mox_transition_buffer_clear ? fftFillTime : 0f));
-                double elapsed = _high_perf_timer.ElapsedMsec - lastFastAttackTime;
-                if (elapsed > tmpDelay) fastAttack = false;
+                float minimumFastAttack = Math.Max(1000f, fftFill + (_wdsp_mox_transition_buffer_clear ? fftFill : 0f));
+                if (_high_perf_timer.ElapsedMsec - lastFastAttack > (double)minimumFastAttack) fastAttack = false;
             }
-
             bAlreadyCalculated = true;
         }
 
@@ -6867,6 +6878,8 @@ namespace Thetis
                         dataCopy = current_waterfall_data_bottom_copy;
                     }
 
+                    ApplyWaterfallProThresholds(rx, local_mox, ref low_threshold, ref high_threshold);
+
                     GPUWaterfallPipeline managedGpuPipeline = null;
                     bool managedGpuRowReady = false;
                     float managedGpuCalOffset = 0f;
@@ -6940,7 +6953,7 @@ namespace Thetis
                     {
                         bool bPreviousRX1 = _bNoiseFloorAlreadyCalculatedRX1;
                         bool bPreviousRX2 = _bNoiseFloorAlreadyCalculatedRX2;
-                        processNoiseFloor(rx, averageCount, averageSum, nDecimatedWidth, true);
+                        processNoiseFloor(rx, averageCount, averageSum, nDecimatedWidth, true, waterfall_data, nDecimatedWidth);
 
                         if (rx == 1)
                         {
@@ -8017,38 +8030,8 @@ namespace Thetis
                         }
                     }
 
-                    // Yurij-eu2av - 2026-07-04: unified float post-processing (all schemes).
-                    // Order: saturation/contrast (quality) → gamma → dither → quantise.
-                    // All run in float BEFORE quantisation so they are depth-agnostic
-                    // and work for every colour scheme, not just Custom.
-                    bool needSat = WaterfallEnhancer.SaturationBoost > 0f || WaterfallEnhancer.ContrastBoost > 0f;
-                    if (needSat || WaterfallEnhancer.DitherEnabled || WaterfallEnhancer.Gamma != 1.0f)
-                    {
-                        int rowY = _ditherFrameY & 7; // rotating Y for 2D Bayer coverage
-                        for (int px = 0; px < W; px++)
-                        {
-                            int idx = px * 4;
-
-                            // quality: saturation + contrast first (shapes the colour)
-                            if (needSat)
-                                WaterfallEnhancer.ApplySaturationContrast(rowF, idx);
-
-                            // gamma (changes the base colour curve)
-                            if (WaterfallEnhancer.Gamma != 1.0f)
-                            {
-                                rowF[idx + 0] = WaterfallEnhancer.ApplyGammaFloat(rowF[idx + 0]);
-                                rowF[idx + 1] = WaterfallEnhancer.ApplyGammaFloat(rowF[idx + 1]);
-                                rowF[idx + 2] = WaterfallEnhancer.ApplyGammaFloat(rowF[idx + 2]);
-                            }
-                            // dither last (masks quantisation steps)
-                            if (WaterfallEnhancer.DitherEnabled)
-                            {
-                                rowF[idx + 0] = WaterfallEnhancer.ApplyDitherFloat(rowF[idx + 0], px, rowY);
-                                rowF[idx + 1] = WaterfallEnhancer.ApplyDitherFloat(rowF[idx + 1], px, rowY);
-                                rowF[idx + 2] = WaterfallEnhancer.ApplyDitherFloat(rowF[idx + 2], px, rowY);
-                            }
-                        }
-                    }
+                    // EU2AV 2.10.3.16 Waterfall-Pro processing: temporal + CPU/GPU split.
+                    ApplyWaterfallProPostProcessing(rowF, W, rx);
 
                     // Yurij-eu2av - 2026-07-04: quantise the float row to the active
                     // depth's byte layout (8/10/16-bit) just before upload.
@@ -8117,22 +8100,22 @@ namespace Thetis
                         {
                             if (rx1_waterfall_agc && !m_bRX1_spectrum_thresholds && useNoiseFloorCompensation)
                             {
-                                _RX1waterfallPreviousMinValue = (_RX1waterfallPreviousMinValue * 0.6f) + (noiseFloorCompensationTarget * 0.4f);
+                                _RX1waterfallPreviousMinValue = BlendWaterfallProAGC(_RX1waterfallPreviousMinValue, noiseFloorCompensationTarget);
                             }
                             else
                             {
-                                _RX1waterfallPreviousMinValue = (_RX1waterfallPreviousMinValue * 0.6f) + (waterfall_minimum * 0.4f);
+                                _RX1waterfallPreviousMinValue = BlendWaterfallProAGC(_RX1waterfallPreviousMinValue, waterfall_minimum);
                             }
                         }
                         else
                         {
                             if (rx2_waterfall_agc && !m_bRX2_spectrum_thresholds && useNoiseFloorCompensation)
                             {
-                                _RX2waterfallPreviousMinValue = (_RX2waterfallPreviousMinValue * 0.6f) + (noiseFloorCompensationTarget * 0.4f);
+                                _RX2waterfallPreviousMinValue = BlendWaterfallProAGC(_RX2waterfallPreviousMinValue, noiseFloorCompensationTarget);
                             }
                             else
                             {
-                                _RX2waterfallPreviousMinValue = (_RX2waterfallPreviousMinValue * 0.6f) + (waterfall_minimum * 0.4f);
+                                _RX2waterfallPreviousMinValue = BlendWaterfallProAGC(_RX2waterfallPreviousMinValue, waterfall_minimum);
                             }
                         }
                     }
@@ -8153,11 +8136,11 @@ namespace Thetis
                 }
                 else if (rx == 1)
                 {
-                    _d2dRenderTarget.DrawBitmap(_waterfall_bmp_dx2d, new RectangleF(0, nVerticalShift + 20, _waterfall_bmp_dx2d.Size.Width, _waterfall_bmp_dx2d.Size.Height), m_fRX1WaterfallOpacity, BitmapInterpolationMode.Linear);
+                    DrawWaterfallToTarget(_waterfall_bmp_dx2d, nVerticalShift, 20, m_fRX1WaterfallOpacity);
                 }
                 else
                 {
-                    _d2dRenderTarget.DrawBitmap(_waterfall_bmp2_dx2d, new RectangleF(0, nVerticalShift + 20, _waterfall_bmp2_dx2d.Size.Width, _waterfall_bmp2_dx2d.Size.Height), m_fRX2WaterfallOpacity, BitmapInterpolationMode.Linear);
+                    DrawWaterfallToTarget(_waterfall_bmp2_dx2d, nVerticalShift, 20, m_fRX2WaterfallOpacity);
                 }
             }
 

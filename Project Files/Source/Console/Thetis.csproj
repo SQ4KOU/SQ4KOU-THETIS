@@ -689,9 +689,12 @@
     <Compile Include="WaterfallPixelWriter.cs" />
     <Compile Include="GPUWaterfallNative.cs" />
     <Compile Include="Display.GPUWaterfall.cs" />
-    <Compile Include="Setup.GPUWaterfall.cs" />
-    <Compile Include="GPUDetectorNative.cs" />
-    <Compile Include="GPUDetector.cs" />
+    <Compile Include="Setup.GPUWaterfall.cs" />
+
+    <Compile Include="GPUDetectorNative.cs" />
+
+    <Compile Include="GPUDetector.cs" />
+
     <Compile Include="GPUWaterfallPipeline.cs" />
     <Compile Include="WaterfallGPURenderer.cs" />
     <Compile Include="GPUWaterfallLogger.cs" />
@@ -701,7 +704,13 @@
     <Compile Include="GPUWaterfallResamplingMode.cs" />
     <Compile Include="FFTParams.cs" />
     <Compile Include="WaterfallRowParams.cs" />
-    <Compile Include="NoiseFloorPro.cs" />
+    <Compile Include="Display.GPUPostProcessing.cs" />
+    <Compile Include="WaterfallEffect.cs" />
+    <Compile Include="WaterfallEffectImpl.cs" />
+    <Compile Include="WaterfallEffectParams.cs" />
+    <Compile Include="ZoomAdaptive.cs" />
+    <Compile Include="NoiseFloorPro.cs" />
+
     <Compile Include="Display.EU2AVWaterfallCompat.cs" />
     <Compile Include="WaterfallPalette.cs" />
     <Content Include="waterfall_fft_bitreverse_cs.bin"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>

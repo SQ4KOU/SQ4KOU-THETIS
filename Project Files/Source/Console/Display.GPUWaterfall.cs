@@ -844,12 +844,13 @@ namespace Thetis
             {
                 float gamma = WaterfallEnhancer.Gamma;
                 float invGamma = gamma != 0f ? 1f / gamma : 1f;
+                GetEffectiveManagedGPUParams(rx, out int effectiveToneMap, out float effectiveTemporalAlpha);
                 renderer.ProcessRow(pipeline.MagSpectrumView, width, 1,
                     lowThreshold - gpuCalOffset - fOffset, highThreshold - gpuCalOffset - fOffset,
-                    gamma, invGamma, (int)WaterfallEnhancer.ToneMap,
+                    gamma, invGamma, effectiveToneMap,
                     WaterfallEnhancer.SaturationBoost, WaterfallEnhancer.ContrastBoost,
                     WaterfallEnhancer.DitherEnabled, WaterfallEnhancer.Levels,
-                    _temporalEnabled ? _temporalAlpha : 0f, 0.05f, true, scheme == ColorScheme.Custom,
+                    effectiveTemporalAlpha, 0.05f, true, scheme == ColorScheme.Custom,
                     WaterfallEnhancer.PaletteSharpness, WaterfallEnhancer.PaletteContrast);
             }
             renderer.AdvanceRow(horizontalShiftPixels, inserted);
