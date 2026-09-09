@@ -18,13 +18,13 @@ jobs:
         run: |
           $ErrorActionPreference='Stop'
           $dir="$env:GITHUB_WORKSPACE\jtdx-final"
-          function R([string[]]$n){$s='';foreach($x in $n){$s += [IO.File]::ReadAllText((Join-Path $dir $x)).Trim()};$s}
+          function ReadFrag([string[]]$n){$s='';foreach($x in $n){$s += [IO.File]::ReadAllText((Join-Path $dir $x)).Trim()};return $s}
           $b64=''
           for($i=0;$i -lt 14;$i++){
-            if($i -eq 6){$p=R @('fix06.0.0','fix06.0.1.0','fix06.0.1.1','fix06.1','fix06.2','fix06.3')}
-            elseif($i -eq 7){$p=R @('fix07.0','fix07.1','fix07.2','fix07.3.0','fix07.3.1')}
-            elseif($i -eq 12){$p=R @('fix12.0','fix12.1','fix12.2','fix12.3')}
-            else{$p=R @(("bundle.part{0:D2}" -f $i))}
+            if($i -eq 6){$p=ReadFrag @('fix06.0.0','fix06.0.1.0','fix06.0.1.1','fix06.1','fix06.2','fix06.3')}
+            elseif($i -eq 7){$p=ReadFrag @('fix07.0','fix07.1','fix07.2','fix07.3.0','fix07.3.1')}
+            elseif($i -eq 12){$p=ReadFrag @('fix12.0','fix12.1','fix12.2','fix12.3')}
+            else{$p=ReadFrag @(("bundle.part{0:D2}" -f $i))}
             $b64 += $p
           }
           if($b64.Length -ne 104704){throw "Base64 length $($b64.Length)"}
