@@ -1,0 +1,36 @@
+name: Inspect recovered 2.10.3.16 threshold UI
+
+on:
+  push:
+    branches: [fix/diversity-gpu-waterfall-test]
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/diversity-gpu-waterfall-test
+          fetch-depth: 1
+      - name: Locate exact recovered threshold controls
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $p = '.github\recovered\eu2av-2.10.3.16\Setup.EU2AV.2.10.3.16.cs.txt'
+          $lines = Get-Content $p
+          $patterns = @('Waterfall thresholds','Auto thresholds','thresholds (auto)','Fine')
+          foreach($pattern in $patterns) {
+            Write-Host "===== PATTERN: $pattern ====="
+            $matches = Select-String -Path $p -SimpleMatch -Pattern $pattern
+            foreach($m in $matches) {
+              $from=[Math]::Max(0,$m.LineNumber-30)
+              $to=[Math]::Min($lines.Count-1,$m.LineNumber+50)
+              Write-Host "--- MATCH LINE $($m.LineNumber) ---"
+              for($i=$from;$i -le $to;$i++) { Write-Host ('{0,7}: {1}' -f ($i+1),$lines[$i]) }
+            }
+          }
+          Write-Host '===== RELATED IDENTIFIERS ====='
+          Select-String -Path $p -Pattern 'Waterfall.*Threshold|Threshold.*Waterfall|Auto.*Waterfall|Waterfall.*Auto' | Select-Object -First 200 | ForEach-Object { Write-Host ('{0,7}: {1}' -f $_.LineNumber,$_.Line) }
