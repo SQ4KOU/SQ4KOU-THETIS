@@ -5,10 +5,11 @@ on:
     branches: [feature/eu2av-gpu-waterfall-sq4kou]
     paths:
       - .github/workflows/build-gpu-waterfall-diversity-cmasio.yml
+      - .github/scripts/fix-gpu-waterfall-palettes.py
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build-final:
@@ -19,11 +20,18 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: feature/eu2av-gpu-waterfall-sq4kou
-          fetch-depth: 1
+          fetch-depth: 0
 
       - name: Enable long paths
         shell: pwsh
         run: git config --global core.longpaths true
+
+      - name: Apply deterministic GPU palette fix
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          python .github/scripts/fix-gpu-waterfall-palettes.py
+          if($LASTEXITCODE -ne 0){throw 'GPU palette patch failed'}
 
       - name: Audit current SQ4KOU GPU source
         shell: pwsh
@@ -39,12 +47,20 @@ jobs:
           foreach($t in @(
             @($gpu,'GPUWaterfallPipeline','managed GPU FFT pipeline'),
             @($gpu,'WaterfallGPURenderer','managed GPU renderer'),
-            @($gpu,'ColorScheme\.enhanced','Enhanced 256 GPU palette'),
-            @($gpu,'ColorScheme\.BLACKWHITE','BlackWhite/Grayscale 256 GPU palette'),
+            @($gpu,'SQ4KOU_GPU_PALETTE_NORMALIZED','normalized GPU palette marker'),
+            @($gpu,'_gpuPaletteUpload\[n\]\s*=\s*r\s*/\s*255f','normalized RGB LUT'),
+            @($gpu,'ColorScheme\.enhanced','Enhanced GPU palette'),
+            @($gpu,'ColorScheme\.BLACKWHITE','BlackWhite GPU palette'),
             @($gpu,'B8G8R8A8_UNorm','8-bit GPU format'),
             @($gpu,'R16G16B16A16_Float','16-bit GPU format'),
-            @($setupGpu,'_pendingGPUSelection','manual GPU startup retry state'),
-            @($setupGpu,'_gpuStatusTimer\.Interval = 250','fast DeviceContext retry'),
+            @($setup,'comboColorPalette\.Text == "Enhanced 256"','RX1 Enhanced 256 mapping'),
+            @($setup,'comboColorPalette\.Text == "BlackWhite 256"','RX1 BlackWhite 256 mapping'),
+            @($setup,'comboRX2ColorPalette\.Text == "Enhanced 256"','RX2 Enhanced 256 mapping'),
+            @($setup,'comboRX2ColorPalette\.Text == "BlackWhite 256"','RX2 BlackWhite 256 mapping'),
+            @($setup,'comboColorPalette_tx\.Text == "Enhanced 256"','TX Enhanced 256 mapping'),
+            @($setup,'comboColorPalette_tx\.Text == "BlackWhite 256"','TX BlackWhite 256 mapping'),
+            @($setupGpu,'_pendingGPUSelection','manual GPU startup retry state preserved'),
+            @($setupGpu,'_gpuStatusTimer\.Interval = 250','fast DeviceContext retry preserved'),
             @($display,'SQ4KOU_DXGI_EACCESSDENIED_FALLBACK','DirectX startup fallback'),
             @($div,'SQ4KOU_DIVERSITY_COMPACT','Diversity compact mode'),
             @($setup,'SQ4KOU_CMASIO_ALWAYS_VISIBLE','cmASIO visibility')
@@ -64,8 +80,8 @@ jobs:
             $p=Join-Path $c $f
             if(-not (Test-Path $p) -or (Get-Item $p).Length -lt 32){throw "Missing/invalid GPU shader: $f"}
           }
-          Write-Host 'SQ4KOU_GPU_SOURCE_AUDIT=PASS'
-          Write-Host "SOURCE_SHA=$((git rev-parse HEAD).Trim())"
+          Write-Host 'SQ4KOU_GPU_PALETTE_SOURCE_AUDIT=PASS'
+          Write-Host "SOURCE_SHA_BEFORE_PATCH_COMMIT=$((git rev-parse HEAD).Trim())"
 
       - name: Setup NuGet
         uses: NuGet/setup-nuget@v2
@@ -92,13 +108,13 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
-          $log=Join-Path $env:RUNNER_TEMP 'sq4kou-gpu-waterfall-build.log'
+          $log=Join-Path $env:RUNNER_TEMP 'sq4kou-gpu-waterfall-palette-fix-build.log'
           & msbuild 'Project Files\Source\Thetis_VS2026.sln' /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal 2>&1 | Tee-Object -FilePath $log
           if($LASTEXITCODE -ne 0){throw "MSBuild failed: $LASTEXITCODE"}
           $errors=Select-String -Path $log -Pattern ': error ' -ErrorAction SilentlyContinue
           if($errors){$errors | ForEach-Object {Write-Host $_.Line}; throw 'Build log contains compiler/build errors'}
           "BUILD_LOG=$log" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          Write-Host 'SQ4KOU_GPU_BUILD=PASS'
+          Write-Host 'SQ4KOU_GPU_PALETTE_BUILD=PASS'
 
       - name: Verify GPU deployment and preserve test MSI
         shell: pwsh
@@ -121,7 +137,7 @@ jobs:
           if(-not $exe){throw 'Thetis.exe not found'}
           $msi=Get-ChildItem 'Project Files\bin\Installers\*.msi' -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
           if(-not $msi -or $msi.Length -lt 1MB){throw 'Valid MSI not produced'}
-          $final=Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-GPU-WATERFALL-START-PALETTES-TEST-x64.msi'
+          $final=Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-GPU-WATERFALL-PALETTE-FIX-TEST-x64.msi'
           Copy-Item $msi.FullName $final -Force
           $hash=(Get-FileHash $final -Algorithm SHA256).Hash
           "FINAL_MSI_PATH=$final" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
@@ -130,10 +146,33 @@ jobs:
           Write-Host "MSI_BYTES=$((Get-Item $final).Length)"
           Write-Host "MSI_SHA256=$hash"
 
+      - name: Commit build-verified palette source fix
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- 'Project Files/Source/Console/Display.GPUWaterfall.cs' 'Project Files/Source/Console/setup.cs'
+          git diff --cached --quiet
+          $diffExit=$LASTEXITCODE
+          if($diffExit -eq 1){
+            git commit -m 'Fix GPU waterfall palette LUT and 256 mappings'
+            if($LASTEXITCODE -ne 0){throw 'Palette source commit failed'}
+            git push origin HEAD:feature/eu2av-gpu-waterfall-sq4kou
+            if($LASTEXITCODE -ne 0){throw 'Palette source push failed'}
+          } elseif($diffExit -ne 0){
+            throw "git diff failed: $diffExit"
+          } else {
+            Write-Host 'Palette source already committed; no source commit needed.'
+          }
+          $sha=(git rev-parse HEAD).Trim()
+          "VERIFIED_SOURCE_SHA=$sha" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "VERIFIED_SOURCE_SHA=$sha"
+
       - name: Upload test MSI
         uses: actions/upload-artifact@v4
         with:
-          name: SQ4KOU-THETIS-GPU-WATERFALL-START-PALETTES-TEST-x64
+          name: SQ4KOU-THETIS-GPU-WATERFALL-PALETTE-FIX-TEST-x64
           path: ${{ env.FINAL_MSI_PATH }}
           if-no-files-found: error
           compression-level: 0
@@ -141,7 +180,7 @@ jobs:
       - name: Upload build log
         uses: actions/upload-artifact@v4
         with:
-          name: SQ4KOU-THETIS-GPU-WATERFALL-BUILD-LOG
+          name: SQ4KOU-THETIS-GPU-WATERFALL-PALETTE-FIX-BUILD-LOG
           path: ${{ env.BUILD_LOG }}
           if-no-files-found: error
           compression-level: 6
