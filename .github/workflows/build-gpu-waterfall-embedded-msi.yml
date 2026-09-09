@@ -61,7 +61,45 @@ jobs:
           $displayText = $displayText.Replace('newFormat, _swapChainFlags', 'newFormat, SwapChainFlags.None')
           [System.IO.File]::WriteAllText($display, $displayText, [System.Text.UTF8Encoding]::new($false))
 
-          Write-Host '--- GPU archive-parity source diff used for this build ---'
+          # NOGHOST: current CPU waterfall has no temporal accumulator stage, while
+          # the synthesized GPU call still fed TemporalStrength into the shader.
+          # Disable that GPU-only persistence so CPU and GPU have the same history.
+          $gpuText = [System.IO.File]::ReadAllText($gpu)
+          $oldTemporal = '_temporalEnabled ? _temporalAlpha : 0f, 0.05f, true, scheme == ColorScheme.Custom,'
+          $newTemporal = '0f, 0.05f, true, scheme == ColorScheme.Custom,'
+          if ($gpuText.Contains($oldTemporal)) {
+            $gpuText = $gpuText.Replace($oldTemporal, $newTemporal)
+          }
+          elseif (-not $gpuText.Contains($newTemporal)) {
+            throw 'GPU temporal persistence call not found in expected source form'
+          }
+
+          # A GPU state reset previously only cleared _gpuRendererHasData; the
+          # renderer texture itself survived. On the first new GPU row that stale
+          # texture was scrolled back into view. Clear it exactly when a fresh GPU
+          # sequence receives its first valid row (or when the normal clear flag is set).
+          $freshPattern = 'if \(clearExisting\) renderer\.Clear\(\);\r?\n\s*bool inserted = addRow && gpuRowReady && pipeline\.MagSpectrumView != null && !pipeline\.MagSpectrumView\.IsDisposed;'
+          $freshReplacement = "bool inserted = addRow && gpuRowReady && pipeline.MagSpectrumView != null && !pipeline.MagSpectrumView.IsDisposed;`r`n            if (clearExisting || (inserted && !_gpuRendererHasData[index])) renderer.Clear();"
+          $matches = [regex]::Matches($gpuText, $freshPattern).Count
+          if ($matches -eq 1) {
+            $gpuText = [regex]::Replace($gpuText, $freshPattern, $freshReplacement, 1)
+          }
+          elseif (-not $gpuText.Contains('if (clearExisting || (inserted && !_gpuRendererHasData[index])) renderer.Clear();')) {
+            throw "GPU fresh-sequence clear block not found uniquely (matches=$matches)"
+          }
+          [System.IO.File]::WriteAllText($gpu, $gpuText, [System.Text.UTF8Encoding]::new($false))
+
+          # Static NOGHOST gates before compiling.
+          $gpuVerify = [System.IO.File]::ReadAllText($gpu)
+          if ($gpuVerify.Contains('_temporalEnabled ? _temporalAlpha : 0f, 0.05f')) {
+            throw 'GPU-only temporal persistence is still active'
+          }
+          if (-not $gpuVerify.Contains('if (clearExisting || (inserted && !_gpuRendererHasData[index])) renderer.Clear();')) {
+            throw 'Fresh GPU renderer sequence does not clear stale history'
+          }
+
+          Write-Host 'GPU NOGHOST patch OK: temporal persistence disabled for CPU parity; stale renderer history cleared on fresh sequence.'
+          Write-Host '--- GPU archive-parity + NOGHOST source diff used for this build ---'
           git diff -- 'Project Files/Source/Console/Thetis.csproj' 'Project Files/Source/Console/GPUWaterfallPipeline.cs' 'Project Files/Source/Console/WaterfallGPURenderer.cs' 'Project Files/Source/Console/Display.GPUWaterfall.cs' 'Project Files/Source/Console/display.cs'
 
       - name: Setup NuGet
@@ -158,10 +196,10 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $msi = Get-Item $env:MSI_PATH
-          $out = Join-Path $msi.DirectoryName 'SQ4KOU-THETIS-GPU-WATERFALL-ARCHIVE-PARITY-x64.msi'
+          $out = Join-Path $msi.DirectoryName 'SQ4KOU-THETIS-GPU-WATERFALL-NOGHOST-x64.msi'
           Copy-Item $msi.FullName $out -Force
           $hash = Get-FileHash $out -Algorithm SHA256
-          $info = Join-Path $msi.DirectoryName 'SQ4KOU-THETIS-GPU-WATERFALL-ARCHIVE-PARITY-build.txt'
+          $info = Join-Path $msi.DirectoryName 'SQ4KOU-THETIS-GPU-WATERFALL-NOGHOST-build.txt'
           @(
             "SOURCE_SHA=${{ github.sha }}",
             'EMBEDDED_SHADER_COUNT_BUILT_EXE=7',
@@ -169,6 +207,8 @@ jobs:
             'LOADER_POLICY=embedded-resource-first;loose-file-fallback',
             'GPU_PALETTE_UPLOAD=normalized-0..1',
             'COLOR_DEPTH_SWITCH=in-place-ResizeBuffers-first;full-rebuild-fallback',
+            'GPU_TEMPORAL_PERSISTENCE=disabled-for-current-CPU-parity',
+            'GPU_FRESH_SEQUENCE=clear-stale-renderer-history',
             "MSI_SHA256=$($hash.Hash)"
           ) | Set-Content $info -Encoding utf8
           Write-Host "VALIDATED MSI: $out"
@@ -177,9 +217,9 @@ jobs:
       - name: Upload validated MSI only
         uses: actions/upload-artifact@v4
         with:
-          name: SQ4KOU-THETIS-GPU-WATERFALL-ARCHIVE-PARITY-MSI
+          name: SQ4KOU-THETIS-GPU-WATERFALL-NOGHOST-MSI
           path: |
-            Project Files/bin/Installers/SQ4KOU-THETIS-GPU-WATERFALL-ARCHIVE-PARITY-x64.msi
-            Project Files/bin/Installers/SQ4KOU-THETIS-GPU-WATERFALL-ARCHIVE-PARITY-build.txt
+            Project Files/bin/Installers/SQ4KOU-THETIS-GPU-WATERFALL-NOGHOST-x64.msi
+            Project Files/bin/Installers/SQ4KOU-THETIS-GPU-WATERFALL-NOGHOST-build.txt
           if-no-files-found: error
           compression-level: 0
