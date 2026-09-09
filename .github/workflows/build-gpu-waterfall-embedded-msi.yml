@@ -51,6 +51,16 @@ jobs:
           }
 
           .\.github\scripts\fix-gpu-shader-embedded-resources.ps1
+
+          # The current SQ4KOU renderer uses SwapChainFlags.None in its proven
+          # resize path. Keep that existing contract in the format-aware clone;
+          # the recovered behavioural change here is ResizeBuffers-first, not a
+          # new tearing/flag policy.
+          $display = 'Project Files\Source\Console\display.cs'
+          $displayText = [System.IO.File]::ReadAllText($display)
+          $displayText = $displayText.Replace('newFormat, _swapChainFlags', 'newFormat, SwapChainFlags.None')
+          [System.IO.File]::WriteAllText($display, $displayText, [System.Text.UTF8Encoding]::new($false))
+
           Write-Host '--- GPU archive-parity source diff used for this build ---'
           git diff -- 'Project Files/Source/Console/Thetis.csproj' 'Project Files/Source/Console/GPUWaterfallPipeline.cs' 'Project Files/Source/Console/WaterfallGPURenderer.cs' 'Project Files/Source/Console/Display.GPUWaterfall.cs' 'Project Files/Source/Console/display.cs'
 
