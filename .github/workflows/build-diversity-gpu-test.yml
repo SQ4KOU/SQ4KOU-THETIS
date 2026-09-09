@@ -1,4 +1,4 @@
-name: Build SQ4KOU GPU Diversity Test MSI
+name: Build SQ4KOU GPU Diversity Final MSI
 
 on:
   push:
@@ -14,7 +14,7 @@ jobs:
     timeout-minutes: 90
 
     steps:
-      - name: Checkout exact test branch
+      - name: Checkout final branch
         uses: actions/checkout@v4
         with:
           ref: fix/diversity-gpu-waterfall-test
@@ -109,7 +109,7 @@ jobs:
           msbuild 'Project Files\Source\Thetis_VS2026.sln' /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal
           if($LASTEXITCODE -ne 0) { throw "MSBuild failed: $LASTEXITCODE" }
 
-      - name: Verify MSI and shaders
+      - name: Verify final MSI and shaders
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
@@ -133,10 +133,10 @@ jobs:
           Write-Host "MSI_BYTES=$($msi.Length)"
           Write-Host "MSI_SHA256=$hash"
 
-      - name: Upload test MSI
+      - name: Upload final MSI
         uses: actions/upload-artifact@v4
         with:
-          name: SQ4KOU-THETIS-GPU-DIVERSITY-TEST-MSI
+          name: SQ4KOU-THETIS-GPU-DIVERSITY-FINAL-MSI
           path: Project Files/bin/Installers/*.msi
           if-no-files-found: error
           compression-level: 0
