@@ -108,12 +108,12 @@ jobs:
           if ($needleIndex -lt 0) { throw 'pacman timeout invocation not found in FINAL builder' }
           $start = [Math]::Max(0, $needleIndex - 40)
           $end = [Math]::Min($lines.Count - 1, $needleIndex + 5)
-          $matches = @()
+          $timeoutIndexes = @()
           for ($i=$start; $i -le $end; $i++) {
-            if ($lines[$i] -match '(?<!\d)180(?<suffix>s?)(?!\d)') { $matches += $i }
+            if ($lines[$i] -match '(?<!\d)180(?<suffix>s?)(?!\d)') { $timeoutIndexes += $i }
           }
-          if ($matches.Count -ne 1) { throw "Expected exactly one 180[s] timeout near pacman invocation; found $($matches.Count)" }
-          $m = $matches[0]
+          if ($timeoutIndexes.Count -ne 1) { throw "Expected exactly one 180[s] timeout near pacman invocation; found $($timeoutIndexes.Count)" }
+          $m = $timeoutIndexes[0]
           $before = $lines[$m]
           $lines[$m] = [regex]::Replace($lines[$m], '(?<!\d)180(?<suffix>s?)(?!\d)', '1800${suffix}', 1)
           Set-Content -Path $path -Value $lines -Encoding UTF8
