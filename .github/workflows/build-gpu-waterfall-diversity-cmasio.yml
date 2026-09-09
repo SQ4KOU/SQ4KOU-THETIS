@@ -1,4 +1,4 @@
-name: Build GPU Waterfall + Diversity Compact + cmASIO
+name: Build GPU Waterfall + Diversity Compact + cmASIO + DirectX Fallback
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
       - .github/workflows/build-gpu-waterfall-diversity-cmasio.yml
       - .github/scripts/add-diversity-compact-cmasio.py
       - .github/scripts/prepare-cmasio-always-visible.py
+      - .github/scripts/fix-directx-eaccessdenied-fallback.py
   workflow_dispatch:
 
 permissions:
@@ -41,7 +42,14 @@ jobs:
           python .github/scripts/add-diversity-compact-cmasio.py
           if($LASTEXITCODE -ne 0){throw 'Diversity compact patch failed'}
 
-      - name: Audit requested UI changes and preserved GPU architecture
+      - name: Fix DirectX E_ACCESSDENIED startup fallback
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          python .github/scripts/fix-directx-eaccessdenied-fallback.py
+          if($LASTEXITCODE -ne 0){throw 'DirectX E_ACCESSDENIED fallback patch failed'}
+
+      - name: Audit requested UI changes DirectX fallback and preserved GPU architecture
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
@@ -61,6 +69,13 @@ jobs:
             @($div,'EnsurePA3GHMNativePanelSize\(\)','full advanced native panel restore'),
             @($setup,'SQ4KOU_CMASIO_ALWAYS_VISIBLE','cmASIO always-visible marker'),
             @($setup,'TabPages\.Add\(tpCMAsio\)','cmASIO tab add/restore'),
+            @($display,'SQ4KOU_DXGI_EACCESSDENIED_FALLBACK','DirectX E_ACCESSDENIED fallback marker'),
+            @($display,'unchecked\(\(int\)0x80070005\)','E_ACCESSDENIED HRESULT filter'),
+            @($display,'desc\.SwapEffect != SwapEffect\.Discard','legacy retry only from modern swap path'),
+            @($display,'desc\.SwapEffect = SwapEffect\.Discard','legacy retry swap effect'),
+            @($display,'desc\.BufferCount = 1','legacy retry single buffer'),
+            @($display,'_bUseLegacyBuffers = true','legacy mode state retained'),
+            @($display,'SwapEffect\.FlipDiscard','normal modern flip path preserved'),
             @($display,'DetectGPUCapabilitiesFromD2D\(\)','GPU D2D detection preserved'),
             @($display,'ShutdownManagedGPUWaterfallResources\(\)','GPU lifecycle shutdown preserved'),
             @($gpu,'GPUWaterfallPipeline','managed GPU FFT pipeline preserved'),
@@ -73,7 +88,7 @@ jobs:
           foreach($f in @('waterfall_fft_bitreverse_cs.bin','waterfall_fft_stage_ab_cs.bin','waterfall_fft_stage_ba_cs.bin','waterfall_fft_magnitude_cs.bin','waterfall_row_cs.bin','waterfall_postproc.bin','waterfall_resolve_cs.bin')){
             if(-not (Test-Path "$c\$f")){throw "Recovered GPU shader missing from source: $f"}
           }
-          Write-Host 'GPU_DIVERSITY_CMASIO_SOURCE_AUDIT=PASS'
+          Write-Host 'GPU_DIVERSITY_CMASIO_DIRECTX_SOURCE_AUDIT=PASS'
 
       - name: Commit requested source changes
         shell: pwsh
@@ -81,9 +96,9 @@ jobs:
           $ErrorActionPreference='Stop'
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -- 'Project Files/Source/Console/DiversityForm.cs' 'Project Files/Source/Console/setup.cs'
+          git add -- 'Project Files/Source/Console/DiversityForm.cs' 'Project Files/Source/Console/setup.cs' 'Project Files/Source/Console/display.cs'
           if(-not (git diff --cached --quiet)){
-            git commit -m 'Add compact Diversity UI and always-visible cmASIO setup'
+            git commit -m 'Fix DirectX startup and keep Diversity compact cmASIO GPU build'
             if($LASTEXITCODE -ne 0){throw 'Source commit failed'}
           }
           $sha=(git rev-parse HEAD).Trim()
@@ -115,12 +130,12 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
-          $log=Join-Path $env:RUNNER_TEMP 'gpu-diversity-cmasio-build.log'
+          $log=Join-Path $env:RUNNER_TEMP 'gpu-diversity-cmasio-directx-build.log'
           & msbuild 'Project Files\Source\Thetis_VS2026.sln' /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal 2>&1 | Tee-Object -FilePath $log
           if($LASTEXITCODE -ne 0){throw "MSBuild failed: $LASTEXITCODE"}
           $errors=Select-String -Path $log -Pattern ': error ' -ErrorAction SilentlyContinue
           if($errors){$errors | ForEach-Object {Write-Host $_.Line}; throw 'Build log contains compiler/build errors'}
-          Write-Host 'GPU_DIVERSITY_CMASIO_BUILD=PASS'
+          Write-Host 'GPU_DIVERSITY_CMASIO_DIRECTX_BUILD=PASS'
 
       - name: Verify GPU deployment and preserve final MSI
         shell: pwsh
@@ -135,7 +150,7 @@ jobs:
           if(-not $exe){throw 'Thetis.exe not found'}
           $msi=Get-ChildItem 'Project Files\bin\Installers\*.msi' -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
           if(-not $msi -or $msi.Length -lt 1MB){throw 'Valid MSI not produced'}
-          $final=Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-EU2AV-GPU-WATERFALL-DIVERSITY-CMASIO-FINAL-x64.msi'
+          $final=Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-EU2AV-GPU-WATERFALL-DIVERSITY-CMASIO-DIRECTX-FIX-FINAL-x64.msi'
           Copy-Item $msi.FullName $final -Force
           $hash=(Get-FileHash $final -Algorithm SHA256).Hash
           "FINAL_MSI_PATH=$final" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
@@ -165,7 +180,7 @@ jobs:
       - name: Upload final MSI
         uses: actions/upload-artifact@v4
         with:
-          name: SQ4KOU-THETIS-EU2AV-GPU-WATERFALL-DIVERSITY-CMASIO-FINAL
+          name: SQ4KOU-THETIS-EU2AV-GPU-WATERFALL-DIVERSITY-CMASIO-DIRECTX-FIX-FINAL
           path: ${{ env.FINAL_MSI_PATH }}
           if-no-files-found: error
           compression-level: 0
