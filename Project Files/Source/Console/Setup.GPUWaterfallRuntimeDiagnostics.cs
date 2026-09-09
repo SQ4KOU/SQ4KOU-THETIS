@@ -19,6 +19,14 @@ namespace Thetis
             if (_gpuRuntimeDiagnosticsInstalled) return;
             _gpuRuntimeDiagnosticsInstalled = true;
 
+            // During Setup construction the recovered GPU combo is initialized while
+            // 'initializing' is true, so SelectedIndexChanged deliberately does not call
+            // ApplyGPUSelection(). Apply the already-selected mode once the form is shown.
+            // This preserves Auto/CPU/Level1/Level2 semantics and, for Auto on a valid
+            // D3D11 device, enables the GPU target required by the managed waterfall path.
+            if (comboGPU != null)
+                ApplyGPUSelection(comboGPU.SelectedIndex);
+
             // The recovered control was deliberately hidden in the previous integration.
             // It must be visible so the operator can explicitly see/force the managed FFT path.
             if (chkGPUWaterfallFFT != null)
@@ -28,7 +36,7 @@ namespace Thetis
                 chkGPUWaterfallFFT.BringToFront();
             }
 
-            // Reuse the existing two-second GPU status timer.  This handler is attached
+            // Reuse the existing two-second GPU status timer. This handler is attached
             // after the legacy one, so the final label reports the ACTUAL managed FFT/
             // renderer state instead of only the requested GPU mode.
             if (_gpuStatusTimer != null)
