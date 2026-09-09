@@ -5,6 +5,8 @@ $consoleDir = Join-Path $repo 'Project Files\Source\Console'
 $csproj = Join-Path $consoleDir 'Thetis.csproj'
 $pipeline = Join-Path $consoleDir 'GPUWaterfallPipeline.cs'
 $renderer = Join-Path $consoleDir 'WaterfallGPURenderer.cs'
+$displayGpu = Join-Path $consoleDir 'Display.GPUWaterfall.cs'
+$display = Join-Path $consoleDir 'display.cs'
 
 $shaders = @(
     'waterfall_postproc.bin',
@@ -34,6 +36,39 @@ function Replace-MethodBefore([string]$Text, [string]$MethodSignature, [string]$
     if ($nextLineStart -lt 0) { $nextLineStart = $next } else { $nextLineStart++ }
 
     return $Text.Substring(0, $lineStart) + $Replacement.TrimEnd("`r", "`n") + "`r`n`r`n" + $Text.Substring($nextLineStart)
+}
+
+# Extract/replace one C# method by balanced braces. The two methods patched below
+# do not contain interpolated-string brace literals, so this is deterministic for
+# the exact recovered/current source family used by this branch.
+function Get-CSharpMethodRange([string]$Text, [string]$MethodSignature) {
+    $sig = $Text.IndexOf($MethodSignature, [System.StringComparison]::Ordinal)
+    if ($sig -lt 0) { throw "C# method signature not found: $MethodSignature" }
+    $lineStart = $Text.LastIndexOf("`n", $sig)
+    if ($lineStart -lt 0) { $lineStart = 0 } else { $lineStart++ }
+    $body = $Text.IndexOf('{', $sig)
+    if ($body -lt 0) { throw "C# method body not found: $MethodSignature" }
+    $depth = 0
+    $finish = -1
+    for ($i = $body; $i -lt $Text.Length; $i++) {
+        $ch = $Text[$i]
+        if ($ch -eq '{') { $depth++ }
+        elseif ($ch -eq '}') {
+            $depth--
+            if ($depth -eq 0) { $finish = $i + 1; break }
+        }
+    }
+    if ($finish -lt 0) { throw "C# method end not found: $MethodSignature" }
+    return [pscustomobject]@{
+        Start = $lineStart
+        End = $finish
+        Text = $Text.Substring($lineStart, $finish - $lineStart)
+    }
+}
+
+function Replace-CSharpMethod([string]$Text, [string]$MethodSignature, [string]$Replacement) {
+    $range = Get-CSharpMethodRange $Text $MethodSignature
+    return $Text.Substring(0, $range.Start) + $Replacement.TrimEnd("`r", "`n") + "`r`n" + $Text.Substring($range.End)
 }
 
 # 1. Reproduce the recovered 2.10.3.16 Extended Final packaging model:
@@ -162,7 +197,113 @@ if ($rendererText -notmatch 'Thetis\.waterfall_row_cs\.bin' -or $rendererText -n
     Write-Utf8NoBom $renderer $rendererText
 }
 
-# 4. Static gate before compilation.
+# 4. Archive-parity GPU palette upload.
+# WaterfallPalette.Sample() intentionally stays 0..255 for the CPU renderer.
+# The recovered 2.10.3.16 GPU path normalises the palette to 0..1 at upload.
+$displayGpuText = [System.IO.File]::ReadAllText($displayGpu)
+$oldPalette = @'
+                _gpuPaletteUpload[n] = r;
+                _gpuPaletteUpload[n + 1] = g;
+                _gpuPaletteUpload[n + 2] = b;
+'@
+$newPalette = @'
+                _gpuPaletteUpload[n] = r / 255f;
+                _gpuPaletteUpload[n + 1] = g / 255f;
+                _gpuPaletteUpload[n + 2] = b / 255f;
+'@
+if ($displayGpuText.Contains($oldPalette)) {
+    $displayGpuText = $displayGpuText.Replace($oldPalette, $newPalette)
+}
+elseif ($displayGpuText -notmatch '_gpuPaletteUpload\[n\]\s*=\s*r\s*/\s*255f;') {
+    throw 'GPU palette upload block not found in expected current/archive-parity form'
+}
+Write-Utf8NoBom $displayGpu $displayGpuText
+
+# 5. Archive-parity colour-depth rebuild.
+# The recovered 2.10.3.16 first resizes the EXISTING swap chain to the new
+# format. Only if that fails does it destroy DirectX and create a new swap chain.
+# Reuse the already proven SQ4KOU resizeDX2D implementation and make a format
+# overload from it, changing only the ResizeBuffers format argument.
+$displayText = [System.IO.File]::ReadAllText($display)
+$formatResizeSignature = 'private static bool resizeDX2DForFormat(Format newFormat, out string error)'
+if ($displayText.IndexOf($formatResizeSignature, [System.StringComparison]::Ordinal) -lt 0) {
+    $baseResize = Get-CSharpMethodRange $displayText 'private static bool resizeDX2D(out string error)'
+    $formatResize = $baseResize.Text
+    $formatResize = $formatResize.Replace('private static bool resizeDX2D(out string error)', $formatResizeSignature)
+    if ($formatResize.IndexOf('_swapChain.Description.ModeDescription.Format', [System.StringComparison]::Ordinal) -lt 0) {
+        throw 'Existing resizeDX2D does not contain expected swap-chain format expression'
+    }
+    $formatResize = $formatResize.Replace('_swapChain.Description.ModeDescription.Format', 'newFormat')
+    $formatResize = $formatResize.Replace('newFormat, SwapChainFlags.None', 'newFormat, _swapChainFlags')
+    $displayText = $displayText.Substring(0, $baseResize.Start) + $formatResize.TrimEnd("`r", "`n") + "`r`n`r`n" + $displayText.Substring($baseResize.Start)
+}
+
+$rebuildReplacement = @'
+        public static bool RebuildForColorDepth()
+        {
+            if (displayTarget == null) return false;
+
+            var requestedDepth = WaterfallEnhancer.Depth;
+            WaterfallPixelWriter.UpdateFormat();
+
+            // 2.10.3.16 Extended Final behaviour: keep the existing DXGI factory,
+            // device and swap chain ownership whenever possible. resizeDX2D already
+            // serialises with the render thread via _objDX2Lock, clears/flushes the
+            // device context and rebuilds the D2D target after ResizeBuffers.
+            if (_bDX2Setup && _swapChain1 != null && !_swapChain1.IsDisposed)
+            {
+                if (resizeDX2DForFormat(WaterfallPixelWriter.DxgiFormat, out string inPlaceError))
+                {
+                    ResetWaterfallBmp();
+                    ResetWaterfallBmp2();
+                    LogTool.AddLogEntry("Color depth changed in-place to " + WaterfallPixelWriter.DxgiFormat, "DX2D");
+                    return true;
+                }
+
+                LogTool.AddLogEntry("In-place format resize failed: " + inPlaceError + " - falling back to full DX rebuild.", "DX2D");
+            }
+
+            // Recovery path only. This preserves the previous safe 8-bit fallback,
+            // but avoids Factory.CreateSwapChain during a normal 8/16-bit change.
+            ShutdownDX2D();
+            WaterfallPixelWriter.UpdateFormat();
+
+            try
+            {
+                initDX2D(DriverType.Hardware, _display_adaptor);
+            }
+            catch (Exception ex)
+            {
+                LogTool.AddLogEntry("RebuildForColorDepth init failed: " + ex.Message, "DX2D");
+            }
+
+            if (!_bDX2Setup)
+            {
+                if (requestedDepth != WaterfallEnhancer.ColorDepth.Bit8)
+                {
+                    WaterfallEnhancer.SetColorDepth(WaterfallEnhancer.ColorDepth.Bit8);
+                    WaterfallPixelWriter.UpdateFormat();
+                    try
+                    {
+                        initDX2D(DriverType.Hardware, _display_adaptor);
+                    }
+                    catch (Exception ex)
+                    {
+                        LogTool.AddLogEntry("RebuildForColorDepth 8-bit fallback failed: " + ex.Message, "DX2D");
+                    }
+                }
+                return _bDX2Setup;
+            }
+
+            ResetWaterfallBmp();
+            ResetWaterfallBmp2();
+            return true;
+        }
+'@
+$displayText = Replace-CSharpMethod $displayText 'public static bool RebuildForColorDepth()' $rebuildReplacement
+Write-Utf8NoBom $display $displayText
+
+# 6. Static gates before compilation.
 $projectText = [System.IO.File]::ReadAllText($csproj)
 foreach ($shader in $shaders) {
     $logical = 'Thetis.' + $shader
@@ -177,6 +318,30 @@ if ($rendererText -notmatch 'const string resourceName = "Thetis\.waterfall_row_
     throw 'Row resource-first loader verification failed'
 }
 
-Write-Host 'GPU shader embedding patch OK.'
+$displayGpuText = [System.IO.File]::ReadAllText($displayGpu)
+if ($displayGpuText -notmatch '_gpuPaletteUpload\[n\]\s*=\s*r\s*/\s*255f;' -or
+    $displayGpuText -notmatch '_gpuPaletteUpload\[n \+ 1\]\s*=\s*g\s*/\s*255f;' -or
+    $displayGpuText -notmatch '_gpuPaletteUpload\[n \+ 2\]\s*=\s*b\s*/\s*255f;') {
+    throw 'Archive-parity GPU palette normalisation verification failed'
+}
+
+$displayText = [System.IO.File]::ReadAllText($display)
+$rebuildRange = Get-CSharpMethodRange $displayText 'public static bool RebuildForColorDepth()'
+if ($rebuildRange.Text.IndexOf('resizeDX2DForFormat(WaterfallPixelWriter.DxgiFormat', [System.StringComparison]::Ordinal) -lt 0) {
+    throw 'Archive-parity in-place colour-depth resize call missing'
+}
+if ($rebuildRange.Text.IndexOf('ShutdownDX2D();', [System.StringComparison]::Ordinal) -lt 0 -or
+    $rebuildRange.Text.IndexOf('resizeDX2DForFormat(WaterfallPixelWriter.DxgiFormat', [System.StringComparison]::Ordinal) -gt $rebuildRange.Text.IndexOf('ShutdownDX2D();', [System.StringComparison]::Ordinal)) {
+    throw 'Colour-depth rebuild does not attempt in-place ResizeBuffers before full DX shutdown'
+}
+$formatResizeRange = Get-CSharpMethodRange $displayText $formatResizeSignature
+if ($formatResizeRange.Text.IndexOf('ResizeBuffers', [System.StringComparison]::Ordinal) -lt 0 -or
+    $formatResizeRange.Text.IndexOf('newFormat', [System.StringComparison]::Ordinal) -lt 0) {
+    throw 'Format-aware ResizeBuffers helper verification failed'
+}
+
+Write-Host 'GPU archive-parity patch OK.'
+Write-Host '  Palette upload: 0..255 -> 0..1 (recovered 2.10.3.16 model)'
+Write-Host '  Depth switch: in-place ResizeBuffers first; full DX rebuild only as fallback'
 Write-Host 'Embedded resources:'
 $shaders | ForEach-Object { Write-Host ('  Thetis.' + $_) }
