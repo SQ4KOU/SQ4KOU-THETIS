@@ -1,0 +1,140 @@
+name: Build SQ4KOU GPU Diversity Test MSI
+
+on:
+  push:
+    branches: [fix/diversity-gpu-waterfall-test]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2025
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout exact test branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/diversity-gpu-waterfall-test
+          fetch-depth: 1
+
+      - name: Static Diversity and GPU guards
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $c = 'Project Files\Source\Console'
+          $div = Get-Content "$c\DiversityForm.cs" -Raw
+          $fix = Get-Content "$c\DiversityForm.LayoutFix.cs" -Raw
+          $targets = Get-Content "$c\Directory.Build.targets" -Raw
+
+          foreach($needle in @(
+            'this.ClientSize = new System.Drawing.Size(313, 598)',
+            'this.picRadar.Size = new System.Drawing.Size(305, 305)',
+            'panelDivControls.Controls.Add(this.chkEnableDiversity)',
+            'this.grpRxSource.Controls.Add(this.radRxSourceRx1Rx2)',
+            'this.groupBox_refMerc.Controls.Add(this.udFineNull)',
+            'this.groupBox_refMerc.Controls.Add(this.udR2)',
+            'this.groupBox_refMerc.Controls.Add(this.udR1)'
+          )) {
+            if(-not $div.Contains($needle)) { throw "Base Diversity control/layout missing: $needle" }
+          }
+
+          foreach($needle in @(
+            'this.ClientSize = new Size(313, 313)',
+            'this.ClientSize = new Size(313, 598)',
+            'panelDivControls.Visible = false',
+            'panelDivControls.Visible = true',
+            'picRadar.Location = new Point(4, 4)',
+            'picRadar.Location = new Point(4, 289)',
+            'picRadar.Size = new Size(305, 305)',
+            'picRadar.DoubleClick += DiversityLayout_DoubleClick',
+            '_sq4kouCompactDiversity = !_sq4kouCompactDiversity',
+            'grpPA3GHMNative.Visible = false'
+          )) {
+            if(-not $fix.Contains($needle)) { throw "Diversity toggle guard missing: $needle" }
+          }
+
+          if(-not $targets.Contains('DiversityForm.LayoutFix.cs')) { throw 'Diversity layout fix is not compiled' }
+
+          foreach($f in @(
+            'Display.GPUWaterfall.cs',
+            'GPUWaterfallPipeline.cs',
+            'WaterfallGPURenderer.cs',
+            'GPUDetector.cs',
+            'waterfall_fft_bitreverse_cs.bin',
+            'waterfall_fft_stage_ab_cs.bin',
+            'waterfall_fft_stage_ba_cs.bin',
+            'waterfall_fft_magnitude_cs.bin',
+            'waterfall_row_cs.bin',
+            'waterfall_postproc.bin',
+            'waterfall_resolve_cs.bin'
+          )) {
+            if(-not (Test-Path "$c\$f")) { throw "GPU Waterfall component missing: $f" }
+          }
+
+          Write-Host 'Static Diversity + GPU guards: PASS'
+
+      - name: Enable long paths
+        shell: pwsh
+        run: git config --global core.longpaths true
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $wix = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if(-not $wix) { choco install wixtoolset -y --no-progress }
+          $wix = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if(-not $wix) { $wix = Get-ChildItem 'C:\Program Files (x86)\WiX Toolset*\Wix.targets' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 }
+          if(-not $wix) { throw 'WiX 3.x Wix.targets not found' }
+          "WIX_TARGETS=$($wix.FullName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore NuGet packages
+        shell: pwsh
+        run: nuget restore 'Project Files\Source\Thetis_VS2026.sln' -NonInteractive
+
+      - name: Build Release x64 and MSI
+        shell: pwsh
+        run: |
+          msbuild 'Project Files\Source\Thetis_VS2026.sln' /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal
+          if($LASTEXITCODE -ne 0) { throw "MSBuild failed: $LASTEXITCODE" }
+
+      - name: Verify MSI and shaders
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach($f in @(
+            'waterfall_fft_bitreverse_cs.bin',
+            'waterfall_fft_stage_ab_cs.bin',
+            'waterfall_fft_stage_ba_cs.bin',
+            'waterfall_fft_magnitude_cs.bin',
+            'waterfall_row_cs.bin',
+            'waterfall_postproc.bin',
+            'waterfall_resolve_cs.bin'
+          )) {
+            $found = Get-ChildItem 'Project Files' -Recurse -File -Filter $f | Where-Object { $_.FullName -match '\\bin\\' } | Select-Object -First 1
+            if(-not $found) { throw "Built shader not found: $f" }
+          }
+
+          $msi = Get-ChildItem 'Project Files\bin\Installers\*.msi' -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if(-not $msi -or $msi.Length -lt 1MB) { throw 'Valid MSI not produced' }
+          $hash = (Get-FileHash $msi.FullName -Algorithm SHA256).Hash
+          Write-Host "MSI=$($msi.FullName)"
+          Write-Host "MSI_BYTES=$($msi.Length)"
+          Write-Host "MSI_SHA256=$hash"
+
+      - name: Upload test MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-GPU-DIVERSITY-TEST-MSI
+          path: Project Files/bin/Installers/*.msi
+          if-no-files-found: error
+          compression-level: 0
