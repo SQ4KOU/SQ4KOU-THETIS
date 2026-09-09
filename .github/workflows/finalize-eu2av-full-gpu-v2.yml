@@ -1,0 +1,199 @@
+name: Finalize EU2AV Full GPU Waterfall V2
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/eu2av-gpu-waterfall-sq4kou]
+    paths:
+      - .github/workflows/finalize-eu2av-full-gpu-v2.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize-build:
+    runs-on: windows-2025
+    timeout-minutes: 90
+    steps:
+      - name: Checkout exact project branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/eu2av-gpu-waterfall-sq4kou
+          fetch-depth: 0
+
+      - name: Enable long paths
+        shell: pwsh
+        run: git config --global core.longpaths true
+
+      - name: Apply recovered EU2AV GPU integration
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          python .github/scripts/finalize-eu2av-full-gpu.py
+          if($LASTEXITCODE -ne 0){throw 'EU2AV full GPU finalizer failed'}
+
+      - name: Complete Setup and D2D lifecycle
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          python .github/scripts/complete-eu2av-setup-lifecycle.py
+          if($LASTEXITCODE -ne 0){throw 'EU2AV Setup/lifecycle completion failed'}
+
+      - name: Full source architecture audit
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $c='Project Files\Source\Console'
+          $display=Get-Content "$c\display.cs" -Raw
+          $gpu=Get-Content "$c\Display.GPUWaterfall.cs" -Raw
+          $compat=Get-Content "$c\Display.EU2AVWaterfallCompat.cs" -Raw
+          $post=Get-Content "$c\Display.GPUPostProcessing.cs" -Raw
+          $det=Get-Content "$c\GPUDetector.cs" -Raw
+          $effect=Get-Content "$c\WaterfallEffect.cs" -Raw
+          $effectImpl=Get-Content "$c\WaterfallEffectImpl.cs" -Raw
+          $setup=Get-Content "$c\Setup.GPUWaterfall.cs" -Raw
+          $proj=Get-Content "$c\Thetis.csproj" -Raw
+          $cm=Get-Content 'Project Files\Source\ChannelMaster\cmaster.c' -Raw
+          $iq=Get-Content 'Project Files\Source\ChannelMaster\waterfall_iq.c' -Raw
+          $native=Get-Content "$c\GPUWaterfallNative.cs" -Raw
+
+          if($display -notmatch 'DetectGPUCapabilitiesFromD2D\(\)'){throw 'D2D GPU detector is not wired into display initialization'}
+          if($display -notmatch 'DrawWaterfallToTarget\(_waterfall_bmp_dx2d'){throw 'RX1 GPU effect draw path missing'}
+          if($display -notmatch 'DrawWaterfallToTarget\(_waterfall_bmp2_dx2d'){throw 'RX2 GPU effect draw path missing'}
+          if($display -notmatch 'ApplyWaterfallProPostProcessing\(rowF, W, rx\)'){throw 'Waterfall Pro post-processing is not active'}
+          if($display -notmatch 'ApplyWaterfallProThresholds\(rx, local_mox'){throw 'Auto High/Auto Threshold path is not active'}
+          if($display -notmatch 'BlendWaterfallProAGC'){throw 'Configurable AGC smoothing is not active'}
+          if($display -notmatch 'NoiseFloorPro\.ComputeLowHigh'){throw 'Percentile Noise Floor path is not active'}
+          if($display -notmatch 'processNoiseFloor\(rx, averageCount, averageSum, nDecimatedWidth, true, waterfall_data, nDecimatedWidth\)'){throw 'Waterfall data is not fed to percentile NF'}
+
+          if($gpu -notmatch 'GPUWaterfallPipeline' -or $gpu -notmatch 'WaterfallGPURenderer' -or $gpu -notmatch 'MagSpectrumView'){throw 'Managed D3D11 FFT/renderer path missing'}
+          if($gpu -notmatch 'GetEffectiveManagedGPUParams'){throw 'Zoom Adaptive is not wired to managed GPU renderer'}
+          if($gpu -notmatch 'effectiveToneMap' -or $gpu -notmatch 'effectiveTemporalAlpha'){throw 'Managed renderer enhancement parameters missing'}
+          if($gpu -match 'CM_GPUWaterfall_Process' -or $native -match 'CM_GPUWaterfall_Process'){throw 'Obsolete native V3 FFT path is active'}
+          if($display -match 'TryUpdateGPUWaterfallRow'){throw 'Obsolete V3 row injection is active'}
+
+          if($det -notmatch 'RegisterEffect<WaterfallEffectImpl>' -or $det -notmatch 'new Saturation\(dc\)'){throw 'Recovered D2D capability detector is incomplete'}
+          if($effect -notmatch 'GPUDetector\.HasCustomShaders' -or $effect -notmatch 'GammaTransfer'){throw 'Recovered WaterfallEffect L1/L2 path is incomplete'}
+          if($effectImpl -notmatch 'waterfall_postproc\.bin' -or $effectImpl -notmatch 'LoadPixelShader'){throw 'Recovered custom HLSL effect is incomplete'}
+          if($post -notmatch 'WaterfallEffect\.Draw' -or $post -notmatch 'ZoomAdaptive\.ComputeParams'){throw 'Post-processing adapter is incomplete'}
+          if($compat -notmatch '_gpu \?\? "unknown"'){throw 'Display GPU name still loops through wrong detector'}
+          if($compat -notmatch 'WaterfallEffect\.IsAvailable'){throw 'GPU effect availability is not the recovered implementation'}
+
+          if($setup -notmatch 'comboGPUWaterfallResampling\s*=\s*new ComboBoxTS\(\)'){throw 'GPU resampling control is not instantiated'}
+          if($setup -notmatch 'chkAutoThreshold\s*=\s*new CheckBoxTS\(\)'){throw 'Auto Threshold control is not instantiated'}
+          if($setup -notmatch 'Display\.AutoThresholdEnabled'){throw 'Auto Threshold is not wired to Display'}
+          if($setup -notmatch 'Display\.AutoThresholdFineOffset'){throw 'Auto Threshold Fine is not wired to Display'}
+          if($setup -notmatch 'Display\.GPUWaterfallResamplingMode'){throw 'GPU resampling mode is not wired to Display'}
+          if($setup -notmatch '_renderFilterPending\s*&&\s*GPUDetector\.HasDeviceContext'){throw 'Deferred GPU selection is not consumed'}
+          if($setup -notmatch 'Display\.DetectGPUCapabilitiesFromD2D\(\)'){throw 'Setup GPU selection does not refresh real D2D capabilities'}
+
+          if($post -notmatch 'OnD2DDeviceContextRecreated' -or $post -notmatch '_waterfallGPU1\.UpdateDeviceContext' -or $post -notmatch '_waterfallGPU2\.UpdateDeviceContext'){throw 'GPU renderer D2D rebind lifecycle is incomplete'}
+          if($post -notmatch 'ShutdownManagedGPUWaterfallResources' -or $post -notmatch '_waterfallGPU1\.Dispose' -or $post -notmatch '_waterfallGPU2\.Dispose' -or $post -notmatch '_gpuFFT1\.Dispose' -or $post -notmatch '_gpuFFT2\.Dispose'){throw 'Managed GPU shutdown lifecycle is incomplete'}
+          if($post -notmatch 'WaterfallEffect\.Reset\(\)'){throw 'WaterfallEffect lifecycle reset missing'}
+          if($display -notmatch 'OnD2DDeviceContextRecreated\(ctx\)'){throw 'D2D recreation does not rebind GPU renderer'}
+          if($display -notmatch 'ShutdownManagedGPUWaterfallResources\(\)'){throw 'DX2D shutdown does not release GPU resources'}
+
+          foreach($f in @('GPUWaterfallPipeline.cs','WaterfallGPURenderer.cs','GPUWaterfallLogger.cs','SharedWaterfallState.cs','GPUWaterfallWindowType.cs','GPUWaterfallMagnitudeMode.cs','GPUWaterfallResamplingMode.cs','FFTParams.cs','WaterfallRowParams.cs','Display.GPUPostProcessing.cs','WaterfallEffect.cs','WaterfallEffectImpl.cs','WaterfallEffectParams.cs','ZoomAdaptive.cs')){
+            if($proj -notmatch [regex]::Escape('Compile Include="'+$f+'"')){throw "Missing csproj compile item: $f"}
+          }
+          foreach($f in @('waterfall_fft_bitreverse_cs.bin','waterfall_fft_stage_ab_cs.bin','waterfall_fft_stage_ba_cs.bin','waterfall_fft_magnitude_cs.bin','waterfall_row_cs.bin','waterfall_postproc.bin','waterfall_resolve_cs.bin')){
+            if(-not (Test-Path "$c\$f")){throw "Missing recovered shader: $f"}
+            if($proj -notmatch [regex]::Escape('Content Include="'+$f+'"')){throw "Shader not deployed by csproj: $f"}
+          }
+          if($cm -notmatch 'CM_WaterfallIQ_Push\(rx,'){throw 'Native RX IQ producer is not connected'}
+          if($iq -notmatch 'CM_WaterfallIQ_Init' -or $iq -notmatch 'CM_WaterfallIQ_Get' -or $iq -notmatch 'CM_WaterfallIQ_SetEnabled'){throw 'Native IQ ring implementation is incomplete'}
+          Write-Host 'FULL_EU2AV_GPU_ARCHITECTURE_AUDIT_V2=PASS'
+
+      - name: Commit audited source integration
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- 'Project Files/Source/Console/display.cs' 'Project Files/Source/Console/Display.GPUWaterfall.cs' 'Project Files/Source/Console/Display.GPUPostProcessing.cs' 'Project Files/Source/Console/Setup.GPUWaterfall.cs' 'Project Files/Source/Console/Thetis.csproj'
+          if(-not (git diff --cached --quiet)){
+            git commit -m 'Complete recovered EU2AV GPU Setup and lifecycle wiring'
+            if($LASTEXITCODE -ne 0){throw 'Source commit failed'}
+          }
+          $sha=(git rev-parse HEAD).Trim()
+          "SOURCE_SHA=$sha" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "SOURCE_SHA=$sha"
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $targets=Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if(-not $targets){choco install wixtoolset -y --no-progress}
+          $targets=Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if(-not $targets){$targets=Get-ChildItem 'C:\Program Files (x86)\WiX Toolset*\Wix.targets' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1}
+          if(-not $targets){throw 'WiX 3.x Wix.targets not found'}
+          "WIX_TARGETS=$($targets.FullName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore packages
+        shell: pwsh
+        run: nuget restore 'Project Files\Source\Thetis_VS2026.sln' -NonInteractive
+
+      - name: Build Release x64 and MSI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $log=Join-Path $env:RUNNER_TEMP 'eu2av-full-gpu-build.log'
+          & msbuild 'Project Files\Source\Thetis_VS2026.sln' /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal 2>&1 | Tee-Object -FilePath $log
+          if($LASTEXITCODE -ne 0){throw "MSBuild failed: $LASTEXITCODE"}
+          $bad=Select-String -Path $log -Pattern "CS0649.*comboGPUWaterfallResampling|CS0414.*_renderFilterPending" -ErrorAction SilentlyContinue
+          if($bad){$bad | ForEach-Object {Write-Host $_.Line}; throw 'Setup GPU controls/deferred state still compile as dead code'}
+          Write-Host 'SETUP_GPU_BUILD_WARNING_AUDIT=PASS'
+
+      - name: Verify runtime deployment and preserve MSI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach($f in @('waterfall_fft_bitreverse_cs.bin','waterfall_fft_stage_ab_cs.bin','waterfall_fft_stage_ba_cs.bin','waterfall_fft_magnitude_cs.bin','waterfall_row_cs.bin','waterfall_postproc.bin','waterfall_resolve_cs.bin')){
+            $found=Get-ChildItem 'Project Files' -Recurse -File -Filter $f | Where-Object {$_.FullName -match '\\bin\\'} | Select-Object -First 1
+            if(-not $found -or $found.Length -lt 32){throw "Built shader missing/invalid: $f"}
+            Write-Host "SHADER_OK $f $($found.Length)"
+          }
+          $exe=Get-ChildItem 'Project Files' -Recurse -File -Filter Thetis.exe | Where-Object {$_.FullName -match '\\bin\\x64\\Release|\\bin\\Release'} | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if(-not $exe){throw 'Thetis.exe not found'}
+          $msi=Get-ChildItem 'Project Files\bin\Installers\*.msi' -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if(-not $msi -or $msi.Length -lt 1MB){throw 'Valid MSI not produced'}
+          $final=Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-EU2AV-2.10.3.16-FULL-INTEGRATION-FINAL-x64.msi'
+          Copy-Item $msi.FullName $final -Force
+          $hash=(Get-FileHash $final -Algorithm SHA256).Hash
+          "FINAL_MSI_PATH=$final" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "MSI_SHA256=$hash" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "FINAL_MSI=$final"
+          Write-Host "MSI_BYTES=$((Get-Item $final).Length)"
+          Write-Host "MSI_SHA256=$hash"
+
+      - name: Push build-verified source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          git reset --hard HEAD
+          git clean -fd
+          git fetch origin feature/eu2av-gpu-waterfall-sq4kou
+          if($LASTEXITCODE -ne 0){throw 'git fetch failed'}
+          git rebase origin/feature/eu2av-gpu-waterfall-sq4kou
+          if($LASTEXITCODE -ne 0){throw 'git rebase failed'}
+          git push origin HEAD:feature/eu2av-gpu-waterfall-sq4kou
+          if($LASTEXITCODE -ne 0){throw 'git push failed'}
+          $local=(git rev-parse HEAD).Trim()
+          $remote=(git ls-remote origin refs/heads/feature/eu2av-gpu-waterfall-sq4kou).Split("`t")[0].Trim()
+          if($local -ne $remote){throw "Remote mismatch local=$local remote=$remote"}
+          Write-Host "VERIFIED_SOURCE_SHA=$local"
+
+      - name: Upload final MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-EU2AV-2.10.3.16-FULL-INTEGRATION-FINAL
+          path: ${{ env.FINAL_MSI_PATH }}
+          if-no-files-found: error
+          compression-level: 0
