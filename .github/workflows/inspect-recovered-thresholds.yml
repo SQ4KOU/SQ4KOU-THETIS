@@ -5,32 +5,43 @@ on:
     branches: [fix/diversity-gpu-waterfall-test]
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   inspect:
+    if: github.actor != 'github-actions[bot]'
     runs-on: windows-2025
     steps:
       - uses: actions/checkout@v4
         with:
           ref: fix/diversity-gpu-waterfall-test
           fetch-depth: 1
-      - name: Locate exact recovered threshold controls
+      - name: Extract exact recovered threshold controls
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
           $p = '.github\recovered\eu2av-2.10.3.16\Setup.EU2AV.2.10.3.16.cs.txt'
+          $out = '.github\recovered\threshold-snippet.txt'
           $lines = Get-Content $p
           $patterns = @('Waterfall thresholds','Auto thresholds','thresholds (auto)','Fine')
+          $sb = [System.Text.StringBuilder]::new()
           foreach($pattern in $patterns) {
-            Write-Host "===== PATTERN: $pattern ====="
+            [void]$sb.AppendLine("===== PATTERN: $pattern =====")
             $matches = Select-String -Path $p -SimpleMatch -Pattern $pattern
             foreach($m in $matches) {
-              $from=[Math]::Max(0,$m.LineNumber-30)
-              $to=[Math]::Min($lines.Count-1,$m.LineNumber+50)
-              Write-Host "--- MATCH LINE $($m.LineNumber) ---"
-              for($i=$from;$i -le $to;$i++) { Write-Host ('{0,7}: {1}' -f ($i+1),$lines[$i]) }
+              [void]$sb.AppendLine("--- MATCH LINE $($m.LineNumber) ---")
+              $from=[Math]::Max(0,$m.LineNumber-50)
+              $to=[Math]::Min($lines.Count-1,$m.LineNumber+80)
+              for($i=$from;$i -le $to;$i++) { [void]$sb.AppendLine(('{0,7}: {1}' -f ($i+1),$lines[$i])) }
             }
           }
-          Write-Host '===== RELATED IDENTIFIERS ====='
-          Select-String -Path $p -Pattern 'Waterfall.*Threshold|Threshold.*Waterfall|Auto.*Waterfall|Waterfall.*Auto' | Select-Object -First 200 | ForEach-Object { Write-Host ('{0,7}: {1}' -f $_.LineNumber,$_.Line) }
+          [void]$sb.AppendLine('===== RELATED IDENTIFIERS =====')
+          Select-String -Path $p -Pattern 'Waterfall.*Threshold|Threshold.*Waterfall|Auto.*Waterfall|Waterfall.*Auto' | Select-Object -First 300 | ForEach-Object { [void]$sb.AppendLine(('{0,7}: {1}' -f $_.LineNumber,$_.Line)) }
+          [System.IO.File]::WriteAllText($out,$sb.ToString(),[System.Text.UTF8Encoding]::new($false))
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add $out
+          if(-not (git diff --cached --quiet)) {
+            git commit -m 'Diagnostic: extract recovered threshold UI [skip ci]'
+            git push origin HEAD:fix/diversity-gpu-waterfall-test
+          }
