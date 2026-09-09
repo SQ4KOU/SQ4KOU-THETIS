@@ -132,7 +132,7 @@ foreach ($row in $native) {
         }
         $blockText = $blocks[0].Value
         $counts = @([regex]::Matches($blockText, 'ASSEMBLY INSTRUCTIONS: ([1-9][0-9]*)'))
-        $instructions = @([regex]::Matches($blockText, '(?m)^[0-9a-fA-F]+[ \t]{2,}\S[^\r\n]*$'))
+        $instructions = @([regex]::Matches($blockText, '(?m)^[0-9a-fA-F]+[ \t]{2,}\S[^\r\n]*\r?$'))
         if ($blockText -notmatch 'ASSEMBLY FALLBACK AFTER PSEUDOCODE FAILURE' -or
             $counts.Count -ne 1 -or $instructions.Count -ne [int]$counts[0].Groups[1].Value) {
             Fail "assembly fallback instruction accounting mismatch: $($row.path) $($fallback.entry)"
