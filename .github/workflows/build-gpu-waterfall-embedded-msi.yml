@@ -8,6 +8,8 @@ on:
       - '.github/workflows/build-gpu-waterfall-embedded-msi.yml'
       - 'Project Files/Source/Console/GPUWaterfallPipeline.cs'
       - 'Project Files/Source/Console/WaterfallGPURenderer.cs'
+      - 'Project Files/Source/Console/Display.GPUWaterfall.cs'
+      - 'Project Files/Source/Console/display.cs'
       - 'Project Files/Source/Console/Thetis.csproj'
       - 'Project Files/Source/Console/waterfall_*.bin'
   workflow_dispatch:
@@ -31,13 +33,26 @@ jobs:
         shell: pwsh
         run: git config --global core.longpaths true
 
-      - name: Apply recovered 2.10.3.16 embedded shader model
+      - name: Apply recovered 2.10.3.16 archive-parity GPU model
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
+
+          # The synthesized source currently keeps the four palette writes on one
+          # line. Normalize that exact current form before the parity script; the
+          # script then verifies the recovered 0..1 GPU contract.
+          $gpu = 'Project Files\Source\Console\Display.GPUWaterfall.cs'
+          $text = [System.IO.File]::ReadAllText($gpu)
+          $old = '_gpuPaletteUpload[n] = r; _gpuPaletteUpload[n + 1] = g; _gpuPaletteUpload[n + 2] = b; _gpuPaletteUpload[n + 3] = 1f;'
+          $new = '_gpuPaletteUpload[n] = r / 255f; _gpuPaletteUpload[n + 1] = g / 255f; _gpuPaletteUpload[n + 2] = b / 255f; _gpuPaletteUpload[n + 3] = 1f;'
+          if ($text.Contains($old)) {
+            $text = $text.Replace($old, $new)
+            [System.IO.File]::WriteAllText($gpu, $text, [System.Text.UTF8Encoding]::new($false))
+          }
+
           .\.github\scripts\fix-gpu-shader-embedded-resources.ps1
-          Write-Host '--- GPU-only source diff used for this build ---'
-          git diff -- 'Project Files/Source/Console/Thetis.csproj' 'Project Files/Source/Console/GPUWaterfallPipeline.cs' 'Project Files/Source/Console/WaterfallGPURenderer.cs'
+          Write-Host '--- GPU archive-parity source diff used for this build ---'
+          git diff -- 'Project Files/Source/Console/Thetis.csproj' 'Project Files/Source/Console/GPUWaterfallPipeline.cs' 'Project Files/Source/Console/WaterfallGPURenderer.cs' 'Project Files/Source/Console/Display.GPUWaterfall.cs' 'Project Files/Source/Console/display.cs'
 
       - name: Setup NuGet
         uses: NuGet/setup-nuget@v2
@@ -133,15 +148,17 @@ jobs:
         run: |
           $ErrorActionPreference = 'Stop'
           $msi = Get-Item $env:MSI_PATH
-          $out = Join-Path $msi.DirectoryName 'SQ4KOU-THETIS-GPU-WATERFALL-EMBEDDED16-FINAL-x64.msi'
+          $out = Join-Path $msi.DirectoryName 'SQ4KOU-THETIS-GPU-WATERFALL-ARCHIVE-PARITY-x64.msi'
           Copy-Item $msi.FullName $out -Force
           $hash = Get-FileHash $out -Algorithm SHA256
-          $info = Join-Path $msi.DirectoryName 'SQ4KOU-THETIS-GPU-WATERFALL-EMBEDDED16-FINAL-build.txt'
+          $info = Join-Path $msi.DirectoryName 'SQ4KOU-THETIS-GPU-WATERFALL-ARCHIVE-PARITY-build.txt'
           @(
             "SOURCE_SHA=${{ github.sha }}",
             'EMBEDDED_SHADER_COUNT_BUILT_EXE=7',
             'EMBEDDED_SHADER_COUNT_MSI_EXE=7',
             'LOADER_POLICY=embedded-resource-first;loose-file-fallback',
+            'GPU_PALETTE_UPLOAD=normalized-0..1',
+            'COLOR_DEPTH_SWITCH=in-place-ResizeBuffers-first;full-rebuild-fallback',
             "MSI_SHA256=$($hash.Hash)"
           ) | Set-Content $info -Encoding utf8
           Write-Host "VALIDATED MSI: $out"
@@ -150,9 +167,9 @@ jobs:
       - name: Upload validated MSI only
         uses: actions/upload-artifact@v4
         with:
-          name: SQ4KOU-THETIS-GPU-WATERFALL-EMBEDDED16-FINAL-MSI
+          name: SQ4KOU-THETIS-GPU-WATERFALL-ARCHIVE-PARITY-MSI
           path: |
-            Project Files/bin/Installers/SQ4KOU-THETIS-GPU-WATERFALL-EMBEDDED16-FINAL-x64.msi
-            Project Files/bin/Installers/SQ4KOU-THETIS-GPU-WATERFALL-EMBEDDED16-FINAL-build.txt
+            Project Files/bin/Installers/SQ4KOU-THETIS-GPU-WATERFALL-ARCHIVE-PARITY-x64.msi
+            Project Files/bin/Installers/SQ4KOU-THETIS-GPU-WATERFALL-ARCHIVE-PARITY-build.txt
           if-no-files-found: error
           compression-level: 0
