@@ -43,7 +43,7 @@ jobs:
 
           foreach($needle in @(
             'this.ClientSize = new Size(313, 313)',
-            'this.ClientSize = new Size(313, 598)',
+            'this.ClientSize = new Size(720, 598)',
             'panelDivControls.Visible = false',
             'panelDivControls.Visible = true',
             'picRadar.Location = new Point(4, 4)',
@@ -51,7 +51,9 @@ jobs:
             'picRadar.Size = new Size(305, 305)',
             'picRadar.DoubleClick += DiversityLayout_DoubleClick',
             '_sq4kouCompactDiversity = !_sq4kouCompactDiversity',
-            'grpPA3GHMNative.Visible = false'
+            'grpPA3GHMNative.Visible = false',
+            'grpPA3GHMNative.Visible = true',
+            'grpPA3GHMNative.Location = new Point(320, 6)'
           )) {
             if(-not $fix.Contains($needle)) { throw "Diversity toggle guard missing: $needle" }
           }
