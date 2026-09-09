@@ -68,7 +68,7 @@ jobs:
           msbuild "Project Files\Source\Thetis_VS2026.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal
 
       - name: Validate seven embedded shaders in built Thetis.exe
-        shell: pwsh
+        shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
           $expected = @(
@@ -106,7 +106,7 @@ jobs:
           "MSI_EXTRACT=$extract" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Validate seven embedded shaders in Thetis.exe extracted from MSI
-        shell: pwsh
+        shell: powershell
         run: |
           $ErrorActionPreference = 'Stop'
           $expected = @(
