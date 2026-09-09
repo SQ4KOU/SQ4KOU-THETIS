@@ -11,6 +11,7 @@ namespace Thetis
         private GroupBoxTS wfProGroup;
         private bool _renderQualityItemsUpdating;
         private bool _renderFilterPending;
+        private int _pendingGPUSelection = -1;
         private bool _paletteItemsUpdating;
         private static readonly string[] _wfPaletteItemsGPU = new string[5] { "Console 256", "Thermal 256", "DeepBlue 256", "Enhanced 256", "BlackWhite 256" };
         private static readonly string[] _wfPaletteItemsAll = new string[12] { "Console 256", "Thermal 256", "DeepBlue 256", "Enhanced 256", "BlackWhite 256", "Enhanced", "Spectran", "BlackWhite", "LinLog", "LinRad", "LinAuto", "Custom" };
@@ -542,11 +543,15 @@ namespace Thetis
                 try
                 {
                     Display.DetectGPUCapabilitiesFromD2D();
-                    if (_renderFilterPending && GPUDetector.HasDeviceContext && comboGPU != null)
+                    if (_renderFilterPending && GPUDetector.HasDeviceContext)
                     {
-                        _renderFilterPending = false;
-                        ApplyGPUSelection(comboGPU.SelectedIndex);
+                        int requestedSelection = _pendingGPUSelection >= 0
+                            ? _pendingGPUSelection
+                            : (comboGPU != null ? comboGPU.SelectedIndex : 0);
+                        ApplyGPUSelection(requestedSelection);
                     }
+                    if (_gpuStatusTimer != null)
+                        _gpuStatusTimer.Interval = _renderFilterPending ? 250 : 2000;
                     UpdateGPUInfoLabel();
                     UpdateWaterfallPaletteItems(Display.GPUEffectsEnabled);
                 }
@@ -685,14 +690,16 @@ namespace Thetis
 
         private void ApplyGPUSelection(int selectedIndex)
         {
-            Display.DetectGPUCapabilitiesFromD2D();
             if (selectedIndex < 0) selectedIndex = 0;
+            _pendingGPUSelection = selectedIndex;
+            Display.DetectGPUCapabilitiesFromD2D();
 
             bool auto = selectedIndex == 0;
             bool wantsGPU = selectedIndex != 1;
             if (!GPUDetector.HasDeviceContext && wantsGPU)
             {
                 _renderFilterPending = true;
+                if (_gpuStatusTimer != null) _gpuStatusTimer.Interval = 250;
                 Display.AutoEnableGPU = true;
                 Display.GPUEffectsEnabled = false;
                 UpdateWaterfallPaletteItems(false);
@@ -716,6 +723,8 @@ namespace Thetis
                 effectiveLevel = 0;
 
             _renderFilterPending = false;
+            _pendingGPUSelection = -1;
+            if (_gpuStatusTimer != null) _gpuStatusTimer.Interval = 2000;
             Display.GPUEffectsEnabled = effectiveLevel >= 1 && GPUDetector.HasBuiltInEffects;
             Display.AutoEnableGPU = auto || effectiveLevel >= 1;
             UpdateWaterfallRenderQualityItems(effectiveLevel);
@@ -744,7 +753,6 @@ namespace Thetis
 		{
 			return;
 		}
-		_renderFilterPending = false;
 		_renderQualityItemsUpdating = true;
 		try
 		{
@@ -1068,7 +1076,7 @@ namespace Thetis
 				1 => 0.15f, 
 				2 => 0.3f, 
 				3 => 0.45f, 
-				_ => 0f, 
+				_ => 0f,
 			});
 			Display.TemporalEnabled = num > 0f;
 		}
