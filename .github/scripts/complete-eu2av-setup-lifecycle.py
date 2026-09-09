@@ -202,8 +202,9 @@ if "private void chkAutoThreshold_CheckedChanged" not in setup:
 '''
     setup = setup[:line_start] + handlers + setup[line_start:]
 
-# GPU selection must be deferred, not silently converted to CPU, when Setup is
-# opened before the Direct2D DeviceContext exists.
+# Preserve Auto/explicit GPU intent until the real D2D DeviceContext exists.
+# Use only APIs that exist in the recovered detector: Level is read-only and
+# capability fallback is resolved locally for Setup selection.
 apply_method = r'''        private void ApplyGPUSelection(int selectedIndex)
         {
             Display.DetectGPUCapabilitiesFromD2D();
@@ -216,41 +217,49 @@ apply_method = r'''        private void ApplyGPUSelection(int selectedIndex)
                 _renderFilterPending = true;
                 Display.AutoEnableGPU = true;
                 Display.GPUEffectsEnabled = false;
-                SyncGPUWaterfallPipelineEnabled(0, selectedIndex);
+                UpdateWaterfallPaletteItems(false);
+                SyncGPUWaterfallPipelineEnabled(0);
                 UpdateGPUInfoLabel();
                 return;
             }
 
-            _renderFilterPending = false;
-            int level = 0;
-            switch (selectedIndex)
+            int detectedLevel = Display.GPUDetectionLevel;
+            int requestedLevel = selectedIndex switch
             {
-                case 0:
-                    level = Math.Max(0, Math.Min(2, GPUDetector.CapabilityLevel));
-                    break;
-                case 1:
-                    level = 0;
-                    break;
-                case 2:
-                    level = 1;
-                    break;
-                default:
-                    level = 2;
-                    break;
-            }
+                1 => 0,
+                2 => 1,
+                3 => 2,
+                _ => detectedLevel,
+            };
+            int effectiveLevel = requestedLevel;
+            if (effectiveLevel >= 2 && !GPUDetector.HasCustomShaders)
+                effectiveLevel = GPUDetector.HasBuiltInEffects ? 1 : 0;
+            if (effectiveLevel >= 1 && !GPUDetector.HasBuiltInEffects)
+                effectiveLevel = 0;
 
-            if (level >= 2 && !GPUDetector.HasCustomShaders) level = 1;
-            if (level >= 1 && !GPUDetector.HasBuiltInEffects) level = 0;
-
-            GPUDetector.SetLevel(level);
-            Display.GPUEffectsEnabled = level >= 1 && GPUDetector.HasBuiltInEffects;
-            Display.AutoEnableGPU = auto || level >= 1;
-            SyncGPUWaterfallPipelineEnabled(level, selectedIndex);
+            _renderFilterPending = false;
+            Display.GPUEffectsEnabled = effectiveLevel >= 1 && GPUDetector.HasBuiltInEffects;
+            Display.AutoEnableGPU = auto || effectiveLevel >= 1;
+            UpdateWaterfallRenderQualityItems(effectiveLevel);
+            UpdateWaterfallPaletteItems(effectiveLevel >= 1);
+            SyncGPUWaterfallPipelineEnabled(effectiveLevel);
             UpdateGPUInfoLabel();
+
+            if (GPUDetector.HasDeviceContext)
+            {
+                if (requestedLevel >= 2 && !GPUDetector.HasCustomShaders)
+                {
+                    MessageBox.Show("Custom HLSL shaders (Level 2) are not available.\nUsing Level 1 (Built-in Effects) instead.", "GPU Acceleration", MessageBoxButtons.OK, MessageBoxIcon.Asterisk, MessageBoxDefaultButton.Button1, (MessageBoxOptions)262144);
+                }
+                else if (requestedLevel >= 1 && !GPUDetector.HasBuiltInEffects)
+                {
+                    MessageBox.Show("Built-in D2D Effects are not available on this system.\nUsing CPU post-processing (Level 0).", "GPU Acceleration", MessageBoxButtons.OK, MessageBoxIcon.Asterisk, MessageBoxDefaultButton.Button1, (MessageBoxOptions)262144);
+                }
+            }
         }'''
 setup = replace_method(setup, "private void ApplyGPUSelection(int selectedIndex)", apply_method)
 
-# Consume the deferred selection once D2D becomes live.
+# Consume a pending Auto/Level1/Level2 selection as soon as D2D becomes live.
 timer_method = r'''            _gpuStatusTimer.Tick += delegate
             {
                 try
@@ -262,13 +271,7 @@ timer_method = r'''            _gpuStatusTimer.Tick += delegate
                         ApplyGPUSelection(comboGPU.SelectedIndex);
                     }
                     UpdateGPUInfoLabel();
-                }
-                catch
-                {
-                }
-                try
-                {
-                    PullPaletteTelemetry();
+                    UpdateWaterfallPaletteItems(Display.GPUEffectsEnabled);
                 }
                 catch
                 {
@@ -288,9 +291,14 @@ for token in (
     "Display.GPUWaterfallResamplingMode",
     "_renderFilterPending && GPUDetector.HasDeviceContext",
     "Display.DetectGPUCapabilitiesFromD2D()",
+    "SyncGPUWaterfallPipelineEnabled(effectiveLevel)",
 ):
     if token not in setup:
         raise RuntimeError("Setup integration token missing: " + token)
+if "PullPaletteTelemetry" in setup:
+    raise RuntimeError("Invalid stale palette telemetry call remains")
+if "GPUDetector.SetLevel" in setup:
+    raise RuntimeError("Invalid detector mutator remains")
 write(SETUP, setup)
 
 # Lifecycle bridge: managed D3D11 waterfall surfaces are bound to the D2D
