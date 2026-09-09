@@ -1,0 +1,171 @@
+name: Build GPU Waterfall + Diversity Compact + cmASIO
+
+on:
+  push:
+    branches: [feature/eu2av-gpu-waterfall-sq4kou]
+    paths:
+      - .github/workflows/build-gpu-waterfall-diversity-cmasio.yml
+      - .github/scripts/add-diversity-compact-cmasio.py
+      - .github/scripts/prepare-cmasio-always-visible.py
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-final:
+    runs-on: windows-2025
+    timeout-minutes: 90
+    steps:
+      - name: Checkout exact GPU waterfall branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/eu2av-gpu-waterfall-sq4kou
+          fetch-depth: 0
+
+      - name: Enable long paths
+        shell: pwsh
+        run: git config --global core.longpaths true
+
+      - name: Make cmASIO tab permanently visible
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          python .github/scripts/prepare-cmasio-always-visible.py
+          if($LASTEXITCODE -ne 0){throw 'cmASIO always-visible prepatch failed'}
+
+      - name: Add compact Diversity Phase Gain UI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          python .github/scripts/add-diversity-compact-cmasio.py
+          if($LASTEXITCODE -ne 0){throw 'Diversity compact patch failed'}
+
+      - name: Audit requested UI changes and preserved GPU architecture
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $c='Project Files\Source\Console'
+          $div=Get-Content "$c\DiversityForm.cs" -Raw
+          $setup=Get-Content "$c\setup.cs" -Raw
+          $display=Get-Content "$c\display.cs" -Raw
+          $gpu=Get-Content "$c\Display.GPUWaterfall.cs" -Raw
+          $det=Get-Content "$c\GPUDetector.cs" -Raw
+          foreach($t in @(
+            @($div,'SQ4KOU_DIVERSITY_COMPACT','Diversity compact marker'),
+            @($div,'InitializeSQ4KOUCompactMode\(\)','Diversity compact startup'),
+            @($div,'ClientSize\s*=\s*new Size\(313, 313\)','313x313 radar-only compact size'),
+            @($div,'MouseButtons\.Right','safe right-click compact/full toggle'),
+            @($div,'e\.Clicks\s*>=\s*2','double-click compact/full toggle'),
+            @($div,'RestoreSQ4KOURadarState\(\)','double-click Phase/Gain state restore'),
+            @($div,'EnsurePA3GHMNativePanelSize\(\)','full advanced native panel restore'),
+            @($setup,'SQ4KOU_CMASIO_ALWAYS_VISIBLE','cmASIO always-visible marker'),
+            @($setup,'TabPages\.Add\(tpCMAsio\)','cmASIO tab add/restore'),
+            @($display,'DetectGPUCapabilitiesFromD2D\(\)','GPU D2D detection preserved'),
+            @($display,'ShutdownManagedGPUWaterfallResources\(\)','GPU lifecycle shutdown preserved'),
+            @($gpu,'GPUWaterfallPipeline','managed GPU FFT pipeline preserved'),
+            @($gpu,'WaterfallGPURenderer','managed GPU renderer preserved'),
+            @($det,'RegisterEffect<WaterfallEffectImpl>','Level2 D2D effect preserved')
+          )){
+            if($t[0] -notmatch $t[1]){throw "Missing required element: $($t[2])"}
+          }
+          if($setup -match 'tcAudio\.TabPages\.Remove\(tpCMAsio\)'){throw 'cmASIO tab can still be removed by SetupCMAsio'}
+          foreach($f in @('waterfall_fft_bitreverse_cs.bin','waterfall_fft_stage_ab_cs.bin','waterfall_fft_stage_ba_cs.bin','waterfall_fft_magnitude_cs.bin','waterfall_row_cs.bin','waterfall_postproc.bin','waterfall_resolve_cs.bin')){
+            if(-not (Test-Path "$c\$f")){throw "Recovered GPU shader missing from source: $f"}
+          }
+          Write-Host 'GPU_DIVERSITY_CMASIO_SOURCE_AUDIT=PASS'
+
+      - name: Commit requested source changes
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- 'Project Files/Source/Console/DiversityForm.cs' 'Project Files/Source/Console/setup.cs'
+          if(-not (git diff --cached --quiet)){
+            git commit -m 'Add compact Diversity UI and always-visible cmASIO setup'
+            if($LASTEXITCODE -ne 0){throw 'Source commit failed'}
+          }
+          $sha=(git rev-parse HEAD).Trim()
+          "SOURCE_SHA=$sha" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "SOURCE_SHA=$sha"
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $targets=Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if(-not $targets){choco install wixtoolset -y --no-progress}
+          $targets=Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if(-not $targets){$targets=Get-ChildItem 'C:\Program Files (x86)\WiX Toolset*\Wix.targets' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1}
+          if(-not $targets){throw 'WiX 3.x Wix.targets not found'}
+          "WIX_TARGETS=$($targets.FullName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore packages
+        shell: pwsh
+        run: nuget restore 'Project Files\Source\Thetis_VS2026.sln' -NonInteractive
+
+      - name: Build Release x64 and MSI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $log=Join-Path $env:RUNNER_TEMP 'gpu-diversity-cmasio-build.log'
+          & msbuild 'Project Files\Source\Thetis_VS2026.sln' /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal 2>&1 | Tee-Object -FilePath $log
+          if($LASTEXITCODE -ne 0){throw "MSBuild failed: $LASTEXITCODE"}
+          $errors=Select-String -Path $log -Pattern ': error ' -ErrorAction SilentlyContinue
+          if($errors){$errors | ForEach-Object {Write-Host $_.Line}; throw 'Build log contains compiler/build errors'}
+          Write-Host 'GPU_DIVERSITY_CMASIO_BUILD=PASS'
+
+      - name: Verify GPU deployment and preserve final MSI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          foreach($f in @('waterfall_fft_bitreverse_cs.bin','waterfall_fft_stage_ab_cs.bin','waterfall_fft_stage_ba_cs.bin','waterfall_fft_magnitude_cs.bin','waterfall_row_cs.bin','waterfall_postproc.bin','waterfall_resolve_cs.bin')){
+            $found=Get-ChildItem 'Project Files' -Recurse -File -Filter $f | Where-Object {$_.FullName -match '\\bin\\'} | Select-Object -First 1
+            if(-not $found -or $found.Length -lt 32){throw "Built GPU shader missing/invalid: $f"}
+            Write-Host "SHADER_OK $f $($found.Length)"
+          }
+          $exe=Get-ChildItem 'Project Files' -Recurse -File -Filter Thetis.exe | Where-Object {$_.FullName -match '\\bin\\x64\\Release|\\bin\\Release'} | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if(-not $exe){throw 'Thetis.exe not found'}
+          $msi=Get-ChildItem 'Project Files\bin\Installers\*.msi' -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if(-not $msi -or $msi.Length -lt 1MB){throw 'Valid MSI not produced'}
+          $final=Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-EU2AV-GPU-WATERFALL-DIVERSITY-CMASIO-FINAL-x64.msi'
+          Copy-Item $msi.FullName $final -Force
+          $hash=(Get-FileHash $final -Algorithm SHA256).Hash
+          "FINAL_MSI_PATH=$final" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "MSI_SHA256=$hash" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "FINAL_MSI=$final"
+          Write-Host "MSI_BYTES=$((Get-Item $final).Length)"
+          Write-Host "MSI_SHA256=$hash"
+
+      - name: Push build-verified source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          git reset --hard HEAD
+          git clean -fd
+          git fetch origin feature/eu2av-gpu-waterfall-sq4kou
+          if($LASTEXITCODE -ne 0){throw 'git fetch failed'}
+          git rebase origin/feature/eu2av-gpu-waterfall-sq4kou
+          if($LASTEXITCODE -ne 0){throw 'git rebase failed'}
+          git push origin HEAD:feature/eu2av-gpu-waterfall-sq4kou
+          if($LASTEXITCODE -ne 0){throw 'git push failed'}
+          $local=(git rev-parse HEAD).Trim()
+          $remote=(git ls-remote origin refs/heads/feature/eu2av-gpu-waterfall-sq4kou).Split("`t")[0].Trim()
+          if($local -ne $remote){throw "Remote mismatch local=$local remote=$remote"}
+          "VERIFIED_SOURCE_SHA=$local" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "VERIFIED_SOURCE_SHA=$local"
+
+      - name: Upload final MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-EU2AV-GPU-WATERFALL-DIVERSITY-CMASIO-FINAL
+          path: ${{ env.FINAL_MSI_PATH }}
+          if-no-files-found: error
+          compression-level: 0
