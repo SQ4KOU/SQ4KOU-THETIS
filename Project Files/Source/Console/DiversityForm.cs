@@ -53,6 +53,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
 using System.Collections;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Windows.Forms;
 using System.Timers;
@@ -162,6 +163,28 @@ namespace Thetis
         private int _hover_memory_index = -1;
         private int _mouse_down_memory_index = -1;
 
+
+        // SQ4KOU_DIVERSITY_COMPACT
+        // Compact UI only: DSP/diversity processing remains untouched.
+        private bool _sq4kouCompactMode;
+        private bool _sq4kouCompactInitialised;
+        private Size _sq4kouExpandedClientSize;
+        private Size _sq4kouExpandedMinimumSize;
+        private Rectangle _sq4kouExpandedRadarBounds;
+        private AnchorStyles _sq4kouExpandedRadarAnchor;
+        private readonly Dictionary<Control, bool> _sq4kouExpandedVisibility = new Dictionary<Control, bool>();
+
+        // Preserve the Phase/Gain values when a left double-click is used only to toggle UI.
+        private bool _sq4kouSavedMouseStateValid;
+        private decimal _sq4kouSavedR;
+        private decimal _sq4kouSavedAngle;
+        private decimal _sq4kouSavedR1;
+        private decimal _sq4kouSavedR2;
+        private decimal _sq4kouSavedAngle0;
+        private decimal _sq4kouSavedFineNull;
+        private double _sq4kouSavedLockedR;
+        private double _sq4kouSavedLockedAngle;
+
         public DiversityForm(Console c)
         {
             _initalising = true;
@@ -243,6 +266,123 @@ namespace Thetis
             {
                 DarkMode = console.SetupForm.DarkMode;
             }
+
+            // Start with the unobtrusive Phase/Gain radar only.
+            InitializeSQ4KOUCompactMode();
+        }
+
+        private void InitializeSQ4KOUCompactMode()
+        {
+            if (_sq4kouCompactInitialised || picRadar == null) return;
+
+            _sq4kouExpandedClientSize = this.ClientSize;
+            _sq4kouExpandedMinimumSize = this.MinimumSize;
+            _sq4kouExpandedRadarBounds = picRadar.Bounds;
+            _sq4kouExpandedRadarAnchor = picRadar.Anchor;
+            _sq4kouExpandedVisibility.Clear();
+
+            foreach (Control control in this.Controls)
+            {
+                if (control != picRadar)
+                    _sq4kouExpandedVisibility[control] = control.Visible;
+            }
+
+            _sq4kouCompactInitialised = true;
+            SetSQ4KOUCompactMode(true);
+        }
+
+        private void SetSQ4KOUCompactMode(bool compact)
+        {
+            if (!_sq4kouCompactInitialised || picRadar == null) return;
+            if (_sq4kouCompactMode == compact && compact) return;
+
+            this.SuspendLayout();
+            try
+            {
+                if (compact)
+                {
+                    foreach (KeyValuePair<Control, bool> item in _sq4kouExpandedVisibility)
+                    {
+                        if (item.Key != null && !item.Key.IsDisposed) item.Key.Visible = false;
+                    }
+
+                    // The original radar itself is 305x305. Keep it unscaled in compact mode.
+                    this.MinimumSize = Size.Empty;
+                    picRadar.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+                    picRadar.Location = new Point(4, 4);
+                    picRadar.Size = new Size(305, 305);
+                    this.ClientSize = new Size(313, 313);
+                }
+                else
+                {
+                    // Restore exactly the full layout captured after PA3GHM panel sizing/RestoreForm.
+                    this.MinimumSize = Size.Empty;
+                    this.ClientSize = _sq4kouExpandedClientSize;
+                    picRadar.Anchor = AnchorStyles.Top | AnchorStyles.Left;
+                    picRadar.Bounds = _sq4kouExpandedRadarBounds;
+                    picRadar.Anchor = _sq4kouExpandedRadarAnchor;
+
+                    foreach (KeyValuePair<Control, bool> item in _sq4kouExpandedVisibility)
+                    {
+                        if (item.Key != null && !item.Key.IsDisposed) item.Key.Visible = item.Value;
+                    }
+
+                    this.MinimumSize = _sq4kouExpandedMinimumSize;
+                    EnsurePA3GHMNativePanelSize();
+                }
+
+                _sq4kouCompactMode = compact;
+                picRadar.Invalidate();
+            }
+            finally
+            {
+                this.ResumeLayout(true);
+            }
+        }
+
+        private void CaptureSQ4KOURadarState()
+        {
+            _sq4kouSavedR = udR.Value;
+            _sq4kouSavedAngle = udAngle.Value;
+            _sq4kouSavedR1 = udR1.Value;
+            _sq4kouSavedR2 = udR2.Value;
+            _sq4kouSavedAngle0 = udAngle0.Value;
+            _sq4kouSavedFineNull = udFineNull.Value;
+            _sq4kouSavedLockedR = locked_r;
+            _sq4kouSavedLockedAngle = locked_angle;
+            _sq4kouSavedMouseStateValid = true;
+        }
+
+        private void RestoreSQ4KOURadarState()
+        {
+            if (!_sq4kouSavedMouseStateValid) return;
+
+            bool oldInitialising = _initalising;
+            _initalising = true;
+            try
+            {
+                udR.Value = _sq4kouSavedR;
+                udAngle.Value = _sq4kouSavedAngle;
+                udR1.Value = _sq4kouSavedR1;
+                udR2.Value = _sq4kouSavedR2;
+                udAngle0.Value = _sq4kouSavedAngle0;
+                udFineNull.Value = _sq4kouSavedFineNull;
+                locked_r = _sq4kouSavedLockedR;
+                locked_angle = _sq4kouSavedLockedAngle;
+            }
+            finally
+            {
+                _initalising = oldInitialising;
+            }
+
+            _sq4kouSavedMouseStateValid = false;
+            UpdateDiversity();
+            picRadar.Invalidate();
+        }
+
+        private void ToggleSQ4KOUCompactMode()
+        {
+            SetSQ4KOUCompactMode(!_sq4kouCompactMode);
         }
 
         #region DARK-MODE
@@ -1742,6 +1882,27 @@ namespace Thetis
         {
             if (_initalising) return;
 
+            // Right click is a zero-side-effect compact/full toggle.
+            if (e.Button == MouseButtons.Right)
+            {
+                mouse_down = false;
+                ToggleSQ4KOUCompactMode();
+                return;
+            }
+
+            // Left double-click also toggles. Restore the Phase/Gain snapshot from the
+            // first click so using the UI toggle cannot leave a changed diversity setting.
+            if (e.Button == MouseButtons.Left && e.Clicks >= 2)
+            {
+                mouse_down = false;
+                RestoreSQ4KOURadarState();
+                ToggleSQ4KOUCompactMode();
+                return;
+            }
+
+            if (e.Button == MouseButtons.Left && e.Clicks == 1)
+                CaptureSQ4KOURadarState();
+
             updateHoverMemory(e.Location);
 
             _mouse_down_memory_index = -1;
@@ -1768,6 +1929,12 @@ namespace Thetis
         private void picRadar_MouseUp(object sender, System.Windows.Forms.MouseEventArgs e)
         {
             if (_initalising) return;
+
+            if (e.Button == MouseButtons.Right || (e.Button == MouseButtons.Left && e.Clicks >= 2))
+            {
+                mouse_down = false;
+                return;
+            }
 
             updateHoverMemory(e.Location);
 
@@ -1922,6 +2089,10 @@ namespace Thetis
         private void DiversityForm_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             txtMemoryDataHidden.Text = SerializeObjectToString<memorySettings[]>(_memories);
+
+            // Save the expanded layout, never the temporary 313x313 compact shell.
+            if (_sq4kouCompactInitialised && _sq4kouCompactMode)
+                SetSQ4KOUCompactMode(false);
 
             Common.SaveForm(this, "DiversityForm");
         }

@@ -1,4 +1,4 @@
-//=================================================================
+﻿//=================================================================
 // setup.cs
 //=================================================================
 // Thetis is a C# implementation of a Software Defined Radio.
@@ -32995,13 +32995,14 @@ namespace Thetis
                 ignore |= tmp.Contains(call, StringComparison.OrdinalIgnoreCase);
             }
 
-            #if !DEBUG
-            if (portaudio_issue || (!cmasio_config_flag && !ignore))
+            // SQ4KOU_CMASIO_ALWAYS_VISIBLE: Setup > Audio > cmASIO is always visible.
+            // Legacy visibility inputs are deliberately ignored for hiding; engine state is unchanged.
+            if (ignore || portaudio_issue || cmasio_config_flag)
             {
-                tcAudio.TabPages.Remove(tpCMAsio);
-                return;
+                // Visibility only: no cmASIO activation or audio-path change here.
             }
-            #endif
+            if (!tcAudio.TabPages.Contains(tpCMAsio))
+                tcAudio.TabPages.Add(tpCMAsio);
 
             _ignore_cmasio_settings_change = true; // prevent any changes here from writing to registry
 
