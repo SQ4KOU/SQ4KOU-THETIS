@@ -820,11 +820,20 @@ namespace Thetis
             GPUWaterfallPipeline pipeline, bool gpuRowReady, float gpuCalOffset)
         {
             int index = rx - 1;
-            if (index < 0 || index > 1 || localMox || !ManagedGPUFFTRequested || !IsGPUWaterfallPaletteScheme(scheme))
+            if (index < 0 || index > 1 || !ManagedGPUFFTRequested || !IsGPUWaterfallPaletteScheme(scheme))
             {
                 if (index >= 0 && index < 2) _gpuRendererHasData[index] = false;
                 return false;
             }
+
+            // TX/MOX is a temporary renderer-path switch, not a waterfall-history invalidation.
+            // Return to the TX/CPU path without dropping the persistent GPU texture state so
+            // the first RX row after unkey does not clear the accumulated waterfall history.
+            if (localMox)
+            {
+                return false;
+            }
+
             WaterfallGPURenderer renderer = EnsureGPUWaterfallRenderer(rx, width, height);
             if (renderer == null || !renderer.IsInitialized || pipeline == null || !pipeline.IsInitialized)
             {
