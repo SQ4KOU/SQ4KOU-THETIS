@@ -1,4 +1,4 @@
-name: Build GPU Waterfall + Diversity Compact + cmASIO + DirectX Fallback
+name: Build native Final palettes and Setup Display
 
 on:
   push:
@@ -6,6 +6,8 @@ on:
     paths:
       - .github/workflows/build-gpu-waterfall-diversity-cmasio.yml
       - .github/scripts/fix-gpu-waterfall-palettes.py
+      - .github/scripts/test-final-palettes.ps1
+      - Project Files/Source/Console/**
   workflow_dispatch:
 
 permissions:
@@ -19,19 +21,19 @@ jobs:
       - name: Checkout exact GPU waterfall branch
         uses: actions/checkout@v4
         with:
-          ref: feature/eu2av-gpu-waterfall-sq4kou
+          ref: ${{ github.sha }}
           fetch-depth: 0
 
       - name: Enable long paths
         shell: pwsh
         run: git config --global core.longpaths true
 
-      - name: Apply deterministic GPU palette fix
+      - name: Verify native Final palettes and protected GPU source
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
           python .github/scripts/fix-gpu-waterfall-palettes.py
-          if($LASTEXITCODE -ne 0){throw 'GPU palette patch failed'}
+          if($LASTEXITCODE -ne 0){throw 'Native Final palette source gate failed'}
 
       - name: Audit current SQ4KOU GPU source
         shell: pwsh
@@ -49,8 +51,8 @@ jobs:
             @($gpu,'WaterfallGPURenderer','managed GPU renderer'),
             @($gpu,'SQ4KOU_GPU_PALETTE_NORMALIZED','normalized GPU palette marker'),
             @($gpu,'_gpuPaletteUpload\[n\]\s*=\s*r\s*/\s*255f','normalized RGB LUT'),
-            @($gpu,'ColorScheme\.enhanced','Enhanced GPU palette'),
-            @($gpu,'ColorScheme\.BLACKWHITE','BlackWhite GPU palette'),
+            @($gpu,'ColorScheme\.Enhanced256','Native Enhanced256 GPU palette'),
+            @($gpu,'ColorScheme\.Grayscale256','Native Grayscale256 GPU palette'),
             @($gpu,'B8G8R8A8_UNorm','8-bit GPU format'),
             @($gpu,'R16G16B16A16_Float','16-bit GPU format'),
             @($setup,'comboColorPalette\.Text == "Enhanced 256"','RX1 Enhanced 256 mapping'),
@@ -82,6 +84,10 @@ jobs:
           }
           Write-Host 'SQ4KOU_GPU_PALETTE_SOURCE_AUDIT=PASS'
           Write-Host "SOURCE_SHA_BEFORE_PATCH_COMMIT=$((git rev-parse HEAD).Trim())"
+
+      - name: Compare compiled palettes against recovered Final
+        shell: pwsh
+        run: .github/scripts/test-final-palettes.ps1
 
       - name: Setup NuGet
         uses: NuGet/setup-nuget@v2
@@ -116,63 +122,84 @@ jobs:
           "BUILD_LOG=$log" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           Write-Host 'SQ4KOU_GPU_PALETTE_BUILD=PASS'
 
-      - name: Verify GPU deployment and preserve test MSI
+      - name: Validate seven embedded shaders in built Thetis.exe
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $expected = @(
+            'Thetis.waterfall_postproc.bin',
+            'Thetis.waterfall_row_cs.bin',
+            'Thetis.waterfall_fft_bitreverse_cs.bin',
+            'Thetis.waterfall_fft_stage_ab_cs.bin',
+            'Thetis.waterfall_fft_stage_ba_cs.bin',
+            'Thetis.waterfall_fft_magnitude_cs.bin',
+            'Thetis.waterfall_resolve_cs.bin'
+          )
+          $exe = Get-ChildItem 'Project Files\bin' -Recurse -Filter Thetis.exe -ErrorAction Stop | Where-Object { $_.FullName -match '\\x64\\Release\\' } | Sort-Object Length -Descending | Select-Object -First 1
+          if (-not $exe) { throw 'Built x64 Release Thetis.exe not found' }
+          $asm = [System.Reflection.Assembly]::ReflectionOnlyLoadFrom($exe.FullName)
+          $resources = @($asm.GetManifestResourceNames())
+          Write-Host "Built EXE: $($exe.FullName)"
+          $resources | Where-Object { $_ -like 'Thetis.waterfall*' } | Sort-Object | ForEach-Object { Write-Host "  $_" }
+          $missing = @($expected | Where-Object { $_ -notin $resources })
+          if ($missing.Count -ne 0) { throw ('Built EXE missing embedded GPU shaders: ' + ($missing -join ', ')) }
+          if (($expected | Where-Object { $_ -in $resources }).Count -ne 7) { throw 'Built EXE embedded shader count is not exactly seven' }
+          "BUILT_EXE=$($exe.FullName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Locate MSI and extract administrative image
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $msi = Get-ChildItem 'Project Files\bin\Installers\*.msi' -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $msi -or $msi.Length -lt 1MB) { throw 'Valid MSI was not produced' }
+          $extract = Join-Path $env:RUNNER_TEMP 'sq4kou-msi-extract'
+          Remove-Item $extract -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path $extract | Out-Null
+          $p = Start-Process msiexec.exe -ArgumentList @('/a', "`"$($msi.FullName)`"", '/qn', "TARGETDIR=`"$extract`"") -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "MSI administrative extraction failed: $($p.ExitCode)" }
+          "MSI_PATH=$($msi.FullName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "MSI_EXTRACT=$extract" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Validate seven embedded shaders in Thetis.exe extracted from MSI
+        shell: powershell
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $expected = @(
+            'Thetis.waterfall_postproc.bin',
+            'Thetis.waterfall_row_cs.bin',
+            'Thetis.waterfall_fft_bitreverse_cs.bin',
+            'Thetis.waterfall_fft_stage_ab_cs.bin',
+            'Thetis.waterfall_fft_stage_ba_cs.bin',
+            'Thetis.waterfall_fft_magnitude_cs.bin',
+            'Thetis.waterfall_resolve_cs.bin'
+          )
+          $exe = Get-ChildItem $env:MSI_EXTRACT -Recurse -Filter Thetis.exe -ErrorAction Stop | Sort-Object Length -Descending | Select-Object -First 1
+          if (-not $exe) { throw 'Thetis.exe not found in extracted MSI' }
+          $asm = [System.Reflection.Assembly]::ReflectionOnlyLoadFrom($exe.FullName)
+          $resources = @($asm.GetManifestResourceNames())
+          Write-Host "MSI EXE: $($exe.FullName)"
+          $resources | Where-Object { $_ -like 'Thetis.waterfall*' } | Sort-Object | ForEach-Object { Write-Host "  $_" }
+          $missing = @($expected | Where-Object { $_ -notin $resources })
+          if ($missing.Count -ne 0) { throw ('MSI EXE missing embedded GPU shaders: ' + ($missing -join ', ')) }
+          if (($expected | Where-Object { $_ -in $resources }).Count -ne 7) { throw 'MSI EXE embedded shader count is not exactly seven' }
+
+      - name: Preserve native Final palette and Setup MSI
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
-          foreach($f in @(
-            'waterfall_fft_bitreverse_cs.bin',
-            'waterfall_fft_stage_ab_cs.bin',
-            'waterfall_fft_stage_ba_cs.bin',
-            'waterfall_fft_magnitude_cs.bin',
-            'waterfall_row_cs.bin',
-            'waterfall_postproc.bin',
-            'waterfall_resolve_cs.bin'
-          )){
-            $found=Get-ChildItem 'Project Files' -Recurse -File -Filter $f | Where-Object {$_.FullName -match '\\bin\\'} | Select-Object -First 1
-            if(-not $found -or $found.Length -lt 32){throw "Built GPU shader missing/invalid: $f"}
-            Write-Host "SHADER_OK $f $($found.Length)"
-          }
-          $exe=Get-ChildItem 'Project Files' -Recurse -File -Filter Thetis.exe | Where-Object {$_.FullName -match '\\bin\\x64\\Release|\\bin\\Release'} | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-          if(-not $exe){throw 'Thetis.exe not found'}
-          $msi=Get-ChildItem 'Project Files\bin\Installers\*.msi' -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
-          if(-not $msi -or $msi.Length -lt 1MB){throw 'Valid MSI not produced'}
-          $final=Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-GPU-WATERFALL-PALETTE-FIX-TEST-x64.msi'
-          Copy-Item $msi.FullName $final -Force
+          $final=Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-NATIVE-FINAL-PALETTES-SETUP-TEST-x64.msi'
+          Copy-Item $env:MSI_PATH $final -Force
           $hash=(Get-FileHash $final -Algorithm SHA256).Hash
           "FINAL_MSI_PATH=$final" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           "MSI_SHA256=$hash" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          Write-Host "FINAL_MSI=$final"
+          Write-Host "SOURCE_SHA=${{ github.sha }}"
           Write-Host "MSI_BYTES=$((Get-Item $final).Length)"
           Write-Host "MSI_SHA256=$hash"
-
-      - name: Commit build-verified palette source fix
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -- 'Project Files/Source/Console/Display.GPUWaterfall.cs' 'Project Files/Source/Console/setup.cs'
-          git diff --cached --quiet
-          $diffExit=$LASTEXITCODE
-          if($diffExit -eq 1){
-            git commit -m 'Fix GPU waterfall palette LUT and 256 mappings'
-            if($LASTEXITCODE -ne 0){throw 'Palette source commit failed'}
-            git push origin HEAD:feature/eu2av-gpu-waterfall-sq4kou
-            if($LASTEXITCODE -ne 0){throw 'Palette source push failed'}
-          } elseif($diffExit -ne 0){
-            throw "git diff failed: $diffExit"
-          } else {
-            Write-Host 'Palette source already committed; no source commit needed.'
-          }
-          $sha=(git rev-parse HEAD).Trim()
-          "VERIFIED_SOURCE_SHA=$sha" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
-          Write-Host "VERIFIED_SOURCE_SHA=$sha"
 
       - name: Upload test MSI
         uses: actions/upload-artifact@v4
         with:
-          name: SQ4KOU-THETIS-GPU-WATERFALL-PALETTE-FIX-TEST-x64
+          name: SQ4KOU-THETIS-NATIVE-FINAL-PALETTES-SETUP-TEST-x64
           path: ${{ env.FINAL_MSI_PATH }}
           if-no-files-found: error
           compression-level: 0
@@ -180,7 +207,7 @@ jobs:
       - name: Upload build log
         uses: actions/upload-artifact@v4
         with:
-          name: SQ4KOU-THETIS-GPU-WATERFALL-PALETTE-FIX-BUILD-LOG
+          name: SQ4KOU-THETIS-NATIVE-FINAL-PALETTES-SETUP-BUILD-LOG
           path: ${{ env.BUILD_LOG }}
           if-no-files-found: error
           compression-level: 6

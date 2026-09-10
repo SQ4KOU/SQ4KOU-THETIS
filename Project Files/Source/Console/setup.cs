@@ -12132,15 +12132,14 @@ namespace Thetis
                 console.RX1ColourScheme = ColorScheme.DeepBlue;
                 clrbtnWaterfallLow.Visible = false;
             }
-            // SQ4KOU_GPU_PALETTE_256_ALIAS: recovered 2.10.3.16 Final UI names mapped to existing schemes.
             else if (comboColorPalette.Text == "Enhanced 256")
             {
-                console.RX1ColourScheme = ColorScheme.enhanced;
+                console.RX1ColourScheme = ColorScheme.Enhanced256;
                 clrbtnWaterfallLow.Visible = false;
             }
             else if (comboColorPalette.Text == "BlackWhite 256")
             {
-                console.RX1ColourScheme = ColorScheme.BLACKWHITE;
+                console.RX1ColourScheme = ColorScheme.Grayscale256;
                 clrbtnWaterfallLow.Visible = false;
             }
         }
@@ -12228,12 +12227,12 @@ namespace Thetis
             }
             else if (comboRX2ColorPalette.Text == "Enhanced 256")
             {
-                console.RX2ColourScheme = ColorScheme.enhanced;
+                console.RX2ColourScheme = ColorScheme.Enhanced256;
                 clrbtnRX2WaterfallLow.Visible = false;
             }
             else if (comboRX2ColorPalette.Text == "BlackWhite 256")
             {
-                console.RX2ColourScheme = ColorScheme.BLACKWHITE;
+                console.RX2ColourScheme = ColorScheme.Grayscale256;
                 clrbtnRX2WaterfallLow.Visible = false;
             }
         }
@@ -34463,12 +34462,12 @@ namespace Thetis
             }
             else if (comboColorPalette_tx.Text == "Enhanced 256")
             {
-                console.TXColourScheme = ColorScheme.enhanced;
+                console.TXColourScheme = ColorScheme.Enhanced256;
                 clrbtnWaterfallLow_tx.Visible = false;
             }
             else if (comboColorPalette_tx.Text == "BlackWhite 256")
             {
-                console.TXColourScheme = ColorScheme.BLACKWHITE;
+                console.TXColourScheme = ColorScheme.Grayscale256;
                 clrbtnWaterfallLow_tx.Visible = false;
             }
         }
@@ -36138,145 +36137,116 @@ namespace Thetis
         // Yurij-eu2av - 2026-07-04: Waterfall Quality controls — palette resolution,
         // dither, gamma. Built programmatically in the "DirectX Display Settings"
         // group (grpDisplayDriverEngine) on the Display tab, under chkDpiAwareness.
-        private void InitWaterfallQualityControls()
-        {
-            if (comboPaletteRes != null) return; // already built
+	private void InitWaterfallQualityControls()
+	{
+		if (comboPaletteRes == null)
+		{
+			GroupBox groupBox = grpDisplayDriverEngine;
+			if (groupBox != null)
+			{
+				int num = chkDpiAwareness.Location.Y + chkDpiAwareness.Height + 8;
+				lblPaletteRes = new LabelTS();
+				lblPaletteRes.Text = "Quality:";
+				lblPaletteRes.Location = new Point(8, num + 3);
+				lblPaletteRes.Size = new Size(50, 16);
+				groupBox.Controls.Add(lblPaletteRes);
+				lblPaletteRes.BringToFront();
+				comboPaletteRes = new ComboBoxTS();
+				comboPaletteRes.Name = "comboPaletteRes";
+				comboPaletteRes.DropDownStyle = ComboBoxStyle.DropDownList;
+				comboPaletteRes.Items.AddRange(new object[4] { "Classic", "Vivid", "Sharp", "Ultra" });
+				comboPaletteRes.Location = new Point(60, num);
+				comboPaletteRes.Size = new Size(80, 21);
+				comboPaletteRes.SelectedIndex = 0;
+				comboPaletteRes.SelectedIndexChanged += comboPaletteRes_SelectedIndexChanged;
+				groupBox.Controls.Add(comboPaletteRes);
+				comboPaletteRes.BringToFront();
+				int num2 = num + 24;
+				chkWFDither = new CheckBoxTS();
+				chkWFDither.Name = "chkWFDither";
+				chkWFDither.Text = "Dither";
+				chkWFDither.AutoSize = true;
+				chkWFDither.Location = new Point(8, num2);
+				chkWFDither.Checked = false;
+				chkWFDither.CheckedChanged += chkWFDither_CheckedChanged;
+				groupBox.Controls.Add(chkWFDither);
+				chkWFDither.BringToFront();
+				int num3 = num2 + 24;
+				lblWFGamma = new LabelTS();
+				lblWFGamma.Text = "Gamma:";
+				lblWFGamma.Location = new Point(8, num3 + 3);
+				lblWFGamma.Size = new Size(50, 16);
+				groupBox.Controls.Add(lblWFGamma);
+				lblWFGamma.BringToFront();
+				tbWFGamma = new TrackBarTS();
+				tbWFGamma.Name = "tbWFGamma";
+				tbWFGamma.Minimum = 50;
+				tbWFGamma.Maximum = 200;
+				tbWFGamma.Value = 100;
+				tbWFGamma.TickFrequency = 25;
+				tbWFGamma.Location = new Point(60, num3 - 2);
+				tbWFGamma.Size = new Size(60, 28);
+				tbWFGamma.Scroll += tbWFGamma_Scroll;
+				groupBox.Controls.Add(tbWFGamma);
+				tbWFGamma.BringToFront();
+				lblWFGammaVal = new LabelTS();
+				lblWFGammaVal.Text = "1.00";
+				lblWFGammaVal.Location = new Point(122, num3 + 3);
+				lblWFGammaVal.Size = new Size(24, 16);
+				groupBox.Controls.Add(lblWFGammaVal);
+				lblWFGammaVal.BringToFront();
+				int num4 = num3 + 32;
+				lblColorDepth = new LabelTS();
+				lblColorDepth.Text = "Depth:";
+				lblColorDepth.Location = new Point(8, num4 + 3);
+				lblColorDepth.Size = new Size(50, 16);
+				groupBox.Controls.Add(lblColorDepth);
+				lblColorDepth.BringToFront();
+				comboColorDepth = new ComboBoxTS();
+				comboColorDepth.Name = "comboColorDepth";
+				comboColorDepth.DropDownStyle = ComboBoxStyle.DropDownList;
+				comboColorDepth.Items.AddRange(new object[2] { "8-bit", "16-bit Float" });
+				comboColorDepth.Location = new Point(60, num4);
+				comboColorDepth.Size = new Size(86, 21);
+				comboColorDepth.SelectedIndex = 1;
+				comboColorDepth.SelectedIndexChanged += comboColorDepth_SelectedIndexChanged;
+				groupBox.Controls.Add(comboColorDepth);
+				comboColorDepth.BringToFront();
+				// InitGPUWaterfallSetupUI creates these after InitWaterfallTab, as before.
+			}
+		}
+	}
 
-            // EU2AV supplied the complete WaterfallEnhancer backend, but the original
-            // programmatic controls were appended to the narrow DirectX group and could
-            // be clipped below its visible area. Put the complete control set in the
-            // unused Display/General area between Multimeter and Spectral Warning LEDs.
-            Control parent = grpDisplayDriverEngine.Parent;
-            if (parent == null) return;
+	private void comboPaletteRes_SelectedIndexChanged(object sender, EventArgs e)
+	{
+		if (!initializing)
+		{
+			WaterfallEnhancer.QualityLevel qualityLevel = comboPaletteRes.SelectedIndex switch
+			{
+				1 => WaterfallEnhancer.QualityLevel.Vivid,
+				2 => WaterfallEnhancer.QualityLevel.Sharp,
+				3 => WaterfallEnhancer.QualityLevel.Ultra,
+				_ => WaterfallEnhancer.QualityLevel.Classic,
+			};
+			WaterfallEnhancer.SetQuality(qualityLevel);
+			WaterfallEnhancer.SetDither(qualityLevel == WaterfallEnhancer.QualityLevel.Ultra);
+		}
+	}
 
-            GroupBoxTS grp = new GroupBoxTS();
-            grp.Name = "grpWaterfallQuality";
-            grp.Text = "Waterfall Quality";
-            grp.Location = new System.Drawing.Point(
-                grpSpectralWarningLeds.Location.X,
-                grpDisplayMultimeter.Location.Y);
-            grp.Size = new System.Drawing.Size(
-                grpSpectralWarningLeds.Width,
-                grpDisplayMultimeter.Height);
-            parent.Controls.Add(grp);
-            grp.BringToFront();
+	private void chkWFDither_CheckedChanged(object sender, EventArgs e)
+	{
+		if (!initializing)
+		{
+			WaterfallEnhancer.SetDither(chkWFDither.Checked);
+		}
+	}
 
-            int y = 21;
-
-            lblPaletteRes = new LabelTS();
-            lblPaletteRes.Text = "Quality:";
-            lblPaletteRes.Location = new System.Drawing.Point(8, y + 3);
-            lblPaletteRes.Size = new System.Drawing.Size(52, 16);
-            grp.Controls.Add(lblPaletteRes);
-
-            comboPaletteRes = new ComboBoxTS();
-            comboPaletteRes.Name = "comboPaletteRes";
-            comboPaletteRes.DropDownStyle = ComboBoxStyle.DropDownList;
-            comboPaletteRes.Items.AddRange(new object[] { "Classic", "Vivid", "Sharp", "Ultra" });
-            comboPaletteRes.Location = new System.Drawing.Point(62, y);
-            comboPaletteRes.Size = new System.Drawing.Size(94, 21);
-            comboPaletteRes.SelectedIndex = 0;
-            comboPaletteRes.SelectedIndexChanged += new EventHandler(comboPaletteRes_SelectedIndexChanged);
-            toolTip1.SetToolTip(comboPaletteRes,
-                "Waterfall post-processing: Classic, Vivid, Sharp or Ultra.");
-            grp.Controls.Add(comboPaletteRes);
-
-            int y2 = y + 27;
-            chkWFDither = new CheckBoxTS();
-            chkWFDither.Name = "chkWFDither";
-            chkWFDither.Text = "Dither";
-            chkWFDither.AutoSize = true;
-            chkWFDither.Location = new System.Drawing.Point(8, y2);
-            chkWFDither.Checked = false;
-            chkWFDither.CheckedChanged += new EventHandler(chkWFDither_CheckedChanged);
-            toolTip1.SetToolTip(chkWFDither,
-                "Adds dithering to reduce visible colour banding (Ultra enables it automatically).");
-            grp.Controls.Add(chkWFDither);
-
-            int y3 = y2 + 25;
-            lblWFGamma = new LabelTS();
-            lblWFGamma.Text = "Gamma:";
-            lblWFGamma.Location = new System.Drawing.Point(8, y3 + 3);
-            lblWFGamma.Size = new System.Drawing.Size(48, 16);
-            grp.Controls.Add(lblWFGamma);
-
-            tbWFGamma = new TrackBarTS();
-            tbWFGamma.Name = "tbWFGamma";
-            tbWFGamma.Minimum = 50;
-            tbWFGamma.Maximum = 200;
-            tbWFGamma.Value = 100;
-            tbWFGamma.TickFrequency = 25;
-            tbWFGamma.Location = new System.Drawing.Point(55, y3 - 2);
-            tbWFGamma.Size = new System.Drawing.Size(73, 28);
-            tbWFGamma.Scroll += new EventHandler(tbWFGamma_Scroll);
-            toolTip1.SetToolTip(tbWFGamma,
-                "Waterfall gamma curve, 0.50 to 2.00. 1.00 is neutral.");
-            grp.Controls.Add(tbWFGamma);
-
-            lblWFGammaVal = new LabelTS();
-            lblWFGammaVal.Text = "1.00";
-            lblWFGammaVal.Location = new System.Drawing.Point(130, y3 + 3);
-            lblWFGammaVal.Size = new System.Drawing.Size(32, 16);
-            grp.Controls.Add(lblWFGammaVal);
-
-            int y4 = y3 + 32;
-            lblColorDepth = new LabelTS();
-            lblColorDepth.Text = "Depth:";
-            lblColorDepth.Location = new System.Drawing.Point(8, y4 + 3);
-            lblColorDepth.Size = new System.Drawing.Size(52, 16);
-            grp.Controls.Add(lblColorDepth);
-
-            comboColorDepth = new ComboBoxTS();
-            comboColorDepth.Name = "comboColorDepth";
-            comboColorDepth.DropDownStyle = ComboBoxStyle.DropDownList;
-            comboColorDepth.Items.AddRange(new object[] { "8-bit", "16-bit Float" });
-            comboColorDepth.Location = new System.Drawing.Point(62, y4);
-            comboColorDepth.Size = new System.Drawing.Size(94, 21);
-            comboColorDepth.SelectedIndex = 0;
-            comboColorDepth.SelectedIndexChanged += new EventHandler(comboColorDepth_SelectedIndexChanged);
-            toolTip1.SetToolTip(comboColorDepth,
-                "Waterfall render surface: classic 8-bit or 16-bit floating point. Change is live.");
-            grp.Controls.Add(comboColorDepth);
-
-            // The RX1/RX2/TX palette combos are intentionally compact in the legacy
-            // layout. Widen the drop-down itself so the new Console 256 / Thermal 256 /
-            // DeepBlue 256 names are always readable without disturbing adjacent controls.
-            if (comboColorPalette != null) comboColorPalette.DropDownWidth = 125;
-            if (comboRX2ColorPalette != null) comboRX2ColorPalette.DropDownWidth = 125;
-            if (comboColorPalette_tx != null) comboColorPalette_tx.DropDownWidth = 125;
-        }
-
-        private void comboPaletteRes_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (initializing) return;
-            // Yurij-eu2av - 2026-07-04: Quality levels drive saturation/contrast/dither
-            // in the float pipeline. Effect is immediate and visible on ALL schemes.
-            WaterfallEnhancer.QualityLevel ql;
-            switch (comboPaletteRes.SelectedIndex)
-            {
-                default:
-                case 0: ql = WaterfallEnhancer.QualityLevel.Classic; break;
-                case 1: ql = WaterfallEnhancer.QualityLevel.Vivid;   break;
-                case 2: ql = WaterfallEnhancer.QualityLevel.Sharp;   break;
-                case 3: ql = WaterfallEnhancer.QualityLevel.Ultra;   break;
-            }
-            WaterfallEnhancer.SetQuality(ql);
-            // Ultra also enables dither for smoother gradients.
-            WaterfallEnhancer.SetDither(ql == WaterfallEnhancer.QualityLevel.Ultra);
-        }
-
-        private void chkWFDither_CheckedChanged(object sender, EventArgs e)
-        {
-            if (initializing) return;
-            WaterfallEnhancer.SetDither(chkWFDither.Checked);
-        }
-
-        private void tbWFGamma_Scroll(object sender, EventArgs e)
-        {
-            float g = (float)tbWFGamma.Value / 100f;
-            WaterfallEnhancer.SetGamma(g);
-            lblWFGammaVal.Text = g.ToString("0.00");
-        }
+	private void tbWFGamma_Scroll(object sender, EventArgs e)
+	{
+		float gamma = (float)tbWFGamma.Value / 100f;
+		WaterfallEnhancer.SetGamma(gamma);
+		lblWFGammaVal.Text = gamma.ToString("0.00");
+	}
 
         // Yurij-eu2av - 2026-07-04: Color Depth change handler.
         // Persists the choice (via the standard control-name keyed save/load)
@@ -36284,75 +36254,187 @@ namespace Thetis
         // format. Now backed by a Direct2D 1.1 DeviceContext, so 16-bit float
         // is real (no restart). If the GPU rejects the format, RebuildForColorDepth
         // falls back to 8-bit and we resync the combo.
-        private void comboColorDepth_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            if (initializing) return;
-            WaterfallEnhancer.ColorDepth requested;
-            switch (comboColorDepth.SelectedIndex)
-            {
-                default:
-                case 0: requested = WaterfallEnhancer.ColorDepth.Bit8;  break;
-                case 1: requested = WaterfallEnhancer.ColorDepth.Bit16; break;
-            }
-            WaterfallEnhancer.SetColorDepth(requested);
+	private void comboColorDepth_SelectedIndexChanged(object sender, EventArgs e)
+	{
+		if (!initializing)
+		{
+			int selectedIndex = comboColorDepth.SelectedIndex;
+			WaterfallEnhancer.ColorDepth colorDepth = ((selectedIndex != 0 && selectedIndex == 1) ? WaterfallEnhancer.ColorDepth.Bit16 : WaterfallEnhancer.ColorDepth.Bit8);
+			WaterfallEnhancer.SetColorDepth(colorDepth);
+			DoColorDepthRebuild(colorDepth);
+		}
+	}
 
-            // Live rebuild — no restart. Done on the rendering thread's lock.
-            bool ok = Display.RebuildForColorDepth();
-
-            // If the rebuild fell back to 8-bit (GPU doesn't support the format),
-            // reflect that in the combo without re-entering the handler.
-            if (!ok || WaterfallEnhancer.Depth != requested)
-            {
-                initializing = true;
-                comboColorDepth.SelectedIndex = 0; // back to 8-bit
-                initializing = false;
-                MessageBox.Show(
-                    "This GPU/driver does not support " + requested + " as a render target.\n" +
-                    "Color depth reverted to 8-bit.",
-                    "Color Depth", MessageBoxButtons.OK, MessageBoxIcon.Warning,
-                    MessageBoxDefaultButton.Button1, Common.MB_TOPMOST);
-            }
-        }
+	private void DoColorDepthRebuild(WaterfallEnhancer.ColorDepth requested)
+	{
+		if (!Display.RebuildForColorDepth() || WaterfallEnhancer.Depth != requested)
+		{
+			initializing = true;
+			comboColorDepth.SelectedIndex = 0;
+			initializing = false;
+			MessageBox.Show("This GPU/driver does not support " + requested.ToString() + " as a render target.\nColor depth reverted to 8-bit.", "Color Depth", MessageBoxButtons.OK, MessageBoxIcon.Exclamation, MessageBoxDefaultButton.Button1, (MessageBoxOptions)262144);
+		}
+		else
+		{
+			UpdateGPUInfoLabel();
+		}
+		UpdateWaterfallRenderQualityHint();
+	}
 
         // Yurij-eu2av - 2026-07-04: apply control values to WaterfallEnhancer
         // after getOptions restored them (handlers skip during initializing).
-        private void SyncWaterfallEnhancerFromControls()
-        {
-            if (comboPaletteRes != null && comboPaletteRes.SelectedIndex >= 0)
-            {
-                // Yurij-eu2av - 2026-07-04: restore Quality level after getOptions.
-                WaterfallEnhancer.QualityLevel ql;
-                switch (comboPaletteRes.SelectedIndex)
-                {
-                    default:
-                    case 0: ql = WaterfallEnhancer.QualityLevel.Classic; break;
-                    case 1: ql = WaterfallEnhancer.QualityLevel.Vivid;   break;
-                    case 2: ql = WaterfallEnhancer.QualityLevel.Sharp;   break;
-                    case 3: ql = WaterfallEnhancer.QualityLevel.Ultra;   break;
-                }
-                WaterfallEnhancer.SetQuality(ql);
-                WaterfallEnhancer.SetDither(ql == WaterfallEnhancer.QualityLevel.Ultra);
-            }
-            if (chkWFDither != null) WaterfallEnhancer.SetDither(chkWFDither.Checked);
-            if (tbWFGamma != null)
-            {
-                float g = (float)tbWFGamma.Value / 100f;
-                WaterfallEnhancer.SetGamma(g);
-                if (lblWFGammaVal != null) lblWFGammaVal.Text = g.ToString("0.00");
-            }
-            // Yurij-eu2av - 2026-07-04: restore the active color depth. Must happen
-            // before initDX2D so the swap chain is created with the right format.
-            if (comboColorDepth != null && comboColorDepth.SelectedIndex >= 0)
-            {
-                switch (comboColorDepth.SelectedIndex)
-                {
-                    default:
-                    case 0: WaterfallEnhancer.SetColorDepth(WaterfallEnhancer.ColorDepth.Bit8);  break;
-                    case 1: WaterfallEnhancer.SetColorDepth(WaterfallEnhancer.ColorDepth.Bit16); break;
-                }
-                WaterfallPixelWriter.UpdateFormat(); // sync PixelSize/DxgiFormat
-            }
-        }
+	private void SyncWaterfallEnhancerFromControls()
+	{
+		if (comboPaletteRes != null && comboPaletteRes.SelectedIndex >= 0)
+		{
+			WaterfallEnhancer.QualityLevel qualityLevel = comboPaletteRes.SelectedIndex switch
+			{
+				1 => WaterfallEnhancer.QualityLevel.Vivid,
+				2 => WaterfallEnhancer.QualityLevel.Sharp,
+				3 => WaterfallEnhancer.QualityLevel.Ultra,
+				_ => WaterfallEnhancer.QualityLevel.Classic,
+			};
+			WaterfallEnhancer.SetQuality(qualityLevel);
+			WaterfallEnhancer.SetDither(qualityLevel == WaterfallEnhancer.QualityLevel.Ultra);
+		}
+		if (chkWFDither != null)
+		{
+			WaterfallEnhancer.SetDither(chkWFDither.Checked);
+		}
+		if (tbWFGamma != null)
+		{
+			float gamma = (float)tbWFGamma.Value / 100f;
+			WaterfallEnhancer.SetGamma(gamma);
+			if (lblWFGammaVal != null)
+			{
+				lblWFGammaVal.Text = gamma.ToString("0.00");
+			}
+		}
+		if (comboColorDepth != null && comboColorDepth.SelectedIndex >= 0)
+		{
+			int selectedIndex = comboColorDepth.SelectedIndex;
+			if (selectedIndex == 0 || selectedIndex != 1)
+			{
+				WaterfallEnhancer.SetColorDepth(WaterfallEnhancer.ColorDepth.Bit8);
+			}
+			else
+			{
+				WaterfallEnhancer.SetColorDepth(WaterfallEnhancer.ColorDepth.Bit16);
+			}
+			WaterfallPixelWriter.UpdateFormat();
+		}
+		if (comboNFMode != null && comboNFMode.SelectedIndex >= 0)
+		{
+			Display.NFMode = ((comboNFMode.SelectedIndex == 1) ? NoiseFloorPro.DetectionMode.Percentile : NoiseFloorPro.DetectionMode.Average);
+		}
+		UpdateNFLowHighEnabledState();
+		if (udNFLowPct != null)
+		{
+			Display.NFLowPct = (float)udNFLowPct.Value;
+		}
+		if (udNFHighPct != null)
+		{
+			Display.NFHighPct = (float)udNFHighPct.Value;
+		}
+		if (chkAutoHigh != null)
+		{
+			Display.AutoHighEnabledRX1 = chkAutoHigh.Checked;
+			Display.AutoHighEnabledRX2 = chkAutoHigh.Checked;
+		}
+		if (udAutoHighMargin != null)
+		{
+			Display.AutoHighMarginDb = (float)udAutoHighMargin.Value;
+		}
+		if (comboAGCSmooth != null && comboAGCSmooth.SelectedIndex >= 0)
+		{
+			float waterfallAgcSmoothing = 0.4f;
+			switch (comboAGCSmooth.SelectedIndex)
+			{
+			case 0:
+				waterfallAgcSmoothing = 0.2f;
+				break;
+			case 1:
+				waterfallAgcSmoothing = 0.4f;
+				break;
+			case 2:
+				waterfallAgcSmoothing = 0.6f;
+				break;
+			}
+			Display.WaterfallAgcSmoothing = waterfallAgcSmoothing;
+		}
+		if (comboWFDetector != null && comboDispWFDetector != null)
+		{
+			int selectedIndex2 = comboDispWFDetector.SelectedIndex;
+			comboWFDetector.SelectedIndex = selectedIndex2 switch
+			{
+				2 => 1,
+				3 => 2,
+				_ => 0,
+			};
+		}
+		if (chkAutoThreshold != null)
+		{
+			Display.AutoThresholdEnabled = chkAutoThreshold.Checked;
+		}
+		if (udAutoThFine != null)
+		{
+			Display.AutoThresholdFineOffset = (float)udAutoThFine.Value;
+		}
+		if (comboToneMap != null && comboToneMap.SelectedIndex >= 0)
+		{
+			WaterfallEnhancer.SetToneMap(comboToneMap.SelectedIndex switch
+			{
+				1 => WaterfallEnhancer.ToneMapMode.Reinhard,
+				2 => WaterfallEnhancer.ToneMapMode.ACES,
+				_ => WaterfallEnhancer.ToneMapMode.None,
+			});
+		}
+		if (comboTemporal != null && comboTemporal.SelectedIndex >= 0)
+		{
+			float num = (Display.TemporalStrength = comboTemporal.SelectedIndex switch
+			{
+				1 => 0.15f,
+				2 => 0.3f,
+				3 => 0.45f,
+				_ => 0f,
+			});
+			Display.TemporalEnabled = num > 0f;
+		}
+		if (comboGPU != null && comboGPU.SelectedIndex >= 0)
+		{
+			ApplyGPUSelection(comboGPU.SelectedIndex);
+		}
+		UpdateGPUInfoLabel();
+		if (chkZoomAdaptive != null)
+		{
+			bool flag = (Display.ZoomAdaptiveEnabled = chkZoomAdaptive.Checked);
+			if (comboToneMap != null)
+			{
+				comboToneMap.Enabled = !flag;
+			}
+			if (comboTemporal != null)
+			{
+				comboTemporal.Enabled = !flag;
+			}
+		}
+		if (tbPalSharp != null)
+		{
+			WaterfallEnhancer.SetPaletteSharpness((float)tbPalSharp.Value / 100f);
+			if (lblPalSharpVal != null)
+			{
+				lblPalSharpVal.Text = tbPalSharp.Value.ToString();
+			}
+		}
+		if (tbPalContrast != null)
+		{
+			WaterfallEnhancer.SetPaletteContrast((float)tbPalContrast.Value / 100f);
+			if (lblPalContrastVal != null)
+			{
+				lblPalContrastVal.Text = tbPalContrast.Value.ToString();
+			}
+		}
+		UpdateWaterfallRenderQualityHint();
+	}
 
         private void radTCI_spot_force_CheckedChanged(object sender, EventArgs e)
         {

@@ -47,75 +47,68 @@ namespace Thetis
         }
 
 
-        private void InitGeneralTabWaterfallControls()
-        {
-            if (comboGPUWaterfallResampling != null || tpDisplayGeneral == null)
-                return;
-
-            GroupBoxTS groupBoxTS = new GroupBoxTS();
-            groupBoxTS.Text = "Waterfall thresholds (auto)";
-            groupBoxTS.Location = new Point(392, 148);
-            groupBoxTS.Size = new Size(170, 112);
-            groupBoxTS.Name = "grpWaterfallThresholdsAuto";
-
-            chkAutoThreshold = new CheckBoxTS();
-            chkAutoThreshold.Name = "chkAutoThreshold";
-            chkAutoThreshold.Text = "Auto";
-            chkAutoThreshold.AutoSize = true;
-            chkAutoThreshold.Location = new Point(8, 19);
-            chkAutoThreshold.Checked = Display.AutoThresholdEnabled;
-            chkAutoThreshold.CheckedChanged += chkAutoThreshold_CheckedChanged;
-
-            lblAutoThHint = new LabelTS();
-            lblAutoThHint.AutoSize = true;
-            lblAutoThHint.Location = new Point(76, 20);
-            lblAutoThHint.Text = "thresholds";
-
-            udAutoThFine = new NumericUpDownTS();
-            udAutoThFine.Name = "udAutoThFine";
-            udAutoThFine.Location = new Point(48, 44);
-            udAutoThFine.Size = new Size(56, 20);
-            udAutoThFine.Minimum = -20m;
-            udAutoThFine.Maximum = 20m;
-            udAutoThFine.DecimalPlaces = 0;
-            udAutoThFine.Increment = 1m;
-            decimal fine = (decimal)Display.AutoThresholdFineOffset;
-            if (fine < udAutoThFine.Minimum) fine = udAutoThFine.Minimum;
-            if (fine > udAutoThFine.Maximum) fine = udAutoThFine.Maximum;
-            udAutoThFine.Value = fine;
-            udAutoThFine.ValueChanged += udAutoThFine_ValueChanged;
-
-            lblAutoThFineHint = new LabelTS();
-            lblAutoThFineHint.AutoSize = true;
-            lblAutoThFineHint.Location = new Point(8, 46);
-            lblAutoThFineHint.Text = "Fine";
-
-            lblGPUWaterfallResampling = new LabelTS();
-            lblGPUWaterfallResampling.AutoSize = true;
-            lblGPUWaterfallResampling.Location = new Point(8, 75);
-            lblGPUWaterfallResampling.Text = "GPU scale";
-
-            comboGPUWaterfallResampling = new ComboBoxTS();
-            comboGPUWaterfallResampling.Name = "comboGPUWaterfallResampling";
-            comboGPUWaterfallResampling.DropDownStyle = ComboBoxStyle.DropDownList;
-            comboGPUWaterfallResampling.Location = new Point(80, 72);
-            comboGPUWaterfallResampling.Size = new Size(82, 21);
-            comboGPUWaterfallResampling.Items.AddRange(new object[2] { "Fast", "Quality" });
-            int resampling = (int)Display.GPUWaterfallResamplingMode;
-            if (resampling < 0) resampling = 0;
-            if (resampling > 1) resampling = 1;
-            comboGPUWaterfallResampling.SelectedIndex = resampling;
-            comboGPUWaterfallResampling.SelectedIndexChanged += comboGPUWaterfallResampling_SelectedIndexChanged;
-
-            groupBoxTS.Controls.Add(chkAutoThreshold);
-            groupBoxTS.Controls.Add(lblAutoThHint);
-            groupBoxTS.Controls.Add(lblAutoThFineHint);
-            groupBoxTS.Controls.Add(udAutoThFine);
-            groupBoxTS.Controls.Add(lblGPUWaterfallResampling);
-            groupBoxTS.Controls.Add(comboGPUWaterfallResampling);
-            tpDisplayGeneral.Controls.Add(groupBoxTS);
-            groupBoxTS.BringToFront();
-        }
+	private void InitGeneralTabWaterfallControls()
+	{
+		if (tpDisplayGeneral != null && chkAutoThreshold == null)
+		{
+			GroupBoxTS groupBoxTS = new GroupBoxTS();
+			groupBoxTS.Name = "grpWaterfallGeneral";
+			groupBoxTS.Text = "Waterfall";
+			groupBoxTS.Location = new Point(392, 148);
+			groupBoxTS.Size = new Size(170, 112);
+			tpDisplayGeneral.Controls.Add(groupBoxTS);
+			groupBoxTS.BringToFront();
+			chkAutoThreshold = new CheckBoxTS();
+			chkAutoThreshold.Name = "chkAutoThreshold";
+			chkAutoThreshold.Text = "Auto Threshold";
+			chkAutoThreshold.AutoSize = true;
+			chkAutoThreshold.Location = new Point(8, 19);
+			chkAutoThreshold.Checked = false;
+			chkAutoThreshold.CheckedChanged += chkAutoThreshold_CheckedChanged;
+			groupBoxTS.Controls.Add(chkAutoThreshold);
+			chkAutoThreshold.BringToFront();
+			lblAutoThHint = new LabelTS();
+			lblAutoThHint.Text = "Fine:";
+			lblAutoThHint.Location = new Point(16, 47);
+			lblAutoThHint.Size = new Size(30, 16);
+			groupBoxTS.Controls.Add(lblAutoThHint);
+			lblAutoThHint.BringToFront();
+			udAutoThFine = new NumericUpDownTS();
+			udAutoThFine.Name = "udAutoThFine";
+			udAutoThFine.Minimum = -20m;
+			udAutoThFine.Maximum = 20m;
+			udAutoThFine.DecimalPlaces = 0;
+			udAutoThFine.Value = -3m;
+			udAutoThFine.Location = new Point(48, 44);
+			udAutoThFine.Size = new Size(42, 21);
+			udAutoThFine.ValueChanged += udAutoThFine_ValueChanged;
+			groupBoxTS.Controls.Add(udAutoThFine);
+			udAutoThFine.BringToFront();
+			lblAutoThFineHint = new LabelTS();
+			lblAutoThFineHint.Text = "dB";
+			lblAutoThFineHint.Location = new Point(94, 47);
+			lblAutoThFineHint.Size = new Size(20, 16);
+			lblAutoThFineHint.ForeColor = Color.SlateGray;
+			groupBoxTS.Controls.Add(lblAutoThFineHint);
+			lblAutoThFineHint.BringToFront();
+			lblGPUWaterfallResampling = new LabelTS();
+			lblGPUWaterfallResampling.Text = "Resampling:";
+			lblGPUWaterfallResampling.Location = new Point(8, 75);
+			lblGPUWaterfallResampling.Size = new Size(70, 16);
+			groupBoxTS.Controls.Add(lblGPUWaterfallResampling);
+			lblGPUWaterfallResampling.BringToFront();
+			comboGPUWaterfallResampling = new ComboBoxTS();
+			comboGPUWaterfallResampling.Name = "comboGPUWaterfallResampling";
+			comboGPUWaterfallResampling.DropDownStyle = ComboBoxStyle.DropDownList;
+			comboGPUWaterfallResampling.Items.AddRange(new object[2] { "Fast", "Quality" });
+			comboGPUWaterfallResampling.Location = new Point(80, 72);
+			comboGPUWaterfallResampling.Size = new Size(82, 21);
+			comboGPUWaterfallResampling.SelectedIndex = 1;
+			comboGPUWaterfallResampling.SelectedIndexChanged += comboGPUWaterfallResampling_SelectedIndexChanged;
+			groupBoxTS.Controls.Add(comboGPUWaterfallResampling);
+			comboGPUWaterfallResampling.BringToFront();
+		}
+	}
 
 	private void InitWaterfallTab()
 	{
@@ -927,7 +920,7 @@ namespace Thetis
 	private void btnTestGPU_Click(object sender, EventArgs e)
 	{
 		UpdateGPUInfoLabel();
-		MessageBox.Show("GPU: " + (Display.GPUName ?? "unknown") + "\nDetected Level: " + Display.GPUDetectionLevel + "\nFeatures: " + (GPUDetector.FeaturesList ?? "(none)") + "\nHasDeviceContext: " + GPUDetector.HasDeviceContext + "\nHasBuiltInEffects: " + GPUDetector.HasBuiltInEffects + "\nHasCustomShaders: " + GPUDetector.HasCustomShaders + "\n\nDirect3D11 / DirectCompute detection result.", "GPU Test", MessageBoxButtons.OK, MessageBoxIcon.Asterisk, MessageBoxDefaultButton.Button1, (MessageBoxOptions)262144);
+		MessageBox.Show("GPU: " + (Display.GPUName ?? "unknown") + "\nDetected Level: " + Display.GPUDetectionLevel + "\nFeatures: " + (GPUDetector.FeaturesList ?? "(none)") + "\nHasDeviceContext: " + GPUDetector.HasDeviceContext + "\nHasBuiltInEffects: " + GPUDetector.HasBuiltInEffects + "\nHasCustomShaders: " + GPUDetector.HasCustomShaders + "\n\nSee gpu_detection.log for details.", "GPU Test", MessageBoxButtons.OK, MessageBoxIcon.Asterisk, MessageBoxDefaultButton.Button1, (MessageBoxOptions)262144);
 	}
 
 
@@ -1187,17 +1180,21 @@ namespace Thetis
 	}
 
 
-        private void chkAutoThreshold_CheckedChanged(object sender, EventArgs e)
-        {
-            if (!initializing)
-                Display.AutoThresholdEnabled = chkAutoThreshold.Checked;
-        }
+	private void chkAutoThreshold_CheckedChanged(object sender, EventArgs e)
+	{
+		if (!initializing)
+		{
+			Display.AutoThresholdEnabled = chkAutoThreshold.Checked;
+		}
+	}
 
-        private void udAutoThFine_ValueChanged(object sender, EventArgs e)
-        {
-            if (!initializing)
-                Display.AutoThresholdFineOffset = (float)udAutoThFine.Value;
-        }
+	private void udAutoThFine_ValueChanged(object sender, EventArgs e)
+	{
+		if (!initializing)
+		{
+			Display.AutoThresholdFineOffset = (float)udAutoThFine.Value;
+		}
+	}
 
 	private void comboGPUWaterfallResampling_SelectedIndexChanged(object sender, EventArgs e)
 	{

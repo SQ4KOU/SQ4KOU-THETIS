@@ -1,4 +1,4 @@
-﻿/*  enums.cs
+/*  enums.cs
 
 This file is part of a program that implements a Software-Defined Radio.
 
@@ -80,6 +80,8 @@ namespace Thetis
         Console,    // SDR Console style — saturated rainbow
         Thermal,    // Inferno / heat-map
         DeepBlue,   // cool high-contrast blue ramp
+        Enhanced256,
+        Grayscale256,
     }
 
     public enum MultiMeterDisplayMode

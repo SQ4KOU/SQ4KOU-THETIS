@@ -772,7 +772,7 @@ namespace Thetis
         private static bool IsGPUWaterfallPaletteScheme(ColorScheme scheme)
         {
             return scheme == ColorScheme.Console || scheme == ColorScheme.Thermal || scheme == ColorScheme.DeepBlue ||
-                   scheme == ColorScheme.enhanced || scheme == ColorScheme.BLACKWHITE || scheme == ColorScheme.Custom;
+                   scheme == ColorScheme.Enhanced256 || scheme == ColorScheme.Grayscale256 || scheme == ColorScheme.Custom;
         }
 
         private static void UploadPaletteToGPU(WaterfallGPURenderer renderer, WaterfallPalette palette)
@@ -788,85 +788,7 @@ namespace Thetis
             renderer.SetPalette(_gpuPaletteUpload, 256);
         }
 
-        private static void UploadLegacyPaletteToGPU(WaterfallGPURenderer renderer, ColorScheme scheme, int rx)
-        {
-            if (renderer == null) return;
-            System.Drawing.Color low = rx == 2 ? rx2_waterfall_low_color : waterfall_low_color;
-            for (int i = 0; i < 256; i++)
-            {
-                float p = (float)i / 255f;
-                float r;
-                float g;
-                float b;
-                if (scheme == ColorScheme.BLACKWHITE)
-                {
-                    r = g = b = p * 255f;
-                }
-                else if (scheme == ColorScheme.enhanced)
-                {
-                    if (p < (float)2 / 9)
-                    {
-                        float local = p / ((float)2 / 9);
-                        r = (1f - local) * low.R;
-                        g = (1f - local) * low.G;
-                        b = low.B + local * (255f - low.B);
-                    }
-                    else if (p < (float)3 / 9)
-                    {
-                        float local = (p - (float)2 / 9) / ((float)1 / 9);
-                        r = 0f;
-                        g = local * 255f;
-                        b = 255f;
-                    }
-                    else if (p < (float)4 / 9)
-                    {
-                        float local = (p - (float)3 / 9) / ((float)1 / 9);
-                        r = 0f;
-                        g = 255f;
-                        b = (1f - local) * 255f;
-                    }
-                    else if (p < (float)5 / 9)
-                    {
-                        float local = (p - (float)4 / 9) / ((float)1 / 9);
-                        r = local * 255f;
-                        g = 255f;
-                        b = 0f;
-                    }
-                    else if (p < (float)7 / 9)
-                    {
-                        float local = (p - (float)5 / 9) / ((float)2 / 9);
-                        r = 255f;
-                        g = (1f - local) * 255f;
-                        b = 0f;
-                    }
-                    else if (p < (float)8 / 9)
-                    {
-                        float local = (p - (float)7 / 9) / ((float)1 / 9);
-                        r = 255f;
-                        g = 0f;
-                        b = local * 255f;
-                    }
-                    else
-                    {
-                        float local = (p - (float)8 / 9) / ((float)1 / 9);
-                        r = (0.75f + 0.25f * (1f - local)) * 255f;
-                        g = local * 255f * 0.5f;
-                        b = 255f;
-                    }
-                }
-                else
-                {
-                    return;
-                }
 
-                int n = i * 4;
-                _gpuPaletteUpload[n] = r / 255f;
-                _gpuPaletteUpload[n + 1] = g / 255f;
-                _gpuPaletteUpload[n + 2] = b / 255f;
-                _gpuPaletteUpload[n + 3] = 1f;
-            }
-            renderer.SetPalette(_gpuPaletteUpload, 256);
-        }
 
         private static void UploadCustomGradientToGPU(WaterfallGPURenderer renderer, System.Drawing.Color[] colours)
         {
@@ -888,6 +810,8 @@ namespace Thetis
             if (scheme == ColorScheme.Console) return GetPaletteConsole();
             if (scheme == ColorScheme.Thermal) return GetPaletteThermal();
             if (scheme == ColorScheme.DeepBlue) return GetPaletteDeepBlue();
+            if (scheme == ColorScheme.Enhanced256) return GetPaletteEnhanced256();
+            if (scheme == ColorScheme.Grayscale256) return GetPaletteGrayscale256();
             return null;
         }
 
@@ -914,18 +838,14 @@ namespace Thetis
                 bool ok = rx == 1 ? _rx1_waterfall_grad_ok : _rx2_waterfall_grad_ok;
                 if (!ok) paletteReady = false; else UploadCustomGradientToGPU(renderer, colours);
             }
-            else if (scheme == ColorScheme.enhanced || scheme == ColorScheme.BLACKWHITE)
-            {
-                UploadLegacyPaletteToGPU(renderer, scheme, rx);
-            }
             else
             {
                 WaterfallPalette palette = GetGPUWaterfallPalette(scheme);
                 if (palette == null) paletteReady = false; else UploadPaletteToGPU(renderer, palette);
             }
             if (!paletteReady) { _gpuRendererHasData[index] = false; return false; }
-            if (clearExisting) renderer.Clear();
             bool inserted = addRow && gpuRowReady && pipeline.MagSpectrumView != null && !pipeline.MagSpectrumView.IsDisposed;
+            if (clearExisting || (inserted && !_gpuRendererHasData[index])) renderer.Clear();
             if (inserted)
             {
                 float gamma = WaterfallEnhancer.Gamma;
@@ -936,7 +856,7 @@ namespace Thetis
                     gamma, invGamma, effectiveToneMap,
                     WaterfallEnhancer.SaturationBoost, WaterfallEnhancer.ContrastBoost,
                     WaterfallEnhancer.DitherEnabled, WaterfallEnhancer.Levels,
-                    effectiveTemporalAlpha, 0.05f, true, scheme == ColorScheme.Custom,
+                    0f, 0.05f, true, scheme == ColorScheme.Custom,
                     WaterfallEnhancer.PaletteSharpness, WaterfallEnhancer.PaletteContrast);
             }
             renderer.AdvanceRow(horizontalShiftPixels, inserted);

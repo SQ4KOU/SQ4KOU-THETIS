@@ -1,4 +1,4 @@
-﻿//=================================================================
+//=================================================================
 // display.cs
 //=================================================================
 // Thetis is a C# implementation of a Software Defined Radio.
@@ -3343,33 +3343,50 @@ namespace Thetis
         {
             if (displayTarget == null) return false;
 
-            // Remember the requested depth so we can report/revert.
             var requestedDepth = WaterfallEnhancer.Depth;
+            WaterfallPixelWriter.UpdateFormat();
 
-            // Tear down everything built by initDX2D (takes its own lock).
+            // 2.10.3.16 Extended Final behaviour: keep the existing DXGI factory,
+            // device and swap chain ownership whenever possible. resizeDX2D already
+            // serialises with the render thread via _objDX2Lock, clears/flushes the
+            // device context and rebuilds the D2D target after ResizeBuffers.
+            if (_bDX2Setup && _swapChain1 != null && !_swapChain1.IsDisposed)
+            {
+                if (resizeDX2DForFormat(WaterfallPixelWriter.DxgiFormat, out string inPlaceError))
+                {
+                    ResetWaterfallBmp();
+                    ResetWaterfallBmp2();
+                    LogTool.AddLogEntry("Color depth changed in-place to " + WaterfallPixelWriter.DxgiFormat, "DX2D");
+                    return true;
+                }
+
+                LogTool.AddLogEntry("In-place format resize failed: " + inPlaceError + " - falling back to full DX rebuild.", "DX2D");
+            }
+
+            // Recovery path only. This preserves the previous safe 8-bit fallback,
+            // but avoids Factory.CreateSwapChain during a normal 8/16-bit change.
             ShutdownDX2D();
-
-            // Sync the pixel writer to the requested depth.
             WaterfallPixelWriter.UpdateFormat();
 
             try
             {
-                initDX2D(DriverType.Hardware, _display_adaptor); // takes its own lock
+                initDX2D(DriverType.Hardware, _display_adaptor);
             }
             catch (Exception ex)
             {
                 LogTool.AddLogEntry("RebuildForColorDepth init failed: " + ex.Message, "DX2D");
             }
 
-            // If init failed (or fell back to 8-bit internally), recover.
             if (!_bDX2Setup)
             {
-                // Force 8-bit and retry so we never leave the display dead.
                 if (requestedDepth != WaterfallEnhancer.ColorDepth.Bit8)
                 {
                     WaterfallEnhancer.SetColorDepth(WaterfallEnhancer.ColorDepth.Bit8);
                     WaterfallPixelWriter.UpdateFormat();
-                    try { initDX2D(DriverType.Hardware, _display_adaptor); }
+                    try
+                    {
+                        initDX2D(DriverType.Hardware, _display_adaptor);
+                    }
                     catch (Exception ex)
                     {
                         LogTool.AddLogEntry("RebuildForColorDepth 8-bit fallback failed: " + ex.Message, "DX2D");
@@ -3378,6 +3395,8 @@ namespace Thetis
                 return _bDX2Setup;
             }
 
+            ResetWaterfallBmp();
+            ResetWaterfallBmp2();
             return true;
         }
 
@@ -3869,6 +3888,74 @@ namespace Thetis
 
             }
         }
+        private static bool resizeDX2DForFormat(Format newFormat, out string error)
+        {
+            try
+            {
+                lock (_objDX2Lock)
+                {
+                    if (!_bDX2Setup)
+                    {
+                        error = "DirectX not setup";
+                        return false;
+                    }
+
+                    // Yurij-eu2av - 2026-07-04: detach the back-buffer bitmap and
+                    // dispose the DeviceContext + surface before resizing buffers.
+                    // (Was: dispose _d2dRenderTarget + _surface only.)
+                    if (_d2dRenderTarget is SharpDX.Direct2D1.DeviceContext resizeCtx)
+                        resizeCtx.Target = null;
+                    Utilities.Dispose(ref _d2dTargetBitmap);
+                    _d2dTargetBitmap = null;
+                    Utilities.Dispose(ref _d2dRenderTarget);
+                    Utilities.Dispose(ref _surface);
+
+                    _d2dRenderTarget = null;
+                    _surface = null;
+
+                    _device.ImmediateContext.ClearState();
+                    _device.ImmediateContext.Flush();
+
+                    _swapChain1.ResizeBuffers(_nBufferCount, displayTargetWidth, displayTargetHeight, newFormat, SwapChainFlags.None);
+
+                    _surface = _swapChain1.GetBackBuffer<Surface>(0);
+
+                    // Yurij-eu2av - 2026-07-04: recreate the DeviceContext bound to
+                    // the resized back buffer (was: new RenderTarget(factory, surface, rtp)).
+                    createD2DRenderTarget();
+
+                    setupAliasing();
+
+                    //[2.10.1.0] MW0LGE spectrum/bitmaps may be cleared or bad, so wait to settle
+                    FastAttackNoiseFloorRX1 = true;
+                    if(RX2Enabled) FastAttackNoiseFloorRX2 = true;
+
+                    // clear measure string cache
+                    m_stringSizeCache.Clear();
+                    _stringMeasureKeys.Clear();
+
+                    error = "";
+                    return true;
+                }
+            }
+            catch (Exception e)
+            {
+                //string msg = "DirectX resizeDX2D() display failure\n\nThis can sometimes be caused by other programs 'hooking' into directX," +
+                //    "such as GFX card control software (eg, EVGA Precision Xoc). Close down Thetis, quit as many 'system tray'\nand other " +
+                //    "things as possible and try again." + e.Message;
+                //if(_device.DeviceRemovedReason == SharpDX.DXGI.ResultCode.DeviceRemoved || _device.DeviceRemovedReason == SharpDX.DXGI.ResultCode.DeviceReset)
+                //{
+                //    msg += "\n\nDeviceRemoved or DeviceReset reported by DirectX, this indicates a problem with the graphics device or its driver.\n\nRemoval Code : " + _device.DeviceRemovedReason.Code.ToString();
+                //}
+                //ShutdownDX2D();
+                //MessageBox.Show(msg, "Thetis DirectX", MessageBoxButtons.OK, MessageBoxIcon.Error, MessageBoxDefaultButton.Button1, Common.MB_TOPMOST);
+
+                error = e.Message;
+                error += "\n\nDeviceRemovedReason : " + _device.DeviceRemovedReason.ToString();
+                return false;
+            }
+        }
+
         private static bool resizeDX2D(out string error)
         {
             try
@@ -6586,6 +6673,27 @@ namespace Thetis
         private static WaterfallPalette _paletteConsole;
         private static WaterfallPalette _paletteThermal;
         private static WaterfallPalette _paletteDeepBlue;
+        private static WaterfallPalette _paletteEnhanced256;
+        private static WaterfallPalette _paletteGrayscale256;
+	internal static WaterfallPalette GetPaletteEnhanced256()
+	{
+		if (_paletteEnhanced256 == null)
+		{
+			_paletteEnhanced256 = new WaterfallPalette();
+			_paletteEnhanced256.Build(WaterfallPalette.EnhancedStops);
+		}
+		return _paletteEnhanced256;
+	}
+	internal static WaterfallPalette GetPaletteGrayscale256()
+	{
+		if (_paletteGrayscale256 == null)
+		{
+			_paletteGrayscale256 = new WaterfallPalette();
+			_paletteGrayscale256.Build(WaterfallPalette.GrayscaleStops);
+		}
+		return _paletteGrayscale256;
+	}
+
         private static WaterfallPalette GetPaletteConsole()
         {
             if (_paletteConsole == null)
@@ -8021,6 +8129,16 @@ namespace Thetis
                             break;
                         case (ColorScheme.DeepBlue):
                             DrawPaletteScheme(GetPaletteDeepBlue(), waterfall_data, dataCopy, fOffset,
+                                ref waterfall_minimum, low_threshold, high_threshold,
+                                nDecimatedWidth, m_nDecimation, rowF, alphaF);
+                            break;
+                        case (ColorScheme.Enhanced256):
+                            DrawPaletteScheme(GetPaletteEnhanced256(), waterfall_data, dataCopy, fOffset,
+                                ref waterfall_minimum, low_threshold, high_threshold,
+                                nDecimatedWidth, m_nDecimation, rowF, alphaF);
+                            break;
+                        case (ColorScheme.Grayscale256):
+                            DrawPaletteScheme(GetPaletteGrayscale256(), waterfall_data, dataCopy, fOffset,
                                 ref waterfall_minimum, low_threshold, high_threshold,
                                 nDecimatedWidth, m_nDecimation, rowF, alphaF);
                             break;

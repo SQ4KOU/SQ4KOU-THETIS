@@ -1,8 +1,7 @@
 using System;
 using System.Runtime.CompilerServices;
 
-namespace Thetis
-{
+namespace Thetis;
 
 public class WaterfallPalette
 {
@@ -254,6 +253,4 @@ public class WaterfallPalette
 		g = _lut[num + 1];
 		b = _lut[num + 2];
 	}
-}
-
 }

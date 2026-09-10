@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
@@ -713,13 +713,13 @@
 
     <Compile Include="Display.EU2AVWaterfallCompat.cs" />
     <Compile Include="WaterfallPalette.cs" />
-    <Content Include="waterfall_fft_bitreverse_cs.bin"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
-    <Content Include="waterfall_fft_stage_ab_cs.bin"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
-    <Content Include="waterfall_fft_stage_ba_cs.bin"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
-    <Content Include="waterfall_fft_magnitude_cs.bin"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
-    <Content Include="waterfall_row_cs.bin"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
-    <Content Include="waterfall_postproc.bin"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
-    <Content Include="waterfall_resolve_cs.bin"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <EmbeddedResource Include="waterfall_fft_bitreverse_cs.bin"><LogicalName>Thetis.waterfall_fft_bitreverse_cs.bin</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="waterfall_fft_stage_ab_cs.bin"><LogicalName>Thetis.waterfall_fft_stage_ab_cs.bin</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="waterfall_fft_stage_ba_cs.bin"><LogicalName>Thetis.waterfall_fft_stage_ba_cs.bin</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="waterfall_fft_magnitude_cs.bin"><LogicalName>Thetis.waterfall_fft_magnitude_cs.bin</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="waterfall_row_cs.bin"><LogicalName>Thetis.waterfall_row_cs.bin</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="waterfall_postproc.bin"><LogicalName>Thetis.waterfall_postproc.bin</LogicalName></EmbeddedResource>
+    <EmbeddedResource Include="waterfall_resolve_cs.bin"><LogicalName>Thetis.waterfall_resolve_cs.bin</LogicalName></EmbeddedResource>
     <Compile Include="DiversityForm.cs">
       <SubType>Form</SubType>
     </Compile>
