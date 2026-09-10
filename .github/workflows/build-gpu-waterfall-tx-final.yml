@@ -1,0 +1,127 @@
+name: Build GPU Waterfall TX Final
+
+on:
+  push:
+    branches: [feature/eu2av-gpu-waterfall-sq4kou-final]
+    paths:
+      - .github/scripts/add-tx-gpu-waterfall.ps1
+      - .github/workflows/build-gpu-waterfall-tx-final.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-msi:
+    runs-on: windows-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout GPU PASS final branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/eu2av-gpu-waterfall-sq4kou-final
+          fetch-depth: 0
+
+      - name: Enable long paths
+        shell: pwsh
+        run: git config --global core.longpaths true
+
+      - name: Apply isolated TX GPU waterfall patch
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          .\.github\scripts\add-tx-gpu-waterfall.ps1
+          git diff --check
+
+      - name: Verify RX PASS invariants and TX GPU path
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $cm = Get-Content 'Project Files\Source\ChannelMaster\cmaster.c' -Raw
+          $gpu = Get-Content 'Project Files\Source\Console\Display.GPUWaterfall.cs' -Raw
+          $disp = Get-Content 'Project Files\Source\Console\display.cs' -Raw
+          if ($cm -notmatch [regex]::Escape('CM_WaterfallIQ_Push(rx, pcm->xcm_insize[stream], pcm->in[stream]);')) { throw 'RX producer regression' }
+          if ($cm -notmatch [regex]::Escape('CM_WaterfallIQ_Push(2, pcm->xmtr[tx].ch_outsize, pcm->xmtr[tx].out[0]);')) { throw 'TX producer missing' }
+          if ($gpu -notmatch [regex]::Escape('bool gpuTxSource = localMox(rx) && !DisplayDuplex;')) { throw 'TX source selection missing' }
+          if ($gpu -notmatch [regex]::Escape('int stream = gpuSourceStream;')) { throw 'TX ring consumption missing' }
+          if ($gpu -notmatch [regex]::Escape('cmaster.GetChannelOutputRate(1, 0)')) { throw 'TX sample-rate binding missing' }
+          if ($gpu -notmatch [regex]::Escape('for (int ch = 0; ch < 3; ch++)')) { throw 'TX ring enable missing' }
+          if ($disp -match [regex]::Escape('ManagedGPUFFTRequested && !local_mox')) { throw 'MOX GPU gate still present' }
+          if ($disp -notmatch [regex]::Escape('UpdateManagedGPUWaterfallRenderer(')) { throw 'Recovered GPU renderer path missing' }
+          if ($gpu -notmatch 'WaterfallPixelWriter|GPUWaterfallPipeline') { throw 'GPU waterfall implementation incomplete' }
+          Write-Host 'STATIC_VERIFY=PASS: RX producer preserved, TX ring isolated, TX GPU renderer enabled.'
+
+      - name: Materialize TX GPU source into branch
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- 'Project Files/Source/ChannelMaster/cmaster.c' 'Project Files/Source/Console/Display.GPUWaterfall.cs' 'Project Files/Source/Console/display.cs'
+          if (-not (git diff --cached --quiet)) {
+            git commit -m 'Render TX waterfall through recovered GPU pipeline'
+            git push origin HEAD:feature/eu2av-gpu-waterfall-sq4kou-final
+          }
+          $sha = (git rev-parse HEAD).Trim()
+          "SOURCE_SHA=$sha" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          if (git status --porcelain -- 'Project Files/Source') { throw 'Source tree dirty after materialization' }
+          Write-Host "SOURCE_SHA=$sha"
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+        with:
+          msbuild-architecture: x86
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) { choco install wixtoolset -y --no-progress }
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) { $targets = Get-ChildItem 'C:\Program Files (x86)\WiX Toolset*\Wix.targets' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 }
+          if (-not $targets) { throw 'WiX 3.x Wix.targets not found' }
+          "WIX_TARGETS=$($targets.FullName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore NuGet packages
+        shell: pwsh
+        run: nuget restore "Project Files\Source\Thetis_VS2026.sln" -NonInteractive
+
+      - name: Build Release x64 MSI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          msbuild "Project Files\Source\Thetis_VS2026.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal
+          if ($LASTEXITCODE -ne 0) { throw "MSBuild failed: $LASTEXITCODE" }
+
+      - name: Verify and name MSI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $msi = Get-ChildItem 'Project Files\bin\Installers\*.msi' -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $msi -or $msi.Length -lt 1MB) { throw 'Valid MSI was not produced' }
+          $out = Join-Path $msi.DirectoryName 'SQ4KOU-THETIS-GPU-WATERFALL-TX-GPU-FINAL-x64.msi'
+          Copy-Item $msi.FullName $out -Force
+          $hash = (Get-FileHash $out -Algorithm SHA256).Hash
+          @(
+            "SOURCE_SHA=$env:SOURCE_SHA",
+            'RX_GPU_BASELINE=PASS_PRESERVED',
+            'TX_GPU_IQ_RING=2_POST_DSP',
+            'TX_GPU_RENDER=ENABLED_ON_MOX_NON_DUPLEX',
+            "MSI_SHA256=$hash"
+          ) | Set-Content (Join-Path $msi.DirectoryName 'SQ4KOU-THETIS-GPU-WATERFALL-TX-GPU-FINAL-build.txt')
+          Write-Host "MSI=$out"
+          Write-Host "SHA256=$hash"
+
+      - name: Upload final MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-GPU-WATERFALL-TX-GPU-FINAL-MSI
+          path: |
+            Project Files/bin/Installers/SQ4KOU-THETIS-GPU-WATERFALL-TX-GPU-FINAL-x64.msi
+            Project Files/bin/Installers/SQ4KOU-THETIS-GPU-WATERFALL-TX-GPU-FINAL-build.txt
+          if-no-files-found: error
+          compression-level: 0
