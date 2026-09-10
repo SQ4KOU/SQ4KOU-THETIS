@@ -1,4 +1,4 @@
-﻿//=================================================================
+//=================================================================
 // pandisplay.cs
 //=================================================================
 // PowerSDR is a C# implementation of a Software Defined Radio.
@@ -103,12 +103,7 @@ namespace Thetis
         //private float[] waterfall_data;
 
         private Task draw_display_task;					// draws the main display 
-        private Bitmap wbDisplay_buffer;                 // render/back buffer
-        private Bitmap wbPresent_buffer;                 // bitmap currently presented by PictureBox
-        private Bitmap wbSpare_buffer;                   // free bitmap for next completed frame
-        private Bitmap wbQueued_buffer;                  // completed frame waiting in BeginInvoke
-        private int wbPresentPending = 0;                // at most one queued UI presentation
-        private int wbBufferGeneration = 0;              // invalidates queued frames after resize/reinit
+        private Bitmap wbDisplay_buffer;
         public bool pauseDisplayThread = false;
         #endregion
 
@@ -119,7 +114,6 @@ namespace Thetis
             this.MouseMove += new System.Windows.Forms.MouseEventHandler(this.PanDisplay_MouseMove);
             this.MouseDown += new System.Windows.Forms.MouseEventHandler(this.PanDisplay_MouseDown);
             this.MouseUp += new System.Windows.Forms.MouseEventHandler(this.PanDisplay_MouseUp);
-            this.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.PanDisplay_MouseDoubleClick); // SQ4KOU_WB_PAN_ZOOM_V1
         }
 
         #region Properties
@@ -208,6 +202,11 @@ namespace Thetis
             get { return filterRect; }
             set { filterRect = value; }
         }
+
+        private int filterLeft;
+        private int filterRight;
+        private int filterTop;
+        private int filterBottom;
 
         //Color notch_on_color = Color.DarkGreen;
         //Color notch_highlight_color = Color.Chartreuse;
@@ -1128,17 +1127,19 @@ namespace Thetis
         // Drawing Routines
         // ======================================================
 
+        float zoom_height = 1.5f;   // Should be > 1.  H = H/zoom_height
         unsafe private void DrawWideBandGrid(Graphics g, int rx)
         {
             int W = panRect.Width;
             int H = panRect.Height;
             g.FillRectangle(Brushes.Black, freqScalePanRect);
-            using (Pen borderPen = new Pen(Color.AntiqueWhite, 2))
-                g.DrawRectangle(borderPen, freqScalePanRect);
+            g.DrawRectangle(new Pen(Color.AntiqueWhite, 2), freqScalePanRect);
 
             // draw background
             // g.FillRectangle(display_background_brush, 0, bottom ? H : 0, W, H);
 
+            bool local_mox = false;
+            bool displayduplex = false;
             // if (mox && rx == 1 && !tx_on_vfob) local_mox = true;
             // if (mox && rx == 2 && tx_on_vfob) local_mox = true;
             //if (rx == 1 && tx_on_vfob && mox && !rx2_enabled) local_mox = true;
@@ -1155,6 +1156,10 @@ namespace Thetis
             int grid_step = 0; // spectrum_grid_step;
             int f_diff = 0;
             long vfo_hz = _vfo_hz; //cmaster.Getrxa(display_id + 2).RXFreq;// 
+
+            if ((CurrentDisplayMode == DisplayMode.PANAFALL && (nreceivers <= 2 && display_duplex)) ||
+                (CurrentDisplayMode == DisplayMode.PANAFALL && nreceivers > 2) ||
+               (CurrentDisplayMode == DisplayMode.PANADAPTER && display_duplex)) displayduplex = true;
 
             //if (local_mox && !displayduplex)// || (mox && tx_on_vfob))
             //{
@@ -2049,12 +2054,23 @@ namespace Thetis
                 if (points == null || points.Length < W)
                     points = new Point[W];			// array of points to display
             }
+            float slope = 0.0F;						// samples to process per pixel
+            int num_samples = 0;					// number of samples to process
+            int start_sample_index = 0;				// index to begin looking at samples
             int Low = 0;// rx_display_low;
             int High = 0;// rx_display_high;
             // int yRange = spectrum_grid_max - spectrum_grid_min;
             float local_max_y = float.MinValue;
+            bool local_mox = false;
+            bool displayduplex = false;
+
             int grid_max = 0;
             int grid_min = 0;
+
+            if ((CurrentDisplayMode == DisplayMode.PANAFALL && (nreceivers <= 2 && display_duplex)) ||
+                (CurrentDisplayMode == DisplayMode.PANAFALL && nreceivers > 2) ||
+               (CurrentDisplayMode == DisplayMode.PANADAPTER && display_duplex)) displayduplex = true;
+
 
             //    Low = rx_display_low;
             High = high_freq;
@@ -2133,20 +2149,22 @@ namespace Thetis
                 // Trace.WriteLine(ex);
             }
 
-            // Reuse the point buffer across frames; avoid continuous allocation/GC pressure.
+            points = null;
 
             // draw long cursor
             try
             {
                 if (current_click_tune_mode != ClickTuneMode.Off)
                 {
-                    using (Pen p = new Pen(current_click_tune_mode == ClickTuneMode.VFOA ? grid_text_color : Color.Red))
+                    Pen p;
+                    if (current_click_tune_mode == ClickTuneMode.VFOA)
+                        p = new Pen(grid_text_color);
+                    else p = new Pen(Color.Red);
+
+                    if (display_cursor_y <= H)
                     {
-                        if (display_cursor_y <= H)
-                        {
-                            g.DrawLine(p, display_cursor_x, 0, display_cursor_x, H);
-                            g.DrawLine(p, 0, display_cursor_y, W, display_cursor_y);
-                        }
+                        g.DrawLine(p, display_cursor_x, 0, display_cursor_x, H);
+                        g.DrawLine(p, 0, display_cursor_y, W, display_cursor_y);
                     }
                 }
             }
@@ -3356,12 +3374,24 @@ namespace Thetis
             // panadapter_bmp = new Bitmap(panRect.Width, panRect.Height, PixelFormat.Format24bppRgb);	// initialize waterfall display
         }
 
+        private int snapMouse = 3;
         public DisplayRegion mouseRegion;
 
+        private bool rx1_low_filter_drag = false;
+        private bool rx1_high_filter_drag = false;
+        private bool rx1_whole_filter_drag = false;
         private bool rx1_sub_drag = false;
         private bool rx1_spectrum_drag = false;
 
+        private int whole_filter_start_x = 0;
+        private int whole_filter_start_low = 0;
+        private int whole_filter_start_high = 0;
+        private int sub_drag_last_x = 0;
         private int spectrum_drag_last_x = 0;
+        private double sub_drag_start_freq = 0.0;
+
+        private bool rx1_click_tune_drag = false;
+        private bool rx2_click_tune_drag = false;
 
         private Point grid_minmax_drag_start_point = new Point(0, 0);
         //  private int grid_minmax_drag_max_delta_x = 0;
@@ -3372,7 +3402,10 @@ namespace Thetis
         private bool moveX = false;
         private bool moveY = false;
 
+        private bool rx1_grid_adjust = false;
         private bool gridmaxadjust = false;
+        private bool wfmaxadjust = false;
+        private bool wfminadjust = false;
         private bool gridminmaxadjust = false;
 
         private void getRegion(Point p)
@@ -3421,50 +3454,21 @@ namespace Thetis
 
         public void UpdateGraphicsBuffer()
         {
-            int w = Math.Max(1, this.Width);
-            int h = Math.Max(1, this.Height);
+            int w, h;
+            w = Math.Max(1, this.Width);
+            h = Math.Max(1, this.Height);
 
-            Bitmap newRender = new Bitmap(w, h);
-            Bitmap newPresent = new Bitmap(w, h);
-            Bitmap newSpare = new Bitmap(w, h);
-            Bitmap oldRender;
-            Bitmap oldPresent;
-            Bitmap oldSpare;
-            Bitmap oldQueued;
-
-            lock (m_objBufferLock)
-            {
-                oldRender = wbDisplay_buffer;
-                oldPresent = wbPresent_buffer;
-                oldSpare = wbSpare_buffer;
-                oldQueued = wbQueued_buffer;
-
-                wbDisplay_buffer = newRender;
-                wbPresent_buffer = newPresent;
-                wbSpare_buffer = newSpare;
-                wbQueued_buffer = null;
-                wbBufferGeneration++;
-
-                if (Object.ReferenceEquals(this.Image, oldPresent) ||
-                    Object.ReferenceEquals(this.Image, oldQueued))
-                    this.Image = null;
-            }
-
-            if (oldRender != null) oldRender.Dispose();
-            if (oldPresent != null && !Object.ReferenceEquals(oldPresent, oldRender)) oldPresent.Dispose();
-            if (oldSpare != null && !Object.ReferenceEquals(oldSpare, oldRender) && !Object.ReferenceEquals(oldSpare, oldPresent)) oldSpare.Dispose();
-            if (oldQueued != null && !Object.ReferenceEquals(oldQueued, oldRender) && !Object.ReferenceEquals(oldQueued, oldPresent) && !Object.ReferenceEquals(oldQueued, oldSpare)) oldQueued.Dispose();
+            wbDisplay_buffer = new Bitmap(w, h); 
         }
 
         private CancellationTokenSource cancelTokenSource;
         public void Cancel_Display()
         {
-            CancellationTokenSource cts = cancelTokenSource;
-            cancelTokenSource = null;
-            if (cts != null)
+            if (cancelTokenSource != null)
             {
-                cts.Cancel();
-                cts.Dispose();
+                cancelTokenSource.Cancel();
+                cancelTokenSource.Dispose();
+                cancelTokenSource = null;
             }
 
            // Halted = true;
@@ -3473,6 +3477,7 @@ namespace Thetis
 
         private readonly Object m_objBufferLock = new Object();
 
+        private Thread draw_display_thread;
         public void StartDisplay(int rx)
         {
             //Halted = false;
@@ -3486,134 +3491,39 @@ namespace Thetis
             //}
 
             if (cancelTokenSource != null) Cancel_Display();
-            var cts = new CancellationTokenSource();
-            cancelTokenSource = cts;
-            CancellationToken token = cts.Token;
+            cancelTokenSource = new CancellationTokenSource();
             UpdateGraphicsBuffer();
 
             draw_display_task = Task.Factory.StartNew(() =>
             {
-                while (!token.IsCancellationRequested)
+                while (cancelTokenSource != null && !cancelTokenSource.IsCancellationRequested)
                 {
 
                     RunDisplay(rx); // get pixels
-                    if (token.IsCancellationRequested) break;
-
-                    // SQ4KOU_WB_UI_FLOW_V1: render/present only a fresh WDSP frame.
-                    if (!this.DataReady) continue;
 
                     if (!pauseDisplayThread)
                     {
-                        // SQ4KOU_WB_UI_NONBLOCK_V2:
-                        // Never wait for the WinForms thread. If one WB frame is already
-                        // queued for presentation, drop this display frame immediately.
-                        if (Interlocked.CompareExchange(ref wbPresentPending, 1, 0) != 0)
+                        using (Graphics grSrc = Graphics.FromImage(wbDisplay_buffer))
                         {
-                            this.DataReady = false;
-                            continue;
-                        }
-
-                        bool frameDrawn = false;
-                        Bitmap readyBuffer = null;
-                        int generation = 0;
-
-                        try
-                        {
-                            lock (m_objBufferLock)
+                            grSrc.Clear(Color.Transparent);
+                            if (DrawWideBand(grSrc, rx))
                             {
-                                if (wbDisplay_buffer != null && wbSpare_buffer != null)
-                                {
-                                    generation = wbBufferGeneration;
-                                    using (Graphics grSrc = Graphics.FromImage(wbDisplay_buffer))
+                                this.Invoke(new Action(() =>
                                     {
-                                        grSrc.Clear(Color.Transparent);
-                                        frameDrawn = DrawWideBand(grSrc, rx);
-                                    }
-
-                                    if (frameDrawn && generation == wbBufferGeneration)
-                                    {
-                                        readyBuffer = wbDisplay_buffer;
-                                        wbDisplay_buffer = wbSpare_buffer;
-                                        wbSpare_buffer = null;
-                                        wbQueued_buffer = readyBuffer;
-                                    }
-                                }
-                                else
-                                {
-                                    this.DataReady = false;
-                                }
+                                        this.Image = wbDisplay_buffer;
+                                        this.Refresh();
+                                    }));
                             }
-
-                            if (!frameDrawn || readyBuffer == null || token.IsCancellationRequested ||
-                                this.IsDisposed || !this.IsHandleCreated)
-                            {
-                                Interlocked.Exchange(ref wbPresentPending, 0);
-                                continue;
-                            }
-
-                            try
-                            {
-                                this.BeginInvoke(new Action(() =>
-                                {
-                                    try
-                                    {
-                                        bool invalidate = false;
-                                        lock (m_objBufferLock)
-                                        {
-                                            if (!this.IsDisposed && generation == wbBufferGeneration &&
-                                                Object.ReferenceEquals(wbQueued_buffer, readyBuffer))
-                                            {
-                                                Bitmap oldPresent = wbPresent_buffer;
-                                                wbPresent_buffer = readyBuffer;
-                                                wbQueued_buffer = null;
-                                                wbSpare_buffer = oldPresent;
-                                                this.Image = wbPresent_buffer;
-                                                invalidate = true;
-                                            }
-                                        }
-
-                                        if (invalidate) this.Invalidate();
-                                    }
-                                    finally
-                                    {
-                                        Interlocked.Exchange(ref wbPresentPending, 0);
-                                    }
-                                }));
-                            }
-                            catch (InvalidOperationException)
-                            {
-                                lock (m_objBufferLock)
-                                {
-                                    if (Object.ReferenceEquals(wbQueued_buffer, readyBuffer))
-                                    {
-                                        wbQueued_buffer = null;
-                                        if (wbSpare_buffer == null) wbSpare_buffer = readyBuffer;
-                                    }
-                                }
-                                Interlocked.Exchange(ref wbPresentPending, 0);
-                            }
-                        }
-                        catch
-                        {
-                            lock (m_objBufferLock)
-                            {
-                                if (readyBuffer != null && Object.ReferenceEquals(wbQueued_buffer, readyBuffer))
-                                {
-                                    wbQueued_buffer = null;
-                                    if (wbSpare_buffer == null) wbSpare_buffer = readyBuffer;
-                                }
-                            }
-                            Interlocked.Exchange(ref wbPresentPending, 0);
-                            throw;
                         }
                     }
 
                 }
 
-            }, token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
+            }, cancelTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
 
         }
 
+        bool Halted = false;
         static readonly object wbMonitor = new object();
         unsafe private void RunDisplay(int rx)
         {
@@ -3630,9 +3540,7 @@ namespace Thetis
                     fixed (float* ptr = &new_display_data[0])
                         SpecHPSDRDLL.GetPixels(rx, 0, ptr, ref flag);
 
-                    // WDSP flag==1 means a new pixel frame was actually returned.
-                    if (flag != 0)
-                        this.DataReady = true;
+                    this.DataReady = true;
                 }
 
             //Thread.Sleep(70);
@@ -3674,87 +3582,6 @@ namespace Thetis
         private Point mousePos;
         private Point mouseDownPos;
         private Point rulerMouseDownPos;
-        // SQ4KOU_WB_PAN_ZOOM_V1
-        // UI/analyzer-only navigation. FPGA, ARM, EP4 and EP6 remain unchanged.
-        private bool sq4kou_wb_pan_drag = false;
-        private int sq4kou_wb_pan_last_x = 0;
-        private const double SQ4KOU_WB_ZOOM_STEP = 0.05;
-        private const double SQ4KOU_WB_ZOOM_LIMIT = 100.0;
-        private const double SQ4KOU_WB_MAX_HZ = 30000000.0;
-
-        private static double SQ4KOU_Clamp01(double v)
-        {
-            if (v < 0.0) return 0.0;
-            if (v > 1.0) return 1.0;
-            return v;
-        }
-
-        private bool SQ4KOU_WideBandNavArea(Point p)
-        {
-            if (this.DBMScalePanRect.Contains(p)) return false;
-            return this.PanRect.Contains(p) || this.FreqScalePanRect.Contains(p);
-        }
-
-        private int SQ4KOU_WideBandDisplayBins()
-        {
-            if (fft_size <= 0 || sample_rate <= 0) return 1;
-            double bin_width = (double)sample_rate / (double)fft_size;
-            return Math.Min(fft_size / 2, Math.Max(1, (int)Math.Floor(SQ4KOU_WB_MAX_HZ / bin_width)));
-        }
-
-        private int SQ4KOU_WideBandWidthBins(double zoom)
-        {
-            int display_bins = SQ4KOU_WideBandDisplayBins();
-            double z = SQ4KOU_Clamp01(zoom);
-            double zoom_slider = Math.Log10(9.0 * z + 1.0);
-            return Math.Max(1, (int)(display_bins * (1.0 - (1.0 - 1.0 / SQ4KOU_WB_ZOOM_LIMIT) * zoom_slider)));
-        }
-
-        private void SQ4KOU_SetWideBandView(double zoom, double pan)
-        {
-            z_slider = SQ4KOU_Clamp01(zoom);
-            p_slider = SQ4KOU_Clamp01(pan);
-            initWideband();
-        }
-
-        private void SQ4KOU_ResetWideBandView() { SQ4KOU_SetWideBandView(0.0, 0.5); }
-
-        private void SQ4KOU_WideBandWheelZoom(int mouseX, int delta)
-        {
-            if (!init || delta == 0 || this.PanRect.Width <= 1) return;
-            double old_zoom = z_slider;
-            int notches = Math.Max(1, Math.Abs(delta) / 120);
-            double new_zoom = SQ4KOU_Clamp01(old_zoom + Math.Sign(delta) * SQ4KOU_WB_ZOOM_STEP * notches);
-            if (Math.Abs(new_zoom - old_zoom) < 1.0e-12) return;
-
-            double x = SQ4KOU_Clamp01((mouseX - this.PanRect.Left) / (double)Math.Max(1, this.PanRect.Width));
-            double old_span = Math.Max(1.0, (double)high_freq - (double)low_freq);
-            double anchor_hz = (double)low_freq + x * old_span;
-            double bin_width = (double)sample_rate / (double)fft_size;
-            int display_bins = SQ4KOU_WideBandDisplayBins();
-            int width_bins = SQ4KOU_WideBandWidthBins(new_zoom);
-            double new_span_hz = width_bins * bin_width;
-            double max_low_hz = (display_bins - width_bins) * bin_width;
-            double desired_low_hz = anchor_hz - x * new_span_hz;
-            double new_pan = (max_low_hz <= 0.0) ? 0.5 : desired_low_hz / max_low_hz;
-            SQ4KOU_SetWideBandView(new_zoom, new_pan);
-        }
-
-        private void SQ4KOU_WideBandPanDrag(int mouseX)
-        {
-            int dx = mouseX - sq4kou_wb_pan_last_x;
-            if (Math.Abs(dx) < 2 || this.PanRect.Width <= 1) return;
-            sq4kou_wb_pan_last_x = mouseX;
-            double view_span_hz = Math.Max(1.0, (double)high_freq - (double)low_freq);
-            double bin_width = (double)sample_rate / (double)fft_size;
-            int display_bins = SQ4KOU_WideBandDisplayBins();
-            int width_bins = SQ4KOU_WideBandWidthBins(z_slider);
-            double max_low_hz = (display_bins - width_bins) * bin_width;
-            if (max_low_hz <= 0.0) { if (p_slider != 0.5) SQ4KOU_SetWideBandView(z_slider, 0.5); return; }
-            double delta_low_hz = -(dx / (double)this.PanRect.Width) * view_span_hz;
-            double current_low_hz = p_slider * max_low_hz;
-            SQ4KOU_SetWideBandView(z_slider, (current_low_hz + delta_low_hz) / max_low_hz);
-        }
 
         private void PanDisplay_MouseMove(object sender, MouseEventArgs e)
         {
@@ -3762,11 +3589,7 @@ namespace Thetis
             pos = new Size(e.X, e.Y);
             mousePos = new Point(pos);
 
-                        if (sq4kou_wb_pan_drag && e.Button == MouseButtons.Left)
-            {
-                SQ4KOU_WideBandPanDrag(e.X);
-                return;
-            }if (e.Button != MouseButtons.Left &&
+            if (e.Button != MouseButtons.Left &&
                 e.Button != MouseButtons.Right &&
                 e.Button != MouseButtons.Middle)
                 getRegion(mousePos);
@@ -3941,12 +3764,7 @@ namespace Thetis
             mousePos = pos;
             mouseDownPos = mousePos;
 
-                        if (e.Button == MouseButtons.Left && sq4kou_wb_pan_drag)
-            {
-                sq4kou_wb_pan_drag = false;
-                this.Cursor = Cursors.Default;
-                return;
-            }getRegion(mousePos);
+            getRegion(mousePos);
 
             if (e.Button == MouseButtons.Left)
             {
@@ -3958,6 +3776,9 @@ namespace Thetis
                 //    case DisplayMode.PANAFALL:
                 //    case DisplayMode.PANASCOPE:
                 //    case DisplayMode.HISTOGRAM:
+                rx1_low_filter_drag = false;
+                rx1_high_filter_drag = false;
+                rx1_whole_filter_drag = false;
                 // rx2_low_filter_drag = false;
                 // rx2_high_filter_drag = false;
                 // rx2_whole_filter_drag = false;
@@ -3972,6 +3793,7 @@ namespace Thetis
                 // agc_knee_drag_max_delta_x = 0;
                 // agc_knee_drag_max_delta_y = 0;
                 gridminmaxadjust = false;
+                rx1_grid_adjust = false;
                 // rx2_grid_adjust = false;
                 // tx1_grid_adjust = false;
                 // tx2_grid_adjust = false;
@@ -4028,6 +3850,7 @@ namespace Thetis
                 //    case DisplayMode.SPECTRUM:
                 gridminmaxadjust = false;
                 gridmaxadjust = false;
+                rx1_grid_adjust = false;
                 // rx2_grid_adjust = false;
                 // tx1_grid_adjust = false;
                 // tx2_grid_adjust = false;
@@ -4064,14 +3887,6 @@ namespace Thetis
 
         //}
 
-        private void PanDisplay_MouseDoubleClick(object sender, MouseEventArgs e)
-        {
-            if (e.Button == MouseButtons.Left && SQ4KOU_WideBandNavArea(e.Location))
-            {
-                SQ4KOU_ResetWideBandView();
-                this.Cursor = Cursors.Default;
-            }
-        }
         private void PanDisplay_MouseEnter(object sender, EventArgs e)
         {
             if (!this.Focused)
@@ -4092,11 +3907,6 @@ namespace Thetis
             //}
 
             if (e.Delta == 0) return;
-            if (SQ4KOU_WideBandNavArea(e.Location))
-            {
-                SQ4KOU_WideBandWheelZoom(e.X, e.Delta);
-                return;
-            }
 
             //int num_steps = (e.Delta > 0 ? 1 : -1);	// 1 per click
             ////int numberToMove = e.Delta / 120;	// 1 per click
@@ -4252,13 +4062,7 @@ namespace Thetis
             mousePos = pos;
             mouseDownPos = mousePos;
 
-                        if (e.Button == MouseButtons.Left && SQ4KOU_WideBandNavArea(e.Location))
-            {
-                sq4kou_wb_pan_drag = true;
-                sq4kou_wb_pan_last_x = e.X;
-                this.Cursor = Cursors.SizeWE;
-                return;
-            }getRegion(mousePos);
+            getRegion(mousePos);
 
             switch (e.Button)
             {
@@ -4816,7 +4620,7 @@ namespace Thetis
             get { return z_slider; }
             set
             {
-                z_slider = SQ4KOU_Clamp01(value);
+                z_slider = value;
                 initWideband();
             }
         }
@@ -4827,7 +4631,7 @@ namespace Thetis
             get { return p_slider; }
             set
             {
-                p_slider = SQ4KOU_Clamp01(value);
+                p_slider = value;
                 initWideband();
             }
         }
@@ -4856,7 +4660,7 @@ namespace Thetis
         {
             if (!init) return;
             int wbid = adc + 32;
-            int clip = 0, span_clip_l = 0, span_clip_h = 0;
+            int clip = 0, span_clip_l = 0, span_clip_h = 0, max_w = 0;
 
             // no spur elimination => only one spur_elim_fft and it's spectrum is not flipped
             int[] flip = { 0 };
@@ -4878,11 +4682,8 @@ namespace Thetis
             // the number of useable bins
             int bins = fft_size / 2 - 2 * clip;
 
-            // SQ4KOU_WIDEBAND_30MHZ: make 0..30 MHz the base WideBand span.
-            // Keep the native zoom/pan behaviour, but constrain it to this useful range.
-            const int SQ4KOU_WIDEBAND_MAX_HZ = 30000000;
-            int display_bins = Math.Min(bins,
-                Math.Max(1, (int)Math.Floor((double)SQ4KOU_WIDEBAND_MAX_HZ / bin_width)));
+            // the amount of useable bandwidth we get is:
+            double bw = bins * bin_width;
 
             // apply log function to zoom slider value
             double zoom_slider = Math.Log10(9.0 * z_slider + 1.0);
@@ -4890,14 +4691,17 @@ namespace Thetis
             // limits how much you can zoom in; higher value means you zoom more
             const double zoom_limit = 100.0;
 
-            // width = number of 0..30 MHz bins to use AFTER zooming
-            int width = Math.Max(1, (int)(display_bins * (1.0 - (1.0 - 1.0 / zoom_limit) * zoom_slider)));
-            // Pan only inside 0..30 MHz. High-side clipping also discards bins above 30 MHz.
-            span_clip_l = (int)Math.Floor(p_slider * (display_bins - width));
+            // width = number of bins to use AFTER zooming
+            int width = (int)(bins * (1.0 - (1.0 - 1.0 / zoom_limit) * zoom_slider));
+
+            // FSCLIPL is 0 if pan_slider is 0; it's bins-width if pan_slider is 1
+            // FSCLIPH is bins-width if pan_slider is 0; it's 0 if pan_slider is 1
+            span_clip_l = (int)Math.Floor(p_slider * (bins - width));
             span_clip_h = bins - width - span_clip_l;
-            // The displayed ruler must describe exactly the bins passed to SetAnalyzer.
-            low_freq = (int)Math.Round((clip + span_clip_l) * bin_width);
-            high_freq = (int)Math.Round((clip + span_clip_l + width) * bin_width);
+
+            // the low and high frequencies that are being displayed:
+            low_freq = sample_rate / 4 - (int)(0.5 * bw - (double)span_clip_l * bin_width);
+            high_freq = sample_rate / 4 + (int)(0.5 * bw - (double)span_clip_h * bin_width);
 
             SpecHPSDRDLL.SetAnalyzer(
                 wbid,                       // id of this analyzer
@@ -4921,7 +4725,6 @@ namespace Thetis
                 2 * fft_size                // maximum write-ahead
                 );
 
-            if (handle.IsAllocated) handle.Free(); // SQ4KOU_WB_PAN_ZOOM_V1: SetAnalyzer copied flip[]
             SpecHPSDRDLL.SetDisplayAverageMode(wbid, 0, avm);
             SpecHPSDRDLL.SetDisplayAvBackmult(wbid, 0, avb);
         }
