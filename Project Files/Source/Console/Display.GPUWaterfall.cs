@@ -94,7 +94,9 @@ namespace Thetis
 
         private static float[] _gpuPaletteUpload = new float[4096];
 
-        private static readonly bool[] _gpuRendererModeKnown = new bool[2];
+        // RX is the established baseline. Mark it as the known initial mode so
+        // adding TX GPU does not introduce an extra reset on normal RX startup.
+        private static readonly bool[] _gpuRendererModeKnown = new bool[2] { true, true };
 
         private static readonly bool[] _gpuRendererTxSamplerMode = new bool[2];
 
@@ -788,8 +790,13 @@ namespace Thetis
 
         private static bool IsGPUWaterfallPaletteScheme(ColorScheme scheme)
         {
-            return scheme == ColorScheme.Console || scheme == ColorScheme.Thermal || scheme == ColorScheme.DeepBlue ||
-                   scheme == ColorScheme.Custom || scheme == ColorScheme.enhanced || scheme == ColorScheme.BLACKWHITE;
+            return scheme == ColorScheme.Console || scheme == ColorScheme.Thermal || scheme == ColorScheme.DeepBlue || scheme == ColorScheme.Custom;
+        }
+
+        private static bool IsGPUWaterfallPaletteSchemeForMode(ColorScheme scheme, bool txSamplerMode)
+        {
+            return IsGPUWaterfallPaletteScheme(scheme) ||
+                   (txSamplerMode && (scheme == ColorScheme.enhanced || scheme == ColorScheme.BLACKWHITE));
         }
 
         private static void UploadPaletteToGPU(WaterfallGPURenderer renderer, WaterfallPalette palette)
@@ -906,7 +913,7 @@ namespace Thetis
         {
             int index = rx - 1;
             bool txSamplerMode = localMox && !DisplayDuplex;
-            if (index < 0 || index > 1 || (localMox && !txSamplerMode) || !ManagedGPUFFTRequested || !IsGPUWaterfallPaletteScheme(scheme))
+            if (index < 0 || index > 1 || (localMox && !txSamplerMode) || !ManagedGPUFFTRequested || !IsGPUWaterfallPaletteSchemeForMode(scheme, txSamplerMode))
             {
                 if (index >= 0 && index < 2) _gpuRendererHasData[index] = false;
                 return false;
@@ -964,7 +971,7 @@ namespace Thetis
             }
             else if (scheme == ColorScheme.enhanced || scheme == ColorScheme.BLACKWHITE)
             {
-                System.Drawing.Color lowColor = txSamplerMode ? waterfall_low_color_tx : (rx == 1 ? waterfall_low_color : rx2_waterfall_low_color);
+                System.Drawing.Color lowColor = waterfall_low_color_tx;
                 UploadLegacyPaletteToGPU(renderer, scheme, lowColor);
             }
             else
@@ -995,7 +1002,8 @@ namespace Thetis
         private static bool CanDrawManagedGPUWaterfall(int rx, ColorScheme scheme, int width, int height)
         {
             int index = rx - 1;
-            if (index < 0 || index > 1 || !_gpuRendererHasData[index] || !ManagedGPUFFTRequested || !IsGPUWaterfallPaletteScheme(scheme)) return false;
+            bool txSamplerMode = localMox(rx) && !DisplayDuplex;
+            if (index < 0 || index > 1 || !_gpuRendererHasData[index] || !ManagedGPUFFTRequested || !IsGPUWaterfallPaletteSchemeForMode(scheme, txSamplerMode)) return false;
             WaterfallGPURenderer renderer = rx == 1 ? _waterfallGPU1 : _waterfallGPU2;
             return renderer != null && renderer.IsInitialized && renderer.Width == width && renderer.Height == height;
         }
