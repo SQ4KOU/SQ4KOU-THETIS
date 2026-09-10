@@ -392,6 +392,8 @@ void xcmaster (int stream)
 		// WriteAudio(10.0, pcm->xmtr[tx].ch_outrate, pcm->xmtr[tx].ch_outsize, pcm->xmtr[tx].out[0], 3);
 		xsidetone(tx);
 		xpipe (stream, 1, pcm->xmtr[tx].out);
+		// SQ4KOU GPUWF TX source: post-DSP transmitter IQ, isolated from RX rings.
+		CM_WaterfallIQ_Push(2, pcm->xmtr[tx].ch_outsize, pcm->xmtr[tx].out[0]);
 		// Spectrum0 (1, stream, 0, 0, pcm->xmtr[tx].out[0]);									// panadapter
 		xMixAudio (0, 0, chid (stream, 0), pcm->xmtr[tx].out[2]);								// mix monitor audio
 		xtxgain (pcm->xmtr[tx].pgain);															// Gain for Penelope & amp_protect
