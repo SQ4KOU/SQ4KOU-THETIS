@@ -1,0 +1,79 @@
+name: Build Native Fallback MSI R3
+
+on:
+  push:
+    branches: [build/native-fallback-msi-r3-20260910]
+
+permissions:
+  contents: read
+
+jobs:
+  build-msi:
+    runs-on: windows-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout exact corrected fallback commit
+        uses: actions/checkout@v4
+        with:
+          ref: 75a8344cde2662262342b524e83e7d5876a3d077
+          fetch-depth: 1
+          filter: blob:none
+
+      - name: Verify fallback source SHA and Diversity declarations
+        shell: pwsh
+        run: |
+          $sha = git rev-parse HEAD
+          if ($sha -ne '75a8344cde2662262342b524e83e7d5876a3d077') { throw "Wrong source SHA: $sha" }
+          $decl = @(Get-ChildItem "Project Files\Source\Console" -Recurse -Filter *.cs | Select-String -Pattern '\b(class|partial\s+class)\s+DiversityForm\b')
+          $decl | ForEach-Object { Write-Host "$($_.Path):$($_.LineNumber): $($_.Line.Trim())" }
+          if ($decl.Count -ne 1) { throw "Expected exactly one DiversityForm declaration, got $($decl.Count)" }
+
+      - name: Enable long paths
+        shell: pwsh
+        run: git config --global core.longpaths true
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) { choco install wixtoolset -y --no-progress }
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) {
+            $targets = Get-ChildItem "C:\Program Files (x86)\WiX Toolset*\Wix.targets" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          }
+          if (-not $targets) { throw "WiX 3.x Wix.targets not found" }
+          "WIX_TARGETS=$($targets.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore NuGet packages
+        shell: pwsh
+        run: nuget restore "Project Files\Source\Thetis_VS2026.sln" -NonInteractive
+
+      - name: Build Release x64 and MSI
+        shell: pwsh
+        run: msbuild "Project Files\Source\Thetis_VS2026.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal
+
+      - name: Verify MSI
+        shell: pwsh
+        run: |
+          $msi = Get-ChildItem "Project Files\bin\Installers\*.msi" -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $msi) { throw "MSI was not produced" }
+          if ($msi.Length -lt 1MB) { throw "MSI is unexpectedly small: $($msi.Length) bytes" }
+          $hash = (Get-FileHash $msi.FullName -Algorithm SHA256).Hash
+          Write-Host "MSI=$($msi.FullName)"
+          Write-Host "SIZE=$($msi.Length)"
+          Write-Host "SHA256=$hash"
+
+      - name: Upload MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-NATIVE-FALLBACK-MSI-R3
+          path: Project Files/bin/Installers/*.msi
+          if-no-files-found: error
+          compression-level: 0
