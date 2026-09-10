@@ -1,0 +1,26 @@
+name: Diagnose SATT conditions
+
+on:
+  push:
+    branches: [build/diag-satt-conditions-20260910]
+
+jobs:
+  diff:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 12704f4b031cee98d6eb744b93ee06309ee73d6d
+          fetch-depth: 1
+      - shell: pwsh
+        run: git fetch origin 852bf0ef0b4f3886a13fc2846489aee16f361872 --depth=1
+      - name: Relevant condition diffs
+        shell: pwsh
+        run: |
+          $b='852bf0ef0b4f3886a13fc2846489aee16f361872'; $h='12704f4b031cee98d6eb744b93ee06309ee73d6d'
+          $files=@('Project Files/Source/Console/console.cs','Project Files/Source/ChannelMaster/netInterface.c','Project Files/Source/ChannelMaster/network.c','Project Files/Source/ChannelMaster/networkproto1.c')
+          foreach($f in $files) {
+            Write-Host "=== $f ==="
+            $d = git diff -U20 $b $h -- "$f"
+            $d | Select-String -Pattern 'SetTxAttenData|SetADC[123]StepAttenData|tx_step_attn|rx_step_attn|m_bATTonTX|_tx_attenuator_data|txatt|SQ4KOU_HW_TELEMETRY|S-ATT' -Context 20,20
+          }
