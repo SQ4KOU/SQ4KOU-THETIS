@@ -38,7 +38,7 @@ jobs:
 
           function Replace-One([string]$inputText, [string]$pattern, [string]$label) {
             $m = [regex]::Matches($inputText, $pattern)
-            if ($m.Count -ne 1) { throw "$label: expected exactly one match, got $($m.Count)" }
+            if ($m.Count -ne 1) { throw "${label}: expected exactly one match, got $($m.Count)" }
             return [regex]::Replace($inputText, $pattern, '', 1)
           }
 
