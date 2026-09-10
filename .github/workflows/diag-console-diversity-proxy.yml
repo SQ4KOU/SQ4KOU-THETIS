@@ -1,0 +1,25 @@
+name: Diagnose Console Diversity Proxy
+
+on:
+  push:
+    branches: [build/native-fallback-console-diag-20260910]
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 75a8344cde2662262342b524e83e7d5876a3d077
+          fetch-depth: 1
+      - name: Print console Diversity proxy block
+        shell: pwsh
+        run: |
+          $p = 'Project Files\Source\Console\console.cs'
+          $lines = Get-Content $p
+          for ($i=11735; $i -le 11770; $i++) {
+            Write-Host (('{0,6}: {1}' -f ($i+1), $lines[$i]))
+          }
