@@ -1,0 +1,93 @@
+name: Apply Native Diversity Console Fix R2
+
+on:
+  push:
+    branches: [build/apply-native-diversity-console-fix-r2-20260910]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout target branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/p2-adc-ramdor-original-20260910
+          fetch-depth: 2
+
+      - name: Verify source SHA
+        shell: pwsh
+        run: |
+          $sha = git rev-parse HEAD
+          if ($sha -ne '75a8344cde2662262342b524e83e7d5876a3d077') { throw "Unexpected target SHA: $sha" }
+
+      - name: Remove only CATDiversityGainMulti TL2-1 block
+        shell: pwsh
+        run: |
+          $p = 'Project Files\Source\Console\console.cs'
+          $bytes = [System.IO.File]::ReadAllBytes($p)
+          $hasBom = $bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF
+          $utf8 = New-Object System.Text.UTF8Encoding($false)
+          if ($hasBom) {
+            $body = New-Object byte[] ($bytes.Length - 3)
+            [Array]::Copy($bytes, 3, $body, 0, $body.Length)
+            $text = $utf8.GetString($body)
+          } else {
+            $text = $utf8.GetString($bytes)
+          }
+
+          $beginToken = '// [ThetisLink TL2-1] BEGIN'
+          $endToken = '// [ThetisLink TL2-1] END'
+          $scan = 0
+          $candidate = @()
+          while ($true) {
+            $b = $text.IndexOf($beginToken, $scan, [System.StringComparison]::Ordinal)
+            if ($b -lt 0) { break }
+            $lineStart = $text.LastIndexOf("`n", [Math]::Max(0,$b-1))
+            if ($lineStart -lt 0) { $lineStart = 0 } else { $lineStart++ }
+            $e = $text.IndexOf($endToken, $b, [System.StringComparison]::Ordinal)
+            if ($e -lt 0) { throw 'Unpaired TL2-1 BEGIN' }
+            $lineEnd = $text.IndexOf("`n", $e, [System.StringComparison]::Ordinal)
+            if ($lineEnd -lt 0) { $lineEnd = $text.Length } else { $lineEnd++ }
+            $block = $text.Substring($lineStart, $lineEnd - $lineStart)
+            if ($block.Contains('CATDiversityGainMulti')) {
+              $candidate += [pscustomobject]@{ Start=$lineStart; Length=($lineEnd-$lineStart); Text=$block }
+            }
+            $scan = $lineEnd
+          }
+          if ($candidate.Count -ne 1) { throw "Expected exactly one CATDiversityGainMulti TL2-1 block, got $($candidate.Count)" }
+          if (-not $candidate[0].Text.Contains('diversityForm.DiversityGainMulti')) { throw 'Candidate block content mismatch' }
+
+          $c = $candidate[0]
+          $newText = $text.Remove($c.Start, $c.Length)
+          if ($newText.Contains('CATDiversityGainMulti')) { throw 'CATDiversityGainMulti remains after patch' }
+          $outBody = $utf8.GetBytes($newText)
+          if ($hasBom) {
+            $out = New-Object byte[] ($outBody.Length + 3)
+            $out[0]=0xEF; $out[1]=0xBB; $out[2]=0xBF
+            [Array]::Copy($outBody,0,$out,3,$outBody.Length)
+            [System.IO.File]::WriteAllBytes($p,$out)
+          } else {
+            [System.IO.File]::WriteAllBytes($p,$outBody)
+          }
+
+          $stat = git diff --numstat -- "$p"
+          Write-Host "NUMSTAT=$stat"
+          $parts = $stat -split "`t"
+          if ($parts.Count -lt 2) { throw 'No diff produced' }
+          $adds = [int]$parts[0]
+          $dels = [int]$parts[1]
+          if ($adds -ne 0 -or $dels -ne 22) { git diff -- "$p"; throw "Unexpected diff size: +$adds -$dels" }
+          git diff --check -- "$p"
+          git diff -- "$p"
+
+      - name: Commit and push target branch
+        shell: pwsh
+        run: |
+          git config user.name 'SQ4KOU CI'
+          git config user.email 'sq4kou@users.noreply.github.com'
+          git add -- 'Project Files/Source/Console/console.cs'
+          git commit -m 'Complete native Diversity fallback: remove TL2-1 GainMulti proxy'
+          git push origin HEAD:fix/p2-adc-ramdor-original-20260910
