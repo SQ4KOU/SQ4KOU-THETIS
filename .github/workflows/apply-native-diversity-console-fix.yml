@@ -1,0 +1,58 @@
+name: Apply Native Diversity Console Fix
+
+on:
+  push:
+    branches: [build/apply-native-diversity-console-fix-20260910]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout target branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/p2-adc-ramdor-original-20260910
+          fetch-depth: 2
+
+      - name: Verify source SHA
+        shell: pwsh
+        run: |
+          $sha = git rev-parse HEAD
+          if ($sha -ne '75a8344cde2662262342b524e83e7d5876a3d077') { throw "Unexpected target SHA: $sha" }
+
+      - name: Remove only TL2-1 DiversityGainMulti proxy
+        shell: pwsh
+        run: |
+          $p = 'Project Files\Source\Console\console.cs'
+          $bytes = [System.IO.File]::ReadAllBytes($p)
+          $hasBom = $bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF
+          $enc = New-Object System.Text.UTF8Encoding($hasBom)
+          $text = $enc.GetString($(if ($hasBom) { $bytes[3..($bytes.Length-1)] } else { $bytes }))
+          $pattern = '(?ms)^[ \t]*// \[ThetisLink TL2-1\] BEGIN[^\r\n]*\r?\n[\s\S]*?^[ \t]*// \[ThetisLink TL2-1\] END\r?\n'
+          $matches = [regex]::Matches($text, $pattern)
+          if ($matches.Count -ne 1) { throw "Expected exactly one TL2-1 block, got $($matches.Count)" }
+          if ($matches[0].Value -notmatch 'CATDiversityGainMulti' -or $matches[0].Value -notmatch 'DiversityGainMulti') { throw 'Matched block is not the DiversityGainMulti proxy' }
+          $newText = [regex]::Replace($text, $pattern, '', 1)
+          [System.IO.File]::WriteAllText($p, $newText, $enc)
+
+          $stat = git diff --numstat -- "$p"
+          Write-Host $stat
+          $parts = $stat -split "`t"
+          if ($parts.Count -lt 2) { throw 'No diff produced' }
+          $adds = [int]$parts[0]
+          $dels = [int]$parts[1]
+          if ($adds -ne 0 -or $dels -lt 20 -or $dels -gt 24) { git diff -- "$p"; throw "Unexpected diff size: +$adds -$dels" }
+          git diff --check -- "$p"
+          git diff -- "$p"
+
+      - name: Commit and push target branch
+        shell: pwsh
+        run: |
+          git config user.name 'SQ4KOU CI'
+          git config user.email 'sq4kou@users.noreply.github.com'
+          git add -- 'Project Files/Source/Console/console.cs'
+          git commit -m 'Complete native Diversity fallback: remove TL2-1 GainMulti proxy'
+          git push origin HEAD:fix/p2-adc-ramdor-original-20260910
