@@ -1,0 +1,148 @@
+name: Apply and Build TX GPU Waterfall
+
+on:
+  push:
+    branches: [feature/tx-gpu-waterfall-puresignal]
+    paths:
+      - .github/workflows/apply-tx-gpu-waterfall.yml
+      - .github/scripts/fix-tx-gpu-waterfall-rendering.py
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  patch-build-commit:
+    runs-on: windows-2025
+    timeout-minutes: 90
+    steps:
+      - name: Checkout exact branch head
+        uses: actions/checkout@v4
+        with:
+          ref: feature/tx-gpu-waterfall-puresignal
+          fetch-depth: 0
+
+      - name: Enable long paths
+        shell: pwsh
+        run: git config --global core.longpaths true
+
+      - name: Apply TX GPU waterfall patch
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          python .github/scripts/fix-tx-gpu-waterfall-rendering.py
+          if($LASTEXITCODE -ne 0){throw 'TX GPU waterfall patch failed'}
+          $changed = @(git diff --name-only)
+          Write-Host "Changed files: $($changed -join ', ')"
+          if($changed.Count -ne 1 -or $changed[0] -ne 'Project Files/Source/Console/Display.GPUWaterfall.cs'){
+            throw 'Patch changed files outside Display.GPUWaterfall.cs'
+          }
+
+      - name: Verify TX GPU source wiring
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $p='Project Files\Source\Console\Display.GPUWaterfall.cs'
+          $s=Get-Content $p -Raw
+          foreach($token in @(
+            'txSpectrum = rx == 1 ? current_waterfall_data_copy : current_waterfall_data_bottom_copy;',
+            'renderer.ProcessRow(txSpectrum, txSpectrumLength, txDecimation,',
+            'colours = _tx_waterfall_grad;',
+            'm_bStopRX1WaterfallOnTX',
+            'pipeline.MagSpectrumView'
+          )){
+            if(-not $s.Contains($token)){throw "Missing TX GPU token: $token"}
+          }
+          if($s -match 'if \(localMox\)\s*\{\s*return false;\s*\}'){
+            throw 'Old MOX freeze path still present'
+          }
+          Write-Host 'TX_GPU_WATERFALL_SOURCE_AUDIT=PASS'
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $targets=Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if(-not $targets){choco install wixtoolset -y --no-progress}
+          $targets=Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if(-not $targets){$targets=Get-ChildItem 'C:\Program Files (x86)\WiX Toolset*\Wix.targets' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1}
+          if(-not $targets){throw 'WiX 3.x Wix.targets not found'}
+          "WIX_TARGETS=$($targets.FullName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore packages
+        shell: pwsh
+        run: nuget restore 'Project Files\Source\Thetis_VS2026.sln' -NonInteractive
+
+      - name: Build Release x64 and MSI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $log=Join-Path $env:RUNNER_TEMP 'sq4kou-tx-gpu-waterfall-render-build.log'
+          & msbuild 'Project Files\Source\Thetis_VS2026.sln' /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal 2>&1 | Tee-Object -FilePath $log
+          if($LASTEXITCODE -ne 0){throw "MSBuild failed: $LASTEXITCODE"}
+          $errors=Select-String -Path $log -Pattern ': error ' -ErrorAction SilentlyContinue
+          if($errors){$errors | ForEach-Object {Write-Host $_.Line}; throw 'Build log contains compiler/build errors'}
+          "BUILD_LOG=$log" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host 'TX_GPU_WATERFALL_BUILD=PASS'
+
+      - name: Verify and stage MSI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $msi=Get-ChildItem 'Project Files\bin\Installers\*.msi' -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if(-not $msi -or $msi.Length -lt 1MB){throw 'Valid MSI was not produced'}
+          $out=Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-TX-GPU-WATERFALL-CONTINUOUS-x64.msi'
+          Copy-Item $msi.FullName $out -Force
+          $hash=(Get-FileHash $out -Algorithm SHA256).Hash
+          "FINAL_MSI=$out" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "MSI_SHA256=$hash" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "MSI_BYTES=$((Get-Item $out).Length)"
+          Write-Host "MSI_SHA256=$hash"
+
+      - name: Commit verified source patch
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- 'Project Files/Source/Console/Display.GPUWaterfall.cs'
+          if(git diff --cached --quiet){throw 'No source patch staged after successful build'}
+          git commit -m 'Render TX waterfall through GPU without clearing RX history [skip ci]'
+          git push origin HEAD:feature/tx-gpu-waterfall-puresignal
+          $sha=(git rev-parse HEAD).Trim()
+          "SOURCE_SHA=$sha" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "SOURCE_SHA=$sha"
+
+      - name: Write build metadata
+        shell: pwsh
+        run: |
+          @(
+            "SOURCE_SHA=$env:SOURCE_SHA",
+            "MSI_SHA256=$env:MSI_SHA256",
+            'TX_GPU_WATERFALL_SOURCE_AUDIT=PASS',
+            'TX_GPU_WATERFALL_BUILD=PASS'
+          ) | Set-Content (Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-TX-GPU-WATERFALL-CONTINUOUS-build.txt')
+
+      - name: Upload MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-TX-GPU-WATERFALL-CONTINUOUS-x64
+          path: |
+            ${{ env.FINAL_MSI }}
+            ${{ runner.temp }}/SQ4KOU-THETIS-TX-GPU-WATERFALL-CONTINUOUS-build.txt
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: Upload build log
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-TX-GPU-WATERFALL-CONTINUOUS-build-log
+          path: ${{ env.BUILD_LOG }}
+          if-no-files-found: error
+          compression-level: 6
