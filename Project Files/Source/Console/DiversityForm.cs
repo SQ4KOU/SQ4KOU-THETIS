@@ -267,13 +267,19 @@ namespace Thetis
                 DarkMode = console.SetupForm.DarkMode;
             }
 
-            // Start with the unobtrusive Phase/Gain radar only.
+        }
+
+        protected override void OnShown(EventArgs e)
+        {
+            base.OnShown(e);
+            // Visible includes the parent's state: capture only after the form is shown.
+            // Load-time layout changes must also finish before saving the expanded layout.
             InitializeSQ4KOUCompactMode();
         }
 
         private void InitializeSQ4KOUCompactMode()
         {
-            if (_sq4kouCompactInitialised || picRadar == null) return;
+            if (_sq4kouCompactInitialised || picRadar == null || !Visible) return;
 
             _sq4kouExpandedClientSize = this.ClientSize;
             _sq4kouExpandedMinimumSize = this.MinimumSize;
