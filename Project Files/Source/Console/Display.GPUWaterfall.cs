@@ -94,6 +94,10 @@ namespace Thetis
 
         private static float[] _gpuPaletteUpload = new float[4096];
 
+        private static readonly bool[] _gpuRendererModeKnown = new bool[2];
+
+        private static readonly bool[] _gpuRendererTxSamplerMode = new bool[2];
+
         public static event Action<int, double> GPUWaterfallEffectiveOverlapChanged;
 
         public static bool GPUWaterfallPipelineEnabled
@@ -350,7 +354,7 @@ namespace Thetis
         public static float GPUWaterfallCalibrationOffsetRX1 => _gpuCalOffsetRX1;
         public static float GPUWaterfallCalibrationOffsetRX2 => _gpuCalOffsetRX2;
 
-        private static void EnsureGPUWaterfallPipeline(int rx, int width, int height)
+        private static void EnsureGPUWaterfallPipeline(int rx, int width, int height, int sourceStream = -1)
         {
             if (!_gpuWaterfallPipelineEnabled || !_gpuEffectsEnabled)
             {
@@ -364,10 +368,12 @@ namespace Thetis
                 }
                 return;
             }
-            int num = cmaster.GetInputRate(0, rx - 1);
+            int source = sourceStream >= 0 ? sourceStream : rx - 1;
+            if (source < 0 || source > 1) return;
+            int num = cmaster.GetInputRate(0, source);
             if (num <= 0)
             {
-                num = ((rx == 1) ? SampleRateRX1 : SampleRateRX2);
+                num = source == 0 ? SampleRateRX1 : SampleRateRX2;
             }
             GPUWaterfallPipeline gPUWaterfallPipeline = ((rx == 1) ? _gpuFFT1 : _gpuFFT2);
             bool num2 = gPUWaterfallPipeline == null;
@@ -399,7 +405,7 @@ namespace Thetis
                 gPUWaterfallPipeline.LanczosWindow = _gpuWaterfallLanczosWindow;
                 gPUWaterfallPipeline.ResamplingMode = _gpuWaterfallResamplingMode;
             }
-            LogGPU($"InitOrResizeGPUWaterfall RX{rx}: FFT={_gpuWaterfallFFTSize}, width={width}, SR={num}, window={_gpuWaterfallWindowType}, kaiser={_gpuWaterfallKaiserBeta:F1}, magnitude={_gpuWaterfallMagnitudeMode}, resampling={_gpuWaterfallResamplingMode}, overlap={_gpuWaterfallOverlapPercent}%, initialized={gPUWaterfallPipeline.IsInitialized}");
+            LogGPU($"InitOrResizeGPUWaterfall RX{rx}/SRC{source + 1}: FFT={_gpuWaterfallFFTSize}, width={width}, SR={num}, window={_gpuWaterfallWindowType}, kaiser={_gpuWaterfallKaiserBeta:F1}, magnitude={_gpuWaterfallMagnitudeMode}, resampling={_gpuWaterfallResamplingMode}, overlap={_gpuWaterfallOverlapPercent}%, initialized={gPUWaterfallPipeline.IsInitialized}");
         }
 
         private static void ResetGPUWaterfallState(int rx, bool resetCalibration = true)
@@ -438,27 +444,38 @@ namespace Thetis
             }
         }
 
-        private static float[] ProcessGPUWaterfall(int rx, int width)
+        private static float[] ProcessGPUWaterfall(int rx, int width, int sourceStream = -1, bool calibrateAgainstCpu = true)
         {
             if (!_gpuWaterfallPipelineEnabled)
             {
                 return null;
             }
+
+            // When TX is shown on RX2/VFO-B, reserve native ring 0 for the TX
+            // sampler path below. RX1 then falls back to its existing CPU renderer.
+            if (sourceStream < 0 && _mox && !DisplayDuplex && rx == 1 && localMox(2))
+            {
+                return null;
+            }
+
+            int source = sourceStream >= 0 ? sourceStream : rx - 1;
+            if (source < 0 || source > 1) return null;
+
             GPUWaterfallPipeline gPUWaterfallPipeline = ((rx == 1) ? _gpuFFT1 : _gpuFFT2);
             if (gPUWaterfallPipeline == null || !gPUWaterfallPipeline.IsInitialized)
             {
-                EnsureGPUWaterfallPipeline(rx, width, 1);
+                EnsureGPUWaterfallPipeline(rx, width, 1, source);
                 gPUWaterfallPipeline = ((rx == 1) ? _gpuFFT1 : _gpuFFT2);
             }
             if (gPUWaterfallPipeline != null && gPUWaterfallPipeline.IsInitialized && gPUWaterfallPipeline.FFTSize != _gpuWaterfallFFTSize)
             {
-                EnsureGPUWaterfallPipeline(rx, width, 1);
+                EnsureGPUWaterfallPipeline(rx, width, 1, source);
                 gPUWaterfallPipeline = ((rx == 1) ? _gpuFFT1 : _gpuFFT2);
             }
-            int inputRate = cmaster.GetInputRate(0, rx - 1);
+            int inputRate = cmaster.GetInputRate(0, source);
             if (gPUWaterfallPipeline != null && inputRate > 0 && Math.Abs(gPUWaterfallPipeline.SampleRate - (float)inputRate) > 1f)
             {
-                EnsureGPUWaterfallPipeline(rx, width, 1);
+                EnsureGPUWaterfallPipeline(rx, width, 1, source);
                 gPUWaterfallPipeline = ((rx == 1) ? _gpuFFT1 : _gpuFFT2);
                 ResetGPUWaterfallState(rx);
             }
@@ -467,7 +484,7 @@ namespace Thetis
                 if (!_gpuPipeFailLogged[rx - 1])
                 {
                     _gpuPipeFailLogged[rx - 1] = true;
-                    LogGPU(string.Format("ProcessGPUWaterfall RX{0}: pipe {1}", rx, (gPUWaterfallPipeline == null) ? "null" : "not initialized"));
+                    LogGPU(string.Format("ProcessGPUWaterfall RX{0}/SRC{1}: pipe {2}", rx, source + 1, (gPUWaterfallPipeline == null) ? "null" : "not initialized"));
                 }
                 return null;
             }
@@ -505,7 +522,7 @@ namespace Thetis
                 _gpuIQbufI = new float[524288];
                 _gpuIQbufQ = new float[524288];
             }
-            int stream = ((rx != 1) ? 1 : 0);
+            int stream = source;
             int num3 = 0;
             int waterfallIQDroppedSamples = (int)Math.Min((ulong)int.MaxValue, GPUWaterfallNative.CM_WaterfallIQ_DroppedSamples(stream));
             if (waterfallIQDroppedSamples > 0)
@@ -514,7 +531,7 @@ namespace Thetis
                 if (num4 - _gpuLastDropLogMs[num2] >= 1000)
                 {
                     _gpuLastDropLogMs[num2] = num4;
-                    LogGPU($"RX{rx} I/Q ring dropped {waterfallIQDroppedSamples} samples (reader lagged behind writer)");
+                    LogGPU($"RX{rx}/SRC{source + 1} I/Q ring dropped {waterfallIQDroppedSamples} samples (reader lagged behind writer)");
                 }
                 GPUWaterfallNative.CM_WaterfallIQ_ResetDropped(stream);
             }
@@ -623,19 +640,19 @@ namespace Thetis
             }
             if (flag)
             {
-                LogGPU($"ProcessGPUWaterfall RX{rx}: span set lowFreq={num26:F0}, highFreq={num27:F0}, width={width}, fftSize={fFTSize}");
+                LogGPU($"ProcessGPUWaterfall RX{rx}/SRC{source + 1}: span set lowFreq={num26:F0}, highFreq={num27:F0}, width={width}, fftSize={fFTSize}");
             }
             gPUWaterfallPipeline.SetFrequencySpan(num26, num27);
             float[] array5 = gPUWaterfallPipeline.Process(_gpuIQbufI, _gpuIQbufQ, fFTSize);
             if (flag)
             {
-                LogGPU(string.Format("ProcessGPUWaterfall RX{0}: available={1}, got={2}, credit={3}, row={4}, width={5}", rx, num7, num3, _gpuSampleCredit[num2], (array5 != null) ? ("len=" + array5.Length) : "null", width));
+                LogGPU(string.Format("ProcessGPUWaterfall RX{0}/SRC{1}: available={2}, got={3}, credit={4}, row={5}, width={6}", rx, source + 1, num7, num3, _gpuSampleCredit[num2], (array5 != null) ? ("len=" + array5.Length) : "null", width));
             }
             if (array5 != null && array5.Length < width)
             {
                 return null;
             }
-            if (array5 != null)
+            if (array5 != null && calibrateAgainstCpu)
             {
                 float[] array6 = ((rx == 1) ? _gpuCalReferenceRowRX1 : _gpuCalReferenceRowRX2);
                 int num28 = Math.Min(width, (array6 != null) ? array6.Length : 0);
@@ -771,7 +788,8 @@ namespace Thetis
 
         private static bool IsGPUWaterfallPaletteScheme(ColorScheme scheme)
         {
-            return scheme == ColorScheme.Console || scheme == ColorScheme.Thermal || scheme == ColorScheme.DeepBlue || scheme == ColorScheme.Custom;
+            return scheme == ColorScheme.Console || scheme == ColorScheme.Thermal || scheme == ColorScheme.DeepBlue ||
+                   scheme == ColorScheme.Custom || scheme == ColorScheme.enhanced || scheme == ColorScheme.BLACKWHITE;
         }
 
         private static void UploadPaletteToGPU(WaterfallGPURenderer renderer, WaterfallPalette palette)
@@ -801,6 +819,79 @@ namespace Thetis
             renderer.SetPalette(_gpuPaletteUpload, count);
         }
 
+        private static void UploadLegacyPaletteToGPU(WaterfallGPURenderer renderer, ColorScheme scheme, System.Drawing.Color lowColor)
+        {
+            if (renderer == null) return;
+            for (int i = 0; i < 256; i++)
+            {
+                float p = (float)i / 255f;
+                float r;
+                float g;
+                float b;
+
+                if (scheme == ColorScheme.BLACKWHITE)
+                {
+                    r = g = b = p * 255f;
+                }
+                else if (p < 2f / 9f)
+                {
+                    float t = p / (2f / 9f);
+                    r = (1f - t) * lowColor.R;
+                    g = (1f - t) * lowColor.G;
+                    b = lowColor.B + t * (255f - lowColor.B);
+                }
+                else if (p < 3f / 9f)
+                {
+                    float t = (p - 2f / 9f) / (1f / 9f);
+                    r = 0f;
+                    g = t * 255f;
+                    b = 255f;
+                }
+                else if (p < 4f / 9f)
+                {
+                    float t = (p - 3f / 9f) / (1f / 9f);
+                    r = 0f;
+                    g = 255f;
+                    b = (1f - t) * 255f;
+                }
+                else if (p < 5f / 9f)
+                {
+                    float t = (p - 4f / 9f) / (1f / 9f);
+                    r = t * 255f;
+                    g = 255f;
+                    b = 0f;
+                }
+                else if (p < 7f / 9f)
+                {
+                    float t = (p - 5f / 9f) / (2f / 9f);
+                    r = 255f;
+                    g = (1f - t) * 255f;
+                    b = 0f;
+                }
+                else if (p < 8f / 9f)
+                {
+                    float t = (p - 7f / 9f) / (1f / 9f);
+                    r = 255f;
+                    g = 0f;
+                    b = t * 255f;
+                }
+                else
+                {
+                    float t = (p - 8f / 9f) / (1f / 9f);
+                    r = (0.75f + 0.25f * (1f - t)) * 255f;
+                    g = t * 255f * 0.5f;
+                    b = 255f;
+                }
+
+                int n = i * 4;
+                _gpuPaletteUpload[n] = r / 255f;
+                _gpuPaletteUpload[n + 1] = g / 255f;
+                _gpuPaletteUpload[n + 2] = b / 255f;
+                _gpuPaletteUpload[n + 3] = 1f;
+            }
+            renderer.SetPalette(_gpuPaletteUpload, 256);
+        }
+
         private static WaterfallPalette GetGPUWaterfallPalette(ColorScheme scheme)
         {
             if (scheme == ColorScheme.Console) return GetPaletteConsole();
@@ -814,23 +905,67 @@ namespace Thetis
             GPUWaterfallPipeline pipeline, bool gpuRowReady, float gpuCalOffset)
         {
             int index = rx - 1;
-            if (index < 0 || index > 1 || localMox || !ManagedGPUFFTRequested || !IsGPUWaterfallPaletteScheme(scheme))
+            bool txSamplerMode = localMox && !DisplayDuplex;
+            if (index < 0 || index > 1 || (localMox && !txSamplerMode) || !ManagedGPUFFTRequested || !IsGPUWaterfallPaletteScheme(scheme))
             {
                 if (index >= 0 && index < 2) _gpuRendererHasData[index] = false;
                 return false;
             }
+
+            bool modeChanged = !_gpuRendererModeKnown[index] || _gpuRendererTxSamplerMode[index] != txSamplerMode;
+            if (modeChanged)
+            {
+                _gpuRendererModeKnown[index] = true;
+                _gpuRendererTxSamplerMode[index] = txSamplerMode;
+                ResetGPUWaterfallState(rx, resetCalibration: false);
+                gpuRowReady = false;
+            }
+
+            // TX waterfall is intentionally driven from native RX1 I/Q ring 0.
+            // During MOX this is the PureSignal/sample feedback signal: exactly
+            // what RX1 sees, not the transmitter baseband or microphone path.
+            if (txSamplerMode)
+            {
+                float[] txSamplerRow = ProcessGPUWaterfall(rx, width, sourceStream: 0, calibrateAgainstCpu: false);
+                pipeline = GetGPUWaterfallPipeline(rx);
+                gpuRowReady = txSamplerRow != null;
+                gpuCalOffset = 0f;
+            }
+
             WaterfallGPURenderer renderer = EnsureGPUWaterfallRenderer(rx, width, height);
             if (renderer == null || !renderer.IsInitialized || pipeline == null || !pipeline.IsInitialized)
             {
                 _gpuRendererHasData[index] = false;
                 return false;
             }
+            if (modeChanged) renderer.Clear();
+
             bool paletteReady = true;
             if (scheme == ColorScheme.Custom)
             {
-                System.Drawing.Color[] colours = rx == 1 ? _rx1_waterfall_grad : _rx2_waterfall_grad;
-                bool ok = rx == 1 ? _rx1_waterfall_grad_ok : _rx2_waterfall_grad_ok;
+                System.Drawing.Color[] colours;
+                bool ok;
+                if (txSamplerMode)
+                {
+                    colours = _tx_waterfall_grad;
+                    ok = _tx_waterfall_grad_ok;
+                }
+                else if (rx == 1)
+                {
+                    colours = _rx1_waterfall_grad;
+                    ok = _rx1_waterfall_grad_ok;
+                }
+                else
+                {
+                    colours = _rx2_waterfall_grad;
+                    ok = _rx2_waterfall_grad_ok;
+                }
                 if (!ok) paletteReady = false; else UploadCustomGradientToGPU(renderer, colours);
+            }
+            else if (scheme == ColorScheme.enhanced || scheme == ColorScheme.BLACKWHITE)
+            {
+                System.Drawing.Color lowColor = txSamplerMode ? waterfall_low_color_tx : (rx == 1 ? waterfall_low_color : rx2_waterfall_low_color);
+                UploadLegacyPaletteToGPU(renderer, scheme, lowColor);
             }
             else
             {
