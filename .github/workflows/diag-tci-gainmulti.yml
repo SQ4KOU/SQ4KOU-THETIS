@@ -1,0 +1,22 @@
+name: Diagnose TCI GainMulti Native Fallback
+
+on:
+  push:
+    branches: [build/diag-tci-gainmulti-20260910]
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ba9e5ecf0fa4656d32a2e474d732b5835cc90788
+          fetch-depth: 1
+      - name: Locate GainMulti TCI references
+        shell: pwsh
+        run: |
+          $p='Project Files\Source\Console\TCIServer.cs'
+          Select-String -Path $p -Pattern 'GainMulti|diversity_gain_multi_ex' | ForEach-Object { Write-Host "$($_.LineNumber): $($_.Line.Trim())" }
