@@ -11740,28 +11740,6 @@ namespace Thetis
             }
         }
 
-        // [ThetisLink TL2-1] BEGIN — modification by PA3GHM (cjenschede), 2026-05-07
-        // Console-level proxy for DiversityForm.DiversityGainMulti so the TCI handler in
-        // TCIServer.cs can read/write GainMulti via the standard consoleThreadSafe accessor.
-        // GainMulti gates udR1.Maximum / udR2.Maximum (= the per-RX gain clamp); without
-        // exposing this via TCI, remote clients are stuck at whatever value the user last
-        // saved through the Thetis UI.
-        public decimal CATDiversityGainMulti
-        {
-            get
-            {
-                if (diversityForm != null)
-                    return diversityForm.DiversityGainMulti;
-                else
-                    return 1.0m;
-            }
-            set
-            {
-                if (diversityForm != null)
-                    diversityForm.DiversityGainMulti = value;
-            }
-        }
-        // [ThetisLink TL2-1] END
 
         public bool CATDiversityEnable
         {
