@@ -1,0 +1,79 @@
+name: Apply Native TCI GainMulti Cleanup
+
+on:
+  push:
+    branches: [build/apply-native-tci-gainmulti-cleanup-20260910]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout target branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/p2-adc-ramdor-original-20260910
+          fetch-depth: 2
+
+      - name: Verify source SHA
+        shell: pwsh
+        run: |
+          $sha = git rev-parse HEAD
+          if ($sha -ne 'ba9e5ecf0fa4656d32a2e474d732b5835cc90788') { throw "Unexpected target SHA: $sha" }
+
+      - name: Remove only diversity_gain_multi_ex feature from TCIServer
+        shell: pwsh
+        run: |
+          $p = 'Project Files\Source\Console\TCIServer.cs'
+          $bytes = [System.IO.File]::ReadAllBytes($p)
+          $hasBom = $bytes.Length -ge 3 -and $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF
+          $utf8 = New-Object System.Text.UTF8Encoding($false)
+          if ($hasBom) {
+            $body = New-Object byte[] ($bytes.Length - 3)
+            [Array]::Copy($bytes, 3, $body, 0, $body.Length)
+            $text = $utf8.GetString($body)
+          } else { $text = $utf8.GetString($bytes) }
+
+          function Replace-One([string]$inputText, [string]$pattern, [string]$label) {
+            $m = [regex]::Matches($inputText, $pattern)
+            if ($m.Count -ne 1) { throw "$label: expected exactly one match, got $($m.Count)" }
+            return [regex]::Replace($inputText, $pattern, '', 1)
+          }
+
+          $text = Replace-One $text '(?m)^[ \t]*caps\.Add\("diversity_gain_multi_ex"\);\r?\n' 'capability'
+          $text = Replace-One $text '(?ms)^[ \t]*// diversity_gain_multi_ex:N;[^\r\n]*\r?\n[\s\S]*?(?=^[ \t]*// diversity_gain_ex:rx,gainint;)' 'handler block'
+          $text = Replace-One $text '(?m)^[ \t]*case "diversity_gain_multi_ex":\r?\n[ \t]*handleDiversityGainMultiEx\(args\);\r?\n[ \t]*break;\r?\n' 'command case'
+          $text = Replace-One $text '(?m)^[ \t]*case "diversity_gain_multi_ex":\r?\n[ \t]*handleDiversityGainMultiEx\(new string\[\] \{ "" \}\);\r?\n[ \t]*break;\r?\n' 'query case'
+          $text = Replace-One $text '(?m)^[ \t]*handleDiversityGainMultiEx\(new string\[\] \{ "" \}\);\r?\n' 'initial-state call'
+
+          if ($text.Contains('CATDiversityGainMulti') -or $text.Contains('handleDiversityGainMultiEx') -or $text.Contains('diversity_gain_multi_ex')) {
+            throw 'GainMulti TCI references remain after cleanup'
+          }
+
+          $outBody = $utf8.GetBytes($text)
+          if ($hasBom) {
+            $out = New-Object byte[] ($outBody.Length + 3)
+            $out[0]=0xEF; $out[1]=0xBB; $out[2]=0xBF
+            [Array]::Copy($outBody,0,$out,3,$outBody.Length)
+            [System.IO.File]::WriteAllBytes($p,$out)
+          } else { [System.IO.File]::WriteAllBytes($p,$outBody) }
+
+          $stat = git diff --numstat -- "$p"
+          Write-Host "NUMSTAT=$stat"
+          $parts = $stat -split "`t"
+          if ($parts.Count -lt 2) { throw 'No diff produced' }
+          $adds=[int]$parts[0]; $dels=[int]$parts[1]
+          if ($adds -ne 0 -or $dels -lt 25 -or $dels -gt 35) { git diff -- "$p"; throw "Unexpected diff size: +$adds -$dels" }
+          git diff --check -- "$p"
+          git diff -- "$p"
+
+      - name: Commit and push target branch
+        shell: pwsh
+        run: |
+          git config user.name 'SQ4KOU CI'
+          git config user.email 'sq4kou@users.noreply.github.com'
+          git add -- 'Project Files/Source/Console/TCIServer.cs'
+          git commit -m 'Complete native Diversity fallback: remove TCI GainMulti feature'
+          git push origin HEAD:fix/p2-adc-ramdor-original-20260910
