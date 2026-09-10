@@ -24,6 +24,11 @@ jobs:
         shell: pwsh
         run: git config --global core.longpaths true
 
+      - name: Locate DiversityForm declarations
+        shell: pwsh
+        run: |
+          Get-ChildItem "Project Files\Source\Console" -Recurse -Filter *.cs | Select-String -Pattern 'class\s+DiversityForm' | ForEach-Object { Write-Host "$($_.Path):$($_.LineNumber): $($_.Line.Trim())" }
+
       - name: Setup NuGet
         uses: NuGet/setup-nuget@v2
 
