@@ -1,0 +1,36 @@
+name: Diagnose SATT vs ramdor
+
+on:
+  push:
+    branches: [build/diag-satt-vs-ramdor-20260910]
+
+jobs:
+  diff:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 12704f4b031cee98d6eb744b93ee06309ee73d6d
+          fetch-depth: 1
+      - name: Fetch ramdor base
+        shell: pwsh
+        run: git fetch origin 852bf0ef0b4f3886a13fc2846489aee16f361872 --depth=1
+      - name: Find SATT-related source differences
+        shell: pwsh
+        run: |
+          $base='852bf0ef0b4f3886a13fc2846489aee16f361872'
+          $head='12704f4b031cee98d6eb744b93ee06309ee73d6d'
+          Write-Host '=== HEAD MATCHES ==='
+          git grep -n -I -E 'SATT|S-ATT|StepAtten|step_att|rx_step_attn|tx_step_attn|PureSignal|feedback' $head -- 'Project Files/Source' ':!Project Files/Source/packages' 2>$null
+          Write-Host '=== BASE MATCHES ==='
+          git grep -n -I -E 'SATT|S-ATT|StepAtten|step_att|rx_step_attn|tx_step_attn|PureSignal|feedback' $base -- 'Project Files/Source' ':!Project Files/Source/packages' 2>$null
+          Write-Host '=== CHANGED FILES CONTAINING RELEVANT TOKENS ==='
+          $changed = git diff --name-only $base $head -- 'Project Files/Source'
+          foreach($f in $changed) {
+            $h = git grep -n -I -E 'SATT|S-ATT|StepAtten|step_att|rx_step_attn|tx_step_attn|PureSignal|feedback' $head -- "$f" 2>$null
+            $b = git grep -n -I -E 'SATT|S-ATT|StepAtten|step_att|rx_step_attn|tx_step_attn|PureSignal|feedback' $base -- "$f" 2>$null
+            if($h -or $b) {
+              Write-Host "--- FILE: $f ---"
+              git diff --unified=8 $base $head -- "$f"
+            }
+          }
