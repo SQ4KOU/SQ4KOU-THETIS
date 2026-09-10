@@ -2,7 +2,10 @@ name: Build Thetis MSI
 
 on:
   push:
-    branches: [sq4kou]
+    branches: [feature/tx-gpu-waterfall-puresignal]
+    paths:
+      - .github/workflows/build-msi.yml
+      - Project Files/Source/**
   workflow_dispatch:
 
 permissions:
@@ -10,14 +13,14 @@ permissions:
 
 jobs:
   build-msi:
-    runs-on: windows-latest
+    runs-on: windows-2025
     timeout-minutes: 90
 
     steps:
-      - name: Checkout sq4kou
+      - name: Checkout exact source commit
         uses: actions/checkout@v4
         with:
-          ref: sq4kou
+          ref: ${{ github.sha }}
           fetch-depth: 1
           filter: blob:none
 
@@ -41,41 +44,59 @@ jobs:
       - name: Ensure WiX Toolset 3.x
         shell: pwsh
         run: |
-          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
-          if (-not $targets) {
-            choco install wixtoolset -y --no-progress
-          }
-          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
-          if (-not $targets) {
-            $targets = Get-ChildItem "C:\Program Files (x86)\WiX Toolset*\Wix.targets" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
-          }
+          $ErrorActionPreference='Stop'
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $targets) { choco install wixtoolset -y --no-progress }
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $targets) { $targets = Get-ChildItem "C:\Program Files (x86)\WiX Toolset*\Wix.targets" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 }
           if (-not $targets) { throw "WiX 3.x Wix.targets not found" }
           "WIX_TARGETS=$($targets.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
           Write-Host "Using WiX targets: $($targets.FullName)"
 
       - name: Restore NuGet packages
         shell: pwsh
-        run: |
-          nuget restore "Project Files\Source\Thetis_VS2026.sln" -NonInteractive
+        run: nuget restore "Project Files\Source\Thetis_VS2026.sln" -NonInteractive
 
       - name: Build Release x64 and MSI
         shell: pwsh
         run: |
-          msbuild "Project Files\Source\Thetis_VS2026.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal
+          $ErrorActionPreference='Stop'
+          $log = Join-Path $env:RUNNER_TEMP 'sq4kou-tx-gpu-waterfall-build.log'
+          & msbuild "Project Files\Source\Thetis_VS2026.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal 2>&1 | Tee-Object -FilePath $log
+          if ($LASTEXITCODE -ne 0) { throw "MSBuild failed: $LASTEXITCODE" }
+          $errors = Select-String -Path $log -Pattern ': error ' -ErrorAction SilentlyContinue
+          if ($errors) { $errors | ForEach-Object { Write-Host $_.Line }; throw 'Build log contains compiler/build errors' }
+          "BUILD_LOG=$log" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Verify MSI
         shell: pwsh
         run: |
+          $ErrorActionPreference='Stop'
           $msi = Get-ChildItem "Project Files\bin\Installers\*.msi" -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
           if (-not $msi) { throw "MSI was not produced" }
           if ($msi.Length -lt 1MB) { throw "MSI is unexpectedly small: $($msi.Length) bytes" }
-          Write-Host "MSI: $($msi.FullName) ($([math]::Round($msi.Length/1MB,2)) MB)"
-          "MSI_PATH=$($msi.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $out = Join-Path $msi.DirectoryName 'SQ4KOU-THETIS-TX-GPU-WATERFALL-PURESIGNAL-x64.msi'
+          Copy-Item $msi.FullName $out -Force
+          $hash = (Get-FileHash $out -Algorithm SHA256).Hash
+          "SOURCE_SHA=${{ github.sha }}" | Set-Content (Join-Path $msi.DirectoryName 'SQ4KOU-THETIS-TX-GPU-WATERFALL-PURESIGNAL-build.txt')
+          "MSI_SHA256=$hash" | Add-Content (Join-Path $msi.DirectoryName 'SQ4KOU-THETIS-TX-GPU-WATERFALL-PURESIGNAL-build.txt')
+          Write-Host "MSI: $out ($([math]::Round((Get-Item $out).Length/1MB,2)) MB)"
+          Write-Host "SHA256: $hash"
 
       - name: Upload MSI
         uses: actions/upload-artifact@v4
         with:
-          name: SQ4KOU-THETIS-MSI
-          path: Project Files/bin/Installers/*.msi
+          name: SQ4KOU-THETIS-TX-GPU-WATERFALL-PURESIGNAL-x64
+          path: |
+            Project Files/bin/Installers/SQ4KOU-THETIS-TX-GPU-WATERFALL-PURESIGNAL-x64.msi
+            Project Files/bin/Installers/SQ4KOU-THETIS-TX-GPU-WATERFALL-PURESIGNAL-build.txt
           if-no-files-found: error
           compression-level: 0
+
+      - name: Upload build log
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-TX-GPU-WATERFALL-PURESIGNAL-build-log
+          path: ${{ env.BUILD_LOG }}
+          if-no-files-found: error
+          compression-level: 6
