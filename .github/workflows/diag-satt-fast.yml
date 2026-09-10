@@ -1,0 +1,32 @@
+name: Diagnose SATT fast
+
+on:
+  push:
+    branches: [build/diag-satt-vs-ramdor-fast-20260910]
+
+jobs:
+  diff:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: 12704f4b031cee98d6eb744b93ee06309ee73d6d
+          fetch-depth: 1
+      - name: Fetch base
+        shell: pwsh
+        run: git fetch origin 852bf0ef0b4f3886a13fc2846489aee16f361872 --depth=1
+      - name: Exact SATT diff
+        shell: pwsh
+        run: |
+          $base='852bf0ef0b4f3886a13fc2846489aee16f361872'
+          $head='12704f4b031cee98d6eb744b93ee06309ee73d6d'
+          $pat='SATT|S-ATT|SetADC[123]StepAttenData|SetTxAttenData|rx_step_attn|tx_step_attn|ADC1StepAtten|ADC2StepAtten|ADC3StepAtten'
+          Write-Host '=== HEAD ==='
+          git grep -n -I -E $pat $head -- 'Project Files/Source' 2>$null
+          Write-Host '=== BASE ==='
+          git grep -n -I -E $pat $base -- 'Project Files/Source' 2>$null
+          Write-Host '=== FILES/DIFF ==='
+          $hf=@(git grep -l -I -E $pat $head -- 'Project Files/Source' 2>$null)
+          $bf=@(git grep -l -I -E $pat $base -- 'Project Files/Source' 2>$null)
+          $files=@($hf+$bf | Sort-Object -Unique)
+          $files | ForEach-Object { Write-Host "FILE=$_"; git diff --unified=12 $base $head -- "$_" }
