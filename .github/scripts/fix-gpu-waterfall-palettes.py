@@ -25,7 +25,7 @@ def method(text, name):
     return text[match.start():end]
 
 def baseline(path):
-    return subprocess.check_output(['git', 'show', f'{BASE}:{path}'], cwd=ROOT).decode('utf-8-sig')
+    return subprocess.check_output(['git', 'show', f'{BASE}:{path}'], cwd=ROOT).decode('utf-8-sig').replace('\r\n', '\n')
 
 palette = read(C / 'WaterfallPalette.cs')
 reference = read(REF / 'WaterfallPalette.EU2AV.2.10.3.16.cs.txt')
@@ -86,7 +86,8 @@ assert compact(new_display) == compact(original_display), 'Non-palette display/g
 # Renderer, shaders, format conversion and FFT implementation remain byte-identical.
 for name in ['GPUDetector.cs','Display.EU2AVWaterfallCompat.cs','WaterfallEnhancer.cs','WaterfallPixelWriter.cs','SharedWaterfallState.cs']:
     path = f'Project Files/Source/Console/{name}'
-    assert (C / name).read_bytes() == subprocess.check_output(['git','show',f'{BASE}:{path}'],cwd=ROOT), name
+    # Git on Windows checks text out as CRLF; compare decoded source, not EOL encoding.
+    assert read(C / name) == baseline(path), name
 for filename, name, expected in [('GPUWaterfallPipeline.cs', 'LoadBytecode', replacements[0]), ('WaterfallGPURenderer.cs', 'LoadShaderBytecode', replacements[1])]:
     text = read(C / filename)
     before = baseline('Project Files/Source/Console/' + filename)
@@ -158,3 +159,9 @@ b = b.replace('InitGeneralTabWaterfallControls();', '').replace('InitNoiseFloorP
 assert compact(a) == compact(b)
 assert compact(method(setup, 'SyncWaterfallEnhancerFromControls')) == compact(method(ref_setup, 'SyncWaterfallEnhancerFromControls'))
 print(f'GPU_MENU_ALL_CONTROLS_EVENTS_AND_RESTORE=PASS ({len(final_events)} event connections)')
+
+for handler in ['comboColorPalette_SelectedIndexChanged','comboRX2ColorPalette_SelectedIndexChanged','comboColorPalette_tx_SelectedIndexChanged']:
+    def palette_event(text):
+        return compact(re.sub(r'//[^\n]*', '', text).replace('show: ', ''))
+    assert palette_event(method(setup, handler)) == palette_event(method(ref_setup, handler)), handler
+print('RX1_RX2_TX_PALETTE_EVENTS=PASS')
