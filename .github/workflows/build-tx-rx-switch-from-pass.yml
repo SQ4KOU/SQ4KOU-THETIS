@@ -1,0 +1,224 @@
+name: Build TX-RX GPU switch from PASS
+
+on:
+  push:
+    branches: [test/tx-rx-switch-from-pass-20260911]
+    paths:
+      - .github/workflows/build-tx-rx-switch-from-pass.yml
+      - .github/scripts/apply-tx-rx-gpu-switch.ps1
+      - Project Files/Source/ChannelMaster/cmaster.c
+      - Project Files/Source/Console/Display.GPUWaterfall.cs
+      - Project Files/Source/Console/display.cs
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-test:
+    runs-on: windows-2025
+    timeout-minutes: 90
+    steps:
+      - name: Checkout test branch state
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Enable long paths
+        shell: pwsh
+        run: git config --global core.longpaths true
+
+      - name: Verify frozen PASS ancestry
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          git merge-base --is-ancestor 47221621b2f59564bb7ca6721ba5f2efe5ca3532 HEAD
+          if($LASTEXITCODE -ne 0){throw 'Branch no longer descends from frozen PASS 47221621'}
+          Write-Host "PASS_BASE=47221621b2f59564bb7ca6721ba5f2efe5ca3532"
+
+      - name: Apply only TX-RX GPU source switch
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          .github/scripts/apply-tx-rx-gpu-switch.ps1
+          $allowed=@(
+            'Project Files/Source/ChannelMaster/cmaster.c',
+            'Project Files/Source/Console/Display.GPUWaterfall.cs',
+            'Project Files/Source/Console/display.cs'
+          )
+          $changed=@(git status --porcelain | ForEach-Object { $_.Substring(3) })
+          $unexpected=@($changed | Where-Object { $_ -notin $allowed })
+          if($unexpected.Count){throw ('Patch changed unexpected files: '+($unexpected -join ', '))}
+          Write-Host ('PATCH_CHANGED=' + ($changed -join ';'))
+
+      - name: Commit source switch if needed
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          $paths=@(
+            'Project Files/Source/ChannelMaster/cmaster.c',
+            'Project Files/Source/Console/Display.GPUWaterfall.cs',
+            'Project Files/Source/Console/display.cs'
+          )
+          git add -- $paths
+          git diff --cached --quiet
+          if($LASTEXITCODE -ne 0){
+            git commit -m 'Port isolated TX-RX GPU waterfall switch onto frozen PASS'
+            git push origin HEAD:test/tx-rx-switch-from-pass-20260911
+          }
+          $sha=(git rev-parse HEAD).Trim()
+          "SOURCE_SHA=$sha" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "SOURCE_SHA=$sha"
+
+      - name: Verify exact scope from frozen PASS
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $allowed=@(
+            '.github/scripts/apply-tx-rx-gpu-switch.ps1',
+            '.github/workflows/build-tx-rx-switch-from-pass.yml',
+            'Project Files/Source/ChannelMaster/cmaster.c',
+            'Project Files/Source/Console/Display.GPUWaterfall.cs',
+            'Project Files/Source/Console/display.cs'
+          )
+          $changed=@(git diff --name-only 47221621b2f59564bb7ca6721ba5f2efe5ca3532 HEAD)
+          $unexpected=@($changed | Where-Object { $_ -notin $allowed })
+          if($unexpected.Count){throw ('Unexpected delta from PASS: '+($unexpected -join ', '))}
+          foreach($required in @(
+            'Project Files/Source/ChannelMaster/cmaster.c',
+            'Project Files/Source/Console/Display.GPUWaterfall.cs',
+            'Project Files/Source/Console/display.cs'
+          )){if($required -notin $changed){throw "Required TX-RX file not changed: $required"}}
+          Write-Host ('PASS_DELTA=' + ($changed -join ';'))
+
+      - name: Verify native Final palettes and protected GPU source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          python .github/scripts/fix-gpu-waterfall-palettes.py
+          if($LASTEXITCODE -ne 0){throw 'Native Final palette source gate failed'}
+          if(git status --porcelain){throw 'Palette verification mutated frozen source'}
+
+      - name: Audit TX-RX switch and frozen GPU features
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $c='Project Files\Source\Console'
+          $gpu=Get-Content "$c\Display.GPUWaterfall.cs" -Raw
+          $display=Get-Content "$c\display.cs" -Raw
+          $setup=Get-Content "$c\setup.cs" -Raw
+          $cm=Get-Content 'Project Files\Source\ChannelMaster\cmaster.c' -Raw
+          foreach($t in @(
+            @($gpu,'GPUWaterfallPipeline','managed GPU FFT pipeline'),
+            @($gpu,'WaterfallGPURenderer','managed GPU renderer'),
+            @($gpu,'ColorScheme\.Enhanced256','Enhanced256 palette'),
+            @($gpu,'ColorScheme\.Grayscale256','Grayscale256 palette'),
+            @($gpu,'B8G8R8A8_UNorm','8-bit GPU path'),
+            @($gpu,'R16G16B16A16_Float','16-bit GPU path'),
+            @($cm,'CM_WaterfallIQ_Push\(2, pcm->xmtr\[tx\]\.ch_outsize','isolated TX ring'),
+            @($gpu,'bool gpuTxSource = localMox\(rx\) && !DisplayDuplex;','TX source selector'),
+            @($gpu,'_gpuLastIQSource\[num2\] != gpuSourceStream','RX-TX transition flush'),
+            @($gpu,'int stream = gpuSourceStream;','active source consumer'),
+            @($display,'if \(ManagedGPUFFTRequested\)','GPU allowed during TX'),
+            @($setup,'comboColorPalette\.Text == "Enhanced 256"','RX1 native palette mapping')
+          )){if($t[0] -notmatch $t[1]){throw "Missing required element: $($t[2])"}}
+          if($display -match 'ManagedGPUFFTRequested && !local_mox'){throw 'Old TX GPU block still present'}
+          Write-Host 'SQ4KOU_TX_RX_GPU_AUDIT=PASS'
+
+      - name: Compare compiled palettes against recovered Final
+        shell: pwsh
+        run: .github/scripts/test-final-palettes.ps1
+
+      - name: Test Diversity visibility on Windows Forms
+        shell: powershell
+        run: .github/scripts/test-diversity-visibility.ps1
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $targets=Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if(-not $targets){choco install wixtoolset -y --no-progress}
+          $targets=Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if(-not $targets){$targets=Get-ChildItem 'C:\Program Files (x86)\WiX Toolset*\Wix.targets' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1}
+          if(-not $targets){throw 'WiX 3.x Wix.targets not found'}
+          "WIX_TARGETS=$($targets.FullName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore packages
+        shell: pwsh
+        run: nuget restore 'Project Files\Source\Thetis_VS2026.sln' -NonInteractive
+
+      - name: Build Release x64 and MSI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $log=Join-Path $env:RUNNER_TEMP 'sq4kou-tx-rx-gpu-switch-build.log'
+          & msbuild 'Project Files\Source\Thetis_VS2026.sln' /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal 2>&1 | Tee-Object -FilePath $log
+          if($LASTEXITCODE -ne 0){throw "MSBuild failed: $LASTEXITCODE"}
+          $errors=Select-String -Path $log -Pattern ': error ' -ErrorAction SilentlyContinue
+          if($errors){$errors | ForEach-Object {Write-Host $_.Line}; throw 'Build log contains compiler/build errors'}
+          "BUILD_LOG=$log" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Validate seven embedded shaders in built Thetis.exe
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $expected=@('Thetis.waterfall_postproc.bin','Thetis.waterfall_row_cs.bin','Thetis.waterfall_fft_bitreverse_cs.bin','Thetis.waterfall_fft_stage_ab_cs.bin','Thetis.waterfall_fft_stage_ba_cs.bin','Thetis.waterfall_fft_magnitude_cs.bin','Thetis.waterfall_resolve_cs.bin')
+          $exe=Get-ChildItem 'Project Files\bin' -Recurse -Filter Thetis.exe -ErrorAction Stop | Where-Object {$_.FullName -match '\\x64\\Release\\'} | Sort-Object Length -Descending | Select-Object -First 1
+          if(-not $exe){throw 'Built x64 Release Thetis.exe not found'}
+          $asm=[System.Reflection.Assembly]::ReflectionOnlyLoadFrom($exe.FullName)
+          $resources=@($asm.GetManifestResourceNames())
+          $missing=@($expected | Where-Object {$_ -notin $resources})
+          if($missing.Count){throw ('Built EXE missing GPU shaders: '+($missing -join ', '))}
+          if(($expected | Where-Object {$_ -in $resources}).Count -ne 7){throw 'Embedded shader count is not exactly seven'}
+
+      - name: Locate MSI and validate extracted Thetis.exe
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $msi=Get-ChildItem 'Project Files\bin\Installers\*.msi' -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if(-not $msi -or $msi.Length -lt 1MB){throw 'Valid MSI was not produced'}
+          $extract=Join-Path $env:RUNNER_TEMP 'sq4kou-msi-extract'
+          Remove-Item $extract -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Force -Path $extract | Out-Null
+          $p=Start-Process msiexec.exe -ArgumentList @('/a',"`"$($msi.FullName)`"",'/qn',"TARGETDIR=`"$extract`"") -Wait -PassThru
+          if($p.ExitCode -ne 0){throw "MSI extraction failed: $($p.ExitCode)"}
+          $exe=Get-ChildItem $extract -Recurse -Filter Thetis.exe -ErrorAction Stop | Sort-Object Length -Descending | Select-Object -First 1
+          if(-not $exe){throw 'Thetis.exe not found in MSI'}
+          $expected=@('Thetis.waterfall_postproc.bin','Thetis.waterfall_row_cs.bin','Thetis.waterfall_fft_bitreverse_cs.bin','Thetis.waterfall_fft_stage_ab_cs.bin','Thetis.waterfall_fft_stage_ba_cs.bin','Thetis.waterfall_fft_magnitude_cs.bin','Thetis.waterfall_resolve_cs.bin')
+          $asm=[System.Reflection.Assembly]::ReflectionOnlyLoadFrom($exe.FullName)
+          $resources=@($asm.GetManifestResourceNames())
+          $missing=@($expected | Where-Object {$_ -notin $resources})
+          if($missing.Count){throw ('MSI EXE missing GPU shaders: '+($missing -join ', '))}
+          $final=Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-TX-RX-GPU-SWITCH-TEST-x64.msi'
+          Copy-Item $msi.FullName $final -Force
+          $hash=(Get-FileHash $final -Algorithm SHA256).Hash
+          "FINAL_MSI_PATH=$final" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "MSI_SHA256=$hash" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "SOURCE_SHA=$env:SOURCE_SHA"
+          Write-Host "MSI_SHA256=$hash"
+
+      - name: Upload test MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-TX-RX-GPU-SWITCH-TEST-x64
+          path: ${{ env.FINAL_MSI_PATH }}
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: Upload build log
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-TX-RX-GPU-SWITCH-BUILD-LOG
+          path: ${{ env.BUILD_LOG }}
+          if-no-files-found: error
+          compression-level: 6
