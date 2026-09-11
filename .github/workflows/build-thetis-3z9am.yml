@@ -1,0 +1,89 @@
+name: Build thetis_3z9am MSI
+
+on:
+  push:
+    branches: [ci/build-thetis_3z9am]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-msi:
+    runs-on: windows-2025
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout exact thetis_3z9am source
+        uses: actions/checkout@v4
+        with:
+          ref: 5a63acd769611d1eaf0ff1dd00c3fdc073e9f5eb
+          fetch-depth: 1
+
+      - name: Verify source SHA
+        shell: pwsh
+        run: |
+          $sha = (git rev-parse HEAD).Trim()
+          if ($sha -ne '5a63acd769611d1eaf0ff1dd00c3fdc073e9f5eb') { throw "Unexpected source SHA: $sha" }
+          Write-Host "SOURCE_SHA=$sha"
+
+      - name: Enable long paths
+        shell: pwsh
+        run: git config --global core.longpaths true
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+        with:
+          msbuild-architecture: x86
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) { choco install wixtoolset -y --no-progress }
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) { $targets = Get-ChildItem 'C:\Program Files (x86)\WiX Toolset*\Wix.targets' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 }
+          if (-not $targets) { throw 'WiX 3.x Wix.targets not found' }
+          "WIX_TARGETS=$($targets.FullName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore NuGet packages
+        shell: pwsh
+        run: nuget restore 'Project Files\Source\Thetis_VS2026.sln' -NonInteractive
+
+      - name: Build Release x64 and MSI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          msbuild 'Project Files\Source\Thetis_VS2026.sln' /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal
+          if ($LASTEXITCODE -ne 0) { throw "MSBuild failed: $LASTEXITCODE" }
+
+      - name: Verify and rename MSI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $msi = Get-ChildItem 'Project Files\bin\Installers\*.msi' -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $msi -or $msi.Length -lt 1MB) { throw 'Valid MSI was not produced' }
+          $out = Join-Path $msi.DirectoryName 'SQ4KOU-THETIS-thethis_3z9am-x64.msi'
+          Copy-Item $msi.FullName $out -Force
+          $hash = (Get-FileHash $out -Algorithm SHA256).Hash
+          @(
+            'SOURCE_BRANCH=fix/thetis_3z9am',
+            'SOURCE_SHA=5a63acd769611d1eaf0ff1dd00c3fdc073e9f5eb',
+            "MSI_SHA256=$hash"
+          ) | Set-Content (Join-Path $msi.DirectoryName 'SQ4KOU-THETIS-thethis_3z9am-build.txt')
+          Write-Host "MSI=$out"
+          Write-Host "SHA256=$hash"
+
+      - name: Upload MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-thethis_3z9am-MSI
+          path: |
+            Project Files/bin/Installers/SQ4KOU-THETIS-thethis_3z9am-x64.msi
+            Project Files/bin/Installers/SQ4KOU-THETIS-thethis_3z9am-build.txt
+          if-no-files-found: error
+          compression-level: 0
