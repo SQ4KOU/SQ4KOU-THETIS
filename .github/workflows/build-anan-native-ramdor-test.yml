@@ -80,12 +80,12 @@ jobs:
             'Project Files/Source/Console/wideband.resx'
           )
           foreach($f in $files){
-            $actual=(git hash-object -- $f).Trim()
+            $actual=(git rev-parse ":$f").Trim()
             $expected=(git rev-parse "$native`:$f").Trim()
             if($actual -ne $expected){throw "Native parity failure: $f actual=$actual expected=$expected"}
           }
           $layout='Project Files/Source/Console/DiversityForm.LayoutFix.cs'
-          if((git hash-object -- $layout).Trim() -ne (git rev-parse "75a8344cde2662262342b524e83e7d5876a3d077`:$layout").Trim()){
+          if((git rev-parse ":$layout").Trim() -ne (git rev-parse "75a8344cde2662262342b524e83e7d5876a3d077`:$layout").Trim()){
             throw 'Diversity layout disable parity failure'
           }
           $bad = @(Select-String -Path 'Project Files\Source\Console\console.cs','Project Files\Source\Console\TCIServer.cs' -Pattern 'CATDiversityGainMulti|handleDiversityGainMultiEx|diversity_gain_multi_ex')
