@@ -481,7 +481,8 @@ namespace Thetis
                     gPUWaterfallPipeline.LanczosWindow = _gpuWaterfallLanczosWindow;
                     gPUWaterfallPipeline.ResamplingMode = _gpuWaterfallResamplingMode;
                 }
-                ResetGPUWaterfallState(rx);
+                // Sample-rate rebinding must not invalidate the already rendered waterfall history.
+                // The source-transition block below resets the IQ accumulator without clearing the renderer.
             }
             if (gPUWaterfallPipeline == null || !gPUWaterfallPipeline.IsInitialized)
             {
@@ -516,7 +517,7 @@ namespace Thetis
                 _gpuIQringCount[num2] = 0;
                 _gpuSampleCredit[num2] = 0;
                 _gpuFirstFillDone[num2] = false;
-                _gpuRendererHasData[num2] = false;
+                // Preserve WaterfallGPURenderer history across RX<->TX. Only the IQ accumulator is restarted.
                 _gpuLastIQSource[num2] = gpuSourceStream;
                 if (rx == 1)
                 {
@@ -861,7 +862,7 @@ namespace Thetis
             GPUWaterfallPipeline pipeline, bool gpuRowReady, float gpuCalOffset)
         {
             int index = rx - 1;
-            if (index < 0 || index > 1 || localMox || !ManagedGPUFFTRequested || !IsGPUWaterfallPaletteScheme(scheme))
+            if (index < 0 || index > 1 || !ManagedGPUFFTRequested || !IsGPUWaterfallPaletteScheme(scheme))
             {
                 if (index >= 0 && index < 2) _gpuRendererHasData[index] = false;
                 return false;
