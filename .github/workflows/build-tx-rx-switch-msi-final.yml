@@ -107,21 +107,19 @@ jobs:
           if($errors){throw 'Build log contains errors'}
           "BUILD_LOG=$log" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
 
-      - name: Validate built and MSI-extracted GPU shaders
+      - name: Validate built shaders and MSI binary identity
         shell: powershell
         run: |
           $ErrorActionPreference='Stop'
           $expected=@('Thetis.waterfall_postproc.bin','Thetis.waterfall_row_cs.bin','Thetis.waterfall_fft_bitreverse_cs.bin','Thetis.waterfall_fft_stage_ab_cs.bin','Thetis.waterfall_fft_stage_ba_cs.bin','Thetis.waterfall_fft_magnitude_cs.bin','Thetis.waterfall_resolve_cs.bin')
-          function Test-Shaders($exePath) {
-            $asm=[System.Reflection.Assembly]::ReflectionOnlyLoadFrom($exePath)
-            $resources=@($asm.GetManifestResourceNames())
-            $missing=@($expected | Where-Object {$_ -notin $resources})
-            if($missing.Count){throw ('Missing GPU shaders: '+($missing -join ', '))}
-            if(($expected | Where-Object {$_ -in $resources}).Count -ne 7){throw 'GPU shader count is not 7'}
-          }
           $built=Get-ChildItem 'Project Files\bin' -Recurse -Filter Thetis.exe | Where-Object {$_.FullName -match '\\x64\\Release\\'} | Sort-Object Length -Descending | Select-Object -First 1
           if(-not $built){throw 'Built x64 Release Thetis.exe not found'}
-          Test-Shaders $built.FullName
+          $asm=[System.Reflection.Assembly]::ReflectionOnlyLoadFrom($built.FullName)
+          $resources=@($asm.GetManifestResourceNames())
+          $missing=@($expected | Where-Object {$_ -notin $resources})
+          if($missing.Count){throw ('Built EXE missing GPU shaders: '+($missing -join ', '))}
+          if(($expected | Where-Object {$_ -in $resources}).Count -ne 7){throw 'Built EXE GPU shader count is not 7'}
+          $builtHash=(Get-FileHash $built.FullName -Algorithm SHA256).Hash
           $msi=Get-ChildItem 'Project Files\bin\Installers\*.msi' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
           if(-not $msi -or $msi.Length -lt 1MB){throw 'Valid MSI not produced'}
           $extract=Join-Path $env:RUNNER_TEMP 'sq4kou-msi-extract-final'
@@ -131,14 +129,15 @@ jobs:
           if($p.ExitCode -ne 0){throw "MSI extraction failed: $($p.ExitCode)"}
           $installed=Get-ChildItem $extract -Recurse -Filter Thetis.exe | Sort-Object Length -Descending | Select-Object -First 1
           if(-not $installed){throw 'Thetis.exe not found in MSI'}
-          Test-Shaders $installed.FullName
+          $installedHash=(Get-FileHash $installed.FullName -Algorithm SHA256).Hash
+          if($builtHash -ne $installedHash){throw "MSI Thetis.exe differs from shader-validated built EXE: built=$builtHash msi=$installedHash"}
           $final=Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-TX-RX-GPU-SWITCH-TEST-x64.msi'
           Copy-Item $msi.FullName $final -Force
           $hash=(Get-FileHash $final -Algorithm SHA256).Hash
           "FINAL_MSI_PATH=$final" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           "MSI_SHA256=$hash" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           Write-Host 'BUILT_EXE_7_SHADERS=PASS'
-          Write-Host 'MSI_EXTRACTED_EXE_7_SHADERS=PASS'
+          Write-Host 'MSI_EXE_BINARY_IDENTITY=PASS'
           Write-Host "MSI_SHA256=$hash"
 
       - name: Upload MSI
