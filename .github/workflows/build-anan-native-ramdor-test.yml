@@ -1,0 +1,201 @@
+name: Build ANAN native Ramdor test
+
+on:
+  push:
+    branches: [fix/thetis_3z9am]
+    paths:
+      - .github/workflows/build-anan-native-ramdor-test.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-msi:
+    runs-on: windows-2025
+    timeout-minutes: 90
+    steps:
+      - name: Checkout full Thetis-RedPitaya based project
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Enable long paths
+        shell: pwsh
+        run: git config --global core.longpaths true
+
+      - name: Verify RedPitaya reference ancestry
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $base='de2dc20308c26fe30bba5b3d0b4e2e7a8d61c9c5'
+          git merge-base --is-ancestor $base HEAD
+          if($LASTEXITCODE -ne 0){throw 'fix/thetis_3z9am is not based on Thetis-RedPitaya reference'}
+          Write-Host "REDPITAYA_BASE=$base"
+
+      - name: Restore PureSignal WideBand Diversity to native Ramdor
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $native='e22a6d93330b77d2aa7b3a98ce995d6b28fc3989'
+          $files=@(
+            'Project Files/Source/Console/AmpView.cs',
+            'Project Files/Source/Console/DiversityForm.PA3GHMNative.cs',
+            'Project Files/Source/Console/DiversityForm.cs',
+            'Project Files/Source/Console/PSForm.cs',
+            'Project Files/Source/Console/PSForm.designer.cs',
+            'Project Files/Source/Console/PSForm.resx',
+            'Project Files/Source/Console/wbDisplay.cs',
+            'Project Files/Source/Console/wideband.Designer.cs',
+            'Project Files/Source/Console/wideband.resx'
+          )
+          foreach($f in $files){ git checkout $native -- $f; if($LASTEXITCODE -ne 0){throw "Failed native restore: $f"} }
+
+          git checkout 75a8344cde2662262342b524e83e7d5876a3d077 -- 'Project Files/Source/Console/DiversityForm.LayoutFix.cs'
+          if($LASTEXITCODE -ne 0){throw 'Failed to disable legacy Diversity layout partial'}
+
+          git diff 75a8344cde2662262342b524e83e7d5876a3d077 ba9e5ecf0fa4656d32a2e474d732b5835cc90788 -- 'Project Files/Source/Console/console.cs' | git apply --3way
+          if($LASTEXITCODE -ne 0){throw 'Failed to remove TL2-1 GainMulti console proxy'}
+
+          git diff ba9e5ecf0fa4656d32a2e474d732b5835cc90788 12704f4b031cee98d6eb744b93ee06309ee73d6d -- 'Project Files/Source/Console/TCIServer.cs' | git apply --3way
+          if($LASTEXITCODE -ne 0){throw 'Failed to remove TCI GainMulti extension'}
+
+          Write-Host 'NATIVE_RAMDOR_RESTORE=APPLIED'
+
+      - name: Verify exact native file parity and protected RedPitaya state
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $native='e22a6d93330b77d2aa7b3a98ce995d6b28fc3989'
+          $files=@(
+            'Project Files/Source/Console/AmpView.cs',
+            'Project Files/Source/Console/DiversityForm.PA3GHMNative.cs',
+            'Project Files/Source/Console/DiversityForm.cs',
+            'Project Files/Source/Console/PSForm.cs',
+            'Project Files/Source/Console/PSForm.designer.cs',
+            'Project Files/Source/Console/PSForm.resx',
+            'Project Files/Source/Console/wbDisplay.cs',
+            'Project Files/Source/Console/wideband.Designer.cs',
+            'Project Files/Source/Console/wideband.resx'
+          )
+          foreach($f in $files){
+            $actual=(git hash-object -- $f).Trim()
+            $expected=(git rev-parse "$native`:$f").Trim()
+            if($actual -ne $expected){throw "Native parity failure: $f actual=$actual expected=$expected"}
+          }
+          $layout='Project Files/Source/Console/DiversityForm.LayoutFix.cs'
+          if((git hash-object -- $layout).Trim() -ne (git rev-parse "75a8344cde2662262342b524e83e7d5876a3d077`:$layout").Trim()){
+            throw 'Diversity layout disable parity failure'
+          }
+          $bad = @(Select-String -Path 'Project Files\Source\Console\console.cs','Project Files\Source\Console\TCIServer.cs' -Pattern 'CATDiversityGainMulti|handleDiversityGainMultiEx|diversity_gain_multi_ex')
+          if($bad.Count -ne 0){$bad | ForEach-Object {Write-Host $_}; throw 'Native-incompatible Diversity GainMulti feature remains'}
+          $console=Get-Content 'Project Files\Source\Console\console.cs' -Raw
+          if(-not $console.Contains('SQ4KOU_CMASIO_PERMANENT')){throw 'Confirmed permanent cmASIO base state was lost'}
+          git diff --quiet de2dc20308c26fe30bba5b3d0b4e2e7a8d61c9c5 -- 'Project Files/Source/Console/Display.GPUWaterfall.cs' 'Project Files/Source/Console/display.cs' 'Project Files/Source/ChannelMaster/cmaster.c'
+          if($LASTEXITCODE -ne 0){throw 'Confirmed GPU/TX-RX history source changed unexpectedly'}
+          Write-Host 'NATIVE_RAMDOR_PARITY=PASS'
+          Write-Host 'REDPITAYA_PROTECTED_STATE=PASS'
+
+      - name: Verify exact source scope
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $base='de2dc20308c26fe30bba5b3d0b4e2e7a8d61c9c5'
+          $expected=@(
+            'Project Files/Source/Console/AmpView.cs',
+            'Project Files/Source/Console/DiversityForm.LayoutFix.cs',
+            'Project Files/Source/Console/DiversityForm.PA3GHMNative.cs',
+            'Project Files/Source/Console/DiversityForm.cs',
+            'Project Files/Source/Console/PSForm.cs',
+            'Project Files/Source/Console/PSForm.designer.cs',
+            'Project Files/Source/Console/PSForm.resx',
+            'Project Files/Source/Console/TCIServer.cs',
+            'Project Files/Source/Console/console.cs',
+            'Project Files/Source/Console/wbDisplay.cs',
+            'Project Files/Source/Console/wideband.Designer.cs',
+            'Project Files/Source/Console/wideband.resx'
+          ) | Sort-Object
+          $actual=@(git diff --name-only $base -- 'Project Files/Source') | Sort-Object
+          if(($actual -join "`n") -ne ($expected -join "`n")){
+            Write-Host 'ACTUAL SOURCE DELTA:'; $actual | ForEach-Object {Write-Host $_}
+            throw 'Unexpected source scope versus Thetis-RedPitaya'
+          }
+          Write-Host 'SOURCE_SCOPE=PASS (12 files)'
+
+      - name: Commit full ANAN native project state
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- 'Project Files/Source/Console/AmpView.cs' 'Project Files/Source/Console/DiversityForm.LayoutFix.cs' 'Project Files/Source/Console/DiversityForm.PA3GHMNative.cs' 'Project Files/Source/Console/DiversityForm.cs' 'Project Files/Source/Console/PSForm.cs' 'Project Files/Source/Console/PSForm.designer.cs' 'Project Files/Source/Console/PSForm.resx' 'Project Files/Source/Console/TCIServer.cs' 'Project Files/Source/Console/console.cs' 'Project Files/Source/Console/wbDisplay.cs' 'Project Files/Source/Console/wideband.Designer.cs' 'Project Files/Source/Console/wideband.resx'
+          git diff --cached --quiet
+          if($LASTEXITCODE -ne 0){
+            git commit -m 'ANAN: restore PureSignal WideBand Diversity to native Ramdor'
+            git push origin HEAD:fix/thetis_3z9am
+          }
+          $sha=(git rev-parse HEAD).Trim()
+          "SOURCE_SHA=$sha" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "SOURCE_SHA=$sha"
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $targets=Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if(-not $targets){choco install wixtoolset -y --no-progress}
+          $targets=Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if(-not $targets){$targets=Get-ChildItem 'C:\Program Files (x86)\WiX Toolset*\Wix.targets' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1}
+          if(-not $targets){throw 'WiX 3.x Wix.targets not found'}
+          "WIX_TARGETS=$($targets.FullName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore packages
+        shell: pwsh
+        run: nuget restore 'Project Files\Source\Thetis_VS2026.sln' -NonInteractive
+
+      - name: Build Release x64 and MSI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $log=Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-ANAN-NATIVE-RAMDOR-BUILD.log'
+          & msbuild 'Project Files\Source\Thetis_VS2026.sln' /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal 2>&1 | Tee-Object -FilePath $log
+          if($LASTEXITCODE -ne 0){throw "MSBuild failed: $LASTEXITCODE"}
+          if(Select-String -Path $log -Pattern ': error ' -ErrorAction SilentlyContinue){throw 'Build log contains errors'}
+          "BUILD_LOG=$log" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Validate and package MSI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $msi=Get-ChildItem 'Project Files\bin\Installers\*.msi' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if(-not $msi -or $msi.Length -lt 1MB){throw 'Valid MSI not produced'}
+          $final=Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-ANAN-NATIVE-RAMDOR-TEST-x64.msi'
+          Copy-Item $msi.FullName $final -Force
+          $hash=(Get-FileHash $final -Algorithm SHA256).Hash
+          "FINAL_MSI_PATH=$final" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "MSI_SHA256=$hash" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "SOURCE_SHA=$env:SOURCE_SHA"
+          Write-Host "MSI_SHA256=$hash"
+
+      - name: Upload MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-ANAN-NATIVE-RAMDOR-TEST-x64
+          path: ${{ env.FINAL_MSI_PATH }}
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: Upload build log
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-ANAN-NATIVE-RAMDOR-BUILD-LOG
+          path: ${{ env.BUILD_LOG }}
+          if-no-files-found: error
+          compression-level: 6
