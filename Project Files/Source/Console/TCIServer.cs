@@ -2928,7 +2928,6 @@ namespace Thetis
 			caps.Add("diversity_ref_ex");
 			caps.Add("diversity_phase_ex");
 			caps.Add("diversity_gain_ex");
-			caps.Add("diversity_gain_multi_ex");
 			caps.Add("diversity_sweep_ex");
 			caps.Add("diversity_fastsweep_ex");
 			caps.Add("diversity_autonull_ex");
@@ -2987,7 +2986,6 @@ namespace Thetis
 			handleDiversitySourceEx(new string[] { "" });
 			handleDiversityRefEx(new string[] { "" });
 			handleDiversityPhaseEx(new string[] { "" });
-			handleDiversityGainMultiEx(new string[] { "" });
 			// Gain push is per-RX; emit both
 			handleDiversityGainEx(new string[] { "0" });
 			handleDiversityGainEx(new string[] { "1" });
@@ -3098,26 +3096,6 @@ namespace Thetis
 			}
 			decimal phase = consoleThreadSafe.CATDiversityPhase;
 			sendTextFrame("diversity_phase_ex:" + ((int)(phase * 100m)) + ";");
-		}
-
-		// diversity_gain_multi_ex:N;  N is integer × 100 (range 100..1000 = 1.00..10.00). GET when empty.
-		// GainMulti is a multiplier in DiversityForm that gates udR1.Maximum / udR2.Maximum, i.e. the
-		// upper bound on per-RX diversity gain. Without this command remote clients can't push gain
-		// above whatever value GainMulti was last saved at via the Thetis UI.
-		private void handleDiversityGainMultiEx(string[] args)
-		{
-			if (consoleThreadSafe == null || !consoleThreadSafe.ThetisLinkExtensionsEnabled) return;
-			if (args == null || args.Length != 1) return;
-			ensureDiversityForm();
-
-			if (args[0].Trim() != "")
-			{
-				if (!int.TryParse(args[0], out int multiInt)) return;
-				multiInt = Math.Max(100, Math.Min(1000, multiInt));
-				consoleThreadSafe.CATDiversityGainMulti = multiInt / 100m;
-			}
-			decimal multi = consoleThreadSafe.CATDiversityGainMulti;
-			sendTextFrame("diversity_gain_multi_ex:" + ((int)(multi * 100m)) + ";");
 		}
 
 		// diversity_gain_ex:rx,gainint;  rx is 0|1, gainint is gain * 1000 (0..10000). GET via rx-only.
@@ -7062,9 +7040,6 @@ namespace Thetis
                     case "diversity_gain_ex":
                         handleDiversityGainEx(args);
                         break;
-                    case "diversity_gain_multi_ex":
-                        handleDiversityGainMultiEx(args);
-                        break;
                     case "diversity_sweep_ex":
                         handleDiversitySweepEx(args);
                         break;
@@ -7194,9 +7169,6 @@ namespace Thetis
                         break;
                     case "diversity_phase_ex":
                         handleDiversityPhaseEx(new string[] { "" });
-                        break;
-                    case "diversity_gain_multi_ex":
-                        handleDiversityGainMultiEx(new string[] { "" });
                         break;
                     case "ddc_sample_rate_ex":
                         handleDdcSampleRateEx(null); // null-args triggers both-RX query

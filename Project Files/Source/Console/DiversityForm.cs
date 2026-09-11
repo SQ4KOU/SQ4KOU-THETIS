@@ -1,4 +1,4 @@
-ï»¿//=================================================================
+//=================================================================
 // DiversityForm.cs
 //=================================================================
 // PowerSDR is a C# implementation of a Software Defined Radio.
@@ -38,14 +38,6 @@
 // its original terms and is not affected by this dual-licensing statement in any way.        //
 // Richard Samphire can be reached by email at :  mw0lge@grange-lane.co.uk                    //
 //============================================================================================//
-//
-//================================================================================================//
-// SPDX-License-Identifier: GPL-2.0-or-later                                                       //
-// ThetisLink TL2-1 fork modifications by PA3GHM (cjenschede), starting 2026-05-07.                //
-// Adds a public DiversityGainMulti property so the TCI command `diversity_gain_multi_ex` can      //
-// read/write the form's `udGainMulti` value (which gates `udR1.Maximum` / `udR2.Maximum`).        //
-// See NOTICE.md and ATTRIBUTION.md in the repository root for fork details.                       //
-//================================================================================================//
 
 using System;
 using System.Diagnostics;
@@ -53,7 +45,6 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Text;
 using System.Collections;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Windows.Forms;
 using System.Timers;
@@ -65,7 +56,7 @@ namespace Thetis
     /// <summary>
     /// Summary description for DiversityForm.
     /// </summary>
-    public partial class DiversityForm : System.Windows.Forms.Form
+    public class DiversityForm : System.Windows.Forms.Form
     {
         //private Point p = new Point(200, 200); //MW0LGE_21c
         //private const double m_SCALEFACTOR = 10.0; //MW0LGE_21f this now applied to udR1 and udR2
@@ -163,28 +154,6 @@ namespace Thetis
         private int _hover_memory_index = -1;
         private int _mouse_down_memory_index = -1;
 
-
-        // SQ4KOU_DIVERSITY_COMPACT
-        // Compact UI only: DSP/diversity processing remains untouched.
-        private bool _sq4kouCompactMode;
-        private bool _sq4kouCompactInitialised;
-        private Size _sq4kouExpandedClientSize;
-        private Size _sq4kouExpandedMinimumSize;
-        private Rectangle _sq4kouExpandedRadarBounds;
-        private AnchorStyles _sq4kouExpandedRadarAnchor;
-        private readonly Dictionary<Control, bool> _sq4kouExpandedVisibility = new Dictionary<Control, bool>();
-
-        // Preserve the Phase/Gain values when a left double-click is used only to toggle UI.
-        private bool _sq4kouSavedMouseStateValid;
-        private decimal _sq4kouSavedR;
-        private decimal _sq4kouSavedAngle;
-        private decimal _sq4kouSavedR1;
-        private decimal _sq4kouSavedR2;
-        private decimal _sq4kouSavedAngle0;
-        private decimal _sq4kouSavedFineNull;
-        private double _sq4kouSavedLockedR;
-        private double _sq4kouSavedLockedAngle;
-
         public DiversityForm(Console c)
         {
             _initalising = true;
@@ -214,10 +183,7 @@ namespace Thetis
             ////            trackBarPhase1.Visible = false;
             //chkLockR.Visible = true;
 
-            // NATIVE_PA3GHM_DIVERSITY_PANEL
-            InitPA3GHMNativePanel();
             Common.RestoreForm(this, "DiversityForm", true);
-            EnsurePA3GHMNativePanelSize();
 
             //[2.10.3.6]MW0LGE implement memories. A bit of a hack to store all this in a text box, but it is easy with the saveform/restoreform
             try
@@ -266,129 +232,6 @@ namespace Thetis
             {
                 DarkMode = console.SetupForm.DarkMode;
             }
-
-        }
-
-        protected override void OnShown(EventArgs e)
-        {
-            base.OnShown(e);
-            // Visible includes the parent's state: capture only after the form is shown.
-            // Load-time layout changes must also finish before saving the expanded layout.
-            InitializeSQ4KOUCompactMode();
-        }
-
-        private void InitializeSQ4KOUCompactMode()
-        {
-            if (_sq4kouCompactInitialised || picRadar == null || !Visible) return;
-
-            _sq4kouExpandedClientSize = this.ClientSize;
-            _sq4kouExpandedMinimumSize = this.MinimumSize;
-            _sq4kouExpandedRadarBounds = picRadar.Bounds;
-            _sq4kouExpandedRadarAnchor = picRadar.Anchor;
-            _sq4kouExpandedVisibility.Clear();
-
-            foreach (Control control in this.Controls)
-            {
-                if (control != picRadar)
-                    _sq4kouExpandedVisibility[control] = control.Visible;
-            }
-
-            _sq4kouCompactInitialised = true;
-            SetSQ4KOUCompactMode(true);
-        }
-
-        private void SetSQ4KOUCompactMode(bool compact)
-        {
-            if (!_sq4kouCompactInitialised || picRadar == null) return;
-            if (_sq4kouCompactMode == compact && compact) return;
-
-            this.SuspendLayout();
-            try
-            {
-                if (compact)
-                {
-                    foreach (KeyValuePair<Control, bool> item in _sq4kouExpandedVisibility)
-                    {
-                        if (item.Key != null && !item.Key.IsDisposed) item.Key.Visible = false;
-                    }
-
-                    // The original radar itself is 305x305. Keep it unscaled in compact mode.
-                    this.MinimumSize = Size.Empty;
-                    picRadar.Anchor = AnchorStyles.Top | AnchorStyles.Left;
-                    picRadar.Location = new Point(4, 4);
-                    picRadar.Size = new Size(305, 305);
-                    this.ClientSize = new Size(313, 313);
-                }
-                else
-                {
-                    // Restore exactly the full layout captured after PA3GHM panel sizing/RestoreForm.
-                    this.MinimumSize = Size.Empty;
-                    this.ClientSize = _sq4kouExpandedClientSize;
-                    picRadar.Anchor = AnchorStyles.Top | AnchorStyles.Left;
-                    picRadar.Bounds = _sq4kouExpandedRadarBounds;
-                    picRadar.Anchor = _sq4kouExpandedRadarAnchor;
-
-                    foreach (KeyValuePair<Control, bool> item in _sq4kouExpandedVisibility)
-                    {
-                        if (item.Key != null && !item.Key.IsDisposed) item.Key.Visible = item.Value;
-                    }
-
-                    this.MinimumSize = _sq4kouExpandedMinimumSize;
-                    EnsurePA3GHMNativePanelSize();
-                }
-
-                _sq4kouCompactMode = compact;
-                picRadar.Invalidate();
-            }
-            finally
-            {
-                this.ResumeLayout(true);
-            }
-        }
-
-        private void CaptureSQ4KOURadarState()
-        {
-            _sq4kouSavedR = udR.Value;
-            _sq4kouSavedAngle = udAngle.Value;
-            _sq4kouSavedR1 = udR1.Value;
-            _sq4kouSavedR2 = udR2.Value;
-            _sq4kouSavedAngle0 = udAngle0.Value;
-            _sq4kouSavedFineNull = udFineNull.Value;
-            _sq4kouSavedLockedR = locked_r;
-            _sq4kouSavedLockedAngle = locked_angle;
-            _sq4kouSavedMouseStateValid = true;
-        }
-
-        private void RestoreSQ4KOURadarState()
-        {
-            if (!_sq4kouSavedMouseStateValid) return;
-
-            bool oldInitialising = _initalising;
-            _initalising = true;
-            try
-            {
-                udR.Value = _sq4kouSavedR;
-                udAngle.Value = _sq4kouSavedAngle;
-                udR1.Value = _sq4kouSavedR1;
-                udR2.Value = _sq4kouSavedR2;
-                udAngle0.Value = _sq4kouSavedAngle0;
-                udFineNull.Value = _sq4kouSavedFineNull;
-                locked_r = _sq4kouSavedLockedR;
-                locked_angle = _sq4kouSavedLockedAngle;
-            }
-            finally
-            {
-                _initalising = oldInitialising;
-            }
-
-            _sq4kouSavedMouseStateValid = false;
-            UpdateDiversity();
-            picRadar.Invalidate();
-        }
-
-        private void ToggleSQ4KOUCompactMode()
-        {
-            SetSQ4KOUCompactMode(!_sq4kouCompactMode);
         }
 
         #region DARK-MODE
@@ -1657,9 +1500,9 @@ namespace Thetis
             g.TextRenderingHint = TextRenderingHint.AntiAlias;
             // draw the background of the radar
             g.FillEllipse(new LinearGradientBrush(new Point((int)(size / 2), 0), new Point((int)(size / 2), size - 1), topColor, bottomColor), 0, 0, size - 1, size - 1);
-            // draw the outer ring (0ï¿½ elevation)
+            // draw the outer ring (0° elevation)
             g.DrawEllipse(pen, 0, 0, size - 1, size - 1);
-            // draw the inner ring (60ï¿½ elevation)
+            // draw the inner ring (60° elevation)
             int interval = size / 2;
             // draw the middle ring 
             g.DrawEllipse(pen, (size - interval) / 2, (size - interval) / 2, interval, interval);
@@ -1704,12 +1547,12 @@ namespace Thetis
             //g.TextRenderingHint = TextRenderingHint.AntiAlias;
             //// draw the background of the radar
             //g.FillEllipse(new LinearGradientBrush(new Point((int)(size / 2), 0), new Point((int)(size / 2), size - 1), topColor, bottomColor), 0, 0, size - 1, size - 1);
-            //// draw the outer ring (0ï¿½ elevation)
+            //// draw the outer ring (0° elevation)
             //g.DrawEllipse(pen, 0, 0, size - 1, size - 1);
-            //// draw the inner ring (60ï¿½ elevation)
+            //// draw the inner ring (60° elevation)
             ////int interval = size / 3;
             ////g.DrawEllipse(pen, (size - interval) / 2, (size - interval) / 2, interval, interval);
-            //// draw the middle ring (30ï¿½ elevation)
+            //// draw the middle ring (30° elevation)
             ////interval *= 2;
             ////g.DrawEllipse(pen, (size - interval) / 2, (size - interval) / 2, interval, interval);
             //int interval = size / 2;
@@ -1888,27 +1731,6 @@ namespace Thetis
         {
             if (_initalising) return;
 
-            // Right click is a zero-side-effect compact/full toggle.
-            if (e.Button == MouseButtons.Right)
-            {
-                mouse_down = false;
-                ToggleSQ4KOUCompactMode();
-                return;
-            }
-
-            // Left double-click also toggles. Restore the Phase/Gain snapshot from the
-            // first click so using the UI toggle cannot leave a changed diversity setting.
-            if (e.Button == MouseButtons.Left && e.Clicks >= 2)
-            {
-                mouse_down = false;
-                RestoreSQ4KOURadarState();
-                ToggleSQ4KOUCompactMode();
-                return;
-            }
-
-            if (e.Button == MouseButtons.Left && e.Clicks == 1)
-                CaptureSQ4KOURadarState();
-
             updateHoverMemory(e.Location);
 
             _mouse_down_memory_index = -1;
@@ -1935,12 +1757,6 @@ namespace Thetis
         private void picRadar_MouseUp(object sender, System.Windows.Forms.MouseEventArgs e)
         {
             if (_initalising) return;
-
-            if (e.Button == MouseButtons.Right || (e.Button == MouseButtons.Left && e.Clicks >= 2))
-            {
-                mouse_down = false;
-                return;
-            }
 
             updateHoverMemory(e.Location);
 
@@ -2095,10 +1911,6 @@ namespace Thetis
         private void DiversityForm_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
             txtMemoryDataHidden.Text = SerializeObjectToString<memorySettings[]>(_memories);
-
-            // Save the expanded layout, never the temporary 313x313 compact shell.
-            if (_sq4kouCompactInitialised && _sq4kouCompactMode)
-                SetSQ4KOUCompactMode(false);
 
             Common.SaveForm(this, "DiversityForm");
         }
@@ -2498,23 +2310,6 @@ namespace Thetis
             }
             get { return udR2.Value; }      // added 31/3/2018 G8NJJ to allow access by CAT commands
         }
-
-        // [ThetisLink TL2-1] BEGIN â€” modification by PA3GHM (cjenschede), 2026-05-07
-        // Public accessor for the GainMulti spinner so the TCI command `diversity_gain_multi_ex`
-        // can read/write it from outside the form. Range-clamps to the spinner's own
-        // Minimum / Maximum (1.0 .. 10.0). Writing triggers udGainMulti_ValueChanged which in
-        // turn updates udR1.Maximum / udR2.Maximum (= the gain-clamp).
-        public decimal DiversityGainMulti
-        {
-            get { return udGainMulti.Value; }
-            set
-            {
-                decimal v = Math.Min(value, udGainMulti.Maximum);
-                v = Math.Max(v, udGainMulti.Minimum);
-                udGainMulti.Value = v;
-            }
-        }
-        // [ThetisLink TL2-1] END
 
         public decimal DiversityPhase
         {
