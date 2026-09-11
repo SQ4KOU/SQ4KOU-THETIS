@@ -1,0 +1,54 @@
+name: Publish thetis_3z9am Release
+
+on:
+  push:
+    branches: [ci/build-thetis_3z9am]
+    paths:
+      - .github/workflows/publish-thetis-3z9am-release.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download exact MSI artifact from successful build
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p release_assets
+          gh run download 34565958735 \
+            --repo "$GITHUB_REPOSITORY" \
+            --name "SQ4KOU-THETIS-thethis_3z9am-MSI" \
+            --dir release_assets
+          test -f release_assets/SQ4KOU-THETIS-thethis_3z9am-x64.msi
+          mv release_assets/SQ4KOU-THETIS-thethis_3z9am-x64.msi release_assets/SQ4KOU-THETIS-thetis_3z9am-x64.msi
+          echo "b04909929cb57c3e2585f75a4449fc729336983bae3b6e4baaea33ccd902de5e  release_assets/SQ4KOU-THETIS-thetis_3z9am-x64.msi" | sha256sum -c -
+
+      - name: Create release and upload MSI
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          TAG="sq4kou-thetis-3z9am-2026-09-11"
+          TITLE="SQ4KOU Thetis — thetis_3z9am"
+          NOTES=$(cat <<'EOF'
+          Build x64 from branch `fix/thetis_3z9am`.
+
+          Source commit: `5a63acd769611d1eaf0ff1dd00c3fdc073e9f5eb`
+
+          Includes the isolated TX/RX GPU waterfall switching ported from `ff62e7ad` while preserving the remaining `thetis_3z9am` changes.
+
+          MSI SHA-256: `B04909929CB57C3E2585F75A4449FC729336983BAE3B6E4BAAEA33CCD902DE5E`
+          EOF
+          )
+          gh release create "$TAG" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target 5a63acd769611d1eaf0ff1dd00c3fdc073e9f5eb \
+            --title "$TITLE" \
+            --notes "$NOTES" \
+            release_assets/SQ4KOU-THETIS-thetis_3z9am-x64.msi
