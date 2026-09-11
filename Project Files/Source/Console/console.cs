@@ -961,7 +961,9 @@ namespace Thetis
                 MessageBox.Show("There was an issue initialising PortAudio", "PortAudio", MessageBoxButtons.OK, MessageBoxIcon.Information, MessageBoxDefaultButton.Button1, Common.MB_TOPMOST);
 
             //            
-            if (!IsSetupFormNull) SetupForm.SetupCMAsio(_portAudioIssue, Common.HasArg(args, "-cmasioconfig"));
+            // SQ4KOU_CMASIO_PERMANENT: Setup > Audio > cmASIO is always available.
+            // Do not depend on the -cmasioconfig launch argument.
+            if (!IsSetupFormNull) SetupForm.SetupCMAsio(_portAudioIssue, true);
 
             CpuUsage(); //[2.10.1.0] MW0LGE initial call to setup check marks in status bar as a minimum
 
@@ -1392,7 +1394,6 @@ namespace Thetis
 
                 s += "  -help   this help\n\n";
                 s += "  -autostart         attempt to power on radio at start up\n";
-                s += "  -cmasioconfig      show the cmASIO setup tab in audio setup\n";
                 s += "  -noinstancewarn    do not warn if other instances are running\n";
                 s += "  -nospec            do not use additional spectrum analysers from WDSP for filter item display\n";
                 s += "  -touch             provide touch support for containers to simulate mouse down/move/up\n";
