@@ -1,0 +1,182 @@
+name: Build cmASIO always visible from GPU PASS
+
+on:
+  push:
+    branches: [test/cmasio-always-visible-from-pass-20260911]
+    paths:
+      - .github/workflows/build-cmasio-always-visible-from-pass.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-msi:
+    runs-on: windows-2025
+    timeout-minutes: 90
+    steps:
+      - name: Checkout exact test state
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Enable long paths
+        shell: pwsh
+        run: git config --global core.longpaths true
+
+      - name: Verify frozen GPU PASS ancestry
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $base='e9c95220f4fab9eb829015a0a0d42dbce6fc45ac'
+          git merge-base --is-ancestor $base HEAD
+          if($LASTEXITCODE -ne 0){throw 'Branch is not descended from confirmed TX-RX GPU PASS'}
+          Write-Host "PASS_BASE=$base"
+
+      - name: Make Setup Audio cmASIO permanently visible
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          python .github/scripts/prepare-cmasio-always-visible.py
+          if($LASTEXITCODE -ne 0){throw 'cmASIO visibility patch failed'}
+          $changed=@(git diff --name-only)
+          if($changed.Count -ne 1 -or $changed[0] -ne 'Project Files/Source/Console/setup.cs'){
+            throw ('Unexpected patch scope: '+($changed -join ';'))
+          }
+          Write-Host 'CMASIO_PATCH_SCOPE=setup.cs only'
+
+      - name: Commit permanent cmASIO menu
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- 'Project Files/Source/Console/setup.cs'
+          git diff --cached --quiet
+          if($LASTEXITCODE -ne 0){
+            git commit -m 'Show cmASIO permanently in Setup Audio'
+            git push origin HEAD:test/cmasio-always-visible-from-pass-20260911
+          }
+          $sha=(git rev-parse HEAD).Trim()
+          "SOURCE_SHA=$sha" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "SOURCE_SHA=$sha"
+
+      - name: Verify exact source scope from confirmed PASS
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $base='e9c95220f4fab9eb829015a0a0d42dbce6fc45ac'
+          $changed=@(git diff --name-only $base HEAD -- 'Project Files/Source')
+          if($changed.Count -ne 1 -or $changed[0] -ne 'Project Files/Source/Console/setup.cs'){
+            throw ('Unexpected source delta from PASS: '+($changed -join ';'))
+          }
+          Write-Host 'SOURCE_DELTA_FROM_PASS=Project Files/Source/Console/setup.cs'
+
+      - name: Audit permanent cmASIO menu
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $setup=Get-Content 'Project Files\Source\Console\setup.cs' -Raw
+          foreach($token in @(
+            'SQ4KOU_CMASIO_ALWAYS_VISIBLE',
+            'tcAudio.TabPages.Contains(tpCMAsio)',
+            'tcAudio.TabPages.Add(tpCMAsio)'
+          )){if(-not $setup.Contains($token)){throw "Missing cmASIO visibility token: $token"}}
+          if($setup.Contains('tcAudio.TabPages.Remove(tpCMAsio);')){throw 'Legacy cmASIO hide call is still active'}
+          if($setup -notmatch 'cmasio_config_flag'){throw 'Existing cmASIO configuration path unexpectedly missing'}
+          Write-Host 'CMASIO_ALWAYS_VISIBLE_STATIC_AUDIT=PASS'
+
+      - name: Guard confirmed TX-RX GPU history fix
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $gpu=Get-Content 'Project Files\Source\Console\Display.GPUWaterfall.cs' -Raw
+          if($gpu -match 'index < 0 \|\| index > 1 \|\| localMox \|\| !ManagedGPUFFTRequested'){throw 'MOX GPU-history regression detected'}
+          if($gpu -match '_gpuFirstFillDone\[num2\] = false;\s*_gpuRendererHasData\[num2\] = false;\s*_gpuLastIQSource'){throw 'RX/TX renderer-history regression detected'}
+          foreach($token in @(
+            'Preserve WaterfallGPURenderer history across RX<->TX',
+            'bool gpuTxSource = localMox(rx) && !DisplayDuplex;',
+            'int stream = gpuSourceStream;',
+            'ColorScheme.Enhanced256',
+            'ColorScheme.Grayscale256',
+            'B8G8R8A8_UNorm',
+            'R16G16B16A16_Float'
+          )){if(-not $gpu.Contains($token)){throw "Missing protected GPU token: $token"}}
+          Write-Host 'TX_RX_GPU_PASS_GUARD=PASS'
+
+      - name: Exact recovered Final palette parity
+        shell: pwsh
+        run: .github/scripts/test-final-palettes.ps1
+
+      - name: Diversity lifecycle regression guard
+        shell: powershell
+        run: .github/scripts/test-diversity-visibility.ps1
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $targets=Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if(-not $targets){choco install wixtoolset -y --no-progress}
+          $targets=Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if(-not $targets){$targets=Get-ChildItem 'C:\Program Files (x86)\WiX Toolset*\Wix.targets' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1}
+          if(-not $targets){throw 'WiX 3.x Wix.targets not found'}
+          "WIX_TARGETS=$($targets.FullName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore packages
+        shell: pwsh
+        run: nuget restore 'Project Files\Source\Thetis_VS2026.sln' -NonInteractive
+
+      - name: Build Release x64 and MSI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $log=Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-CMASIO-ALWAYS-VISIBLE-BUILD.log'
+          & msbuild 'Project Files\Source\Thetis_VS2026.sln' /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal 2>&1 | Tee-Object -FilePath $log
+          if($LASTEXITCODE -ne 0){throw "MSBuild failed: $LASTEXITCODE"}
+          if(Select-String -Path $log -Pattern ': error ' -ErrorAction SilentlyContinue){throw 'Build log contains errors'}
+          "BUILD_LOG=$log" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Validate built GPU shaders and package MSI
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $expected=@('Thetis.waterfall_postproc.bin','Thetis.waterfall_row_cs.bin','Thetis.waterfall_fft_bitreverse_cs.bin','Thetis.waterfall_fft_stage_ab_cs.bin','Thetis.waterfall_fft_stage_ba_cs.bin','Thetis.waterfall_fft_magnitude_cs.bin','Thetis.waterfall_resolve_cs.bin')
+          $built=Get-ChildItem 'Project Files\bin' -Recurse -Filter Thetis.exe | Where-Object {$_.FullName -match '\\x64\\Release\\'} | Sort-Object Length -Descending | Select-Object -First 1
+          if(-not $built){throw 'Built Thetis.exe not found'}
+          $asm=[System.Reflection.Assembly]::ReflectionOnlyLoadFrom($built.FullName)
+          $resources=@($asm.GetManifestResourceNames())
+          $missing=@($expected | Where-Object {$_ -notin $resources})
+          if($missing.Count){throw ('Missing GPU shaders: '+($missing -join ', '))}
+          $msi=Get-ChildItem 'Project Files\bin\Installers\*.msi' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if(-not $msi -or $msi.Length -lt 1MB){throw 'Valid MSI not produced'}
+          $final=Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-CMASIO-ALWAYS-VISIBLE-TEST-x64.msi'
+          Copy-Item $msi.FullName $final -Force
+          $hash=(Get-FileHash $final -Algorithm SHA256).Hash
+          "FINAL_MSI_PATH=$final" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "MSI_SHA256=$hash" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "SOURCE_SHA=$env:SOURCE_SHA"
+          Write-Host "MSI_SHA256=$hash"
+
+      - name: Upload MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-CMASIO-ALWAYS-VISIBLE-TEST-x64
+          path: ${{ env.FINAL_MSI_PATH }}
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: Upload build log
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-CMASIO-ALWAYS-VISIBLE-BUILD-LOG
+          path: ${{ env.BUILD_LOG }}
+          if-no-files-found: error
+          compression-level: 6
