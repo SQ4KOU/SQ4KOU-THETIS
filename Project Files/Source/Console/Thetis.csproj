@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
@@ -687,9 +687,45 @@
     </Compile>
     <Compile Include="WaterfallEnhancer.cs" />
     <Compile Include="WaterfallPixelWriter.cs" />
+    <Compile Include="GPUWaterfallNative.cs" />
+    <Compile Include="Display.GPUWaterfall.cs" />
+    <Compile Include="Setup.GPUWaterfall.cs" />
+    <Compile Include="GPUDetectorNative.cs" />
+    <Compile Include="GPUDetector.cs" />
+    <Compile Include="GPUWaterfallPipeline.cs" />
+    <Compile Include="WaterfallGPURenderer.cs" />
+    <Compile Include="GPUWaterfallLogger.cs" />
+    <Compile Include="SharedWaterfallState.cs" />
+    <Compile Include="GPUWaterfallWindowType.cs" />
+    <Compile Include="GPUWaterfallMagnitudeMode.cs" />
+    <Compile Include="GPUWaterfallResamplingMode.cs" />
+    <Compile Include="FFTParams.cs" />
+    <Compile Include="WaterfallRowParams.cs" />
+    <Compile Include="NoiseFloorPro.cs" />
+    <Compile Include="Display.EU2AVWaterfallCompat.cs" />
     <Compile Include="WaterfallPalette.cs" />
+    <Content Include="waterfall_fft_bitreverse_cs.bin"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="waterfall_fft_stage_ab_cs.bin"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="waterfall_fft_stage_ba_cs.bin"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="waterfall_fft_magnitude_cs.bin"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="waterfall_row_cs.bin"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="waterfall_postproc.bin"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="waterfall_resolve_cs.bin"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
     <Compile Include="DiversityForm.cs">
       <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="DiversityForm.PA3GHMNative.cs">
+      <DependentUpon>DiversityForm.cs</DependentUpon>
+    </Compile>
+    <Compile Include="PA3GHMNativeDiversity.cs" />
+    <Compile Include="Console.PA3GHMNative.cs">
+      <DependentUpon>console.cs</DependentUpon>
+    </Compile>
+    <Compile Include="PA3GHMNativeControlForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Setup.PA3GHMNative.cs">
+      <DependentUpon>setup.cs</DependentUpon>
     </Compile>
     <Compile Include="dsp.cs">
       <SubType>Code</SubType>

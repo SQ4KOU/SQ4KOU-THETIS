@@ -1,0 +1,15 @@
+<Project>
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+  </PropertyGroup>
+
+  <!-- Test-build compatibility shim for ILSpy-recovered EU2AV WinForms code.
+       ILSpy may emit float/double assignments directly into NumericUpDown.Value,
+       whose type is decimal. Normalize those generated assignments immediately
+       before C# compilation; this does not affect runtime DSP/GPU logic. -->
+  <Target Name="FixRecoveredEU2AVNumericUpDownAssignments"
+          BeforeTargets="CoreCompile"
+          Condition="'$(MSBuildProjectName)' == 'Thetis'">
+    <Exec Command="powershell -NoProfile -ExecutionPolicy Bypass -Command &quot;$p='$(MSBuildProjectDirectory)\Setup.GPUWaterfall.cs'; if (Test-Path -LiteralPath $p) { $s=[IO.File]::ReadAllText($p); $s=[regex]::Replace($s,'(?m)(\b(?:ud|numericUpDown)\w*\.Value\s*=\s*)(?!\(decimal\))([^;\r\n]+);','$1(decimal)($2);'); [IO.File]::WriteAllText($p,$s,[Text.UTF8Encoding]::new($false)) }&quot;" />
+  </Target>
+</Project>

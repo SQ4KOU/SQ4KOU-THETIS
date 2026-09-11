@@ -1,0 +1,83 @@
+# SQ4KOU PA3GHM finalizer v4
+name: Finalize PA3GHM P1 Diversity Safety
+
+on:
+  push:
+    branches:
+      - synthesis/pa3ghm-tl2-4-full
+    paths:
+      - .github/workflows/finalize-pa3ghm-p1-diversity.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: windows-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: synthesis/pa3ghm-tl2-4-full
+          fetch-depth: 1
+
+      - name: Configure Git
+        shell: pwsh
+        run: |
+          git config --global core.longpaths true
+          git config user.name "SQ4KOU synthesis automation"
+          git config user.email "actions@users.noreply.github.com"
+
+      - name: Apply P1 Diversity finalization
+        shell: pwsh
+        run: ./tools/finalize_pa3ghm_p1_diversity.ps1
+
+      - uses: NuGet/setup-nuget@v2
+      - uses: microsoft/setup-msbuild@v2
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) { choco install wixtoolset -y --no-progress }
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) { throw 'WiX 3.x Wix.targets not found' }
+          "WIX_TARGETS=$($targets.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore packages
+        shell: pwsh
+        run: nuget restore "Project Files\Source\Thetis_VS2026.sln" -NonInteractive
+
+      - name: Build final Release x64 and MSI
+        shell: pwsh
+        run: msbuild "Project Files\Source\Thetis_VS2026.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal
+
+      - name: Verify MSI
+        shell: pwsh
+        run: |
+          $msi = Get-ChildItem "Project Files\bin\Installers\*.msi" -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $msi) { throw 'MSI was not produced' }
+          if ($msi.Length -lt 1MB) { throw "MSI unexpectedly small: $($msi.Length)" }
+          Write-Host "Verified final MSI $($msi.Name) $([math]::Round($msi.Length/1MB,2)) MB"
+
+      - name: Commit final adaptation
+        shell: pwsh
+        run: |
+          Add-Content -LiteralPath '.synthesis/PA3GHM_TL2_4_SYNTHESIS.md' -Value "`nFinal SQ4KOU P1 adaptation: all five PA3GHM async Diversity handlers abort safely on P1 MOX/TUNE."
+          git add -- 'Project Files/Source/Console/TCIServer.cs' '.synthesis/PA3GHM_TL2_4_SYNTHESIS.md'
+          if (-not (git diff --cached --quiet)) {
+            git commit -m '[pa3ghm-synth] Finalize TL2-4 with complete SQ4KOU P1 Diversity TX guard'
+            git push origin HEAD:synthesis/pa3ghm-tl2-4-full
+          }
+
+      - name: Upload final MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: PA3GHM-TL2-4-SQ4KOU-FINAL
+          path: |
+            .synthesis/**
+            Project Files/bin/Installers/*.msi
+          if-no-files-found: warn
+          compression-level: 0
+          include-hidden-files: true

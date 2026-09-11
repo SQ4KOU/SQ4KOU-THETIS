@@ -1,4 +1,4 @@
-﻿//=================================================================
+//=================================================================
 // display.cs
 //=================================================================
 // Thetis is a C# implementation of a Software Defined Radio.
@@ -96,7 +96,7 @@ namespace Thetis
         LAST,
     }
 
-    class Display
+    partial class Display
     {
         #region Variable Declaration
 
@@ -6867,6 +6867,22 @@ namespace Thetis
                         dataCopy = current_waterfall_data_bottom_copy;
                     }
 
+                    GPUWaterfallPipeline managedGpuPipeline = null;
+                    bool managedGpuRowReady = false;
+                    float managedGpuCalOffset = 0f;
+
+                    // Exact EU2AV 2.10.3.16 managed FFT path. The existing SQ4KOU
+                    // CPU row remains the reference/fallback and is not destroyed.
+                    if (ManagedGPUFFTRequested)
+                    {
+                        CaptureGPUCalibrationReference(rx, dataCopy, nDecimatedWidth, W);
+                        managedGpuPipeline = GetGPUWaterfallPipeline(rx);
+                        float[] managedGpuRow = ProcessGPUWaterfall(rx, W);
+                        managedGpuPipeline = GetGPUWaterfallPipeline(rx);
+                        managedGpuRowReady = managedGpuRow != null;
+                        managedGpuCalOffset = GetGPUWaterfallCalibrationOffset(rx);
+                    }
+
                     float max;
                     float max_copy;
 
@@ -6980,6 +6996,24 @@ namespace Thetis
                     {
                         clearWaterfallBitmapRegion(waterfallBitmap, 0, 0, W, (int)waterfallBitmap.Size.Height);
                     }
+
+                    // Recovered WaterfallGPURenderer path. It consumes the GPU FFT SRV
+                    // directly, so the displayed GPU path avoids a GPU->CPU->GPU round trip.
+                    UpdateManagedGPUWaterfallRenderer(
+                        rx,
+                        W,
+                        H - 20,
+                        horizontalShiftPixels,
+                        addRow,
+                        clearExistingBitmap,
+                        cScheme,
+                        local_mox,
+                        low_threshold,
+                        high_threshold,
+                        fOffset,
+                        managedGpuPipeline,
+                        managedGpuRowReady,
+                        managedGpuCalOffset);
 
                     int preservedBitmapHeight = (int)waterfallBitmap.Size.Height - (addRow ? 1 : 0);
                     topPixels = new SharpDX.Direct2D1.Bitmap(_d2dRenderTarget, new Size2((int)waterfallBitmap.Size.Width, preservedBitmapHeight), new BitmapProperties(new SDXPixelFormat(waterfallBitmap.PixelFormat.Format, ALPHA_MODE)));
@@ -8113,7 +8147,11 @@ namespace Thetis
                     }
                 }
 
-                if (rx == 1)
+                if (CanDrawManagedGPUWaterfall(rx, cScheme, W, H - 20))
+                {
+                    DrawManagedGPUWaterfall(rx, nVerticalShift, rx == 1 ? m_fRX1WaterfallOpacity : m_fRX2WaterfallOpacity);
+                }
+                else if (rx == 1)
                 {
                     _d2dRenderTarget.DrawBitmap(_waterfall_bmp_dx2d, new RectangleF(0, nVerticalShift + 20, _waterfall_bmp_dx2d.Size.Width, _waterfall_bmp_dx2d.Size.Height), m_fRX1WaterfallOpacity, BitmapInterpolationMode.Linear);
                 }
