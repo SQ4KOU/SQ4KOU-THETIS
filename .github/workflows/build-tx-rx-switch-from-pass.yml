@@ -47,7 +47,7 @@ jobs:
             'Project Files/Source/Console/Display.GPUWaterfall.cs',
             'Project Files/Source/Console/display.cs'
           )
-          $changed=@(git status --porcelain | ForEach-Object { $_.Substring(3) })
+          $changed=@(git diff --name-only)
           $unexpected=@($changed | Where-Object { $_ -notin $allowed })
           if($unexpected.Count){throw ('Patch changed unexpected files: '+($unexpected -join ', '))}
           Write-Host ('PATCH_CHANGED=' + ($changed -join ';'))
