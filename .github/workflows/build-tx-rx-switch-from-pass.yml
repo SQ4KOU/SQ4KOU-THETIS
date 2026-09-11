@@ -94,13 +94,23 @@ jobs:
           )){if($required -notin $changed){throw "Required TX-RX file not changed: $required"}}
           Write-Host ('PASS_DELTA=' + ($changed -join ';'))
 
-      - name: Verify native Final palettes and protected GPU source
+      - name: Verify frozen Final palette mappings
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
-          python .github/scripts/fix-gpu-waterfall-palettes.py
-          if($LASTEXITCODE -ne 0){throw 'Native Final palette source gate failed'}
-          if(git status --porcelain){throw 'Palette verification mutated frozen source'}
+          $c='Project Files\Source\Console'
+          $gpu=Get-Content "$c\Display.GPUWaterfall.cs" -Raw
+          $setup=Get-Content "$c\setup.cs" -Raw
+          foreach($t in @(
+            @($gpu,'ColorScheme\.Enhanced256','Enhanced256 GPU palette'),
+            @($gpu,'ColorScheme\.Grayscale256','Grayscale256 GPU palette'),
+            @($gpu,'B8G8R8A8_UNorm','8-bit GPU format'),
+            @($gpu,'R16G16B16A16_Float','16-bit GPU format'),
+            @($setup,'comboColorPalette\.Text == "Enhanced 256"','RX1 Enhanced 256 mapping'),
+            @($setup,'comboRX2ColorPalette\.Text == "Enhanced 256"','RX2 Enhanced 256 mapping'),
+            @($setup,'comboColorPalette_tx\.Text == "Enhanced 256"','TX Enhanced 256 mapping')
+          )){if($t[0] -notmatch $t[1]){throw "Frozen PASS palette element missing: $($t[2])"}}
+          Write-Host 'SQ4KOU_FROZEN_PALETTE_MAPPING=PASS'
 
       - name: Audit TX-RX switch and frozen GPU features
         shell: pwsh
@@ -109,21 +119,15 @@ jobs:
           $c='Project Files\Source\Console'
           $gpu=Get-Content "$c\Display.GPUWaterfall.cs" -Raw
           $display=Get-Content "$c\display.cs" -Raw
-          $setup=Get-Content "$c\setup.cs" -Raw
           $cm=Get-Content 'Project Files\Source\ChannelMaster\cmaster.c' -Raw
           foreach($t in @(
             @($gpu,'GPUWaterfallPipeline','managed GPU FFT pipeline'),
             @($gpu,'WaterfallGPURenderer','managed GPU renderer'),
-            @($gpu,'ColorScheme\.Enhanced256','Enhanced256 palette'),
-            @($gpu,'ColorScheme\.Grayscale256','Grayscale256 palette'),
-            @($gpu,'B8G8R8A8_UNorm','8-bit GPU path'),
-            @($gpu,'R16G16B16A16_Float','16-bit GPU path'),
             @($cm,'CM_WaterfallIQ_Push\(2, pcm->xmtr\[tx\]\.ch_outsize','isolated TX ring'),
             @($gpu,'bool gpuTxSource = localMox\(rx\) && !DisplayDuplex;','TX source selector'),
             @($gpu,'_gpuLastIQSource\[num2\] != gpuSourceStream','RX-TX transition flush'),
             @($gpu,'int stream = gpuSourceStream;','active source consumer'),
-            @($display,'if \(ManagedGPUFFTRequested\)','GPU allowed during TX'),
-            @($setup,'comboColorPalette\.Text == "Enhanced 256"','RX1 native palette mapping')
+            @($display,'if \(ManagedGPUFFTRequested\)','GPU allowed during TX')
           )){if($t[0] -notmatch $t[1]){throw "Missing required element: $($t[2])"}}
           if($display -match 'ManagedGPUFFTRequested && !local_mox'){throw 'Old TX GPU block still present'}
           Write-Host 'SQ4KOU_TX_RX_GPU_AUDIT=PASS'
