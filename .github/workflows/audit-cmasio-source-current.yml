@@ -1,0 +1,35 @@
+name: Audit current cmASIO source
+
+on:
+  push:
+    branches: [test/cmasio-always-visible-from-pass-20260911]
+    paths:
+      - .github/workflows/audit-cmasio-source-current.yml
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 1
+      - name: Dump cmASIO source references
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $out=Join-Path $env:RUNNER_TEMP 'cmasio-source-audit.txt'
+          "HEAD=$(git rev-parse HEAD)" | Out-File $out
+          "=== setup.cs matches ===" | Out-File $out -Append
+          Select-String -Path 'Project Files\Source\Console\setup.cs' -Pattern 'cmasio_config_flag|tpCMAsio|cmASIO|portaudio_issue|CMASIO' -Context 8,8 | Out-File $out -Append -Width 500
+          "=== all Console C# matches for cmasio_config_flag / cmASIO ===" | Out-File $out -Append
+          Get-ChildItem 'Project Files\Source\Console' -Recurse -Filter '*.cs' | Select-String -Pattern 'cmasio_config_flag|cmASIO|CMASIO' -Context 3,3 | Out-File $out -Append -Width 500
+          Get-Content $out
+          "AUDIT_PATH=$out" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Upload audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: CMASIO-SOURCE-AUDIT
+          path: ${{ env.AUDIT_PATH }}
+          if-no-files-found: error
