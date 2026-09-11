@@ -7015,7 +7015,7 @@ namespace Thetis
 
                     // Exact EU2AV 2.10.3.16 managed FFT path. The existing SQ4KOU
                     // CPU row remains the reference/fallback and is not destroyed.
-                    if (ManagedGPUFFTRequested && !local_mox)
+                    if (ManagedGPUFFTRequested)
                     {
                         CaptureGPUCalibrationReference(rx, dataCopy, nDecimatedWidth, W);
                         managedGpuPipeline = GetGPUWaterfallPipeline(rx);

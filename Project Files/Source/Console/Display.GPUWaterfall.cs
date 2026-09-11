@@ -34,6 +34,9 @@ namespace Thetis
 
         private static bool[] _gpuFirstFillDone = new bool[2];
 
+        // 0=RX1, 1=RX2, 2=TX post-DSP ring. Prevent RX/TX sample mixing across MOX transitions.
+        private static int[] _gpuLastIQSource = new int[2] { -1, -1 };
+
         private static int _gpuWaterfallDebugSkip = 0;
 
         private static int[] _gpuRowLogSkip = new int[2];
@@ -455,11 +458,29 @@ namespace Thetis
                 EnsureGPUWaterfallPipeline(rx, width, 1);
                 gPUWaterfallPipeline = ((rx == 1) ? _gpuFFT1 : _gpuFFT2);
             }
-            int inputRate = cmaster.GetInputRate(0, rx - 1);
+            bool gpuTxSource = localMox(rx) && !DisplayDuplex;
+            int gpuSourceStream = gpuTxSource ? 2 : ((rx != 1) ? 1 : 0);
+            int inputRate = gpuTxSource ? cmaster.GetChannelOutputRate(1, 0) : cmaster.GetInputRate(0, rx - 1);
+            if (inputRate <= 0 && gpuTxSource)
+            {
+                inputRate = cmaster.GetInputRate(1, 0);
+            }
+            if (inputRate <= 0)
+            {
+                inputRate = gpuTxSource ? 192000 : ((rx == 1) ? SampleRateRX1 : SampleRateRX2);
+            }
             if (gPUWaterfallPipeline != null && inputRate > 0 && Math.Abs(gPUWaterfallPipeline.SampleRate - (float)inputRate) > 1f)
             {
-                EnsureGPUWaterfallPipeline(rx, width, 1);
-                gPUWaterfallPipeline = ((rx == 1) ? _gpuFFT1 : _gpuFFT2);
+                // Keep the same recovered GPU pipeline, but bind it to the active IQ source rate.
+                gPUWaterfallPipeline.Resize(_gpuWaterfallFFTSize, width, inputRate);
+                if (gPUWaterfallPipeline.IsInitialized)
+                {
+                    gPUWaterfallPipeline.WindowType = _gpuWaterfallWindowType;
+                    gPUWaterfallPipeline.KaiserBeta = _gpuWaterfallKaiserBeta;
+                    gPUWaterfallPipeline.MagnitudeMode = _gpuWaterfallMagnitudeMode;
+                    gPUWaterfallPipeline.LanczosWindow = _gpuWaterfallLanczosWindow;
+                    gPUWaterfallPipeline.ResamplingMode = _gpuWaterfallResamplingMode;
+                }
                 ResetGPUWaterfallState(rx);
             }
             if (gPUWaterfallPipeline == null || !gPUWaterfallPipeline.IsInitialized)
@@ -488,6 +509,26 @@ namespace Thetis
                 }
             }
             int num2 = rx - 1;
+            if (_gpuLastIQSource[num2] != gpuSourceStream)
+            {
+                // RX<->TX transition: discard accumulated samples so one FFT can never mix sources.
+                _gpuIQringHead[num2] = 0;
+                _gpuIQringCount[num2] = 0;
+                _gpuSampleCredit[num2] = 0;
+                _gpuFirstFillDone[num2] = false;
+                _gpuRendererHasData[num2] = false;
+                _gpuLastIQSource[num2] = gpuSourceStream;
+                if (rx == 1)
+                {
+                    _gpuCalInitRX1 = false;
+                    _gpuCalStartupCountRX1 = 0;
+                }
+                else
+                {
+                    _gpuCalInitRX2 = false;
+                    _gpuCalStartupCountRX2 = 0;
+                }
+            }
             if (fFTSize != num)
             {
                 _gpuSampleCredit[num2] = 0;
@@ -505,7 +546,7 @@ namespace Thetis
                 _gpuIQbufI = new float[524288];
                 _gpuIQbufQ = new float[524288];
             }
-            int stream = ((rx != 1) ? 1 : 0);
+            int stream = gpuSourceStream;
             int num3 = 0;
             int waterfallIQDroppedSamples = (int)Math.Min((ulong)int.MaxValue, GPUWaterfallNative.CM_WaterfallIQ_DroppedSamples(stream));
             if (waterfallIQDroppedSamples > 0)
@@ -696,7 +737,7 @@ namespace Thetis
 
         private static void SetNativeWaterfallIQEnabled(bool enabled)
         {
-            for (int ch = 0; ch < 2; ch++)
+            for (int ch = 0; ch < 3; ch++)
             {
                 try
                 {
