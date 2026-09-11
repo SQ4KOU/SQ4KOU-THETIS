@@ -1,10 +1,12 @@
-name: Build cmASIO always visible from GPU PASS
+name: Build permanent cmASIO from GPU PASS
 
 on:
   push:
     branches: [test/cmasio-always-visible-from-pass-20260911]
     paths:
       - .github/workflows/build-cmasio-always-visible-from-pass.yml
+      - .github/scripts/make-cmasio-permanent.ps1
+      - Project Files/Source/Console/console.cs
   workflow_dispatch:
 
 permissions:
@@ -25,7 +27,7 @@ jobs:
         shell: pwsh
         run: git config --global core.longpaths true
 
-      - name: Verify frozen GPU PASS ancestry
+      - name: Verify confirmed GPU PASS ancestry
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
@@ -34,17 +36,16 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'Branch is not descended from confirmed TX-RX GPU PASS'}
           Write-Host "PASS_BASE=$base"
 
-      - name: Make Setup Audio cmASIO permanently visible
+      - name: Remove cmASIO launch-argument dependency
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
-          python .github/scripts/prepare-cmasio-always-visible.py
-          if($LASTEXITCODE -ne 0){throw 'cmASIO visibility patch failed'}
+          .github/scripts/make-cmasio-permanent.ps1
           $changed=@(git diff --name-only)
-          if($changed.Count -ne 1 -or $changed[0] -ne 'Project Files/Source/Console/setup.cs'){
+          if($changed.Count -ne 1 -or $changed[0] -ne 'Project Files/Source/Console/console.cs'){
             throw ('Unexpected patch scope: '+($changed -join ';'))
           }
-          Write-Host 'CMASIO_PATCH_SCOPE=setup.cs only'
+          Write-Host 'CMASIO_PATCH_SCOPE=console.cs only'
 
       - name: Commit permanent cmASIO menu
         shell: pwsh
@@ -52,10 +53,10 @@ jobs:
           $ErrorActionPreference='Stop'
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -- 'Project Files/Source/Console/setup.cs'
+          git add -- 'Project Files/Source/Console/console.cs'
           git diff --cached --quiet
           if($LASTEXITCODE -ne 0){
-            git commit -m 'Show cmASIO permanently in Setup Audio'
+            git commit -m 'Make cmASIO Setup Audio menu permanent'
             git push origin HEAD:test/cmasio-always-visible-from-pass-20260911
           }
           $sha=(git rev-parse HEAD).Trim()
@@ -68,24 +69,31 @@ jobs:
           $ErrorActionPreference='Stop'
           $base='e9c95220f4fab9eb829015a0a0d42dbce6fc45ac'
           $changed=@(git diff --name-only $base HEAD -- 'Project Files/Source')
-          if($changed.Count -ne 1 -or $changed[0] -ne 'Project Files/Source/Console/setup.cs'){
-            throw ('Unexpected source delta from PASS: '+($changed -join ';'))
+          if($changed.Count -ne 1 -or $changed[0] -ne 'Project Files/Source/Console/console.cs'){
+            throw ('Unexpected source delta from GPU PASS: '+($changed -join ';'))
           }
-          Write-Host 'SOURCE_DELTA_FROM_PASS=Project Files/Source/Console/setup.cs'
+          Write-Host 'SOURCE_DELTA_FROM_GPU_PASS=Project Files/Source/Console/console.cs'
 
       - name: Audit permanent cmASIO menu
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
+          $console=Get-Content 'Project Files\Source\Console\console.cs' -Raw
           $setup=Get-Content 'Project Files\Source\Console\setup.cs' -Raw
+          $designer=Get-Content 'Project Files\Source\Console\setup.designer.cs' -Raw
+          foreach($token in @(
+            'SQ4KOU_CMASIO_PERMANENT',
+            'SetupForm.SetupCMAsio(_portAudioIssue, true);'
+          )){if(-not $console.Contains($token)){throw "Missing permanent cmASIO console token: $token"}}
+          if($console.Contains('Common.HasArg(args, "-cmasioconfig")')){throw 'cmASIO still depends on -cmasioconfig launch argument'}
+          if($console.Contains('-cmasioconfig      show the cmASIO setup tab')){throw 'Obsolete -cmasioconfig help entry still present'}
           foreach($token in @(
             'SQ4KOU_CMASIO_ALWAYS_VISIBLE',
             'tcAudio.TabPages.Contains(tpCMAsio)',
             'tcAudio.TabPages.Add(tpCMAsio)'
-          )){if(-not $setup.Contains($token)){throw "Missing cmASIO visibility token: $token"}}
-          if($setup.Contains('tcAudio.TabPages.Remove(tpCMAsio);')){throw 'Legacy cmASIO hide call is still active'}
-          if($setup -notmatch 'cmasio_config_flag'){throw 'Existing cmASIO configuration path unexpectedly missing'}
-          Write-Host 'CMASIO_ALWAYS_VISIBLE_STATIC_AUDIT=PASS'
+          )){if(-not $setup.Contains($token)){throw "Missing always-visible cmASIO Setup token: $token"}}
+          if(-not $designer.Contains('this.tcAudio.Controls.Add(this.tpCMAsio);')){throw 'cmASIO tab is not part of Audio tab control'}
+          Write-Host 'CMASIO_PERMANENT_STATIC_AUDIT=PASS'
 
       - name: Guard confirmed TX-RX GPU history fix
         shell: pwsh
@@ -138,7 +146,7 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
-          $log=Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-CMASIO-ALWAYS-VISIBLE-BUILD.log'
+          $log=Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-CMASIO-PERMANENT-BUILD.log'
           & msbuild 'Project Files\Source\Thetis_VS2026.sln' /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal 2>&1 | Tee-Object -FilePath $log
           if($LASTEXITCODE -ne 0){throw "MSBuild failed: $LASTEXITCODE"}
           if(Select-String -Path $log -Pattern ': error ' -ErrorAction SilentlyContinue){throw 'Build log contains errors'}
@@ -155,9 +163,10 @@ jobs:
           $resources=@($asm.GetManifestResourceNames())
           $missing=@($expected | Where-Object {$_ -notin $resources})
           if($missing.Count){throw ('Missing GPU shaders: '+($missing -join ', '))}
+          if(($expected | Where-Object {$_ -in $resources}).Count -ne 7){throw 'GPU shader count is not exactly seven'}
           $msi=Get-ChildItem 'Project Files\bin\Installers\*.msi' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
           if(-not $msi -or $msi.Length -lt 1MB){throw 'Valid MSI not produced'}
-          $final=Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-CMASIO-ALWAYS-VISIBLE-TEST-x64.msi'
+          $final=Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-CMASIO-PERMANENT-TEST-x64.msi'
           Copy-Item $msi.FullName $final -Force
           $hash=(Get-FileHash $final -Algorithm SHA256).Hash
           "FINAL_MSI_PATH=$final" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
@@ -168,7 +177,7 @@ jobs:
       - name: Upload MSI
         uses: actions/upload-artifact@v4
         with:
-          name: SQ4KOU-THETIS-CMASIO-ALWAYS-VISIBLE-TEST-x64
+          name: SQ4KOU-THETIS-CMASIO-PERMANENT-TEST-x64
           path: ${{ env.FINAL_MSI_PATH }}
           if-no-files-found: error
           compression-level: 0
@@ -176,7 +185,7 @@ jobs:
       - name: Upload build log
         uses: actions/upload-artifact@v4
         with:
-          name: SQ4KOU-THETIS-CMASIO-ALWAYS-VISIBLE-BUILD-LOG
+          name: SQ4KOU-THETIS-CMASIO-PERMANENT-BUILD-LOG
           path: ${{ env.BUILD_LOG }}
           if-no-files-found: error
           compression-level: 6
