@@ -469,9 +469,10 @@ namespace Thetis
             {
                 inputRate = gpuTxSource ? 192000 : ((rx == 1) ? SampleRateRX1 : SampleRateRX2);
             }
-            if (gPUWaterfallPipeline != null && inputRate > 0 && Math.Abs(gPUWaterfallPipeline.SampleRate - (float)inputRate) > 1f)
+            if (gPUWaterfallPipeline != null && inputRate > 0 &&
+                (Math.Abs(gPUWaterfallPipeline.SampleRate - (float)inputRate) > 1f || gPUWaterfallPipeline.DisplayWidth != width))
             {
-                // Keep the same recovered GPU pipeline, but bind it to the active IQ source rate.
+                // Keep the same recovered GPU pipeline, but bind it to the active IQ source rate and current display width.
                 gPUWaterfallPipeline.Resize(_gpuWaterfallFFTSize, width, inputRate);
                 if (gPUWaterfallPipeline.IsInitialized)
                 {
@@ -481,7 +482,7 @@ namespace Thetis
                     gPUWaterfallPipeline.LanczosWindow = _gpuWaterfallLanczosWindow;
                     gPUWaterfallPipeline.ResamplingMode = _gpuWaterfallResamplingMode;
                 }
-                // Sample-rate rebinding must not invalidate the already rendered waterfall history.
+                // Sample-rate or display-width rebinding must not invalidate the already rendered waterfall history.
                 // The source-transition block below resets the IQ accumulator without clearing the renderer.
             }
             if (gPUWaterfallPipeline == null || !gPUWaterfallPipeline.IsInitialized)
