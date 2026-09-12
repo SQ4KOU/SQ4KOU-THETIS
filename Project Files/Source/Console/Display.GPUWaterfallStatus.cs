@@ -23,6 +23,42 @@ namespace Thetis
         private static readonly float[] _gpuProLowDb = new float[2];
         private static readonly float[] _gpuProHighDb = new float[2];
 
+        // The GPU waterfall image is intentionally cleared only when the main UI
+        // actually changes between collapsed and expanded display states. The first
+        // observation seeds the state so startup, redraw, resize and settings changes
+        // cannot clear the history by themselves.
+        private static bool _gpuCollapseExpandStateKnown = false;
+        private static bool _gpuLastCollapsedDisplay = false;
+        private static readonly bool _gpuCollapseExpandHistoryHookInstalled = InstallGPUCollapseExpandHistoryHook();
+
+        private static bool InstallGPUCollapseExpandHistoryHook()
+        {
+            System.Windows.Forms.Application.Idle += GPUCollapseExpandHistoryIdle;
+            return true;
+        }
+
+        private static void GPUCollapseExpandHistoryIdle(object sender, EventArgs e)
+        {
+            if (console == null || console.IsDisposed) return;
+
+            bool collapsed = console.CollapsedDisplay;
+            if (!_gpuCollapseExpandStateKnown)
+            {
+                _gpuLastCollapsedDisplay = collapsed;
+                _gpuCollapseExpandStateKnown = true;
+                return;
+            }
+
+            if (collapsed == _gpuLastCollapsedDisplay) return;
+            _gpuLastCollapsedDisplay = collapsed;
+
+            lock (_objDX2Lock)
+            {
+                if (_waterfallGPU1 != null && _waterfallGPU1.IsInitialized) _waterfallGPU1.Clear();
+                if (_waterfallGPU2 != null && _waterfallGPU2.IsInitialized) _waterfallGPU2.Clear();
+            }
+        }
+
         public static int GPUWaterfallTemporalMode
         {
             get { return _gpuWaterfallTemporalMode; }
