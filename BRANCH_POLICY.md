@@ -1,48 +1,45 @@
 # SQ4KOU-THETIS branch policy
 
-## Canonical branches
+## Stałe gałęzie
 
-- `sq4kou` — stable production line. Current FINAL/PASS: `ff62e7ad4222a42ee949d9ab1ca736efc5970cef`.
-- `main` — repository control/documentation branch only.
-- `fix/thetis_3z9am` — active 3Z9AM/native-Ramdor variant.
-- `ci/build-thetis_3z9am` — technical build branch for the 3Z9AM variant.
-- `Thetis-RedPitaya` — source/reference lineage for Red Pitaya / ANAN related Thetis work.
+W repozytorium utrzymujemy tylko cztery stałe gałęzie:
 
-## Permanent namespaces
+- `Thetis-RedPitaya` — główna aktywna linia Thetis / Red Pitaya i źródło kolejnych zmian SQ4KOU. Aktualny FINAL/PASS: `e9c95220f4fab9eb829015a0a0d42dbce6fc45ac`.
+- `sq4kou` — gałąź domyślna repozytorium; ma wskazywać ten sam zaakceptowany FINAL/PASS co `Thetis-RedPitaya`.
+- `fix/thetis_3z9am` — odrębna aktywna linia 3Z9AM / native Ramdor.
+- `main` — wyłącznie dokumentacja, polityka i housekeeping; nie budujemy z niej Thetis.
 
-- `base/*` — immutable upstream source snapshots.
-- `reference/*` — recovered or external reference trees.
-- `baseline/*` — verified checkpoints/PASS states.
-- `release/*` — release-quality or deliberately frozen product states.
-- `synthesis/*` — deliberate long-lived synthesis lines.
+## Gałęzie tymczasowe
 
-## Temporary namespaces
+`feature/*`, `fix/*` (poza `fix/thetis_3z9am`), `test/*`, `build/*`, `tmp/*`, `recovery/*`, `baseline/*`, `release/*`, `reference/*` i `synthesis/*` nie są stałymi gałęziami.
 
-- `feature/*` — one feature only.
-- `fix/*` — one correction only, except explicitly designated long-lived variants such as `fix/thetis_3z9am`.
-- `test/*`, `build/*`, `tmp/*`, `recovery/*` — temporary only.
+Po zakończeniu zadania gałąź tymczasowa musi zostać:
 
-Temporary branches must not accumulate. When work ends:
+1. przeniesiona do właściwej bazy po potwierdzeniu PASS, a następnie usunięta, albo
+2. zachowana jako dokładny tag `archive-YYYYMMDD/<former-branch-name>` i usunięta.
 
-1. promote/merge the accepted result into its canonical branch, or
-2. preserve the exact head as a tag `archive-YYYYMMDD/<former-branch-name>`, then delete the branch.
+## Zamrożone punkty
 
-## Safety rules
+Baseline, release, referencje upstream i historyczne syntezy przechowujemy jako tagi, nie jako branch. Dzięki temu historia pozostaje dostępna bez zaśmiecania listy gałęzi.
 
-- Never force-move `sq4kou` without an explicit decision that changes the FINAL/PASS baseline.
-- Before modifying a long-lived branch, verify its exact HEAD SHA.
-- Preserve known-working functionality; do not rebuild unrelated subsystems as part of a narrow fix.
-- Build/CI-only commits must not become the new source baseline by accident.
-- Do not use `main` as a source baseline for Thetis binaries.
+## Reguły bezpieczeństwa
 
-## Project separation
+- Przed zmianą stałej gałęzi zawsze weryfikujemy jej dokładny HEAD SHA.
+- Nie przesuwamy `Thetis-RedPitaya` ani `sq4kou` bez potwierdzonego wyniku testu użytkownika.
+- `sq4kou` i `Thetis-RedPitaya` mają być zsynchronizowane na tym samym zaakceptowanym FINAL/PASS.
+- `fix/thetis_3z9am` pozostaje niezależna; nie kopiujemy do niej automatycznie zmian z głównej linii.
+- Build/CI nie może samodzielnie zostać nową bazą funkcjonalną.
+- Każdy MSI musi być powiązany z dokładnym SHA źródła.
+- Nie używamy `main` jako bazy kodu aplikacji.
 
-This repository contains Thetis only. Other project families belong in:
+## Separacja projektów
+
+To repozytorium zawiera wyłącznie Thetis. Inne projekty pozostają w oddzielnych repozytoriach:
 
 - `SQ4KOU/PowerSDR_FLEX5000`
 - `SQ4KOU/JTDX_SuperHound`
 - `SQ4KOU/RedPitaya_Protocol_1`
 
-## Archive convention
+## Archiwum
 
-The 2026-09-12 cleanup preserved 37 transient branch heads as lightweight tags under `archive-20260912/...`. The exact mapping is recorded in `ARCHIVE_20260912.md`.
+Porządkowanie z 2026-09-12 zachowało usuwane branche jako lekkie tagi `archive-20260912/...`. Pełny wykaz znajduje się w `ARCHIVE_20260912.md`.
