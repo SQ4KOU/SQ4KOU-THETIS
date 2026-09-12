@@ -6,12 +6,12 @@ W repozytorium utrzymujemy tylko cztery stałe gałęzie:
 
 - `Thetis-RedPitaya` — główna aktywna linia Thetis / Red Pitaya i źródło kolejnych zmian SQ4KOU. Aktualny FINAL/PASS: `e9c95220f4fab9eb829015a0a0d42dbce6fc45ac`.
 - `sq4kou` — gałąź domyślna repozytorium; ma wskazywać ten sam zaakceptowany FINAL/PASS co `Thetis-RedPitaya`.
-- `fix/thetis_3z9am` — odrębna aktywna linia 3Z9AM / native Ramdor.
+- `Thetis-3Z9AM` — odrębna aktywna linia 3Z9AM / native Ramdor.
 - `main` — wyłącznie dokumentacja, polityka i housekeeping; nie budujemy z niej Thetis.
 
 ## Gałęzie tymczasowe
 
-`feature/*`, `fix/*` (poza `fix/thetis_3z9am`), `test/*`, `build/*`, `tmp/*`, `recovery/*`, `baseline/*`, `release/*`, `reference/*` i `synthesis/*` nie są stałymi gałęziami.
+`feature/*`, `fix/*`, `test/*`, `build/*`, `tmp/*`, `recovery/*`, `baseline/*`, `release/*`, `reference/*` i `synthesis/*` nie są stałymi gałęziami.
 
 Po zakończeniu zadania gałąź tymczasowa musi zostać:
 
@@ -27,7 +27,7 @@ Baseline, release, referencje upstream i historyczne syntezy przechowujemy jako 
 - Przed zmianą stałej gałęzi zawsze weryfikujemy jej dokładny HEAD SHA.
 - Nie przesuwamy `Thetis-RedPitaya` ani `sq4kou` bez potwierdzonego wyniku testu użytkownika.
 - `sq4kou` i `Thetis-RedPitaya` mają być zsynchronizowane na tym samym zaakceptowanym FINAL/PASS.
-- `fix/thetis_3z9am` pozostaje niezależna; nie kopiujemy do niej automatycznie zmian z głównej linii.
+- `Thetis-3Z9AM` pozostaje niezależna; nie kopiujemy do niej automatycznie zmian z głównej linii.
 - Build/CI nie może samodzielnie zostać nową bazą funkcjonalną.
 - Każdy MSI musi być powiązany z dokładnym SHA źródła.
 - Nie używamy `main` jako bazy kodu aplikacji.
