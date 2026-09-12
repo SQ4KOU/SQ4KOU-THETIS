@@ -1,0 +1,430 @@
+name: GPU Waterfall Collapse FFT Reset Test
+
+on:
+  push:
+    branches: ["test/gpu-waterfall-collapse-fft-reset"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-msi:
+    runs-on: windows-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout test branch
+        uses: actions/checkout@v4
+        with:
+          ref: test/gpu-waterfall-collapse-fft-reset
+          fetch-depth: 1
+
+      - name: Apply GPU waterfall geometry and renderer reset fix
+        shell: pwsh
+        run: |
+          $displayPath = "Project Files\Source\Console\display.cs"
+          $gpuPath = "Project Files\Source\Console\Display.GPUWaterfall.cs"
+
+          function Replace-Exact([string]$Path, [string]$Old, [string]$New, [string]$Label) {
+            $text = [IO.File]::ReadAllText($Path).Replace("`r`n", "`n")
+            $oldNorm = $Old.Replace("`r`n", "`n")
+            $newNorm = $New.Replace("`r`n", "`n")
+            $count = ([regex]::Matches($text, [regex]::Escape($oldNorm))).Count
+            if ($count -ne 1) { throw "$Label: expected exactly one match, found $count" }
+            $text = $text.Replace($oldNorm, $newNorm)
+            [IO.File]::WriteAllText($Path, $text, [Text.UTF8Encoding]::new($false))
+            Write-Host "PATCHED: $Label"
+          }
+
+          $old = @'
+            clearBitmap = _waterfallBitmapWidths[index] > 0 && _waterfallBitmapWidths[index] != width;
+
+            if (clearBitmap || spanChanged)
+                _waterfallBitmapShiftRemainderPixels[index] = 0.0;
+'@
+          $new = @'
+            bool widthChanged = _waterfallBitmapWidths[index] > 0 && _waterfallBitmapWidths[index] != width;
+            clearBitmap = widthChanged || spanChanged;
+
+            if (clearBitmap)
+                _waterfallBitmapShiftRemainderPixels[index] = 0.0;
+'@
+          Replace-Exact $displayPath $old $new "clear bitmap on span change"
+
+          $old = @'
+                    GPUWaterfallPipeline managedGpuPipeline = null;
+                    bool managedGpuRowReady = false;
+                    float managedGpuCalOffset = 0f;
+'@
+          $new = @'
+                    GPUWaterfallPipeline managedGpuPipeline = null;
+                    bool managedGpuRowReady = false;
+                    bool managedGpuGeometryChanged = false;
+                    float managedGpuCalOffset = 0f;
+'@
+          Replace-Exact $displayPath $old $new "track managed GPU geometry change"
+
+          $old = @'
+                    if (ManagedGPUFFTRequested)
+                    {
+                        CaptureGPUCalibrationReference(rx, dataCopy, nDecimatedWidth, W);
+                        managedGpuPipeline = GetGPUWaterfallPipeline(rx);
+                        float[] managedGpuRow = ProcessGPUWaterfall(rx, W);
+                        managedGpuPipeline = GetGPUWaterfallPipeline(rx);
+                        managedGpuRowReady = managedGpuRow != null;
+                        managedGpuCalOffset = GetGPUWaterfallCalibrationOffset(rx);
+                    }
+'@
+          $new = @'
+                    if (ManagedGPUFFTRequested)
+                    {
+                        double managedGpuSpanHz = local_mox && !displayduplex
+                            ? (double)(tx_display_high - tx_display_low)
+                            : getWaterfallSpanHz(rx);
+                        managedGpuGeometryChanged = PrepareGPUWaterfallGeometry(
+                            rx, W, Math.Max(1, H - 20), nDecimatedWidth, m_nDecimation, managedGpuSpanHz);
+
+                        if (!managedGpuGeometryChanged)
+                        {
+                            CaptureGPUCalibrationReference(rx, dataCopy, nDecimatedWidth, W);
+                            managedGpuPipeline = GetGPUWaterfallPipeline(rx);
+                            float[] managedGpuRow = ProcessGPUWaterfall(rx, W);
+                            managedGpuPipeline = GetGPUWaterfallPipeline(rx);
+                            managedGpuRowReady = managedGpuRow != null;
+                            managedGpuCalOffset = GetGPUWaterfallCalibrationOffset(rx);
+                        }
+                    }
+'@
+          Replace-Exact $displayPath $old $new "invalidate GPU before processing changed geometry"
+
+          $old = @'
+                    clearExistingBitmap = false;
+                    horizontalShiftPixels = _allowWaterfallSmear ? 0 : prepareWaterfallBitmapShift(rx, W, currentWaterfallCenterMHz, out clearExistingBitmap);
+                    if (horizontalShiftPixels > W) horizontalShiftPixels = W;
+'@
+          $new = @'
+                    clearExistingBitmap = false;
+                    horizontalShiftPixels = _allowWaterfallSmear ? 0 : prepareWaterfallBitmapShift(rx, W, currentWaterfallCenterMHz, out clearExistingBitmap);
+                    if (managedGpuGeometryChanged) clearExistingBitmap = true;
+                    if (horizontalShiftPixels > W) horizontalShiftPixels = W;
+'@
+          Replace-Exact $displayPath $old $new "clear CPU and GPU history on geometry invalidation"
+
+          $old = @'
+        private static double[] _gpuLastEffectiveOverlap = new double[2] { -1.0, -1.0 };
+
+        private static bool _gpuCalInitRX1 = false;
+'@
+          $new = @'
+        private static double[] _gpuLastEffectiveOverlap = new double[2] { -1.0, -1.0 };
+
+        private static readonly int[] _gpuGeometryWidth = new int[2];
+        private static readonly int[] _gpuGeometryHeight = new int[2];
+        private static readonly int[] _gpuGeometryFFTSize = new int[2];
+        private static readonly int[] _gpuGeometryDecimation = new int[2];
+        private static readonly int[] _gpuGeometryDecimatedWidth = new int[2];
+        private static readonly double[] _gpuGeometrySpanHz = new double[2] { double.NaN, double.NaN };
+        private static readonly SharpDX.Direct3D11.Device[] _gpuPipelineDevices = new SharpDX.Direct3D11.Device[2];
+        private static readonly SharpDX.Direct3D11.Device[] _gpuRendererDevices = new SharpDX.Direct3D11.Device[2];
+        private static readonly SharpDX.Direct2D1.DeviceContext[] _gpuRendererContexts = new SharpDX.Direct2D1.DeviceContext[2];
+        private static readonly SharpDX.DXGI.Format[] _gpuRendererFormats = new SharpDX.DXGI.Format[2];
+
+        private static bool _gpuCalInitRX1 = false;
+'@
+          Replace-Exact $gpuPath $old $new "add GPU geometry and device signatures"
+
+          $old = @'
+                    ResetWaterfallBmp();
+                    ResetWaterfallBmp2();
+                    ResetGPUWaterfallState(1);
+                    ResetGPUWaterfallState(2);
+'@
+          $new = @'
+                    ResetWaterfallBmp();
+                    ResetWaterfallBmp2();
+                    ResetGPUWaterfallState(1);
+                    ResetGPUWaterfallState(2);
+                    ClearGPUWaterfallRendererHistory(1);
+                    ClearGPUWaterfallRendererHistory(2);
+                    ResetGPUWaterfallGeometrySignature(1);
+                    ResetGPUWaterfallGeometrySignature(2);
+'@
+          Replace-Exact $gpuPath $old $new "reset GPU history when GPU pipeline toggles"
+
+          $old = @'
+                    if (_gpuWaterfallPipelineEnabled)
+                    {
+                        ResetGPUWaterfallState(1);
+                        ResetGPUWaterfallState(2);
+                    }
+'@
+          $new = @'
+                    if (_gpuWaterfallPipelineEnabled)
+                    {
+                        ResetGPUWaterfallState(1);
+                        ResetGPUWaterfallState(2);
+                        ClearGPUWaterfallRendererHistory(1);
+                        ClearGPUWaterfallRendererHistory(2);
+                    }
+'@
+          Replace-Exact $gpuPath $old $new "clear renderer when FFT size changes"
+
+          $marker = @'
+        private static float[] ProcessGPUWaterfall(int rx, int width)
+'@
+          $insert = @'
+        private static void ResetGPUWaterfallGeometrySignature(int rx)
+        {
+            int index = rx - 1;
+            if (index < 0 || index > 1) return;
+            _gpuGeometryWidth[index] = 0;
+            _gpuGeometryHeight[index] = 0;
+            _gpuGeometryFFTSize[index] = 0;
+            _gpuGeometryDecimation[index] = 0;
+            _gpuGeometryDecimatedWidth[index] = 0;
+            _gpuGeometrySpanHz[index] = double.NaN;
+        }
+
+        private static void ClearGPUWaterfallRendererHistory(int rx)
+        {
+            int index = rx - 1;
+            if (index < 0 || index > 1) return;
+            WaterfallGPURenderer renderer = rx == 1 ? _waterfallGPU1 : _waterfallGPU2;
+            if (renderer != null && renderer.IsInitialized)
+            {
+                try { renderer.Clear(); }
+                catch (Exception ex) { LogGPU($"Clear renderer RX{rx} failed: {ex.Message}"); }
+            }
+            _gpuRendererHasData[index] = false;
+        }
+
+        private static bool PrepareGPUWaterfallGeometry(int rx, int width, int height, int decimatedWidth, int decimation, double spanHz)
+        {
+            int index = rx - 1;
+            if (index < 0 || index > 1) return false;
+
+            bool haveSignature = _gpuGeometryWidth[index] > 0;
+            bool spanChanged = haveSignature
+                && spanHz > 0.0
+                && !double.IsNaN(_gpuGeometrySpanHz[index])
+                && Math.Abs(_gpuGeometrySpanHz[index] - spanHz) > 0.5;
+            bool geometryChanged = haveSignature &&
+                (_gpuGeometryWidth[index] != width
+                || _gpuGeometryHeight[index] != height
+                || _gpuGeometryFFTSize[index] != _gpuWaterfallFFTSize
+                || _gpuGeometryDecimation[index] != decimation
+                || _gpuGeometryDecimatedWidth[index] != decimatedWidth
+                || spanChanged);
+
+            _gpuGeometryWidth[index] = width;
+            _gpuGeometryHeight[index] = height;
+            _gpuGeometryFFTSize[index] = _gpuWaterfallFFTSize;
+            _gpuGeometryDecimation[index] = decimation;
+            _gpuGeometryDecimatedWidth[index] = decimatedWidth;
+            _gpuGeometrySpanHz[index] = spanHz;
+
+            if (!geometryChanged) return false;
+
+            GPUWaterfallPipeline pipeline = rx == 1 ? _gpuFFT1 : _gpuFFT2;
+            if (pipeline != null && pipeline.IsInitialized)
+            {
+                float sampleRate = pipeline.SampleRate;
+                if (sampleRate <= 0f) sampleRate = rx == 1 ? SampleRateRX1 : SampleRateRX2;
+                pipeline.Resize(_gpuWaterfallFFTSize, width, sampleRate);
+            }
+
+            ResetGPUWaterfallState(rx);
+            ClearGPUWaterfallRendererHistory(rx);
+            LogGPU($"RX{rx} GPU geometry invalidated: width={width}, height={height}, FFT={_gpuWaterfallFFTSize}, decim={decimation}, decWidth={decimatedWidth}, span={spanHz:F1} Hz");
+            return true;
+        }
+
+        private static float[] ProcessGPUWaterfall(int rx, int width)
+'@
+          Replace-Exact $gpuPath $marker $insert "add controlled GPU geometry invalidation"
+
+          $old = @'
+            if (gPUWaterfallPipeline != null && gPUWaterfallPipeline.IsInitialized && gPUWaterfallPipeline.FFTSize != _gpuWaterfallFFTSize)
+            {
+                EnsureGPUWaterfallPipeline(rx, width, 1);
+                gPUWaterfallPipeline = ((rx == 1) ? _gpuFFT1 : _gpuFFT2);
+            }
+'@
+          $new = @'
+            int pipelineIndex = rx - 1;
+            if (gPUWaterfallPipeline != null && gPUWaterfallPipeline.IsInitialized
+                && (gPUWaterfallPipeline.FFTSize != _gpuWaterfallFFTSize
+                    || gPUWaterfallPipeline.DisplayWidth != width
+                    || !ReferenceEquals(_gpuPipelineDevices[pipelineIndex], _device)))
+            {
+                EnsureGPUWaterfallPipeline(rx, width, 1);
+                gPUWaterfallPipeline = ((rx == 1) ? _gpuFFT1 : _gpuFFT2);
+                ResetGPUWaterfallState(rx);
+                ClearGPUWaterfallRendererHistory(rx);
+            }
+'@
+          Replace-Exact $gpuPath $old $new "resize pipeline on FFT width or GPU device change"
+
+          $old = @'
+                ResetGPUWaterfallState(rx);
+            }
+            if (gPUWaterfallPipeline == null || !gPUWaterfallPipeline.IsInitialized)
+'@
+          $new = @'
+                ResetGPUWaterfallState(rx);
+                ClearGPUWaterfallRendererHistory(rx);
+            }
+            if (gPUWaterfallPipeline == null || !gPUWaterfallPipeline.IsInitialized)
+'@
+          Replace-Exact $gpuPath $old $new "clear renderer on sample rate change"
+
+          $old = @'
+                _gpuRendererHasData[num2] = false;
+                _gpuLastIQSource[num2] = gpuSourceStream;
+'@
+          $new = @'
+                _gpuRendererHasData[num2] = false;
+                ClearGPUWaterfallRendererHistory(rx);
+                _gpuLastIQSource[num2] = gpuSourceStream;
+'@
+          Replace-Exact $gpuPath $old $new "clear renderer on RX TX source transition"
+
+          $old = @'
+        private static WaterfallGPURenderer EnsureGPUWaterfallRenderer(int rx, int width, int height)
+        {
+            if (!_gpuEffectsEnabled || width <= 0 || height <= 0) return null;
+            if (!(_d2dRenderTarget is SharpDX.Direct2D1.DeviceContext dc)) return null;
+            SharpDX.DXGI.Format format = WaterfallPixelWriter.DxgiFormat;
+            if (format != SharpDX.DXGI.Format.B8G8R8A8_UNorm && format != SharpDX.DXGI.Format.R16G16B16A16_Float) return null;
+            WaterfallGPURenderer renderer = rx == 1 ? _waterfallGPU1 : _waterfallGPU2;
+            if (renderer == null)
+            {
+                renderer = new WaterfallGPURenderer(_device, dc, width, height, format);
+                if (rx == 1) _waterfallGPU1 = renderer; else _waterfallGPU2 = renderer;
+            }
+            else renderer.Resize(dc, width, height, format);
+            return renderer;
+        }
+'@
+          $new = @'
+        private static WaterfallGPURenderer EnsureGPUWaterfallRenderer(int rx, int width, int height)
+        {
+            if (!_gpuEffectsEnabled || width <= 0 || height <= 0) return null;
+            if (!(_d2dRenderTarget is SharpDX.Direct2D1.DeviceContext dc)) return null;
+            int index = rx - 1;
+            if (index < 0 || index > 1) return null;
+            SharpDX.DXGI.Format format = WaterfallPixelWriter.DxgiFormat;
+            if (format != SharpDX.DXGI.Format.B8G8R8A8_UNorm && format != SharpDX.DXGI.Format.R16G16B16A16_Float) return null;
+
+            WaterfallGPURenderer renderer = rx == 1 ? _waterfallGPU1 : _waterfallGPU2;
+            bool deviceChanged = renderer != null && !ReferenceEquals(_gpuRendererDevices[index], _device);
+            if (deviceChanged)
+            {
+                if (rx == 1) Utilities.Dispose(ref _waterfallGPU1); else Utilities.Dispose(ref _waterfallGPU2);
+                renderer = null;
+                _gpuRendererDevices[index] = null;
+                _gpuRendererContexts[index] = null;
+                _gpuRendererHasData[index] = false;
+            }
+
+            if (renderer == null)
+            {
+                renderer = new WaterfallGPURenderer(_device, dc, width, height, format);
+                if (rx == 1) _waterfallGPU1 = renderer; else _waterfallGPU2 = renderer;
+                _gpuRendererDevices[index] = _device;
+                _gpuRendererContexts[index] = dc;
+                _gpuRendererFormats[index] = format;
+                _gpuRendererHasData[index] = false;
+            }
+            else
+            {
+                bool surfaceChanged = renderer.Width != width || renderer.Height != height || _gpuRendererFormats[index] != format;
+                if (!ReferenceEquals(_gpuRendererContexts[index], dc))
+                {
+                    renderer.UpdateDeviceContext(dc);
+                    _gpuRendererContexts[index] = dc;
+                }
+                renderer.Resize(dc, width, height, format);
+                _gpuRendererDevices[index] = _device;
+                _gpuRendererFormats[index] = format;
+                if (surfaceChanged) _gpuRendererHasData[index] = false;
+            }
+            return renderer;
+        }
+'@
+          Replace-Exact $gpuPath $old $new "rebind renderer after D2D context or device reset"
+
+          # Initialize pipeline-device tracking when a pipeline is created.
+          $old = @'
+                if (rx == 1)
+                {
+                    _gpuFFT1 = gPUWaterfallPipeline;
+                }
+                else
+                {
+                    _gpuFFT2 = gPUWaterfallPipeline;
+                }
+'@
+          $new = @'
+                if (rx == 1)
+                {
+                    _gpuFFT1 = gPUWaterfallPipeline;
+                }
+                else
+                {
+                    _gpuFFT2 = gPUWaterfallPipeline;
+                }
+                _gpuPipelineDevices[rx - 1] = _device;
+'@
+          Replace-Exact $gpuPath $old $new "track D3D device bound to FFT pipeline"
+
+          Write-Host "---- PATCH DIFF ----"
+          git diff --check
+          git diff -- "Project Files/Source/Console/display.cs" "Project Files/Source/Console/Display.GPUWaterfall.cs"
+
+      - name: Enable long paths
+        shell: pwsh
+        run: git config --global core.longpaths true
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) { choco install wixtoolset -y --no-progress }
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) {
+            $targets = Get-ChildItem "C:\Program Files (x86)\WiX Toolset*\Wix.targets" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          }
+          if (-not $targets) { throw "WiX 3.x Wix.targets not found" }
+          "WIX_TARGETS=$($targets.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore NuGet packages
+        shell: pwsh
+        run: nuget restore "Project Files\Source\Thetis_VS2026.sln" -NonInteractive
+
+      - name: Build Release x64 and MSI
+        shell: pwsh
+        run: msbuild "Project Files\Source\Thetis_VS2026.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal
+
+      - name: Verify MSI
+        shell: pwsh
+        run: |
+          $msi = Get-ChildItem "Project Files\bin\Installers\*.msi" -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $msi) { throw "MSI was not produced" }
+          if ($msi.Length -lt 1MB) { throw "MSI is unexpectedly small: $($msi.Length) bytes" }
+          Write-Host "MSI: $($msi.FullName) ($([math]::Round($msi.Length/1MB,2)) MB)"
+
+      - name: Upload test MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-GPU-WATERFALL-COLLAPSE-FFT-RESET-TEST-x64
+          path: Project Files/bin/Installers/*.msi
+          if-no-files-found: error
+          compression-level: 0
