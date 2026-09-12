@@ -1,32 +1,40 @@
 # SQ4KOU-THETIS
 
-Clean synthesis workspace for Thetis.
+Dedykowane repozytorium projektu **Thetis / SQ4KOU**.
 
-## Stage 1 goal
+Od 2026-09-12 repozytorium nie przechowuje już gałęzi projektów FLEX-5000, JTDX ani Red Pitaya Protocol 1 / FPGA. Projekty te mają własne repozytoria:
 
-Create a coherent, buildable synthesis combining the strongest parts of:
+- `SQ4KOU/PowerSDR_FLEX5000` — FLEX-5000 / PowerSDR / Thetis-FLEX5000
+- `SQ4KOU/JTDX_SuperHound` — JTDX / SuperHound / OmniRig
+- `SQ4KOU/RedPitaya_Protocol_1` — Red Pitaya Protocol 1 / FPGA / ARM / SD
 
-- `ramdor/Thetis`
-- `eu2av/OpenHPSDR-Thetis-Enhanced`
+## Aktywne linie Thetis
 
-Stage 1 is intentionally **free of SQ4KOU patches**. SQ4KOU-specific patches are allowed only after the clean synthesis builds successfully and is accepted as the new baseline.
+- `sq4kou` — domyślna główna linia SQ4KOU; FINAL/PASS `ff62e7ad4222a42ee949d9ab1ca736efc5970cef`
+- `Thetis-RedPitaya` — baza linii Thetis dla Red Pitaya / ANAN
+- `fix/thetis_3z9am` — aktywna linia 3Z9AM / native Ramdor
+- `ci/build-thetis_3z9am` — gałąź techniczna buildów 3Z9AM
 
-## Pinned upstream commits
+## Punkty bazowe
 
-Pinned for the first synthesis on 2026-09-04:
+- `baseline/sq4kou-final-pass-20260911` — zamrożony FINAL/PASS SQ4KOU
+- `baseline/thetis_3z9am-native-ramdor-20260911` — punkt bazowy 3Z9AM
+- `baseline/thetis-redpitaya-base-20260911` — punkt bazowy Thetis-RedPitaya
+- `base/ramdor-20260904` — referencja upstream Ramdor
+- `base/eu2av-20260904` — referencja upstream EU2AV
+- `reference/eu2av-2.10.3.16-final-decompiled` — odzyskana referencja 2.10.3.16 Extended Final
 
-- Ramdor `master`: `852bf0ef0b4f3886a13fc2846489aee16f361872`
-- EU2AV `main`: `567a7ecd88bfb2ca41316dab9258fff0efeae7bf`
+## Konwencja gałęzi
 
-## Repository branches
+- `base/` i `reference/` — źródła referencyjne, nie do bieżącego rozwoju
+- `baseline/` — potwierdzone lub zamrożone punkty bazowe
+- `feature/` — rozwój nowych funkcji
+- `fix/` — poprawki funkcjonalne
+- `test/` — eksperymenty/testy
+- `build/` i `ci/` — gałęzie techniczne do kompilacji/diagnostyki
+- `release/` — linie wydaniowe
+- `archive/` — zachowane, ale nieaktywne eksperymenty
 
-- `base/ramdor-20260904` — immutable Ramdor reference snapshot with upstream history
-- `base/eu2av-20260904` — immutable EU2AV reference snapshot with upstream history
-- `synthesis-clean` — clean synthesis branch; Ramdor is the structural base, selected EU2AV improvements are integrated here
-- `main` — repository control branch
+## Zasada projektu
 
-## Integration rule
-
-No SQ4KOU patches on `synthesis-clean` until the Ramdor + EU2AV synthesis is internally consistent and buildable.
-
-The upstream baselines are imported automatically by GitHub Actions and remain separate so every integrated change can be traced back to its source.
+Nie mieszamy już niezależnych projektów w jednym repozytorium. FLEX-5000, JTDX oraz Red Pitaya Protocol 1 / FPGA rozwijane są wyłącznie w swoich dedykowanych repozytoriach. `SQ4KOU-THETIS` pozostaje wyłącznie repozytorium Thetis.
