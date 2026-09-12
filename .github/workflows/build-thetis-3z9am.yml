@@ -17,14 +17,14 @@ jobs:
       - name: Checkout exact thetis_3z9am source
         uses: actions/checkout@v4
         with:
-          ref: 5a63acd769611d1eaf0ff1dd00c3fdc073e9f5eb
+          ref: 1813b7f4ec2bb8027f937d53bfd10e3d8c42cdcb
           fetch-depth: 1
 
       - name: Verify source SHA
         shell: pwsh
         run: |
           $sha = (git rev-parse HEAD).Trim()
-          if ($sha -ne '5a63acd769611d1eaf0ff1dd00c3fdc073e9f5eb') { throw "Unexpected source SHA: $sha" }
+          if ($sha -ne '1813b7f4ec2bb8027f937d53bfd10e3d8c42cdcb') { throw "Unexpected source SHA: $sha" }
           Write-Host "SOURCE_SHA=$sha"
 
       - name: Enable long paths
@@ -67,23 +67,23 @@ jobs:
           $ErrorActionPreference = 'Stop'
           $msi = Get-ChildItem 'Project Files\bin\Installers\*.msi' -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
           if (-not $msi -or $msi.Length -lt 1MB) { throw 'Valid MSI was not produced' }
-          $out = Join-Path $msi.DirectoryName 'SQ4KOU-THETIS-thethis_3z9am-x64.msi'
+          $out = Join-Path $msi.DirectoryName 'SQ4KOU-THETIS-thetis_3z9am-GPU-HISTORY-COLLAPSE-EXPAND-TEST-x64.msi'
           Copy-Item $msi.FullName $out -Force
           $hash = (Get-FileHash $out -Algorithm SHA256).Hash
           @(
             'SOURCE_BRANCH=fix/thetis_3z9am',
-            'SOURCE_SHA=5a63acd769611d1eaf0ff1dd00c3fdc073e9f5eb',
+            'SOURCE_SHA=1813b7f4ec2bb8027f937d53bfd10e3d8c42cdcb',
             "MSI_SHA256=$hash"
-          ) | Set-Content (Join-Path $msi.DirectoryName 'SQ4KOU-THETIS-thethis_3z9am-build.txt')
+          ) | Set-Content (Join-Path $msi.DirectoryName 'SQ4KOU-THETIS-thetis_3z9am-build.txt')
           Write-Host "MSI=$out"
           Write-Host "SHA256=$hash"
 
       - name: Upload MSI
         uses: actions/upload-artifact@v4
         with:
-          name: SQ4KOU-THETIS-thethis_3z9am-MSI
+          name: SQ4KOU-THETIS-thetis_3z9am-GPU-HISTORY-COLLAPSE-EXPAND-TEST-MSI
           path: |
-            Project Files/bin/Installers/SQ4KOU-THETIS-thethis_3z9am-x64.msi
-            Project Files/bin/Installers/SQ4KOU-THETIS-thethis_3z9am-build.txt
+            Project Files/bin/Installers/SQ4KOU-THETIS-thetis_3z9am-GPU-HISTORY-COLLAPSE-EXPAND-TEST-x64.msi
+            Project Files/bin/Installers/SQ4KOU-THETIS-thetis_3z9am-build.txt
           if-no-files-found: error
           compression-level: 0
