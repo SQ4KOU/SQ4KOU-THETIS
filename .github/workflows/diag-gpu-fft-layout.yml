@@ -1,0 +1,60 @@
+name: Diagnose GPU FFT and layout state
+
+on:
+  push:
+    branches:
+      - diag/gpu-fft-layout-e9c95220
+    paths:
+      - .github/workflows/diag-gpu-fft-layout.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Locate FFT and GPU renderer state paths
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $roots=@('Project Files/Source/Console','Project Files/Source/ChannelMaster')
+          $files=Get-ChildItem $roots -Recurse -File -Include *.cs,*.cpp,*.h,*.c
+          $patterns=@(
+            'FFTSize','FFT Size','fft_size','fftSize','FFT_SIZE','SetFFT','setfft',
+            'ManagedGPUFFT','GPUFFT','WaterfallGPURenderer','_waterfallGPU','gpuWaterfall',
+            'waterfall_width','waterfallWidth','Resize','SetSize','Initialize(','Reinitialize',
+            'collapse','collapsedDisplay','ExpandDisplay','CollapseDisplay'
+          )
+          foreach($p in $patterns){
+            Write-Host "===== PATTERN: $p ====="
+            $m=$files | Select-String -Pattern $p -SimpleMatch -ErrorAction SilentlyContinue | Select-Object -First 160
+            if(-not $m){Write-Host 'NO MATCH'; continue}
+            $m | ForEach-Object { Write-Host ("{0}:{1}: {2}" -f $_.Path,$_.LineNumber,$_.Line.Trim()) }
+          }
+
+      - name: Show context around likely GPU FFT setters
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $targets=@(
+            'Project Files/Source/Console/Display.GPUWaterfall.cs',
+            'Project Files/Source/Console/Display.cs',
+            'Project Files/Source/Console/setup.cs',
+            'Project Files/Source/Console/console.cs'
+          )
+          foreach($t in $targets){
+            if(!(Test-Path $t)){continue}
+            $lines=Get-Content -LiteralPath $t
+            $matches=Select-String -LiteralPath $t -Pattern 'FFTSize|FFT Size|ManagedGPUFFT|GPUFFT|WaterfallGPU|waterfallGPU|Resize|Initialize' -AllMatches
+            Write-Host "===== CONTEXT FILE: $t ====="
+            foreach($m in ($matches | Select-Object -First 80)){
+              $from=[Math]::Max(1,$m.LineNumber-8); $to=[Math]::Min($lines.Count,$m.LineNumber+14)
+              Write-Host ("--- line {0}, context {1}..{2} ---" -f $m.LineNumber,$from,$to)
+              for($i=$from;$i -le $to;$i++){Write-Host ('{0,6}: {1}' -f $i,$lines[$i-1])}
+            }
+          }
