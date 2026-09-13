@@ -92,6 +92,11 @@ namespace Thetis.WSJTX
             return string.Format("{0}.{1}.AUDIO", PIPE_BASE, pid);
         }
 
+        public static string TxAudioPipeName(int pid)
+        {
+            return string.Format("{0}.{1}.TXAUDIO", PIPE_BASE, pid);
+        }
+
         public static string CtlPipeName(int pid)
         {
             return string.Format("{0}.{1}.CTL", PIPE_BASE, pid);
@@ -192,9 +197,12 @@ namespace Thetis.WSJTX
                 _process = proc;
                 _pid = proc.Id;
 
-                // Arm the tap + start the bridge.  RX flows whenever the
-                // session is up so the decoder always has audio.
+                // Arm the taps + start the bridges.  RX flows whenever the
+                // session is up so the decoder always has audio; TX is also
+                // enabled so the sidecar can key and push modem audio the
+                // moment the operator clicks Enable Tx in WSJT-X.
                 try { cmaster.SetWsjtRxEnable(0, 1); } catch { }
+                try { cmaster.SetWsjtTxEnable(1); } catch { }
                 try { cmaster.WsjtFlush(); } catch { }
 
                 WsjtAudioBridge.Start(_pid);
@@ -299,6 +307,7 @@ namespace Thetis.WSJTX
             }
 
             try { cmaster.SetWsjtRxEnable(0, 0); } catch { }
+            try { cmaster.SetWsjtTxEnable(0); } catch { }
             try { cmaster.WsjtFlush(); } catch { }
             Trace.WriteLine("WSJT-X: stopped");
         }

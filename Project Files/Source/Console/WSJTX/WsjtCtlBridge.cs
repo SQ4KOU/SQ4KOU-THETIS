@@ -349,6 +349,7 @@ namespace Thetis.WSJTX
         private static void SetRadioMox(Console c, bool on)
         {
             if (c == null || c.IsDisposed) return;
+            try { cmaster.SetWsjtMoxState(on ? 1 : 0); } catch { }
             try { if (c.MOX != on) c.MOX = on; } catch { }
         }
 
