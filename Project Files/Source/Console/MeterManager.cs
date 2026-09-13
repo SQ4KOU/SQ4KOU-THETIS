@@ -42927,6 +42927,7 @@ namespace Thetis
                     _udp_endpoint = null;
                 }
             }
+            [System.Text.Json.Serialization.JsonIgnore]
             public IPEndPoint UDPEndPoint
             {
                 get { return _udp_endpoint; }
