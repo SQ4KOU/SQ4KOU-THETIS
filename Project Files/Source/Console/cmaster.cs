@@ -318,6 +318,24 @@ namespace Thetis
         public static extern void FldigiFlush();
         // end fldigi
 
+        // WSJT-X FT8/FT4 sidecar bridge.  RX-only for P1 (decode): the tap
+        // runs whenever a receiver is enabled, drained by WsjtAudioBridge.
+        [DllImport("ChannelMaster.dll", EntryPoint = "SetWsjtRxEnable", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetWsjtRxEnable(int rx, int enable);
+        [DllImport("ChannelMaster.dll", EntryPoint = "GetWsjtRxEnable", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int GetWsjtRxEnable(int rx);
+        [DllImport("ChannelMaster.dll", EntryPoint = "WsjtDrainRx", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int WsjtDrainRx(int rx, [In, Out] float[] out_, int maxCount);
+        [DllImport("ChannelMaster.dll", EntryPoint = "WsjtFlush", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void WsjtFlush();
+        [DllImport("ChannelMaster.dll", EntryPoint = "SetWsjtTxEnable", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetWsjtTxEnable(int enable);
+        [DllImport("ChannelMaster.dll", EntryPoint = "SetWsjtMoxState", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetWsjtMoxState(int mox);
+        [DllImport("ChannelMaster.dll", EntryPoint = "WsjtPushTx", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void WsjtPushTx([In, Out] float[] in8k, int count);
+        // end wsjtx
+
         // router
         [DllImport("ChannelMaster.dll", EntryPoint = "LoadRouterAll", CallingConvention = CallingConvention.Cdecl)]
         public static extern void LoadRouterAll(void* ptr, int id, int sources, int calls, int varvals, 

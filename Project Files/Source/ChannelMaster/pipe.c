@@ -26,6 +26,7 @@ warren@wpratt.com
 
 #include "cmcomm.h"
 #include "fldigi_mod.h"
+#include "wsjtx_mod.h"
 
 pipe pip  = {0};
 PIPE ppip = &pip;
@@ -116,6 +117,7 @@ void create_pipe()
 	create_tci();
 	create_radae();
 	create_fldigi();
+	create_wsjtx();
 	create_spc0();
 }
 
@@ -125,6 +127,7 @@ void destroy_pipe()
 	destroy_spc0();
 	destroy_radae();
 	destroy_fldigi();
+	destroy_wsjtx();
 	destroy_tci();
 	for (i = 0; i < pcm->cmRCVR; i++)
 	{
@@ -190,6 +193,7 @@ void xpipe (int stream, int pos, double** buffs)
 																								// so that BOTH the speaker path (xMixAudio in xcmaster) AND
 																								// the VAC/TCI/scope/recorder branches below see the decoded speech.
 			xfldigi_rx(rx, buffs[0]);														// [fldigi] send post-DSP RX audio to the fldigi sidecar (8k tap, no-op when disabled)
+			xwsjtx_rx(rx, buffs[0]);														// [wsjtx] send post-DSP RX audio to the WSJT-X sidecar (8k tap, no-op when disabled)
 			/* RX1 AF post-decode multiply.  When RADE RX is on, the C#
 			 * RXOutputGain setter forces WDSP xpanel.gain1 to 1.0 so the
 			 * decoder input is unscaled, and pushes the slider value into
@@ -233,6 +237,7 @@ void xpipe (int stream, int pos, double** buffs)
 		case 1: // Audio data
 			xradae_rx(rx, buffs[0]);															// [v2.10.3.16] FreeDV RADEV1 RX splice -- same as RX1 path above
 			xfldigi_rx(rx, buffs[0]);														// [fldigi] send post-DSP RX audio to the fldigi sidecar (8k tap, no-op when disabled)
+			xwsjtx_rx(rx, buffs[0]);														// [wsjtx] send post-DSP RX audio to the WSJT-X sidecar (8k tap, no-op when disabled)
 			if (GetRadaeRxEnabled(rx) != 0)
 			{
 				const float g_rx_af = GetRadaeRxAFGain(rx);
@@ -267,6 +272,7 @@ void xpipe (int stream, int pos, double** buffs)
 			}
 			xradae_tx(buff);																	// [v2.10.3.16] FreeDV RADEV1 TX splice (no-op when disabled)
 			xfldigi_tx(buff);																	// [fldigi] inject fldigi modem TX audio into the mic path (no-op when disabled)
+			xwsjtx_tx(buff);																	// [wsjtx] inject WSJT-X modem TX audio into the mic path (no-op when disabled)
 			xrecordwave(0, 1, 0, buff);															// wav recorder 0 //[2.10.3.6]MW0LGE moved after vac
 			xrecordwave(1, 1, 0, buff);															// wav recorder 1
 			break;

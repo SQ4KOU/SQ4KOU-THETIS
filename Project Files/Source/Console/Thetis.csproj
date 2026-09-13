@@ -196,6 +196,9 @@
     <Compile Include="FLDIGI\FldigiManager.cs" />
     <Compile Include="FLDIGI\FldigiAudioBridge.cs" />
     <Compile Include="FLDIGI\FldigiControlBridge.cs" />
+    <Compile Include="WSJTX\WsjtManager.cs" />
+    <Compile Include="WSJTX\WsjtAudioBridge.cs" />
+    <Compile Include="WSJTX\WsjtCtlBridge.cs" />
     <Compile Include="Andromeda\displaysettingsform.cs">
       <SubType>Form</SubType>
     </Compile>

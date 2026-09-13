@@ -1139,6 +1139,25 @@ namespace Thetis
                 };
             }
 
+            //WSJT-X state menu (no auto-start by design)
+            UpdateWsjtMenuItem();
+            if (!_wsjtMenuHooked)
+            {
+                _wsjtMenuHooked = true;
+                Thetis.WSJTX.WsjtManager.StateChanged += (s, ev) =>
+                {
+                    if (IsDisposed) return;
+                    try
+                    {
+                        if (InvokeRequired)
+                            BeginInvoke(new Action(UpdateWsjtMenuItem));
+                        else
+                            UpdateWsjtMenuItem();
+                    }
+                    catch { }
+                };
+            }
+
             //release notes
             _frmReleaseNotes = new frmReleaseNotes();
             _frmReleaseNotes.InitPath(Application.StartupPath);
@@ -2745,6 +2764,8 @@ namespace Thetis
             // audio interface terminates (native taps + pipe threads).  This
             // also kills fldigi.exe if it is running.
             try { Thetis.FLDIGI.FldigiManager.Shutdown(); } catch { }
+            // Tear down the WSJT-X sidecar + audio bridge the same way.
+            try { Thetis.WSJTX.WsjtManager.Shutdown(); } catch { }
 
             shutdownLogStringToPath("Before recorder/player stops");
             ARP.StopRecord(out _);
@@ -8886,6 +8907,14 @@ namespace Thetis
             // The sidecar's on/off is visible from fldigi itself.
             fldigiToolStripMenuItem.ForeColor = SystemColors.ControlLightLight;
         }
+        public void UpdateWsjtMenuItem()
+        {
+            if (wsjtXToolStripMenuItem == null) return;
+            // Launch-only menu entry: no state colour (never turns green).
+            // The sidecar's on/off is visible from WSJT-X itself.
+            wsjtXToolStripMenuItem.ForeColor = SystemColors.ControlLightLight;
+        }
+        private static bool _wsjtMenuHooked;
         private static bool _fldigiMenuHooked;
         private void UpdateDiversityValues()
         {
@@ -43974,6 +44003,23 @@ namespace Thetis
             try { if (!IsSetupFormNull && SetupForm.RADAERX2) SetupForm.RADAERX2 = false; } catch { }
             Thetis.FLDIGI.FldigiManager.SetEnabled(true);
             UpdateFldigiMenuItem();
+        }
+
+        private void wsjtXToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            // Launch-only, like the FDIGI entry.  The operator stops WSJT-X
+            // by closing its window (graceful exit -> session off) or by
+            // Thetis exiting.  Ignore a click while the session is already on.
+            if (Thetis.WSJTX.WsjtManager.Enabled)
+                return;
+            // Mutual exclusion with RADE/FreeDV: RADE RX re-injects decoded
+            // speech into the AF in-place, which would corrupt the FT8 tap
+            // (the WSJT-X tap runs after xradae_rx on the same buffer), so
+            // turning WSJT-X ON turns RADE OFF end to end.
+            try { if (!IsSetupFormNull && SetupForm.RADAE) SetupForm.RADAE = false; } catch { }
+            try { if (!IsSetupFormNull && SetupForm.RADAERX2) SetupForm.RADAERX2 = false; } catch { }
+            Thetis.WSJTX.WsjtManager.SetEnabled(true);
+            UpdateWsjtMenuItem();
         }
 
         private void showHideDiversity(bool show, bool starting_up = false)
