@@ -19,11 +19,13 @@ using System.Windows.Forms;
 namespace Thetis.WSJTX
 {
     /// <summary>
-    /// Owns the wsjtx.exe sidecar: spawn / kill / auto-restart, plus the
+    /// Owns the wsjtx.exe sidecar: spawn / kill / teardown, plus the
     /// audio named-pipe bridge that feeds it RX audio.  Enable/disable is
     /// driven from the main console "WSJT-X" menu entry; this class reacts
     /// to SetEnabled and does NOT auto-start on app launch by design --
-    /// the operator starts/stops the sidecar explicitly each session.
+    /// the operator starts/stops the sidecar explicitly each session.  A
+    /// sidecar exit (graceful or crash) turns the session off; it never
+    /// restarts on its own.
     ///
     /// P1 is decode-only: the sidecar is launched with its own rig-less
     /// configuration (`-r SDR-VST3 -c SDR-VST3`) and audio arrives over the
@@ -39,7 +41,6 @@ namespace Thetis.WSJTX
         private static int _pid;
         private static bool _enabled;
         private static bool _starting;
-        private static System.Threading.Timer _restartTimer;
 
         /// <summary>True while the WSJT-X session is desired on (managed + bridge live).</summary>
         public static bool Enabled { get { lock (_sync) return _enabled; } }
@@ -74,7 +75,7 @@ namespace Thetis.WSJTX
         }
 
         /// <summary>Raised after the sidecar's desired state changes (started,
-        /// exited, crash-recovered) so the console can refresh the menu.</summary>
+        /// exited) so the console can refresh the menu.</summary>
         public static event EventHandler StateChanged;
 
         private static void NotifyStateChanged()
@@ -224,61 +225,23 @@ namespace Thetis.WSJTX
             Process p = sender as Process;
             if (p == null) return;
 
-            // A graceful exit (code 0) means the operator closed the WSJT-X
-            // window: treat it as the session being turned off (menu idle)
-            // and do NOT auto-restart.  A non-zero code is an unexpected
-            // crash: keep the session desired on so it auto-recovers.
-            int code = 0;
-            try { code = p.ExitCode; } catch { }
-            bool graceful = code == 0;
-
+            // Any exit -- graceful (operator closed the WSJT-X window) or a
+            // crash -- turns the session off and does NOT auto-restart.  The
+            // operator starts the sidecar explicitly from the menu, so a
+            // force-killed stub can never come back on its own.
             lock (_sync)
             {
                 if (_process != p)
                     return;   // stale exit from an old instance
                 _process = null;
                 _pid = 0;
-                if (graceful)
-                    _enabled = false;
+                _enabled = false;
             }
             try { cmaster.SetWsjtRxEnable(0, 0); } catch { }
             WsjtAudioBridge.Stop();
             WsjtCtlBridge.Stop();
             try { p.Dispose(); } catch { }
             NotifyStateChanged();
-
-            bool restart;
-            lock (_sync) restart = !graceful && _enabled;
-            if (restart)
-                ScheduleRestart();
-        }
-
-        private static void ScheduleRestart()
-        {
-            lock (_sync)
-            {
-                if (_restartTimer != null)
-                    return;
-                // Thread timer (not a WinForms timer): OnProcessExited runs on
-                // the threadpool with no message pump, where a WinForms
-                // Timer's Tick would never fire.
-                _restartTimer = new System.Threading.Timer(
-                    RestartTick, null, 4000, Timeout.Infinite);
-            }
-        }
-
-        private static void RestartTick(object state)
-        {
-            lock (_sync)
-            {
-                if (_restartTimer != null)
-                {
-                    _restartTimer.Dispose();
-                    _restartTimer = null;
-                }
-            }
-            if (Enabled && !Running)
-                Start();
         }
 
         public static void Stop()
