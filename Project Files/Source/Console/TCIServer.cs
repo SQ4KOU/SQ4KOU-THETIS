@@ -6082,9 +6082,11 @@ namespace Thetis
 					switch (rx)
 					{
 						case 0:
+                            consoleThreadSafe.SelectRX1VarFilter(false, true);
                             consoleThreadSafe.UpdateRX1Filters(low, high);
                             break;
 						case 1:
+                            consoleThreadSafe.SelectRX2VarFilter(false, true);
                             consoleThreadSafe.UpdateRX2Filters(low, high);
                             break;
 					}
@@ -9108,6 +9110,8 @@ namespace Thetis
                 foreach (TCPIPtciSocketListener socketListener in m_socketListenersList)
 				{
 					socketListener.BandChange(rx, oldBand, newBand);
+                    if (rx == 1)
+                        socketListener.RXAntennaSelectedChanged(Alex.getAlex().getRxAnt(newBand), newBand);
 				}
 			}
 		}
