@@ -1,0 +1,180 @@
+name: Build RedPitaya Safe Dev Imports MSI
+
+on:
+  push:
+    branches:
+      - fix/redpitaya-safe-dev-imports
+
+permissions:
+  contents: read
+
+jobs:
+  build-msi:
+    runs-on: windows-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout test branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix/redpitaya-safe-dev-imports
+          fetch-depth: 1
+          filter: blob:none
+
+      - name: Verify FINAL/PASS ancestry
+        shell: pwsh
+        run: |
+          git merge-base --is-ancestor 8ace3aa5265c7ccfce535bf4777dd3715c2d6c77 HEAD
+          if ($LASTEXITCODE -ne 0) { throw "Test branch is not based on Thetis-RedPitaya FINAL/PASS 8ace3aa" }
+          git rev-parse HEAD
+
+      - name: Apply audited safe dev imports
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+
+          def load(path):
+              p = Path(path)
+              raw = p.read_bytes()
+              bom = raw.startswith(b'\xef\xbb\xbf')
+              text = raw.decode('utf-8-sig')
+              nl = '\r\n' if '\r\n' in text else '\n'
+              text = text.replace('\r\n', '\n')
+              return p, text, nl, bom
+
+          def save(p, text, nl, bom):
+              if nl == '\r\n':
+                  text = text.replace('\n', '\r\n')
+              enc = 'utf-8-sig' if bom else 'utf-8'
+              p.write_text(text, encoding=enc, newline='')
+
+          def patch_section(path, start_marker, end_marker, old, new, expected=1):
+              p, text, nl, bom = load(path)
+              a = text.index(start_marker)
+              b = text.index(end_marker, a)
+              section = text[a:b]
+              count = section.count(old)
+              if count != expected:
+                  raise RuntimeError(f'{path}: expected {expected} matches, got {count}')
+              section = section.replace(old, new)
+              text = text[:a] + section + text[b:]
+              save(p, text, nl, bom)
+
+          patch_section(
+              r'Project Files/Source/ChannelMaster/cmasio.c',
+              'void asioIN(double* in_tx)',
+              'void asioOUT(int id, int nsamples, double* buff)',
+              '\t\tcombinebuff(pcma->blocksize, in_tx, in_tx);',
+              '\t\tif (pcma->input_mode == IM_BOTH)\n\t\t{\n\t\t\tcombinebuff(pcma->blocksize, in_tx, in_tx);\n\t\t\tscalebuff(pcma->blocksize, in_tx, 0.5, in_tx);\n\t\t}',
+              expected=2,
+          )
+
+          patch_section(
+              r'Project Files/Source/ChannelMaster/ivac.c',
+              'PORT void xvacIN(int id, double* in_tx, int bypass)',
+              'PORT void xvacOUT(int id, int stream, double* data)',
+              '\t\t\tif (a->vac_combine_input)\n\t\t\t\tcombinebuff(a->mic_size, in_tx, in_tx);// , 3); //[2.10.3.6]MW0LGE new 17.11.0 version of VS started complaining about this 3, has been there 8 months',
+              '\t\t\tif (a->vac_combine_input)\n\t\t\t{\n\t\t\t\tcombinebuff(a->mic_size, in_tx, in_tx);// , 3); //[2.10.3.6]MW0LGE new 17.11.0 version of VS started complaining about this 3, has been there 8 months\n\t\t\t\tscalebuff(a->mic_size, in_tx, 0.5, in_tx);\n\t\t\t}',
+          )
+
+          patch_section(
+              r'Project Files/Source/Console/TCIServer.cs',
+              'private void handleRxFilterBand(string[] args)',
+              'private void handleTXFilterBandEx',
+              '                            consoleThreadSafe.UpdateRX1Filters(low, high);',
+              '                            consoleThreadSafe.SelectRX1VarFilter(false, true);\n                            consoleThreadSafe.UpdateRX1Filters(low, high);',
+          )
+
+          patch_section(
+              r'Project Files/Source/Console/TCIServer.cs',
+              'private void handleRxFilterBand(string[] args)',
+              'private void handleTXFilterBandEx',
+              '                            consoleThreadSafe.UpdateRX2Filters(low, high);',
+              '                            consoleThreadSafe.SelectRX2VarFilter(false, true);\n                            consoleThreadSafe.UpdateRX2Filters(low, high);',
+          )
+
+          p, text, nl, bom = load(r'Project Files/Source/Console/setup.designer.cs')
+          replacements = [
+              (
+                  '            this.grpOzyType.Controls.Add(this.ucRadioList_Radios);\n',
+                  '            this.grpOzyType.Controls.Add(this.ucRadioList_Radios);\n            this.grpOzyType.Controls.Add(this.chkNetworkWDT);\n'
+              ),
+              (
+                  '            this.panelTS14.Controls.Add(this.chkNetworkWDT);\n',
+                  ''
+              ),
+              (
+                  '            this.chkNetworkWDT.Location = new System.Drawing.Point(323, 23);',
+                  '            this.chkNetworkWDT.Location = new System.Drawing.Point(312, 18);'
+              ),
+          ]
+          for old, new in replacements:
+              count = text.count(old)
+              if count != 1:
+                  raise RuntimeError(f'setup.designer.cs: expected 1 match for {old!r}, got {count}')
+              text = text.replace(old, new, 1)
+          save(p, text, nl, bom)
+
+          print('Audited source edits applied successfully.')
+          '@ | python -
+
+          git diff --check
+          if ($LASTEXITCODE -ne 0) { throw "git diff --check failed" }
+          git diff --stat
+          git diff -- "Project Files/Source/ChannelMaster/cmasio.c" "Project Files/Source/ChannelMaster/ivac.c" "Project Files/Source/Console/TCIServer.cs" "Project Files/Source/Console/setup.designer.cs"
+
+      - name: Enable long paths
+        shell: pwsh
+        run: git config --global core.longpaths true
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) {
+            choco install wixtoolset -y --no-progress
+          }
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) {
+            $targets = Get-ChildItem "C:\Program Files (x86)\WiX Toolset*\Wix.targets" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          }
+          if (-not $targets) { throw "WiX 3.x Wix.targets not found" }
+          "WIX_TARGETS=$($targets.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore NuGet packages
+        shell: pwsh
+        run: nuget restore "Project Files\Source\Thetis_VS2026.sln" -NonInteractive
+
+      - name: Build Release x64 and MSI
+        shell: pwsh
+        run: |
+          msbuild "Project Files\Source\Thetis_VS2026.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal
+
+      - name: Verify and stage MSI
+        shell: pwsh
+        run: |
+          $msi = Get-ChildItem "Project Files\bin\Installers\*.msi" -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $msi) { throw "MSI was not produced" }
+          if ($msi.Length -lt 1MB) { throw "MSI is unexpectedly small: $($msi.Length) bytes" }
+          New-Item -ItemType Directory -Force -Path artifact | Out-Null
+          $out = "artifact\SQ4KOU-THETIS-REDPITAYA-SAFE-DEV-IMPORTS-TEST-x64.msi"
+          Copy-Item $msi.FullName $out -Force
+          $hash = (Get-FileHash $out -Algorithm SHA256).Hash.ToLowerInvariant()
+          "SHA256  $hash  SQ4KOU-THETIS-REDPITAYA-SAFE-DEV-IMPORTS-TEST-x64.msi" | Set-Content "artifact\SHA256.txt"
+          Write-Host "MSI: $out"
+          Write-Host "SHA256: $hash"
+
+      - name: Upload test MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-REDPITAYA-SAFE-DEV-IMPORTS-TEST-x64
+          path: artifact/*
+          if-no-files-found: error
+          compression-level: 0
