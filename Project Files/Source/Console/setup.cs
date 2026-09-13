@@ -9931,7 +9931,16 @@ namespace Thetis
             CFCCOMPEQ = cfceq;
             CFCConfigForm.ConfigData = (string)dr["CFCParaEQData"];
 
-            // RADE DSP settings
+            // RADE DSP settings.  While the fldigi sidecar is running RADE
+            // must stay off, so a TX profile whose stored RADE bits are on is
+            // loaded RADE-cleared (and the in-memory row patched so the
+            // changed-check stays consistent -- the RADE kill the other way
+            // happens in chkRADAE_CheckedChanged if RADE is toggled manually).
+            if (Thetis.FLDIGI.FldigiManager.Enabled)
+            {
+                dr["RADE_Enabled"] = false;
+                dr["RADE_EnabledRX2"] = false;
+            }
             chkRADAE.Checked = DB.ConvertFromDBVal<bool>(dr["RADE_Enabled"]);
             chkRADAERX2.Checked = DB.ConvertFromDBVal<bool>(dr["RADE_EnabledRX2"]);
             cmbRX1RADEVersion.SelectedIndex = Math.Min(Math.Max(DB.ConvertFromDBVal<int>(dr["RADE_VersionRX1"]), 0), Math.Max(cmbRX1RADEVersion.Items.Count - 1, 0));

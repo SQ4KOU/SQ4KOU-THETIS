@@ -43966,9 +43966,12 @@ namespace Thetis
                 return;
             // Mutual exclusion with RADE/FreeDV: the fldigi sidecar and the
             // RADE modem cannot run at the same time, so turning fldigi ON
-            // turns RADE OFF.  SetupForm.RADAE is the single choke point
-            // (idempotent setter -> chkRADAE -> chkRADAE_CheckedChanged).
+            // turns RADE OFF.  SetupForm.RADAE / RADAERX2 are the single
+            // choke points (idempotent setters -> chkRADAE* ->
+            // chkRADAE*_CheckedChanged).  RX2 too: its encoder shares the
+            // TX chain, so a live sidecar must see RADE off end to end.
             try { if (!IsSetupFormNull && SetupForm.RADAE) SetupForm.RADAE = false; } catch { }
+            try { if (!IsSetupFormNull && SetupForm.RADAERX2) SetupForm.RADAERX2 = false; } catch { }
             Thetis.FLDIGI.FldigiManager.SetEnabled(true);
             UpdateFldigiMenuItem();
         }

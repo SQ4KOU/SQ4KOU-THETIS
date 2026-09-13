@@ -433,7 +433,11 @@ dumps/
 # the build/source tree.  Ship the prebuilt sidecar from payload/Fldigi instead.
 /fldigi/
 
+# wsjtx is a local dev-tree clone (upstream: WSJTX/wsjtx) -- never publish
+/wsjtx/
+
 # fldigi handoff notes are local-only -- never publish to GitHub
 HANDOFF_FLDIGI_*.md
+HANDOFF_FT8_*.md
 
 FREEDV_HANDOFF.md
