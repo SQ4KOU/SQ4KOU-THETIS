@@ -119,6 +119,21 @@ def patch_vcxproj():
 def patch_csproj():
     p = CONSOLE / 'Thetis.csproj'
     s = p.read_text(encoding='utf-8-sig')
+
+    canonical_refs = {
+        '..\\Midi2Cat\\Midi2Cat.csproj': ('{66ADE184-31BA-4F5B-8007-F39EF1B90F95}', 'Midi2Cat'),
+        '..\\RawInput\\RawInput.csproj': ('{4143D085-38CF-4640-BB05-2FDFFAF94D76}', 'RawInput'),
+    }
+    for include, (guid, name) in canonical_refs.items():
+        pattern = r'<ProjectReference\s+Include="' + re.escape(include) + r'"\s*>.*?</ProjectReference>'
+        repl = (f'<ProjectReference Include="{include}">\n'
+                f'      <Project>{guid}</Project>\n'
+                f'      <Name>{name}</Name>\n'
+                f'    </ProjectReference>')
+        s, n = re.subn(pattern, repl, s, count=1, flags=re.S | re.I)
+        require(n == 1, 'cannot canonicalize ProjectReference: ' + name)
+        require(repl in s, 'ProjectReference canonicalization verification failed: ' + name)
+
     if 'RadeNative.cs' not in s:
         items = '  <ItemGroup>\n    <Compile Include="RadeNative.cs" />\n    <Compile Include="RadeIntegration.cs" />\n  </ItemGroup>\n'
         s = replace_once(s, '</Project>', items + '</Project>', 'Thetis project end')
