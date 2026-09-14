@@ -96,7 +96,11 @@ def patch_vcxproj():
     <ClInclude Include="r8brain_wrap.h" />
     <ClCompile Include="radae.c"><ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild></ClCompile>
     <ClCompile Include="radae_micdsp.c"><ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild></ClCompile>
-    <ClCompile Include="r8brain_wrap.cpp"><ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild></ClCompile>
+    <ClCompile Include="r8brain_wrap.cpp">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CompileAsCpp</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CompileAsCpp</CompileAs>
+      <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="..\..\lib\Thetis-RADE-vendor\Project Files\lib\r8brain\fft\pffft.c"><ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild></ClCompile>
     <ClCompile Include="..\..\lib\Thetis-RADE-vendor\Project Files\lib\r8brain\fft\pffft_double.c"><ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild></ClCompile>
     <ClCompile Include="..\..\lib\Thetis-RADE-vendor\Project Files\lib\r8brain\fft\pffft_common.c"><ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild></ClCompile>
@@ -105,6 +109,7 @@ def patch_vcxproj():
     <ClCompile Include="..\..\lib\Thetis-RADE-vendor\Project Files\lib\freedv_text\codec2\gp_interleaver.c"><ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild></ClCompile>
     <ClCompile Include="..\..\lib\Thetis-RADE-vendor\Project Files\lib\freedv_text\codec2\HRA_56_56.c"><ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild></ClCompile>
     <ClCompile Include="..\..\lib\Thetis-RADE-vendor\Project Files\lib\freedv_text\codec2\ldpc_codes.c"><ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild></ClCompile>
+    <ClCompile Include="..\..\lib\Thetis-RADE-vendor\Project Files\lib\freedv_text\codec2\phi0.c"><ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild></ClCompile>
   </ItemGroup>
 '''
         s = replace_once(s, '</Project>', items + '</Project>', 'ChannelMaster project end')
@@ -124,20 +129,17 @@ def patch_console_mox_ptt():
     p = CONSOLE / 'console.cs'
     s = p.read_text(encoding='utf-8-sig')
 
-    # Intercept only the RADE falling edge before native Thetis/RedPitaya un-key.
     if 'RadeInterceptMoxChange(chkMOX.Checked)' not in s:
         anchor = '            bool bOldMox = _mox; //MW0LGE_21b used for state change delgates at end of fn\n'
         repl = ('            if (RadeInterceptMoxChange(chkMOX.Checked))\n'
                 '                return;\n\n' + anchor)
         s = replace_once(s, anchor, repl, 'MOX RADE interception')
 
-    # Couple begin-over to the fully completed real key-up edge.
     if 'RadeAfterMoxChanged(tx);' not in s:
         anchor = '            if (bOldMox != tx) MoxChangeHandlers?.Invoke(rx2_enabled && VFOBTX ? 2 : 1, bOldMox, tx); // MW0LGE_21a\n'
         repl = ('            RadeAfterMoxChanged(tx);\n\n' + anchor)
         s = replace_once(s, anchor, repl, 'MOX RADE completed-edge hook')
 
-    # While EOO is draining, nothing in normal PollPTT may fight the held TX state.
     if 'RadePttStateMachine(); // SQ4KOU RADE EOO-safe arbiter' not in s:
         anchor = ('        private async void PollPTT()\n'
                   '        {\n'
