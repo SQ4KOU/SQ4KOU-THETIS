@@ -1,8 +1,8 @@
-name: Build Thetis MSI
+name: Build Thetis-RedPitaya MSI
 
 on:
   push:
-    branches: [sq4kou]
+    branches: [Thetis-RedPitaya]
   workflow_dispatch:
 
 permissions:
@@ -14,12 +14,19 @@ jobs:
     timeout-minutes: 90
 
     steps:
-      - name: Checkout sq4kou
+      - name: Checkout exact Thetis-RedPitaya commit
         uses: actions/checkout@v4
         with:
-          ref: sq4kou
+          ref: ${{ github.sha }}
           fetch-depth: 1
-          filter: blob:none
+
+      - name: Verify branch and source commit
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $sha = (git rev-parse HEAD).Trim()
+          if ($sha -ne '${{ github.sha }}') { throw "Checkout SHA mismatch: $sha" }
+          Write-Host "THETIS_REDPITAYA_SOURCE_SHA=$sha"
 
       - name: Enable long paths
         shell: pwsh
@@ -41,11 +48,12 @@ jobs:
       - name: Ensure WiX Toolset 3.x
         shell: pwsh
         run: |
-          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          $ErrorActionPreference = 'Stop'
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue | Select-Object -First 1
           if (-not $targets) {
             choco install wixtoolset -y --no-progress
           }
-          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue | Select-Object -First 1
           if (-not $targets) {
             $targets = Get-ChildItem "C:\Program Files (x86)\WiX Toolset*\Wix.targets" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
           }
@@ -61,21 +69,41 @@ jobs:
       - name: Build Release x64 and MSI
         shell: pwsh
         run: |
-          msbuild "Project Files\Source\Thetis_VS2026.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal
+          $ErrorActionPreference = 'Stop'
+          $log = Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-REDPITAYA-BUILD.log'
+          & msbuild "Project Files\Source\Thetis_VS2026.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal 2>&1 | Tee-Object -FilePath $log
+          if ($LASTEXITCODE -ne 0) { throw "MSBuild failed: $LASTEXITCODE" }
+          $errors = Select-String -Path $log -Pattern ': error ' -ErrorAction SilentlyContinue
+          if ($errors) { throw 'Build log contains errors' }
+          "BUILD_LOG=$log" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Verify MSI
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
           $msi = Get-ChildItem "Project Files\bin\Installers\*.msi" -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
           if (-not $msi) { throw "MSI was not produced" }
           if ($msi.Length -lt 1MB) { throw "MSI is unexpectedly small: $($msi.Length) bytes" }
-          Write-Host "MSI: $($msi.FullName) ($([math]::Round($msi.Length/1MB,2)) MB)"
-          "MSI_PATH=$($msi.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          $final = Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-REDPITAYA-WATERFALL-ID-x64.msi'
+          Copy-Item $msi.FullName $final -Force
+          $hash = (Get-FileHash $final -Algorithm SHA256).Hash
+          Write-Host "MSI=$final"
+          Write-Host "MSI_SHA256=$hash"
+          "FINAL_MSI_PATH=$final" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Upload MSI
         uses: actions/upload-artifact@v4
         with:
-          name: SQ4KOU-THETIS-MSI
-          path: Project Files/bin/Installers/*.msi
+          name: SQ4KOU-THETIS-REDPITAYA-WATERFALL-ID-x64
+          path: ${{ env.FINAL_MSI_PATH }}
           if-no-files-found: error
           compression-level: 0
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-REDPITAYA-WATERFALL-ID-BUILD-LOG
+          path: ${{ env.BUILD_LOG }}
+          if-no-files-found: ignore
+          compression-level: 6
