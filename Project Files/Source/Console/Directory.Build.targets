@@ -4,5 +4,6 @@
     <Compile Include="GpsSyncTelemetry.cs" Condition="Exists('GpsSyncTelemetry.cs')" />
     <Compile Include="ucInfoBar.GpsSync.cs" Condition="Exists('ucInfoBar.GpsSync.cs')" />
     <Compile Include="Console.WaterfallIDMenuFix.cs" Condition="Exists('Console.WaterfallIDMenuFix.cs')" />
+    <Compile Include="WaterfallID.Advanced.cs" Condition="Exists('WaterfallID.Advanced.cs')" />
   </ItemGroup>
 </Project>
