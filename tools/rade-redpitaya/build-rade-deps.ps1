@@ -49,8 +49,6 @@ if (-not (Test-Path (Join-Path $opusSource 'dnn\fargan_data.h'))) { throw 'SV1EI
 if (-not (Test-Path (Join-Path $opusSource 'dnn\fargan_data.c'))) { throw 'SV1EIA FARGAN model overlay failed' }
 Write-Host 'OPUS_DNN_OVERLAY=PASS'
 
-# Put build products below the vendor Opus directory so ChannelMaster can use
-# stable SV1EIA-compatible paths.
 $opusBuild = Join-Path $opusVendor 'build'
 if (Test-Path $opusBuild) { Remove-Item $opusBuild -Recurse -Force }
 New-Item -ItemType Directory -Path $opusBuild -Force | Out-Null
@@ -69,11 +67,10 @@ New-Item -ItemType Directory -Path $opusOut -Force | Out-Null
 Copy-Item $opusLib.FullName (Join-Path $opusOut 'opus.lib') -Force
 Write-Host "OPUS_LIB=$(Join-Path $opusOut 'opus.lib')"
 
-# RNNoise: SV1EIA's standalone rnnoise folder and the copy inside NR_Algorithms_x64
-# use the exact same source revision (e.g. denoise.c has the same blob SHA), but
-# only NR_Algorithms_x64 carries the generated model files and x86 support headers.
-# Restore those missing build inputs from that matching snapshot instead of
-# substituting a different RNNoise revision/model.
+# RNNoise: SV1EIA's standalone folder is a reduced snapshot. Its denoise.c blob
+# is identical to Xiph RNNoise commit 70f1d256..., while the matching generated
+# model arrays are retained in SV1EIA's NR_Algorithms_x64 copy. Reconstruct the
+# missing build inputs without changing either source revision or model weights.
 $rnRoot = Join-Path $libroot 'rnnoise'
 $rnSrc = Join-Path $rnRoot 'src'
 $rnReference = Join-Path $libroot 'NR_Algorithms_x64\src\rnnoise\src'
@@ -82,13 +79,31 @@ foreach($f in @('rnnoise_data.c','rnnoise_data.h')) {
     if (-not (Test-Path $src)) { throw "Matching SV1EIA RNNoise generated file missing: $src" }
     Copy-Item $src (Join-Path $rnSrc $f) -Force
 }
-$x86Source = Join-Path $rnReference 'x86'
-if (-not (Test-Path $x86Source)) { throw "Matching SV1EIA RNNoise x86 source missing: $x86Source" }
+
+$rnPin = '70f1d256acd4b34a572f999a05c87bf00b67730d'
+$rnUpstream = Join-Path $env:RUNNER_TEMP "rnnoise-$rnPin"
+if (Test-Path $rnUpstream) { Remove-Item $rnUpstream -Recurse -Force }
+New-Item -ItemType Directory -Path $rnUpstream -Force | Out-Null
+& git -C $rnUpstream init -q
+if ($LASTEXITCODE -ne 0) { throw 'RNNoise git init failed' }
+& git -C $rnUpstream remote add origin https://github.com/xiph/rnnoise.git
+& git -C $rnUpstream fetch --depth 1 origin $rnPin
+if ($LASTEXITCODE -ne 0) { throw 'Pinned RNNoise fetch failed' }
+& git -C $rnUpstream checkout --detach FETCH_HEAD
+if ($LASTEXITCODE -ne 0) { throw 'Pinned RNNoise checkout failed' }
+$rnHead = (& git -C $rnUpstream rev-parse HEAD).Trim()
+if ($rnHead -ne $rnPin) { throw "RNNoise pin mismatch: $rnHead" }
+$vendorDenoise = (git hash-object (Join-Path $rnSrc 'denoise.c')).Trim()
+$upstreamDenoise = (git hash-object (Join-Path $rnUpstream 'src\denoise.c')).Trim()
+if ($vendorDenoise -ne $upstreamDenoise) { throw "RNNoise source revision mismatch: vendor=$vendorDenoise upstream=$upstreamDenoise" }
+Write-Host "RNNOISE_UPSTREAM_PIN=$rnHead DENOISE_SHA=$vendorDenoise"
+
+$x86Source = Join-Path $rnUpstream 'src\x86'
+if (-not (Test-Path $x86Source)) { throw "Pinned RNNoise x86 source missing: $x86Source" }
 Copy-Item $x86Source (Join-Path $rnSrc 'x86') -Recurse -Force
 if (-not (Test-Path (Join-Path $rnSrc 'x86\x86_arch_macros.h'))) { throw 'RNNoise x86 overlay failed' }
-Write-Host 'RNNOISE_MATCHING_MODEL_OVERLAY=PASS'
+Write-Host 'RNNOISE_MATCHING_MODEL_AND_X86_OVERLAY=PASS'
 
-# Native conditioning dependencies shipped by the pinned SV1EIA tree.
 $rnProj = Join-Path $rnRoot 'build\rnnoise.vcxproj'
 $rnSolDir = (Join-Path $rnRoot 'build') + '\'
 Invoke-MSBuild $rnProj $rnSolDir
