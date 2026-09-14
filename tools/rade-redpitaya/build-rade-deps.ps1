@@ -24,14 +24,32 @@ function Invoke-MSBuild([string]$Project, [string]$SolutionDir = '') {
     if ($LASTEXITCODE -ne 0) { throw "MSBuild failed ($LASTEXITCODE): $Project" }
 }
 
-# Opus DNN: generate a native MSVC static library with the exact feature set
-# used by SV1EIA Thetis-RADE.  Keep generated files inside the pinned vendor
-# checkout; they are build products and are never committed to SQ4KOU source.
-$opus = Join-Path $libroot 'opus_dnn'
-$opusBuild = Join-Path $opus 'build'
+# SV1EIA pins Opus commit 940d4e5a..., but the repository intentionally vendors
+# only the RADE-required subset.  Current CMake enumerates some platform headers
+# from the complete Opus tree, so build Opus from the exact upstream commit while
+# keeping all RADE source/model code pinned to Thetis-RADE v2.10.3.21.
+$opusVendor = Join-Path $libroot 'opus_dnn'
+$opusPin = '940d4e5af64351ca8ba8390df3f555484c567fbb'
+$opusSource = Join-Path $env:RUNNER_TEMP "opus-$opusPin"
+if (Test-Path $opusSource) { Remove-Item $opusSource -Recurse -Force }
+New-Item -ItemType Directory -Path $opusSource -Force | Out-Null
+& git -C $opusSource init -q
+if ($LASTEXITCODE -ne 0) { throw 'Opus git init failed' }
+& git -C $opusSource remote add origin https://github.com/xiph/opus.git
+& git -C $opusSource fetch --depth 1 origin $opusPin
+if ($LASTEXITCODE -ne 0) { throw 'Pinned Opus fetch failed' }
+& git -C $opusSource checkout --detach FETCH_HEAD
+if ($LASTEXITCODE -ne 0) { throw 'Pinned Opus checkout failed' }
+$opusHead = (& git -C $opusSource rev-parse HEAD).Trim()
+if ($opusHead -ne $opusPin) { throw "Opus pin mismatch: $opusHead" }
+Write-Host "OPUS_UPSTREAM_PIN=$opusHead"
+
+# Put build products below the vendor Opus directory so ChannelMaster can use
+# the same stable paths as SV1EIA's project file.
+$opusBuild = Join-Path $opusVendor 'build'
 if (Test-Path $opusBuild) { Remove-Item $opusBuild -Recurse -Force }
 New-Item -ItemType Directory -Path $opusBuild -Force | Out-Null
-& cmake -S $opus -B $opusBuild -A x64 -T v145 `
+& cmake -S $opusSource -B $opusBuild -A x64 -T v145 `
     -DOPUS_DEEP_PLC=ON -DOPUS_DRED=ON -DOPUS_OSCE=ON `
     -DOPUS_BUILD_PROGRAMS=OFF -DOPUS_BUILD_TESTING=OFF -DBUILD_SHARED_LIBS=OFF
 if ($LASTEXITCODE -ne 0) { throw 'Opus CMake configure failed' }
@@ -59,9 +77,9 @@ $agcProj = Join-Path $libroot 'WebRTC_AGC\build\WebRTC_AGC.vcxproj'
 $agcSolDir = (Join-Path $libroot 'WebRTC_AGC\build') + '\'
 Invoke-MSBuild $agcProj $agcSolDir
 
-# RADE V1+V2 modem, using the freshly built Opus DNN tree.
+# RADE V1+V2 modem. Use headers from the exact full Opus source pin above.
 $radeProj = Join-Path $libroot 'radae_c\msvc\radae_c.vcxproj'
-& $msbuild $radeProj /m "/p:Configuration=$Configuration" /p:Platform=x64 /p:PlatformToolset=v145 "/p:OpusDir=$opus" /v:minimal /nologo
+& $msbuild $radeProj /m "/p:Configuration=$Configuration" /p:Platform=x64 /p:PlatformToolset=v145 "/p:OpusDir=$opusSource" /v:minimal /nologo
 if ($LASTEXITCODE -ne 0) { throw 'radae_c build failed' }
 
 $required = @(
