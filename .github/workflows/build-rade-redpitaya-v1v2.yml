@@ -44,6 +44,22 @@ jobs:
           python tools/rade-redpitaya/integrate.py
           if($LASTEXITCODE -ne 0){throw 'RADE integration script failed'}
 
+      - name: Normalize legacy CSharp ProjectReference metadata for MSBuild 18
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $path='Project Files\Source\Console\Thetis.csproj'
+          $text=Get-Content $path -Raw
+          $text=[regex]::Replace($text,'(?m)^\s*<Project>\{66ade184-31ba-4f5b-8007-f39ef1b90f95\}</Project>\r?\n','')
+          $text=[regex]::Replace($text,'(?m)^\s*<Project>\{4143d085-38cf-4640-bb05-2fdffaf94d76\}</Project>\r?\n','')
+          Set-Content -Path $path -Value $text -Encoding utf8NoBOM
+          $check=Get-Content $path -Raw
+          if($check -match '<Project>\{66ade184-31ba-4f5b-8007-f39ef1b90f95\}</Project>'){throw 'Midi2Cat legacy Project metadata still present'}
+          if($check -match '<Project>\{4143d085-38cf-4640-bb05-2fdffaf94d76\}</Project>'){throw 'RawInput legacy Project metadata still present'}
+          if($check -notmatch '<ProjectReference Include="\.\.\\Midi2Cat\\Midi2Cat\.csproj">'){throw 'Midi2Cat ProjectReference missing'}
+          if($check -notmatch '<ProjectReference Include="\.\.\\RawInput\\RawInput\.csproj">'){throw 'RawInput ProjectReference missing'}
+          Write-Host 'LEGACY_PROJECTREFERENCE_NORMALIZATION=PASS'
+
       - name: Gate protected RedPitaya and GPU paths
         shell: pwsh
         run: |
