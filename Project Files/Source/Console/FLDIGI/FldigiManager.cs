@@ -8,6 +8,14 @@
  *  modify it under the terms of the GNU General Public License
  *  as published by the Free Software Foundation; either version 2
  *  of the License, or (at your option) any later version.
+ *
+ *  FLDIGI (HF digital modes, bundled as fldigi.exe in the Fldigi install
+ *  folder) is Copyright (C) Dave Freese and others (W1HKJ), hosted at
+ *  https://github.com/w1hkj/fldigi (GPL v3).  The sidecar binary shipped
+ *  with SDR-VST3 is built from a fork of that project, modified to bridge
+ *  audio and CAT to SDR-VST3 over named pipes.  The full GPL v3 license
+ *  text is installed alongside the application in the Licenses folder
+ *  (LICENSE-fldigi.txt).
  */
 
 using System;

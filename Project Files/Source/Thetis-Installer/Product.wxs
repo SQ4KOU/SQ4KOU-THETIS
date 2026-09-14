@@ -143,6 +143,8 @@
       <Component Guid="*" Directory="LicensesDir"><File Id="NoticeFTDI" Source="$(var.LicensesPath)NOTICE-FTDI2XX.txt" KeyPath="yes"/></Component>
       <Component Guid="*" Directory="LicensesDir"><File Id="LicPortAudio" Source="$(var.LicensesPath)LICENSE-PortAudio.txt" KeyPath="yes"/></Component>
       <Component Guid="*" Directory="LicensesDir"><File Id="LicSpecbleach" Source="$(var.LicensesPath)LICENSE-libspecbleach.txt" KeyPath="yes"/></Component>
+      <Component Guid="*" Directory="LicensesDir"><File Id="LicFldigi" Source="$(var.LicensesPath)LICENSE-fldigi.txt" KeyPath="yes"/></Component>
+      <Component Guid="*" Directory="LicensesDir"><File Id="LicWsjtX" Source="$(var.LicensesPath)LICENSE-WSJT-X.txt" KeyPath="yes"/></Component>
     </ComponentGroup>
 
     <!-- default GCS (global communications system) scanner list shipped to the user's AppData
