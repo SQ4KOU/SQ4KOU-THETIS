@@ -11077,6 +11077,7 @@
             this.chkMeshDiagLog.Size = new System.Drawing.Size(146, 17);
             this.chkMeshDiagLog.TabIndex = 0;
             this.chkMeshDiagLog.Text = "Log GPU mesh events";
+            this.chkMeshDiagLog.Visible = false; // MW0LGE_22x hidden - disabled
             this.toolTip1.SetToolTip(this.chkMeshDiagLog, "Write GPU mesh / spectrum glow diagnostic messages into ErrorLog.txt (in the application data folder).\n\nTakes effect immediately; enable before switching GPU modes to capture init/fallback events.");
             this.chkMeshDiagLog.UseVisualStyleBackColor = true;
             this.chkMeshDiagLog.CheckedChanged += new System.EventHandler(this.chkMeshDiagLog_CheckedChanged);

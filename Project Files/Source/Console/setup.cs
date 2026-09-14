@@ -3127,7 +3127,8 @@ namespace Thetis
 
             //options3 tab
             chkVFOsync_settings_changed(this, e);
-            chkMeshDiagLog_CheckedChanged(this, e); // MW0LGE_22x apply restored state to the runtime diag sink
+            chkMeshDiagLog.Checked = false; // MW0LGE_22x disabled
+            chkMeshDiagLog_CheckedChanged(this, e); // MW0LGE_22x force runtime diag sink off
 
             // auto start tab
             updateAutoLaunchControls();
@@ -20146,7 +20147,7 @@ namespace Thetis
 
         private void chkMeshDiagLog_CheckedChanged(object sender, EventArgs e)
         {
-            Common.MeshDiagLogEnabled = chkMeshDiagLog.Checked; // MW0LGE_22x runtime toggle, no restart needed
+            Common.MeshDiagLogEnabled = false; // MW0LGE_22x disabled - feature hidden/off
         }
 
         private void chkBlobPeakHold_CheckedChanged(object sender, EventArgs e)
