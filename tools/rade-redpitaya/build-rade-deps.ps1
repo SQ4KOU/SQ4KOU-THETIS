@@ -24,10 +24,10 @@ function Invoke-MSBuild([string]$Project, [string]$SolutionDir = '') {
     if ($LASTEXITCODE -ne 0) { throw "MSBuild failed ($LASTEXITCODE): $Project" }
 }
 
-# SV1EIA pins Opus commit 940d4e5a..., but the repository intentionally vendors
-# a RADE-oriented subset plus generated neural-network model sources. Build from
-# the complete exact upstream commit and overlay SV1EIA's generated DNN directory;
-# this supplies both platform headers and the exact FARGAN/LPCNet model data.
+# SV1EIA pins Opus commit 940d4e5a..., but its opus_dnn folder is intentionally
+# a reduced source snapshot. Build from the exact complete upstream commit and
+# overlay SV1EIA's generated DNN/model files so the compiled model is still the
+# one shipped with Thetis-RADE v2.10.3.21.
 $opusVendor = Join-Path $libroot 'opus_dnn'
 $opusPin = '940d4e5af64351ca8ba8390df3f555484c567fbb'
 $opusSource = Join-Path $env:RUNNER_TEMP "opus-$opusPin"
@@ -44,15 +44,13 @@ $opusHead = (& git -C $opusSource rev-parse HEAD).Trim()
 if ($opusHead -ne $opusPin) { throw "Opus pin mismatch: $opusHead" }
 Write-Host "OPUS_UPSTREAM_PIN=$opusHead"
 
-$vendorDnn = Join-Path $opusVendor 'dnn'
-$sourceDnn = Join-Path $opusSource 'dnn'
-if (-not (Test-Path (Join-Path $vendorDnn 'fargan_data.h'))) { throw 'SV1EIA generated FARGAN data missing' }
-Copy-Item (Join-Path $vendorDnn '*') $sourceDnn -Recurse -Force
-if (-not (Test-Path (Join-Path $sourceDnn 'fargan_data.h'))) { throw 'DNN overlay failed' }
+Copy-Item (Join-Path $opusVendor 'dnn\*') (Join-Path $opusSource 'dnn') -Recurse -Force
+if (-not (Test-Path (Join-Path $opusSource 'dnn\fargan_data.h'))) { throw 'SV1EIA FARGAN header overlay failed' }
+if (-not (Test-Path (Join-Path $opusSource 'dnn\fargan_data.c'))) { throw 'SV1EIA FARGAN model overlay failed' }
 Write-Host 'OPUS_DNN_OVERLAY=PASS'
 
 # Put build products below the vendor Opus directory so ChannelMaster can use
-# the same stable paths as SV1EIA's project file.
+# stable SV1EIA-compatible paths.
 $opusBuild = Join-Path $opusVendor 'build'
 if (Test-Path $opusBuild) { Remove-Item $opusBuild -Recurse -Force }
 New-Item -ItemType Directory -Path $opusBuild -Force | Out-Null
@@ -71,9 +69,28 @@ New-Item -ItemType Directory -Path $opusOut -Force | Out-Null
 Copy-Item $opusLib.FullName (Join-Path $opusOut 'opus.lib') -Force
 Write-Host "OPUS_LIB=$(Join-Path $opusOut 'opus.lib')"
 
+# RNNoise: SV1EIA's standalone rnnoise folder and the copy inside NR_Algorithms_x64
+# use the exact same source revision (e.g. denoise.c has the same blob SHA), but
+# only NR_Algorithms_x64 carries the generated model files and x86 support headers.
+# Restore those missing build inputs from that matching snapshot instead of
+# substituting a different RNNoise revision/model.
+$rnRoot = Join-Path $libroot 'rnnoise'
+$rnSrc = Join-Path $rnRoot 'src'
+$rnReference = Join-Path $libroot 'NR_Algorithms_x64\src\rnnoise\src'
+foreach($f in @('rnnoise_data.c','rnnoise_data.h')) {
+    $src = Join-Path $rnReference $f
+    if (-not (Test-Path $src)) { throw "Matching SV1EIA RNNoise generated file missing: $src" }
+    Copy-Item $src (Join-Path $rnSrc $f) -Force
+}
+$x86Source = Join-Path $rnReference 'x86'
+if (-not (Test-Path $x86Source)) { throw "Matching SV1EIA RNNoise x86 source missing: $x86Source" }
+Copy-Item $x86Source (Join-Path $rnSrc 'x86') -Recurse -Force
+if (-not (Test-Path (Join-Path $rnSrc 'x86\x86_arch_macros.h'))) { throw 'RNNoise x86 overlay failed' }
+Write-Host 'RNNOISE_MATCHING_MODEL_OVERLAY=PASS'
+
 # Native conditioning dependencies shipped by the pinned SV1EIA tree.
-$rnProj = Join-Path $libroot 'rnnoise\build\rnnoise.vcxproj'
-$rnSolDir = (Join-Path $libroot 'rnnoise\build') + '\'
+$rnProj = Join-Path $rnRoot 'build\rnnoise.vcxproj'
+$rnSolDir = (Join-Path $rnRoot 'build') + '\'
 Invoke-MSBuild $rnProj $rnSolDir
 
 $ebuProj = Join-Path $libroot 'libebur128\build\libebur128.vcxproj'
@@ -84,7 +101,7 @@ $agcProj = Join-Path $libroot 'WebRTC_AGC\build\WebRTC_AGC.vcxproj'
 $agcSolDir = (Join-Path $libroot 'WebRTC_AGC\build') + '\'
 Invoke-MSBuild $agcProj $agcSolDir
 
-# RADE V1+V2 modem. Use headers from the completed exact Opus source tree above.
+# RADE V1+V2 modem. Use headers from the exact full Opus source pin above.
 $radeProj = Join-Path $libroot 'radae_c\msvc\radae_c.vcxproj'
 & $msbuild $radeProj /m "/p:Configuration=$Configuration" /p:Platform=x64 /p:PlatformToolset=v145 "/p:OpusDir=$opusSource" /v:minimal /nologo
 if ($LASTEXITCODE -ne 0) { throw 'radae_c build failed' }
