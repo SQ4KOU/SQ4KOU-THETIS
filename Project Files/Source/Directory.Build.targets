@@ -1,0 +1,18 @@
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!--
+    VS/MSBuild 18 rejects the legacy Project GUID metadata carried by the
+    old-style Thetis.csproj ProjectReference items (MSB3107).  The referenced
+    projects are already part of the solution, and modern MSBuild resolves
+    them by path, so preserve every other metadata field while dropping only
+    the obsolete Project GUID before AssignProjectConfiguration runs.
+  -->
+  <Target Name="SQ4KOU_RemoveLegacyProjectReferenceGuidMetadata"
+          BeforeTargets="AssignProjectConfiguration"
+          Condition="'@(ProjectReference)' != ''">
+    <ItemGroup>
+      <_SQ4KOUProjectReference Include="@(ProjectReference)" RemoveMetadata="Project" />
+      <ProjectReference Remove="@(ProjectReference)" />
+      <ProjectReference Include="@(_SQ4KOUProjectReference)" />
+    </ItemGroup>
+  </Target>
+</Project>
