@@ -1,8 +1,8 @@
 ﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <!-- SQ4KOU GPS/PPS status extension.
-       Place beside Thetis.csproj. No edit of Thetis.csproj is required. -->
+  <!-- SQ4KOU extensions compiled without editing the legacy Thetis.csproj. -->
   <ItemGroup>
     <Compile Include="GpsSyncTelemetry.cs" Condition="Exists('GpsSyncTelemetry.cs')" />
     <Compile Include="ucInfoBar.GpsSync.cs" Condition="Exists('ucInfoBar.GpsSync.cs')" />
+    <Compile Include="Console.WaterfallIDMenuFix.cs" Condition="Exists('Console.WaterfallIDMenuFix.cs')" />
   </ItemGroup>
 </Project>
