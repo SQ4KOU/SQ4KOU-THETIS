@@ -130,7 +130,7 @@ def patch_csproj():
                 f'      <Project>{guid}</Project>\n'
                 f'      <Name>{name}</Name>\n'
                 f'    </ProjectReference>')
-        s, n = re.subn(pattern, repl, s, count=1, flags=re.S | re.I)
+        s, n = re.subn(pattern, lambda _m, replacement=repl: replacement, s, count=1, flags=re.S | re.I)
         require(n == 1, 'cannot canonicalize ProjectReference: ' + name)
         require(repl in s, 'ProjectReference canonicalization verification failed: ' + name)
 
