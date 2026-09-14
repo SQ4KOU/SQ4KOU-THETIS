@@ -25,9 +25,9 @@ function Invoke-MSBuild([string]$Project, [string]$SolutionDir = '') {
 }
 
 # SV1EIA pins Opus commit 940d4e5a..., but the repository intentionally vendors
-# only the RADE-required subset.  Current CMake enumerates some platform headers
-# from the complete Opus tree, so build Opus from the exact upstream commit while
-# keeping all RADE source/model code pinned to Thetis-RADE v2.10.3.21.
+# a RADE-oriented subset plus generated neural-network model sources. Build from
+# the complete exact upstream commit and overlay SV1EIA's generated DNN directory;
+# this supplies both platform headers and the exact FARGAN/LPCNet model data.
 $opusVendor = Join-Path $libroot 'opus_dnn'
 $opusPin = '940d4e5af64351ca8ba8390df3f555484c567fbb'
 $opusSource = Join-Path $env:RUNNER_TEMP "opus-$opusPin"
@@ -43,6 +43,13 @@ if ($LASTEXITCODE -ne 0) { throw 'Pinned Opus checkout failed' }
 $opusHead = (& git -C $opusSource rev-parse HEAD).Trim()
 if ($opusHead -ne $opusPin) { throw "Opus pin mismatch: $opusHead" }
 Write-Host "OPUS_UPSTREAM_PIN=$opusHead"
+
+$vendorDnn = Join-Path $opusVendor 'dnn'
+$sourceDnn = Join-Path $opusSource 'dnn'
+if (-not (Test-Path (Join-Path $vendorDnn 'fargan_data.h'))) { throw 'SV1EIA generated FARGAN data missing' }
+Copy-Item (Join-Path $vendorDnn '*') $sourceDnn -Recurse -Force
+if (-not (Test-Path (Join-Path $sourceDnn 'fargan_data.h'))) { throw 'DNN overlay failed' }
+Write-Host 'OPUS_DNN_OVERLAY=PASS'
 
 # Put build products below the vendor Opus directory so ChannelMaster can use
 # the same stable paths as SV1EIA's project file.
@@ -77,7 +84,7 @@ $agcProj = Join-Path $libroot 'WebRTC_AGC\build\WebRTC_AGC.vcxproj'
 $agcSolDir = (Join-Path $libroot 'WebRTC_AGC\build') + '\'
 Invoke-MSBuild $agcProj $agcSolDir
 
-# RADE V1+V2 modem. Use headers from the exact full Opus source pin above.
+# RADE V1+V2 modem. Use headers from the completed exact Opus source tree above.
 $radeProj = Join-Path $libroot 'radae_c\msvc\radae_c.vcxproj'
 & $msbuild $radeProj /m "/p:Configuration=$Configuration" /p:Platform=x64 /p:PlatformToolset=v145 "/p:OpusDir=$opusSource" /v:minimal /nologo
 if ($LASTEXITCODE -ne 0) { throw 'radae_c build failed' }
