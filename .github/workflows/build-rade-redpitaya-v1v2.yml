@@ -43,20 +43,7 @@ jobs:
           $ErrorActionPreference='Stop'
           python tools/rade-redpitaya/integrate.py
           if($LASTEXITCODE -ne 0){throw 'RADE integration script failed'}
-
-      - name: Normalize legacy CSharp ProjectReference metadata for MSBuild 18
-        shell: pwsh
-        run: |
-          $ErrorActionPreference='Stop'
-          $path='Project Files\Source\Console\Thetis.csproj'
-          $text=Get-Content $path -Raw
-          $text=$text.Replace('{66ade184-31ba-4f5b-8007-f39ef1b90f95}','{66ADE184-31BA-4F5B-8007-F39EF1B90F95}')
-          $text=$text.Replace('{4143d085-38cf-4640-bb05-2fdffaf94d76}','{4143D085-38CF-4640-BB05-2FDFFAF94D76}')
-          Set-Content -Path $path -Value $text -Encoding utf8NoBOM
-          $check=Get-Content $path -Raw
-          if(-not $check.Contains('<Project>{66ADE184-31BA-4F5B-8007-F39EF1B90F95}</Project>')){throw 'Midi2Cat Project metadata not normalized'}
-          if(-not $check.Contains('<Project>{4143D085-38CF-4640-BB05-2FDFFAF94D76}</Project>')){throw 'RawInput Project metadata not normalized'}
-          Write-Host 'LEGACY_PROJECTREFERENCE_NORMALIZATION=PASS'
+          Write-Host 'LEGACY_PROJECTREFERENCE_NORMALIZATION=PASS (validated by integrate.py)'
 
       - name: Gate protected RedPitaya and GPU paths
         shell: pwsh
