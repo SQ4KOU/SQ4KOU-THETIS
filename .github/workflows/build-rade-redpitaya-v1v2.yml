@@ -59,7 +59,16 @@ jobs:
             git diff --exit-code $base -- $p
             if($LASTEXITCODE -ne 0){throw "Protected file changed: $p"}
           }
+          $console=Get-Content 'Project Files\Source\Console\console.cs' -Raw
+          foreach($t in @('RadeInterceptMoxChange(chkMOX.Checked)','RadeAfterMoxChanged(tx)','RadePttStateMachine(); // SQ4KOU RADE EOO-safe arbiter')){
+            if($console -notmatch [regex]::Escape($t)){throw "Missing EOO-safe console hook: $t"}
+          }
+          $ri=Get-Content 'Project Files\Source\Console\RadeIntegration.cs' -Raw
+          foreach($t in @('SetRadaeTxSilenceHold(1)','RadaeNotifyEndOfOver()','GetRadaeEooFlushed()','RadeEooMarginMs = 300','RadeEooTimeoutMs = 3000')){
+            if($ri -notmatch [regex]::Escape($t)){throw "Missing EOO-safe RADE arbiter element: $t"}
+          }
           Write-Host 'PROTECTED_PATHS=PASS'
+          Write-Host 'RADE_EOO_SOURCE_GATE=PASS'
 
       - name: Setup NuGet
         uses: NuGet/setup-nuget@v2
@@ -119,11 +128,14 @@ jobs:
           }
           if(-not $dumpbin){throw 'dumpbin.exe not found'}
           $exports=& $dumpbin.FullName /exports $dll.FullName | Out-String
-          foreach($name in @('SetRadaeRxEnabled','SetRadaeProtocolV2','SetRadaeTxRx','GetRadaeSync','RadaeNotifyEndOfOver')){
+          foreach($name in @(
+            'SetRadaeRxEnabled','SetRadaeProtocolV2','SetRadaeTxRx','GetRadaeSync',
+            'SetRadaeMoxState','RadaeNotifyBeginOver','RadaeNotifyEndOfOver',
+            'GetRadaeEooFlushed','SetRadaeTxSilenceHold')){
             if($exports -notmatch [regex]::Escape($name)){throw "Missing ChannelMaster export: $name"}
           }
           Write-Host "CHANNELMASTER=$($dll.FullName)"
-          Write-Host 'RADE_EXPORTS=PASS'
+          Write-Host 'RADE_EXPORTS_AND_EOO_HANDSHAKE=PASS'
 
       - name: Locate test MSI
         shell: pwsh
@@ -134,6 +146,7 @@ jobs:
           $final=Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-REDPITAYA-RADE-V1V2-TEST-x64.msi'
           Copy-Item $msi.FullName $final -Force
           "FINAL_MSI=$final" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "MSI_BYTES=$($msi.Length)"
           Write-Host "MSI_SHA256=$((Get-FileHash $final -Algorithm SHA256).Hash)"
 
       - name: Commit verified integration source
@@ -142,7 +155,7 @@ jobs:
           $ErrorActionPreference='Stop'
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -- 'Project Files/Source/ChannelMaster' 'Project Files/Source/wdsp/dexp.c' 'Project Files/Source/Console/Thetis.csproj' 'tools/rade-redpitaya/INTEGRATED.txt'
+          git add -- 'Project Files/Source/ChannelMaster' 'Project Files/Source/wdsp/dexp.c' 'Project Files/Source/Console/Thetis.csproj' 'Project Files/Source/Console/console.cs' 'tools/rade-redpitaya/INTEGRATED.txt'
           if(-not (git diff --cached --quiet)){
             git commit -m 'Integrate FreeDV RADE V1/V2 into Thetis-RedPitaya [RADE-INTEGRATED]'
             git push origin HEAD:feature/rade-redpitaya-v1v2
