@@ -54,8 +54,8 @@ jobs:
           $text=$text.Replace('{4143d085-38cf-4640-bb05-2fdffaf94d76}','{4143D085-38CF-4640-BB05-2FDFFAF94D76}')
           Set-Content -Path $path -Value $text -Encoding utf8NoBOM
           $check=Get-Content $path -Raw
-          if($check -notmatch '<Project>\{66ADE184-31BA-4F5B-8007-F39EF1B90F95\}</Project>'){throw 'Midi2Cat Project metadata not normalized'}
-          if($check -notmatch '<Project>\{4143D085-38CF-4640-BB05-2FDFFAF94D76\}</Project>'){throw 'RawInput Project metadata not normalized'}
+          if(-not $check.Contains('<Project>{66ADE184-31BA-4F5B-8007-F39EF1B90F95}</Project>')){throw 'Midi2Cat Project metadata not normalized'}
+          if(-not $check.Contains('<Project>{4143D085-38CF-4640-BB05-2FDFFAF94D76}</Project>')){throw 'RawInput Project metadata not normalized'}
           Write-Host 'LEGACY_PROJECTREFERENCE_NORMALIZATION=PASS'
 
       - name: Gate protected RedPitaya and GPU paths
@@ -184,7 +184,7 @@ jobs:
           compression-level: 0
 
       - name: Upload build log
-        if: always()
+        if: ${{ always() && env.BUILD_LOG != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: SQ4KOU-THETIS-REDPITAYA-RADE-BUILD-LOG
