@@ -38,6 +38,15 @@ namespace Thetis
                 menuStrip1.Items.Insert(insertIndex, _waterfallIdMenuItem);
             }
 
+            // Match the native Thetis main-menu appearance exactly. The dynamically created
+            // ToolStripMenuItem otherwise uses the default (dark) ForeColor and is invisible
+            // against the dark/transparent menu strip until the mouse hover renderer takes over.
+            if (cWXToolStripMenuItem != null)
+            {
+                _waterfallIdMenuItem.ForeColor = cWXToolStripMenuItem.ForeColor;
+                _waterfallIdMenuItem.Font = cWXToolStripMenuItem.Font;
+            }
+
             _waterfallIdMenuItem.Visible = true;
             _waterfallIdMenuItem.Enabled = true;
         }
