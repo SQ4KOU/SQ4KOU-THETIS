@@ -10,7 +10,19 @@ namespace Thetis
         private ToolStripMenuItem _radeMenuItem;
         private Timer _radeRuntimeTimer;
         private RadeControlForm _radeControlForm;
-        private bool _radeLastMox;
+
+        // EOO-safe RADE keying arbiter.  On a RADE TX release the normal MOX
+        // falling edge is intercepted, the radio stays keyed, the native modem
+        // emits/drains EOO, and only then is the real MOX falling edge allowed.
+        private enum RadePttState { Idle, Transmitting, EmitEOO, Flushing, Releasing }
+        private volatile RadePttState _radePttState = RadePttState.Idle;
+        private volatile bool _radePttRequest;
+        private volatile bool _radeOverWasRade;
+        private volatile bool _radeArbiterActuating;
+        private readonly System.Diagnostics.Stopwatch _radeSequenceClock = new System.Diagnostics.Stopwatch();
+        private long _radeFlushAckMs = -1;
+        private const int RadeEooMarginMs = 300;
+        private const int RadeEooTimeoutMs = 3000;
 
         protected override void OnShown(EventArgs e)
         {
@@ -25,9 +37,11 @@ namespace Thetis
                     MainMenuStrip.Items.Add(_radeMenuItem);
                 }
 
-                _radeLastMox = Audio.MOX;
+                // Runtime timer is intentionally telemetry/routing only.  MOX/EOO
+                // sequencing is owned by the synchronous MOX interception plus
+                // PollPTT arbiter below; a timer edge must never generate a second EOO.
                 _radeRuntimeTimer = new Timer();
-                _radeRuntimeTimer.Interval = 10;
+                _radeRuntimeTimer.Interval = 100;
                 _radeRuntimeTimer.Tick += RadeRuntimeTick;
                 _radeRuntimeTimer.Start();
             }
@@ -46,26 +60,175 @@ namespace Thetis
         {
             try
             {
-                bool mox = Audio.MOX;
-                int txRx = (Audio.RX2Enabled && Audio.VFOBTX) ? 1 : 0;
+                int txRx = (RX2Enabled && chkVFOBTX.Checked) ? 1 : 0;
                 RadeNative.SetRadaeTxRx(txRx);
-
-                if (mox != _radeLastMox)
-                {
-                    if (mox)
-                    {
-                        RadeNative.SetRadaeMoxState(1);
-                        RadeNative.RadaeNotifyBeginOver();
-                    }
-                    else
-                    {
-                        RadeNative.RadaeNotifyEndOfOver();
-                        RadeNative.SetRadaeMoxState(0);
-                    }
-                    _radeLastMox = mox;
-                }
             }
             catch { }
+        }
+
+        private bool RadeOverActiveForCurrentTx()
+        {
+            try
+            {
+                bool rx2Over = RX2Enabled && chkVFOBTX.Checked;
+                bool rx1 = RadeNative.GetRadaeRxEnabled(0) != 0;
+                bool rx2 = RadeNative.GetRadaeRxEnabled(1) != 0;
+                return (rx1 && !rx2Over) || (rx2 && rx2Over);
+            }
+            catch { return false; }
+        }
+
+        // Called at the very start of chkMOX_CheckedChanged2.  Return true when
+        // the attempted falling edge was consumed and normal un-key must stop.
+        private bool RadeInterceptMoxChange(bool requestedTx)
+        {
+            if (_radeArbiterActuating) return false;
+
+            if (requestedTx)
+            {
+                if (RadeOverActiveForCurrentTx() && !chkTUN.Checked && !chk2TONE.Checked)
+                    _radePttRequest = true;
+                return false; // key-up is never delayed
+            }
+
+            if (_radePttState == RadePttState.Transmitting && _radeOverWasRade)
+            {
+                _radePttRequest = false;
+
+                // Restore the visual checkbox without firing the normal MOX
+                // handler a second time.  _mox/hardware are still TX because the
+                // current falling-edge handler exits before touching them.
+                chkMOX.CheckedChanged -= chkMOX_CheckedChanged2;
+                try { chkMOX.Checked = true; }
+                finally { chkMOX.CheckedChanged += chkMOX_CheckedChanged2; }
+                Common.LogNetError("[RADE-PTT] release intercepted; holding TX for EOO");
+                return true;
+            }
+
+            return false;
+        }
+
+        // Called after the normal MOX transition has completed.  This is where
+        // the native modem is coupled to the real TX edge, not a GUI timer.
+        private void RadeAfterMoxChanged(bool tx)
+        {
+            try
+            {
+                if (tx && _radePttRequest && _radePttState == RadePttState.Idle)
+                {
+                    _radeOverWasRade = RadeOverActiveForCurrentTx() && !chkTUN.Checked && !chk2TONE.Checked;
+                    if (!_radeOverWasRade)
+                    {
+                        _radePttRequest = false;
+                        return;
+                    }
+
+                    RadeNative.SetRadaeTxRx((RX2Enabled && chkVFOBTX.Checked) ? 1 : 0);
+                    RadeNative.SetRadaeTxSilenceHold(0);
+                    RadeNative.SetRadaeMoxState(1);
+                    RadeNative.RadaeNotifyBeginOver();
+                    _radePttState = RadePttState.Transmitting;
+                    Common.LogNetError("[RADE-PTT] Idle->Transmitting");
+                }
+                else if (!tx && _radePttState == RadePttState.Releasing)
+                {
+                    // The real hardware falling edge completed.  Hold is released
+                    // by the state machine immediately after this callback returns.
+                    Common.LogNetError("[RADE-PTT] hardware un-key complete");
+                }
+            }
+            catch (Exception ex)
+            {
+                Common.LogNetError("[RADE-PTT] edge error: " + ex.Message);
+            }
+        }
+
+        // Called from the existing ~1 ms PollPTT loop.  Returns true while normal
+        // PTT polling must be suspended so nothing can fight the deferred un-key.
+        private bool RadePttStateMachine()
+        {
+            try
+            {
+                switch (_radePttState)
+                {
+                    case RadePttState.Idle:
+                    case RadePttState.Transmitting:
+                        if (_radePttState == RadePttState.Transmitting && !_radePttRequest)
+                        {
+                            // Keep ChannelMaster routing in TX, but stop ingesting
+                            // live voice and emit EOO into the still-keyed TX path.
+                            RadeNative.SetRadaeTxSilenceHold(1);
+                            RadeNative.RadaeNotifyEndOfOver();
+                            RadeNative.SetRadaeMoxState(0);
+                            _radeFlushAckMs = -1;
+                            _radeSequenceClock.Restart();
+                            _radePttState = RadePttState.EmitEOO;
+                            Common.LogNetError("[RADE-PTT] Transmitting->EmitEOO");
+                            return true;
+                        }
+                        return false;
+
+                    case RadePttState.EmitEOO:
+                        _radePttState = RadePttState.Flushing;
+                        Common.LogNetError("[RADE-PTT] EmitEOO->Flushing");
+                        return true;
+
+                    case RadePttState.Flushing:
+                        if (_radeFlushAckMs < 0 && RadeNative.GetRadaeEooFlushed() != 0)
+                        {
+                            _radeFlushAckMs = _radeSequenceClock.ElapsedMilliseconds;
+                            Common.LogNetError("[RADE-PTT] EOO flushed @ " + _radeFlushAckMs + "ms");
+                        }
+
+                        bool marginDone = _radeFlushAckMs >= 0 &&
+                            (_radeSequenceClock.ElapsedMilliseconds - _radeFlushAckMs) >= RadeEooMarginMs;
+                        bool timedOut = _radeSequenceClock.ElapsedMilliseconds >= RadeEooTimeoutMs;
+                        if (marginDone || timedOut)
+                        {
+                            if (timedOut)
+                                Common.LogNetError("[RADE-PTT] EOO flush timeout; forcing safe RX");
+                            _radePttState = RadePttState.Releasing;
+                        }
+                        return true;
+
+                    case RadePttState.Releasing:
+                        _radeArbiterActuating = true;
+                        try
+                        {
+                            if (chkMOX.Checked) chkMOX.Checked = false; // real Thetis/RedPitaya un-key path
+                        }
+                        finally { _radeArbiterActuating = false; }
+
+                        // Only after HdwMOXChanged/AudioMOXChanged/cmaster.Mox have
+                        // completed do we allow the modem hold to drop.
+                        RadeNative.SetRadaeTxSilenceHold(0);
+                        _radePttRequest = false;
+                        _radeOverWasRade = false;
+                        _radeSequenceClock.Stop();
+                        _radePttState = RadePttState.Idle;
+                        Common.LogNetError("[RADE-PTT] Releasing->Idle");
+                        return true;
+                }
+            }
+            catch (Exception ex)
+            {
+                Common.LogNetError("[RADE-PTT] arbiter error: " + ex.Message);
+                try { RadeNative.SetRadaeTxSilenceHold(0); } catch { }
+                _radePttRequest = false;
+                _radeOverWasRade = false;
+                _radePttState = RadePttState.Idle;
+            }
+            return false;
+        }
+
+        private bool RadePttPostReleaseBusy
+        {
+            get
+            {
+                return _radePttState == RadePttState.EmitEOO ||
+                       _radePttState == RadePttState.Flushing ||
+                       _radePttState == RadePttState.Releasing;
+            }
         }
     }
 
