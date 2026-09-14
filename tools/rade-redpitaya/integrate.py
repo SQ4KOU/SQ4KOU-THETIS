@@ -1,5 +1,5 @@
 from pathlib import Path
-import shutil, re, subprocess, sys
+import shutil, re, subprocess
 
 ROOT = Path(__file__).resolve().parents[2]
 VENDOR = ROOT / 'Project Files' / 'lib' / 'Thetis-RADE-vendor'
@@ -89,7 +89,7 @@ def patch_vcxproj():
     require(n == 2, 'expected two x64 ItemDefinitionGroup blocks')
     s = s2
 
-    if '<ClCompile Include="radae.c" />' not in s:
+    if '<ClCompile Include="radae.c">' not in s:
         items = r'''  <ItemGroup>
     <ClInclude Include="radae.h" />
     <ClInclude Include="radae_micdsp.h" />
@@ -120,6 +120,46 @@ def patch_csproj():
     p.write_text(s, encoding='utf-8')
 
 
+def patch_console_mox_ptt():
+    p = CONSOLE / 'console.cs'
+    s = p.read_text(encoding='utf-8-sig')
+
+    # Intercept only the RADE falling edge before native Thetis/RedPitaya un-key.
+    if 'RadeInterceptMoxChange(chkMOX.Checked)' not in s:
+        anchor = '            bool bOldMox = _mox; //MW0LGE_21b used for state change delgates at end of fn\n'
+        repl = ('            if (RadeInterceptMoxChange(chkMOX.Checked))\n'
+                '                return;\n\n' + anchor)
+        s = replace_once(s, anchor, repl, 'MOX RADE interception')
+
+    # Couple begin-over to the fully completed real key-up edge.
+    if 'RadeAfterMoxChanged(tx);' not in s:
+        anchor = '            if (bOldMox != tx) MoxChangeHandlers?.Invoke(rx2_enabled && VFOBTX ? 2 : 1, bOldMox, tx); // MW0LGE_21a\n'
+        repl = ('            RadeAfterMoxChanged(tx);\n\n' + anchor)
+        s = replace_once(s, anchor, repl, 'MOX RADE completed-edge hook')
+
+    # While EOO is draining, nothing in normal PollPTT may fight the held TX state.
+    if 'RadePttStateMachine(); // SQ4KOU RADE EOO-safe arbiter' not in s:
+        anchor = ('        private async void PollPTT()\n'
+                  '        {\n'
+                  '            while (chkPower.Checked)\n'
+                  '            {\n'
+                  '                int dotdashptt = NetworkIO.nativeGetDotDashPTT();\n')
+        repl = ('        private async void PollPTT()\n'
+                '        {\n'
+                '            while (chkPower.Checked)\n'
+                '            {\n'
+                '                RadePttStateMachine(); // SQ4KOU RADE EOO-safe arbiter\n'
+                '                if (RadePttPostReleaseBusy)\n'
+                '                {\n'
+                '                    await Task.Delay(1);\n'
+                '                    continue;\n'
+                '                }\n\n'
+                '                int dotdashptt = NetworkIO.nativeGetDotDashPTT();\n')
+        s = replace_once(s, anchor, repl, 'PollPTT RADE arbiter')
+
+    p.write_text(s, encoding='utf-8')
+
+
 def main():
     require(VENDOR.exists(), 'RADE vendor submodule is missing')
     try:
@@ -132,8 +172,9 @@ def main():
     patch_dexp()
     patch_vcxproj()
     patch_csproj()
+    patch_console_mox_ptt()
     marker = ROOT / 'tools' / 'rade-redpitaya' / 'INTEGRATED.txt'
-    marker.write_text('Thetis-RedPitaya RADE V1/V2 core integration\nVendor: sv1eia/Thetis-RADE @ '+PIN+'\nBase: e9c95220f4fab9eb829015a0a0d42dbce6fc45ac\n', encoding='utf-8')
+    marker.write_text('Thetis-RedPitaya RADE V1/V2 core integration\nVendor: sv1eia/Thetis-RADE @ '+PIN+'\nBase: e9c95220f4fab9eb829015a0a0d42dbce6fc45ac\nEOO: hardware un-key deferred until native RADE flush ack + 300 ms margin\n', encoding='utf-8')
     print('RADE integration patch applied successfully')
 
 if __name__ == '__main__':
