@@ -253,6 +253,16 @@ void flush_dexp (int id)
 	flush_delring (a->audring);
 }
 
+PORT
+void FlushDexpAudioDelay (int id)
+{
+	DEXP a = pdexp[id];
+	if (a == 0) return;
+	EnterCriticalSection (&a->cs_update);
+	if (a->audring != 0) flush_delring (a->audring);
+	LeaveCriticalSection (&a->cs_update);
+}
+
 enum _dexpstate
 {
 	DEXP_LOW,

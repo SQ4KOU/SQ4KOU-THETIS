@@ -1,4 +1,4 @@
-﻿//=================================================================
+//=================================================================
 // console.cs
 //=================================================================
 // Thetis is a C# implementation of a Software Defined Radio.
@@ -25742,6 +25742,13 @@ namespace Thetis
         {
             while (chkPower.Checked)
             {
+                RadePttStateMachine(); // SQ4KOU RADE EOO-safe arbiter
+                if (RadePttPostReleaseBusy)
+                {
+                    await Task.Delay(1);
+                    continue;
+                }
+
                 int dotdashptt = NetworkIO.nativeGetDotDashPTT();
                 DSPMode tx_mode = chkVFOBTX.Checked && chkRX2.Checked ? _rx2_dsp_mode : _rx1_dsp_mode;
 
@@ -29662,6 +29669,9 @@ namespace Thetis
                 return;
             }
 
+            if (RadeInterceptMoxChange(chkMOX.Checked))
+                return;
+
             bool bOldMox = _mox; //MW0LGE_21b used for state change delgates at end of fn
 
             MoxPreChangeHandlers?.Invoke(rx2_enabled && VFOBTX ? 2 : 1, _mox, chkMOX.Checked); // MW0LGE_21k8
@@ -30016,6 +30026,8 @@ namespace Thetis
             AndromedaIndicatorCheck(EIndicatorActions.eINMOX, false, tx);
 
             _pause_DisplayThread = false; //MW0LGE_21k8 re-enable
+
+            RadeAfterMoxChanged(tx);
 
             if (bOldMox != tx) MoxChangeHandlers?.Invoke(rx2_enabled && VFOBTX ? 2 : 1, bOldMox, tx); // MW0LGE_21a
         }

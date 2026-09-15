@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
     <ProjectType>Local</ProjectType>
@@ -1342,11 +1342,15 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Midi2Cat\Midi2Cat.csproj">
-      <Project>{66ade184-31ba-4f5b-8007-f39ef1b90f95}</Project>
+      <Project>{66ADE184-31BA-4F5B-8007-F39EF1B90F95}  <ItemGroup>
+    <Compile Include="RadeNative.cs" />
+    <Compile Include="RadeIntegration.cs" />
+  </ItemGroup>
+</Project>
       <Name>Midi2Cat</Name>
     </ProjectReference>
     <ProjectReference Include="..\RawInput\RawInput.csproj">
-      <Project>{4143d085-38cf-4640-bb05-2fdffaf94d76}</Project>
+      <Project>{4143D085-38CF-4640-BB05-2FDFFAF94D76}</Project>
       <Name>RawInput</Name>
     </ProjectReference>
   </ItemGroup>

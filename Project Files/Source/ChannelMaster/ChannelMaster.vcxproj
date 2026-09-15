@@ -123,8 +123,8 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;CHANNELMASTER_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\wdsp;.;../../lib/portaudio-19.7.0/include;%(AdditionalIncludeDirectories);../../lib/NR_Algorithms_$(HPSDR_PLATFORM)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;CHANNELMASTER_EXPORTS;PFFFT_STATIC_DEFINE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../../lib/Thetis-RADE-vendor/Project Files/lib/radae_c/src;../../lib/Thetis-RADE-vendor/Project Files/lib/opus_dnn/include;../../lib/Thetis-RADE-vendor/Project Files/lib/opus_dnn/dnn;../../lib/Thetis-RADE-vendor/Project Files/lib/opus_dnn/celt;../../lib/Thetis-RADE-vendor/Project Files/lib/r8brain;../../lib/Thetis-RADE-vendor/Project Files/lib/r8brain/fft;../../lib/Thetis-RADE-vendor/Project Files/lib/freedv_text/src;../../lib/Thetis-RADE-vendor/Project Files/lib/freedv_text/codec2;../../lib/Thetis-RADE-vendor/Project Files/lib/rnnoise/include;../../lib/Thetis-RADE-vendor/Project Files/lib/libebur128/ebur128;../../lib/Thetis-RADE-vendor/Project Files/lib/libebur128/ebur128/queue;../../lib/Thetis-RADE-vendor/Project Files/lib/WebRTC_AGC;..\wdsp;.;../../lib/portaudio-19.7.0/include;%(AdditionalIncludeDirectories);../../lib/NR_Algorithms_$(HPSDR_PLATFORM)</AdditionalIncludeDirectories>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
       <CompileAs>CompileAsC</CompileAs>
@@ -139,8 +139,8 @@
       <OutputFile>$(SolutionDir)..\bin\$(HPSDR_PLATFORM)\$(Configuration)\ChannelMaster.dll</OutputFile>
       <ImportLibrary>$(SolutionDir)..\build\$(HPSDR_PLATFORM)\$(Configuration)\$(TargetName).lib</ImportLibrary>
       <ProgramDatabaseFile>$(SolutionDir)..\build\$(HPSDR_PLATFORM)\$(Configuration)\$(TargetName).pdb</ProgramDatabaseFile>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\build\$(HPSDR_PLATFORM)\$(Configuration)\;</AdditionalLibraryDirectories>
-      <AdditionalDependencies>wdsp.lib;PA19.lib;cmASIO.lib;avrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\build\$(HPSDR_PLATFORM)\$(Configuration)\;$(SolutionDir)..\lib\Thetis-RADE-vendor\Project Files\lib\radae_c\build\$(Platform)\$(Configuration)\;$(SolutionDir)..\lib\Thetis-RADE-vendor\Project Files\lib\opus_dnn\build\$(Platform)\$(Configuration)\;$(SolutionDir)..\lib\Thetis-RADE-vendor\Project Files\lib\rnnoise\build\$(Platform)\$(Configuration)\;$(SolutionDir)..\lib\Thetis-RADE-vendor\Project Files\lib\libebur128\build\$(Platform)\$(Configuration)\;$(SolutionDir)..\lib\Thetis-RADE-vendor\Project Files\lib\WebRTC_AGC\build\$(Platform)\$(Configuration)\;</AdditionalLibraryDirectories>
+      <AdditionalDependencies>rade.lib;opus.lib;rnnoise.lib;ebur128.lib;WebRTC_AGC.lib;wdsp.lib;PA19.lib;cmASIO.lib;avrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -184,8 +184,8 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;CHANNELMASTER_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\wdsp;.;../../lib/portaudio-19.7.0/include;%(AdditionalIncludeDirectories);../../lib/NR_Algorithms_$(HPSDR_PLATFORM)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;CHANNELMASTER_EXPORTS;PFFFT_STATIC_DEFINE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>../../lib/Thetis-RADE-vendor/Project Files/lib/radae_c/src;../../lib/Thetis-RADE-vendor/Project Files/lib/opus_dnn/include;../../lib/Thetis-RADE-vendor/Project Files/lib/opus_dnn/dnn;../../lib/Thetis-RADE-vendor/Project Files/lib/opus_dnn/celt;../../lib/Thetis-RADE-vendor/Project Files/lib/r8brain;../../lib/Thetis-RADE-vendor/Project Files/lib/r8brain/fft;../../lib/Thetis-RADE-vendor/Project Files/lib/freedv_text/src;../../lib/Thetis-RADE-vendor/Project Files/lib/freedv_text/codec2;../../lib/Thetis-RADE-vendor/Project Files/lib/rnnoise/include;../../lib/Thetis-RADE-vendor/Project Files/lib/libebur128/ebur128;../../lib/Thetis-RADE-vendor/Project Files/lib/libebur128/ebur128/queue;../../lib/Thetis-RADE-vendor/Project Files/lib/WebRTC_AGC;..\wdsp;.;../../lib/portaudio-19.7.0/include;%(AdditionalIncludeDirectories);../../lib/NR_Algorithms_$(HPSDR_PLATFORM)</AdditionalIncludeDirectories>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <EnableEnhancedInstructionSet>NotSet</EnableEnhancedInstructionSet>
@@ -203,8 +203,8 @@
       <OutputFile>$(SolutionDir)..\bin\$(HPSDR_PLATFORM)\$(Configuration)\ChannelMaster.dll</OutputFile>
       <ImportLibrary>$(SolutionDir)..\build\$(HPSDR_PLATFORM)\$(Configuration)\$(TargetName).lib</ImportLibrary>
       <ProgramDatabaseFile>$(SolutionDir)..\build\$(HPSDR_PLATFORM)\$(Configuration)\$(TargetName).pdb</ProgramDatabaseFile>
-      <AdditionalLibraryDirectories>$(SolutionDir)..\build\$(HPSDR_PLATFORM)\$(Configuration)\;</AdditionalLibraryDirectories>
-      <AdditionalDependencies>wdsp.lib;PA19.lib;cmASIO.lib;avrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)..\build\$(HPSDR_PLATFORM)\$(Configuration)\;$(SolutionDir)..\lib\Thetis-RADE-vendor\Project Files\lib\radae_c\build\$(Platform)\$(Configuration)\;$(SolutionDir)..\lib\Thetis-RADE-vendor\Project Files\lib\opus_dnn\build\$(Platform)\$(Configuration)\;$(SolutionDir)..\lib\Thetis-RADE-vendor\Project Files\lib\rnnoise\build\$(Platform)\$(Configuration)\;$(SolutionDir)..\lib\Thetis-RADE-vendor\Project Files\lib\libebur128\build\$(Platform)\$(Configuration)\;$(SolutionDir)..\lib\Thetis-RADE-vendor\Project Files\lib\WebRTC_AGC\build\$(Platform)\$(Configuration)\;</AdditionalLibraryDirectories>
+      <AdditionalDependencies>rade.lib;opus.lib;rnnoise.lib;ebur128.lib;WebRTC_AGC.lib;wdsp.lib;PA19.lib;cmASIO.lib;avrt.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <LinkErrorReporting>QueueForNextLogin</LinkErrorReporting>
       <Version>
       </Version>
@@ -288,4 +288,25 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <ItemGroup>
+    <ClInclude Include="radae.h" />
+    <ClInclude Include="radae_micdsp.h" />
+    <ClInclude Include="r8brain_wrap.h" />
+    <ClCompile Include="radae.c"><ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild></ClCompile>
+    <ClCompile Include="radae_micdsp.c"><ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild></ClCompile>
+    <ClCompile Include="r8brain_wrap.cpp">
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CompileAsCpp</CompileAs>
+      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CompileAsCpp</CompileAs>
+      <ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="..\..\lib\Thetis-RADE-vendor\Project Files\lib\r8brain\fft\pffft.c"><ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild></ClCompile>
+    <ClCompile Include="..\..\lib\Thetis-RADE-vendor\Project Files\lib\r8brain\fft\pffft_double.c"><ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild></ClCompile>
+    <ClCompile Include="..\..\lib\Thetis-RADE-vendor\Project Files\lib\r8brain\fft\pffft_common.c"><ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild></ClCompile>
+    <ClCompile Include="..\..\lib\Thetis-RADE-vendor\Project Files\lib\freedv_text\src\rade_text.c"><ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild></ClCompile>
+    <ClCompile Include="..\..\lib\Thetis-RADE-vendor\Project Files\lib\freedv_text\codec2\mpdecode_core.c"><ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild></ClCompile>
+    <ClCompile Include="..\..\lib\Thetis-RADE-vendor\Project Files\lib\freedv_text\codec2\gp_interleaver.c"><ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild></ClCompile>
+    <ClCompile Include="..\..\lib\Thetis-RADE-vendor\Project Files\lib\freedv_text\codec2\HRA_56_56.c"><ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild></ClCompile>
+    <ClCompile Include="..\..\lib\Thetis-RADE-vendor\Project Files\lib\freedv_text\codec2\ldpc_codes.c"><ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild></ClCompile>
+    <ClCompile Include="..\..\lib\Thetis-RADE-vendor\Project Files\lib\freedv_text\codec2\phi0.c"><ExcludedFromBuild Condition="'$(Platform)'=='Win32'">true</ExcludedFromBuild></ClCompile>
+  </ItemGroup>
 </Project>

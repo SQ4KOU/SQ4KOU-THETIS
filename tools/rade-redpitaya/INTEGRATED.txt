@@ -1,0 +1,4 @@
+Thetis-RedPitaya RADE V1/V2 core integration
+Vendor: sv1eia/Thetis-RADE @ 408f2b5232ff0a2aec9b538a40d4cb1b02627b17
+Base: e9c95220f4fab9eb829015a0a0d42dbce6fc45ac
+EOO: hardware un-key deferred until native RADE flush ack + 300 ms margin
