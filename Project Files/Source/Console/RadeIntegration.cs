@@ -101,7 +101,7 @@ namespace Thetis
                 chkMOX.CheckedChanged -= chkMOX_CheckedChanged2;
                 try { chkMOX.Checked = true; }
                 finally { chkMOX.CheckedChanged += chkMOX_CheckedChanged2; }
-                Common.LogNetError("[RADE-PTT] release intercepted; holding TX for EOO");
+                System.Diagnostics.Debug.WriteLine("[RADE-PTT] release intercepted; holding TX for EOO");
                 return true;
             }
 
@@ -128,18 +128,18 @@ namespace Thetis
                     RadeNative.SetRadaeMoxState(1);
                     RadeNative.RadaeNotifyBeginOver();
                     _radePttState = RadePttState.Transmitting;
-                    Common.LogNetError("[RADE-PTT] Idle->Transmitting");
+                    System.Diagnostics.Debug.WriteLine("[RADE-PTT] Idle->Transmitting");
                 }
                 else if (!tx && _radePttState == RadePttState.Releasing)
                 {
                     // The real hardware falling edge completed.  Hold is released
                     // by the state machine immediately after this callback returns.
-                    Common.LogNetError("[RADE-PTT] hardware un-key complete");
+                    System.Diagnostics.Debug.WriteLine("[RADE-PTT] hardware un-key complete");
                 }
             }
             catch (Exception ex)
             {
-                Common.LogNetError("[RADE-PTT] edge error: " + ex.Message);
+                System.Diagnostics.Debug.WriteLine("[RADE-PTT] edge error: " + ex.Message);
             }
         }
 
@@ -163,21 +163,21 @@ namespace Thetis
                             _radeFlushAckMs = -1;
                             _radeSequenceClock.Restart();
                             _radePttState = RadePttState.EmitEOO;
-                            Common.LogNetError("[RADE-PTT] Transmitting->EmitEOO");
+                            System.Diagnostics.Debug.WriteLine("[RADE-PTT] Transmitting->EmitEOO");
                             return true;
                         }
                         return false;
 
                     case RadePttState.EmitEOO:
                         _radePttState = RadePttState.Flushing;
-                        Common.LogNetError("[RADE-PTT] EmitEOO->Flushing");
+                        System.Diagnostics.Debug.WriteLine("[RADE-PTT] EmitEOO->Flushing");
                         return true;
 
                     case RadePttState.Flushing:
                         if (_radeFlushAckMs < 0 && RadeNative.GetRadaeEooFlushed() != 0)
                         {
                             _radeFlushAckMs = _radeSequenceClock.ElapsedMilliseconds;
-                            Common.LogNetError("[RADE-PTT] EOO flushed @ " + _radeFlushAckMs + "ms");
+                            System.Diagnostics.Debug.WriteLine("[RADE-PTT] EOO flushed @ " + _radeFlushAckMs + "ms");
                         }
 
                         bool marginDone = _radeFlushAckMs >= 0 &&
@@ -186,7 +186,7 @@ namespace Thetis
                         if (marginDone || timedOut)
                         {
                             if (timedOut)
-                                Common.LogNetError("[RADE-PTT] EOO flush timeout; forcing safe RX");
+                                System.Diagnostics.Debug.WriteLine("[RADE-PTT] EOO flush timeout; forcing safe RX");
                             _radePttState = RadePttState.Releasing;
                         }
                         return true;
@@ -206,13 +206,13 @@ namespace Thetis
                         _radeOverWasRade = false;
                         _radeSequenceClock.Stop();
                         _radePttState = RadePttState.Idle;
-                        Common.LogNetError("[RADE-PTT] Releasing->Idle");
+                        System.Diagnostics.Debug.WriteLine("[RADE-PTT] Releasing->Idle");
                         return true;
                 }
             }
             catch (Exception ex)
             {
-                Common.LogNetError("[RADE-PTT] arbiter error: " + ex.Message);
+                System.Diagnostics.Debug.WriteLine("[RADE-PTT] arbiter error: " + ex.Message);
                 try { RadeNative.SetRadaeTxSilenceHold(0); } catch { }
                 _radePttRequest = false;
                 _radeOverWasRade = false;
