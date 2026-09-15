@@ -93,6 +93,8 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'RADE UI integration failed'}
           python tools/rade-redpitaya/fix-ui-deps.py
           if($LASTEXITCODE -ne 0){throw 'RADE UI dependency closure failed'}
+          python tools/rade-3z9am/fix-general-log-runtime.py
+          if($LASTEXITCODE -ne 0){throw '3Z9AM general-log runtime filter failed'}
           python tools/rade-redpitaya/fix-ui-deps-final.py
           if($LASTEXITCODE -ne 0){throw 'RADE final dependency closure failed'}
           python tools/rade-redpitaya/fix-setup-nre.py
