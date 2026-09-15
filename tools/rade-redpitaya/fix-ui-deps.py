@@ -176,7 +176,7 @@ def patch_console_designer_controls():
     if field_blocks:
         target = insert_into_class(target, 'Console', field_blocks)
 
-    _, vs, ve, vb = _method_record(ref, 'InitializeComponent')
+    _, _, _, vb = _method_record(ref, 'InitializeComponent')
     _, ts, te, tb = _method_record(target, 'InitializeComponent')
     stmts = _designer_statements(vb, controls)
     inst = [s for s in stmts if ' = new ' in s]
@@ -195,7 +195,6 @@ def patch_console_designer_controls():
         require(nl >= 0, 'InitializeComponent newline missing')
         new_tb = new_tb[:nl + 1] + '\n'.join(inst) + '\n' + new_tb[nl + 1:]
     if config:
-        # Keep all RADE setup before final Console ResumeLayout when available.
         pos = new_tb.rfind('            this.ResumeLayout(false);')
         if pos < 0:
             pos = new_tb.rfind('}')
@@ -248,6 +247,63 @@ def patch_console_dependencies():
         'public delegate void RadaeEnabledChanged(int rx, bool enabled)')
 
 
+def patch_setup_general_log_designer():
+    """Restore the real SV1EIA tpGeneralLog lifecycle, not just its field.
+
+    The RADE surface adds children to tpGeneralLog.  A field declaration alone
+    compiles but leaves the TabPage null at runtime, causing Setup.InitializeComponent
+    to throw before Thetis starts.  Copy all vendor designer statements that touch
+    tpGeneralLog and force construction before the first use.
+    """
+    rel = 'Project Files/Source/Console/setup.designer.cs'
+    ref = mod.vendor_text(rel)
+    path = mod.ROOT / rel
+    target = mod.read_text(path)
+
+    if not target_has_field(target, 'tpGeneralLog'):
+        target = insert_into_class(target, 'Setup', [field_decl_line(ref, 'tpGeneralLog')])
+
+    _, _, _, vendor_init = _method_record(ref, 'InitializeComponent')
+    _, ts, te, target_init = _method_record(target, 'InitializeComponent')
+    statements = _designer_statements(vendor_init, ('tpGeneralLog',))
+    ctor = [s for s in statements if re.search(r'this\.tpGeneralLog\s*=\s*new\s+', s)]
+    require(len(ctor) == 1, f'expected one SV1EIA tpGeneralLog constructor statement, found {len(ctor)}')
+
+    new_init = target_init
+    ctor_stmt = ctor[0]
+    if ctor_stmt.strip() not in new_init:
+        brace = new_init.find('{')
+        require(brace >= 0, 'Setup.InitializeComponent opening brace missing')
+        nl = new_init.find('\n', brace)
+        require(nl >= 0, 'Setup.InitializeComponent newline missing')
+        new_init = new_init[:nl + 1] + ctor_stmt + '\n' + new_init[nl + 1:]
+
+    missing = [s for s in statements if s.strip() != ctor_stmt.strip() and s.strip() not in new_init]
+    if missing:
+        pos = new_init.rfind('            this.ResumeLayout(false);')
+        if pos < 0:
+            pos = new_init.rfind('}')
+        require(pos >= 0, 'Setup.InitializeComponent closing insertion point missing')
+        new_init = new_init[:pos] + '\n'.join(missing) + '\n' + new_init[pos:]
+
+    if new_init != target_init:
+        target = target[:ts] + new_init + target[te:]
+    mod.write_text(path, target)
+
+    final = mod.read_text(path)
+    _, _, _, init = _method_record(final, 'InitializeComponent')
+    ctor_pos = init.find('this.tpGeneralLog = new ')
+    use_positions = [m.start() for m in re.finditer(r'this\.tpGeneralLog\.', init)]
+    require(ctor_pos >= 0, 'tpGeneralLog is never constructed')
+    require(use_positions, 'tpGeneralLog has no designer use')
+    require(ctor_pos < min(use_positions), 'tpGeneralLog is used before construction')
+    parent = re.search(
+        r'this\.(?!tpGeneralLog\b)[A-Za-z_]\w*\.(?:Controls|TabPages)\.(?:Add|AddRange)\([^;]*this\.tpGeneralLog',
+        init, flags=re.S)
+    require(parent is not None, 'tpGeneralLog is not attached to a parent control')
+    print('SV1EIA_TPGENERALLOG_INIT_ORDER=PASS')
+
+
 def patch_setup_dependencies():
     rel = 'Project Files/Source/Console/setup.cs'
     transplant(
@@ -255,10 +311,7 @@ def patch_setup_dependencies():
         methods=('UpdateTxMeasureEnabled',),
         fields=('_forcingAllEvents', 'm_radaeCallUpdating', 'm_radaeGridUpdating'),
     )
-    transplant(
-        'Project Files/Source/Console/setup.designer.cs', 'Setup',
-        fields=('tpGeneralLog',),
-    )
+    patch_setup_general_log_designer()
 
 
 def patch_common_dependencies():
@@ -288,7 +341,6 @@ def patch_meter_visibility_dependencies():
     for anchor, line in wiring:
         if line not in text:
             require(anchor in text, 'MeterManager event-wiring anchor missing: ' + anchor)
-            indent = re.match(r'\s*', anchor).group(0)
             text = text.replace(anchor, anchor + '\n            ' + line, 1)
     mod.write_text(path, text)
 
@@ -322,8 +374,6 @@ def patch_reporter_project_items():
             else:
                 lines.append(f'    <Compile Include="{p}" />')
         insert = '\n'.join(lines) + '\n'
-        # Put the reporter sources in the existing Compile ItemGroup, directly
-        # beside cmaster.cs, exactly as the pinned SV1EIA project does.
         anchor = '    <Compile Include="cmaster.cs"'
         pos = text.find(anchor)
         require(pos >= 0, 'Thetis.csproj cmaster.cs Compile anchor missing')
@@ -362,6 +412,17 @@ def validate():
         require(target_has_field(common, token), 'common field missing: ' + token)
     require('LogNetError' in common, 'common dependency missing: LogNetError')
     require(target_has_field(designer, 'tpGeneralLog'), 'designer dependency missing: tpGeneralLog')
+
+    _, _, _, setup_init = _method_record(designer, 'InitializeComponent')
+    ctor_pos = setup_init.find('this.tpGeneralLog = new ')
+    use_positions = [m.start() for m in re.finditer(r'this\.tpGeneralLog\.', setup_init)]
+    require(ctor_pos >= 0 and use_positions and ctor_pos < min(use_positions),
+            'tpGeneralLog runtime initialization order gate failed')
+    require(re.search(
+        r'this\.(?!tpGeneralLog\b)[A-Za-z_]\w*\.(?:Controls|TabPages)\.(?:Add|AddRange)\([^;]*this\.tpGeneralLog',
+        setup_init, flags=re.S) is not None,
+        'tpGeneralLog parent attachment gate failed')
+
     require('ContainerHidesWhenRADENotEnabled' in meter, 'MeterManager RADE gate missing')
     require('_console.RadaeEnabledChangedHandlers += OnRadaeEnabledChanged;' in meter, 'MeterManager RADE event subscribe missing')
     require('_console.RadaeEnabledChangedHandlers -= OnRadaeEnabledChanged;' in meter, 'MeterManager RADE event unsubscribe missing')
@@ -370,6 +431,7 @@ def validate():
     for token in ('SetRadaeTxSilenceHold(1)', 'RadaeNotifyEndOfOver()', 'GetRadaeEooFlushed()'):
         require(token in ri, 'SQ4KOU EOO arbiter damaged: ' + token)
     print('SV1EIA_RADE_UI_DEPENDENCY_CLOSURE=PASS')
+    print('SV1EIA_SETUP_STARTUP_NULL_GATE=PASS')
 
 
 def main():
