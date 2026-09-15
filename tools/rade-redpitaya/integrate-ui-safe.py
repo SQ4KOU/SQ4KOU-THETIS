@@ -2,7 +2,7 @@ from pathlib import Path
 import importlib.util
 
 HERE = Path(__file__).resolve().parent
-ORIGINAL = HERE / 'integrate-ui.py'
+ORIGINAL = HERE / 'integrate-ui-original.py'
 
 spec = importlib.util.spec_from_file_location('sq4kou_rade_integrate_ui', ORIGINAL)
 mod = importlib.util.module_from_spec(spec)
@@ -149,7 +149,7 @@ def safe_members_with_bodies(text, regex):
 
 
 # Patch only lexical/member-boundary detection. All selection rules, protected
-# RedPitaya/PTT/EOO policy and validation remain exactly in integrate-ui.py.
+# RedPitaya/PTT/EOO policy and validation remain exactly in the original integrator.
 mod.brace_end = safe_brace_end
 mod.members_with_bodies = safe_members_with_bodies
 
