@@ -153,7 +153,7 @@ def safe_members_with_bodies(text, regex):
 
 
 _CLASS_RE = re.compile(
-    r'(?m)^[ \t]*(?:(?:public|internal|protected|private|sealed|abstract|static|partial|new)\s+)*'
+    r'(?m)^[ \t]*(?:(?:public|internal|protected|private|sealed|abstract|static|partial|new|unsafe)\s+)*'
     r'(?P<kw>class)\s+(?P<name>[A-Za-z_]\w*)\b')
 
 _PRIMARY_CLASS_NAMES = {'setup', 'cmaster', 'common', 'console'}
