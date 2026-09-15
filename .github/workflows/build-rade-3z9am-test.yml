@@ -85,6 +85,8 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'Setup InitializeComponent NRE gate failed'}
           python tools/rade-redpitaya/integrate-deps.py
           if($LASTEXITCODE -ne 0){throw 'RADE dependency closure failed'}
+          python tools/rade-3z9am/restore-projectrefs.py
+          if($LASTEXITCODE -ne 0){throw '3Z9AM ProjectReference restore failed'}
           Write-Host 'THETIS_3Z9AM_RADE_INTEGRATION=PASS'
 
       - name: Gate protected 3Z9AM paths and EOO arbiter
