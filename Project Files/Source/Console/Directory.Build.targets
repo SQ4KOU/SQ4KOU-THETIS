@@ -4,6 +4,13 @@
   <ItemGroup>
     <Compile Include="GpsSyncTelemetry.cs" Condition="Exists('GpsSyncTelemetry.cs')" />
     <Compile Include="ucInfoBar.GpsSync.cs" Condition="Exists('ucInfoBar.GpsSync.cs')" />
+
+    <!-- Ensure the RADE partial Console implementation is compiled exactly once.
+         integrate.py creates these files before MSBuild evaluates this project. -->
+    <Compile Remove="RadeNative.cs" />
+    <Compile Remove="RadeIntegration.cs" />
+    <Compile Include="RadeNative.cs" Condition="Exists('RadeNative.cs')" />
+    <Compile Include="RadeIntegration.cs" Condition="Exists('RadeIntegration.cs')" />
   </ItemGroup>
 
   <!--
