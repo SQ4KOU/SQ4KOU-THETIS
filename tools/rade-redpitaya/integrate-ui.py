@@ -156,6 +156,8 @@ _CLASS_RE = re.compile(
     r'(?m)^[ \t]*(?:(?:public|internal|protected|private|sealed|abstract|static|partial|new)\s+)*'
     r'(?P<kw>class)\s+(?P<name>[A-Za-z_]\w*)\b')
 
+_PRIMARY_CLASS_NAMES = {'setup', 'cmaster', 'common', 'console'}
+
 
 def _code_brace_depth_before(text, pos, mask):
     depth = 0
@@ -172,13 +174,14 @@ def _code_brace_depth_before(text, pos, mask):
 
 
 def safe_class_insert_pos(text):
-    """Return the real closing-brace position of the single top-level class.
+    """Return the real closing-brace position of the intended host class.
 
     The original integrator guessed the class end from the final lines of the
-    file. That is unsafe when a source has trailing regions, comments, helper
-    types or a layout different from the expected namespace/class suffix.
-    Here the class body is located lexically and its own matching brace is
-    used as the insertion boundary. Nested classes are ignored.
+    file. That is unsafe when a source has trailing regions, comments or
+    helper types. Here every top-level class is located lexically and closed
+    with its own matching brace. For the known integration targets, the host
+    class is selected explicitly by its native class name; helper classes in
+    the same file are never used as an insertion target.
     """
     mask = _code_mask(text)
     candidates = []
@@ -216,7 +219,11 @@ def safe_class_insert_pos(text):
 
     min_depth = min(c[0] for c in candidates)
     top = [c for c in candidates if c[0] == min_depth]
-    if len(top) != 1:
+
+    preferred = [c for c in top if c[1].lower() in _PRIMARY_CLASS_NAMES]
+    if len(preferred) == 1:
+        top = preferred
+    elif len(top) != 1:
         names = ', '.join(c[1] for c in top)
         raise RuntimeError('ambiguous top-level C# classes: ' + names)
 
