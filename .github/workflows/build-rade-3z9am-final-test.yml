@@ -1,0 +1,200 @@
+name: Build 3Z9AM RADE Test Final
+
+on:
+  push:
+    branches: [feature/rade-3z9am-v1v2]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2025
+    timeout-minutes: 180
+    steps:
+      - name: Checkout 3Z9AM test branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Enable long paths
+        shell: pwsh
+        run: git config --global core.longpaths true
+
+      - name: Verify exact 3Z9AM base
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $base='ab0071751b0fbe006ddad243361a37cfd59bed46'
+          git cat-file -e "$base^{commit}"
+          Write-Host "THETIS_3Z9AM_BASE=$base"
+
+      - name: Import proven RADE tooling
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          git fetch origin feature/rade-redpitaya-v1v2 --no-tags
+          git checkout origin/feature/rade-redpitaya-v1v2 -- tools/rade-redpitaya
+          git checkout origin/feature/rade-redpitaya-v1v2 -- 'Project Files/Source/Console/RadeNative.cs' 'Project Files/Source/Console/RadeIntegration.cs'
+          $ri='Project Files\Source\Console\RadeIntegration.cs'
+          $t=Get-Content $ri -Raw
+          $t=$t.Replace('Thetis-RedPitaya - FreeDV RADE V1/V2','Thetis-3Z9AM - FreeDV RADE V1/V2')
+          Set-Content $ri $t -Encoding UTF8
+          Write-Host 'RADE_TOOLING_IMPORT=PASS'
+
+      - name: Preseed RADE compile items in primary ItemGroup
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $p='Project Files\Source\Console\Thetis.csproj'
+          $s=Get-Content $p -Raw
+          $anchor='    <Compile Include="cmaster.cs" />'
+          if(-not $s.Contains($anchor)){throw 'cmaster.cs compile anchor missing'}
+          if(-not $s.Contains('<Compile Include="RadeNative.cs"')){
+            $lines=@('    <Compile Include="RadeNative.cs" />','    <Compile Include="RadeIntegration.cs" />','    <Compile Include="FreeDVReporter\FreeDVReporterClient.cs" />','    <Compile Include="FreeDVReporter\FreeDVReporterForm.cs">','      <SubType>Form</SubType>','    </Compile>','    <Compile Include="FreeDVReporter\FreeDVReporterManager.cs" />','    <Compile Include="FreeDVReporter\Maidenhead.cs" />')
+            $payload=($lines -join "`r`n")+"`r`n"
+            $s=$s.Replace($anchor,$payload+$anchor)
+            Set-Content $p $s -Encoding UTF8
+          }
+          Write-Host 'LEGACY_CSPROJ_PRESEED=PASS'
+
+      - name: Checkout pinned SV1EIA RADE vendor
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $pin='408f2b5232ff0a2aec9b538a40d4cb1b02627b17'
+          $vendor='Project Files\lib\Thetis-RADE-vendor'
+          if(Test-Path $vendor){Remove-Item $vendor -Recurse -Force}
+          git clone --recursive https://github.com/sv1eia/Thetis-RADE.git $vendor
+          git -C $vendor checkout $pin
+          git -C $vendor submodule update --init --recursive
+          if((git -C $vendor rev-parse HEAD).Trim() -ne $pin){throw 'Wrong RADE vendor pin'}
+          Write-Host "RADE_VENDOR=$pin"
+
+      - name: Preflight native 3Z9AM PTT MOX anchors
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $c=Get-Content 'Project Files\Source\Console\console.cs' -Raw
+          foreach($t in @('bool bOldMox = _mox; //MW0LGE_21b used for state change delgates at end of fn','if (bOldMox != tx) MoxChangeHandlers?.Invoke(rx2_enabled && VFOBTX ? 2 : 1, bOldMox, tx); // MW0LGE_21a','private async void PollPTT()','int dotdashptt = NetworkIO.nativeGetDotDashPTT();')){
+            if(-not $c.Contains($t)){throw "Missing 3Z9AM source anchor: $t"}
+          }
+          Write-Host 'THETIS_3Z9AM_PTT_MOX_PREFLIGHT=PASS'
+
+      - name: Integrate RADE and SV1EIA Setup 1to1
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          python tools/rade-redpitaya/integrate.py
+          if($LASTEXITCODE -ne 0){throw 'RADE core integration failed'}
+          python tools/rade-redpitaya/integrate-ui.py
+          if($LASTEXITCODE -ne 0){throw 'RADE UI integration failed'}
+          python tools/rade-redpitaya/fix-ui-deps.py
+          if($LASTEXITCODE -ne 0){throw 'RADE UI dependency closure failed'}
+          python tools/rade-redpitaya/fix-ui-deps-final.py
+          if($LASTEXITCODE -ne 0){throw 'RADE final dependency closure failed'}
+          python tools/rade-redpitaya/fix-setup-nre.py
+          if($LASTEXITCODE -ne 0){throw 'Setup NRE gate failed'}
+          python tools/rade-redpitaya/integrate-deps.py
+          if($LASTEXITCODE -ne 0){throw 'RADE dependency integration failed'}
+          Write-Host 'THETIS_3Z9AM_RADE_1TO1=PASS'
+
+      - name: Gate project integrity and protected 3Z9AM paths
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $p='Project Files\Source\Console\Thetis.csproj'
+          $s=Get-Content $p -Raw
+          foreach($x in @('<Project>{66ADE184-31BA-4F5B-8007-F39EF1B90F95}</Project>','<Project>{4143D085-38CF-4640-BB05-2FDFFAF94D76}</Project>','<Compile Include="RadeNative.cs" />','<Compile Include="RadeIntegration.cs" />','<Compile Include="FreeDVReporter\FreeDVReporterManager.cs" />')){
+            if(-not $s.Contains($x)){throw "csproj integrity failure: $x"}
+          }
+          $base='ab0071751b0fbe006ddad243361a37cfd59bed46'
+          foreach($f in @('Project Files/Source/Console/Display.GPUWaterfall.cs','Project Files/Source/Console/display.cs','Project Files/Source/Console/NetworkIO.cs','Project Files/Source/Console/PSForm.cs')){
+            if(Test-Path $f){git diff --exit-code $base -- $f; if($LASTEXITCODE -ne 0){throw "Protected 3Z9AM file changed: $f"}}
+          }
+          $c=Get-Content 'Project Files\Source\Console\console.cs' -Raw
+          foreach($t in @('RadeInterceptMoxChange(chkMOX.Checked)','RadeAfterMoxChanged(tx)','RadePttStateMachine(); // SQ4KOU RADE EOO-safe arbiter')){if(-not $c.Contains($t)){throw "Missing PTT/EOO hook: $t"}}
+          $r=Get-Content 'Project Files\Source\Console\RadeIntegration.cs' -Raw
+          foreach($t in @('SetRadaeTxSilenceHold(1)','RadaeNotifyEndOfOver()','GetRadaeEooFlushed()','RadeEooMarginMs = 300','RadeEooTimeoutMs = 3000')){if(-not $r.Contains($t)){throw "Missing EOO arbiter: $t"}}
+          Write-Host 'THETIS_3Z9AM_PROJECT_GPU_PTT_EOO_GATE=PASS'
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build native RADE dependencies
+        shell: pwsh
+        run: tools/rade-redpitaya/build-rade-deps.ps1 -Configuration Release
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $targets=Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if(-not $targets){choco install wixtoolset -y --no-progress}
+          $targets=Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if(-not $targets){$targets=Get-ChildItem 'C:\Program Files (x86)\WiX Toolset*\Wix.targets' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1}
+          if(-not $targets){throw 'WiX 3.x Wix.targets not found'}
+          "WIX_TARGETS=$($targets.FullName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore packages
+        shell: pwsh
+        run: nuget restore 'Project Files\Source\Thetis_VS2026.sln' -NonInteractive
+
+      - name: Build Thetis 3Z9AM RADE x64
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $log=Join-Path $env:RUNNER_TEMP 'thetis-3z9am-rade-final.log'
+          "BUILD_LOG=$log" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          & msbuild 'Project Files\Source\Thetis_VS2026.sln' /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal 2>&1 | Tee-Object -FilePath $log
+          if($LASTEXITCODE -ne 0){throw "MSBuild failed: $LASTEXITCODE"}
+          if(Select-String -Path $log -Pattern ': error ' -Quiet){throw 'Build log contains errors'}
+          Write-Host 'THETIS_3Z9AM_RADE_BUILD=PASS'
+
+      - name: Validate RADE native exports
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $dll=Get-ChildItem 'Project Files\bin' -Recurse -Filter ChannelMaster.dll | Where-Object {$_.FullName -match '\\x64\\Release\\'} | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if(-not $dll){throw 'ChannelMaster.dll not found'}
+          $vswhere="${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $vspath=& $vswhere -latest -products * -property installationPath
+          $dump=Get-ChildItem (Join-Path $vspath 'VC\Tools\MSVC') -Recurse -Filter dumpbin.exe | Where-Object {$_.FullName -match '\\Hostx64\\x64\\'} | Sort-Object FullName -Descending | Select-Object -First 1
+          if(-not $dump){throw 'dumpbin.exe not found'}
+          $e=& $dump.FullName /exports $dll.FullName | Out-String
+          foreach($n in @('SetRadaeRxEnabled','SetRadaeProtocolV2','SetRadaeTxRx','GetRadaeSync','SetRadaeMoxState','RadaeNotifyBeginOver','RadaeNotifyEndOfOver','GetRadaeEooFlushed','SetRadaeTxSilenceHold')){if($e -notmatch [regex]::Escape($n)){throw "Missing RADE export: $n"}}
+          Write-Host 'THETIS_3Z9AM_RADE_EXPORTS=PASS'
+
+      - name: Locate MSI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $msi=Get-ChildItem 'Project Files\bin\Installers\*.msi' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if(-not $msi -or $msi.Length -lt 1MB){throw 'Valid MSI not produced'}
+          $final=Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-3Z9AM-RADE-SV1EIA-1TO1-TEST-x64.msi'
+          Copy-Item $msi.FullName $final -Force
+          "FINAL_MSI=$final" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "MSI_BYTES=$((Get-Item $final).Length)"
+          Write-Host "MSI_SHA256=$((Get-FileHash $final -Algorithm SHA256).Hash)"
+
+      - name: Upload MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-3Z9AM-RADE-SV1EIA-1TO1-TEST-x64
+          path: ${{ env.FINAL_MSI }}
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: Upload build log
+        if: ${{ always() && env.BUILD_LOG != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-3Z9AM-RADE-FINAL-BUILD-LOG
+          path: ${{ env.BUILD_LOG }}
+          if-no-files-found: error
+          compression-level: 6
