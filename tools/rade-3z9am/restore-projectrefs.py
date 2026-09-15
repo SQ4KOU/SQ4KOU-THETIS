@@ -12,6 +12,12 @@ INCLUDES = (
     r'..\RawInput\RawInput.csproj',
 )
 RADE_SOURCES = ('RadeNative.cs', 'RadeIntegration.cs')
+REPORTER_SOURCES = (
+    'FreeDVReporter\\FreeDVReporterClient.cs',
+    'FreeDVReporter\\FreeDVReporterForm.cs',
+    'FreeDVReporter\\FreeDVReporterManager.cs',
+    'FreeDVReporter\\Maidenhead.cs',
+)
 
 
 def require(cond, msg):
@@ -25,19 +31,38 @@ def block_rx(include):
         r'"\s*>.*?</ProjectReference>[ \t]*\r?\n?')
 
 
-def ensure_rade_compile_items(text):
+def remove_compile_item(text, include):
+    esc = re.escape(include)
+    text = re.sub(r'(?m)^[ \t]*<Compile\s+Include="' + esc + r'"\s*/>[ \t]*\r?\n?', '', text)
+    text = re.sub(r'(?ms)^[ \t]*<Compile\s+Include="' + esc + r'"\s*>.*?</Compile>[ \t]*\r?\n?', '', text)
+    return text
+
+
+def ensure_compile_items(text):
     for name in RADE_SOURCES:
         require((CONSOLE / name).is_file(), 'RADE source file missing: ' + name)
+    for include in REPORTER_SOURCES:
+        require((CONSOLE / include.replace('\\', '/')).is_file(), 'Reporter source file missing: ' + include)
 
-    missing = [name for name in RADE_SOURCES
-               if re.search(r'<Compile\s+Include="' + re.escape(name) + r'"\s*/>', text) is None]
-    if not missing:
-        return text
+    # Normalize all six entries so there can be no late ItemGroup ambiguity.
+    for include in RADE_SOURCES + REPORTER_SOURCES:
+        text = remove_compile_item(text, include)
 
     anchor = re.search(r'(?m)^(?P<indent>[ \t]*)<Compile\s+Include="cmaster\.cs"\s*/>', text)
     require(anchor is not None, 'Primary Compile anchor cmaster.cs missing')
     indent = anchor.group('indent') or '    '
-    payload = ''.join(indent + '<Compile Include="' + name + '" />\n' for name in missing)
+
+    lines = [
+        indent + '<Compile Include="RadeNative.cs" />',
+        indent + '<Compile Include="RadeIntegration.cs" />',
+        indent + '<Compile Include="FreeDVReporter\\FreeDVReporterClient.cs" />',
+        indent + '<Compile Include="FreeDVReporter\\FreeDVReporterForm.cs">',
+        indent + '  <SubType>Form</SubType>',
+        indent + '</Compile>',
+        indent + '<Compile Include="FreeDVReporter\\FreeDVReporterManager.cs" />',
+        indent + '<Compile Include="FreeDVReporter\\Maidenhead.cs" />',
+    ]
+    payload = '\n'.join(lines) + '\n'
     return text[:anchor.start()] + payload + text[anchor.start():]
 
 
@@ -56,11 +81,8 @@ def main():
         current, n = rx.subn(lambda _m, b=bm.group(0): b, current, count=1)
         require(n == 1, 'Could not restore ProjectReference: ' + include)
 
-    # A clean 3Z9AM tree does not contain these Compile items yet. The imported
-    # RADE files must be compiled explicitly; place them in the existing primary
-    # Compile ItemGroup immediately before cmaster.cs.
-    current = ensure_rade_compile_items(current)
-
+    # A clean 3Z9AM project needs explicit RADE/Reporter Compile membership.
+    current = ensure_compile_items(current)
     CSPROJ.write_text(current, encoding='utf-8')
     final = CSPROJ.read_text(encoding='utf-8-sig')
 
@@ -72,13 +94,12 @@ def main():
         require(fm.group(0).replace('\r\n', '\n') == bm.group(0).replace('\r\n', '\n'),
                 'ProjectReference differs from 3Z9AM base: ' + include)
 
-    for name in RADE_SOURCES:
-        needle = '<Compile Include="' + name + '" />'
-        require(final.count(needle) == 1, f'Expected one Compile item for {name}, got {final.count(needle)}')
-    require('FreeDVReporter\\FreeDVReporterManager.cs' in final, 'FreeDVReporter Compile item lost')
+    for include in RADE_SOURCES + REPORTER_SOURCES:
+        count = len(re.findall(r'<Compile\s+Include="' + re.escape(include) + r'"(?:\s*/>|\s*>)', final))
+        require(count == 1, f'Expected one Compile item for {include}, got {count}')
 
     print('THETIS_3Z9AM_PROJECTREFS_RESTORED_FROM_BASE=PASS')
-    print('THETIS_3Z9AM_RADE_PROJECT_ITEMS_PRESERVED=PASS')
+    print('THETIS_3Z9AM_RADE_REPORTER_COMPILE_ITEMS=PASS')
 
 
 if __name__ == '__main__':
