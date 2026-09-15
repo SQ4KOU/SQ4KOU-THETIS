@@ -174,15 +174,7 @@ def _code_brace_depth_before(text, pos, mask):
 
 
 def safe_class_insert_pos(text):
-    """Return the real closing-brace position of the intended host class.
-
-    The original integrator guessed the class end from the final lines of the
-    file. That is unsafe when a source has trailing regions, comments or
-    helper types. Here every top-level class is located lexically and closed
-    with its own matching brace. For the known integration targets, the host
-    class is selected explicitly by its native class name; helper classes in
-    the same file are never used as an insertion target.
-    """
+    """Return the real closing-brace position of the intended host class."""
     mask = _code_mask(text)
     candidates = []
 
@@ -246,13 +238,7 @@ def _delegate_declarations(text):
 
 
 def safe_patch_console_named_members():
-    """Run the original RADE member port, then copy exact RADE delegate types.
-
-    The original selector covers methods, properties and fields but not C#
-    delegate declarations. RADE exposes members typed with those delegates,
-    so copying a field without its type produces CS0246. Copy declarations
-    verbatim from the pinned SV1EIA source; never synthesize signatures.
-    """
+    """Run the original RADE member port, then copy exact RADE delegate types."""
     _original_patch_console_named_members()
 
     rel = 'Project Files/Source/Console/console.cs'
@@ -280,14 +266,63 @@ def safe_patch_console_named_members():
           ', '.join(sorted(name for name in ref_delegates if name not in target_names)))
 
 
+def safe_patch_setup(handler_names):
+    """Idempotent form of the original Setup RADE member transplant.
+
+    After a verified integration commit the target already contains the SV1EIA
+    methods.  Zero missing methods means the integration is complete, not an
+    error.  Keep the original selection rules and ForceAllEvents merge while
+    validating the vendor still exposes the expected RADE surface.
+    """
+    rel = 'Project Files/Source/Console/setup.cs'
+    ref = mod.vendor_text(rel)
+    path = mod.CONSOLE / 'setup.cs'
+    target = mod.read_text(path)
+
+    wanted = []
+    selected_names = []
+    for name, _, _, block in mod.members_with_bodies(ref, mod.METHOD_RE):
+        if mod.KEEP_RE.search(name) or name in handler_names:
+            if mod.EOO_DENY_RE.search(name):
+                continue
+            selected_names.append(name)
+            if not mod.find_named_method(target, name):
+                wanted.append(block)
+
+    mod.require(len(selected_names) >= 8,
+                f'too few SV1EIA RADE Setup methods in vendor: {len(selected_names)}')
+    if wanted:
+        target = mod.insert_class_members(target, wanted)
+
+    ref_force = mod.find_named_method(ref, 'ForceAllEvents')
+    tgt_force = mod.find_named_method(target, 'ForceAllEvents')
+    if ref_force and tgt_force:
+        _, _, rblock = ref_force
+        ts, te, tblock = tgt_force
+        extra = [ln for ln in rblock.splitlines() if mod.KEEP_RE.search(ln)]
+        missing = [ln for ln in extra if ln.strip() and ln.strip() not in tblock]
+        if missing:
+            at = tblock.rfind('}')
+            tblock = tblock[:at] + '\n' + '\n'.join(missing) + '\n' + tblock[at:]
+            target = target[:ts] + tblock + target[te:]
+
+    mod.write_text(path, target)
+    added_names = sorted(
+        m.group('name') for block in wanted
+        for m in [mod.METHOD_RE.search(block)] if m)
+    print('SV1EIA setup methods ported: ' + (', '.join(added_names) if added_names else 'already complete'))
+    print('SV1EIA_SETUP_IDEMPOTENT=PASS')
+
+
 # Patch lexical/member-boundary and real class-boundary detection. Extend the
-# original Console port only for exact delegate declarations missing from its
-# selector. All selection rules and protected RedPitaya/PTT/EOO policy remain.
+# original ports without changing protected RedPitaya/PTT/EOO policy.
 mod.brace_end = safe_brace_end
 mod.members_with_bodies = safe_members_with_bodies
 mod.class_insert_pos = safe_class_insert_pos
 _original_patch_console_named_members = mod.patch_console_named_members
 mod.patch_console_named_members = safe_patch_console_named_members
+_original_patch_setup = mod.patch_setup
+mod.patch_setup = safe_patch_setup
 
 if __name__ == '__main__':
     mod.main()
