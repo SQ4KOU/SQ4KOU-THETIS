@@ -165,6 +165,7 @@ jobs:
           }
 
       - name: Upload verified RADE MSI
+        if: ${{ always() && env.FINAL_MSI != '' }}
         uses: actions/upload-artifact@v4
         with:
           name: SQ4KOU-THETIS-REDPITAYA-RADE-SV1EIA-1TO1-TEST-x64
