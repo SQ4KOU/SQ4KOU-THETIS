@@ -64,16 +64,19 @@ def named_body_blocks(text, regex, names):
     return [(name, block) for name, _, _, block in mod.members_with_bodies(text, regex) if name in names]
 
 
-def field_block(text, name):
+def field_decl_line(text, name):
     pat = re.compile(r'\b' + re.escape(name) + r'\b')
     for line in text.splitlines():
         if pat.search(line) and FIELD_RE.match(line):
             return line
-    raise RuntimeError('field declaration not found: ' + name)
+    raise RuntimeError('field/declaration not found: ' + name)
 
 
 def target_has_field(text, name):
-    return re.search(r'\b' + re.escape(name) + r'\b', text) is not None
+    # A usage is NOT a declaration.  The previous implementation used a raw
+    # token search and therefore skipped fields referenced by transplanted code.
+    pat = re.compile(r'\b' + re.escape(name) + r'\b')
+    return any(pat.search(line) and FIELD_RE.match(line) for line in text.splitlines())
 
 
 def target_has_member(text, regex, name):
@@ -88,7 +91,7 @@ def transplant(rel, class_name, methods=(), properties=(), fields=(), overload_m
 
     for name in fields:
         if not target_has_field(target, name):
-            blocks.append(field_block(ref, name))
+            blocks.append(field_decl_line(ref, name))
 
     for name in properties:
         if not target_has_member(target, mod.PROPERTY_RE, name):
@@ -114,6 +117,103 @@ def transplant(rel, class_name, methods=(), properties=(), fields=(), overload_m
     print(f'DEP_CLOSURE {rel}: added={len(blocks)}')
 
 
+def declaration_once(rel, class_name, token, exact_decl_fragment):
+    ref = mod.vendor_text(rel)
+    path = mod.ROOT / rel
+    target = mod.read_text(path)
+    if exact_decl_fragment in target:
+        return
+    line = next((ln for ln in ref.splitlines() if exact_decl_fragment in ln), None)
+    require(line is not None, f'declaration not found in vendor {rel}: {token}')
+    target = insert_into_class(target, class_name, [line])
+    mod.write_text(path, target)
+    print(f'DEP_DECL {rel}: {token}')
+
+
+def _method_record(text, name):
+    found = [(n, s, e, b) for n, s, e, b in mod.members_with_bodies(text, mod.METHOD_RE) if n == name]
+    require(len(found) == 1, f'method {name} expected once, found {len(found)}')
+    return found[0]
+
+
+def _designer_statements(method_block, controls):
+    lines = method_block.splitlines()
+    out = []
+    i = 0
+    tokens = tuple('this.' + c for c in controls)
+    while i < len(lines):
+        line = lines[i]
+        stripped = line.strip()
+        if stripped.startswith('//') or not any(t in line for t in tokens):
+            i += 1
+            continue
+        stmt = [line]
+        # Designer statements may span multiple lines (notably Items.AddRange).
+        while ';' not in stmt[-1] and i + 1 < len(lines):
+            i += 1
+            stmt.append(lines[i])
+        block = '\n'.join(stmt)
+        if block.strip() not in [x.strip() for x in out]:
+            out.append(block)
+        i += 1
+    return out
+
+
+def patch_console_designer_controls():
+    rel = 'Project Files/Source/Console/console.Designer.cs'
+    ref = mod.vendor_text(rel)
+    path = mod.ROOT / rel
+    target = mod.read_text(path)
+    controls = (
+        'chkRADE', 'chkREPR', 'chkVIS', 'cmbRadeVersionRX1',
+        'chkRADERX2', 'chkVISRX2', 'cmbRadeVersionRX2',
+    )
+
+    field_blocks = []
+    for name in controls:
+        if not target_has_field(target, name):
+            field_blocks.append(field_decl_line(ref, name))
+    if field_blocks:
+        target = insert_into_class(target, 'Console', field_blocks)
+
+    _, vs, ve, vb = _method_record(ref, 'InitializeComponent')
+    _, ts, te, tb = _method_record(target, 'InitializeComponent')
+    stmts = _designer_statements(vb, controls)
+    inst = [s for s in stmts if ' = new ' in s]
+    config = [s for s in stmts if ' = new ' not in s]
+
+    def missing(block, seq):
+        return [s for s in seq if s.strip() not in block]
+
+    inst = missing(tb, inst)
+    config = missing(tb, config)
+    new_tb = tb
+    if inst:
+        brace = new_tb.find('{')
+        require(brace >= 0, 'InitializeComponent opening brace missing')
+        nl = new_tb.find('\n', brace)
+        require(nl >= 0, 'InitializeComponent newline missing')
+        new_tb = new_tb[:nl + 1] + '\n'.join(inst) + '\n' + new_tb[nl + 1:]
+    if config:
+        # Keep all RADE setup before final Console ResumeLayout when available.
+        pos = new_tb.rfind('            this.ResumeLayout(false);')
+        if pos < 0:
+            pos = new_tb.rfind('}')
+        require(pos >= 0, 'InitializeComponent closing insertion point missing')
+        new_tb = new_tb[:pos] + '\n'.join(config) + '\n' + new_tb[pos:]
+
+    if new_tb != tb:
+        target = target[:ts] + new_tb + target[te:]
+    mod.write_text(path, target)
+
+    final = mod.read_text(path)
+    _, _, _, init = _method_record(final, 'InitializeComponent')
+    for name in controls:
+        require(target_has_field(final, name), 'console designer field missing: ' + name)
+        require(('this.' + name + ' = new ') in init, 'console designer init missing: ' + name)
+    print('SV1EIA_RADE_CONSOLE_CONTROLS=PASS')
+
+
 def patch_console_dependencies():
     rel = 'Project Files/Source/Console/console.cs'
     transplant(
@@ -122,6 +222,14 @@ def patch_console_dependencies():
             'SetMoxEnabled',
             'SetRx1RadeControlVisible',
             'SetRx2RadeControlVisible',
+            'chkRADE_CheckedChanged',
+            'chkREPR_CheckedChanged',
+            'chkVIS_CheckedChanged',
+            'chkRADERX2_CheckedChanged',
+            'chkVISRX2_CheckedChanged',
+            'cmbRadeVersionRX1_SelectedIndexChanged',
+            'cmbRadeVersionRX2_SelectedIndexChanged',
+            'NotifyRadaeEnabledChanged',
         ),
         properties=(
             'chkRADEMirror', 'chkREPRMirror', 'chkVISMirror',
@@ -132,9 +240,12 @@ def patch_console_dependencies():
         ),
         fields=(
             '_rade_measure_rx1', '_rade_measure_rx2', '_rade_measure_tx',
-            '_radae_eoo_callsign',
+            '_radae_eoo_callsign', 'RadaeEnabledChangedHandlers',
         ),
     )
+    declaration_once(
+        rel, 'Console', 'RadaeEnabledChanged',
+        'public delegate void RadaeEnabledChanged(int rx, bool enabled)')
 
 
 def patch_setup_dependencies():
@@ -144,10 +255,6 @@ def patch_setup_dependencies():
         methods=('UpdateTxMeasureEnabled',),
         fields=('_forcingAllEvents', 'm_radaeCallUpdating', 'm_radaeGridUpdating'),
     )
-
-    # The exact SV1EIA RADE subtree contains two references to this existing
-    # vendor tab page.  The original transitive designer selector brought the
-    # initialization lines but not the declaration because its name is generic.
     transplant(
         'Project Files/Source/Console/setup.designer.cs', 'Setup',
         fields=('tpGeneralLog',),
@@ -164,13 +271,27 @@ def patch_common_dependencies():
 
 
 def patch_meter_visibility_dependencies():
-    # Setup -> DSP -> RADE exposes the exact SV1EIA meter-container gate.
-    # Port only that gate and its two small helpers, not unrelated meter code.
+    rel = 'Project Files/Source/Console/MeterManager.cs'
     transplant(
-        'Project Files/Source/Console/MeterManager.cs', 'MeterManager',
-        methods=('containerShouldHide', 'applyContainerVisibilityGates'),
+        rel, 'MeterManager',
+        methods=('containerShouldHide', 'applyContainerVisibilityGates', 'OnRadaeEnabledChanged'),
         overload_methods=('ContainerHidesWhenRADENotEnabled',),
     )
+    path = mod.ROOT / rel
+    text = mod.read_text(path)
+    wiring = (
+        ('_console.RX2EnabledPreChangedHandlers += OnRX2EnabledPreChanged;',
+         '_console.RadaeEnabledChangedHandlers += OnRadaeEnabledChanged;'),
+        ('_console.RX2EnabledPreChangedHandlers -= OnRX2EnabledPreChanged;',
+         '_console.RadaeEnabledChangedHandlers -= OnRadaeEnabledChanged;'),
+    )
+    for anchor, line in wiring:
+        if line not in text:
+            require(anchor in text, 'MeterManager event-wiring anchor missing: ' + anchor)
+            indent = re.match(r'\s*', anchor).group(0)
+            text = text.replace(anchor, anchor + '\n            ' + line, 1)
+    mod.write_text(path, text)
+
     transplant(
         'Project Files/Source/Console/ucMeter.cs', 'ucMeter',
         properties=('ContainerHidesWhenRADENotEnabled',),
@@ -192,30 +313,34 @@ def patch_reporter_project_items():
         'FreeDVReporter\\FreeDVReporterManager.cs',
         'FreeDVReporter\\Maidenhead.cs',
     ]
-    missing = [p for p in includes if f'Include="{p}"' not in text]
+    missing = [p for p in includes if f'<Compile Include="{p}"' not in text]
     if missing:
-        lines = ['  <ItemGroup>']
+        lines = []
         for p in missing:
             if p.endswith('FreeDVReporterForm.cs'):
                 lines += [f'    <Compile Include="{p}">', '      <SubType>Form</SubType>', '    </Compile>']
             else:
                 lines.append(f'    <Compile Include="{p}" />')
-        lines.append('  </ItemGroup>')
-        item = '\n'.join(lines) + '\n'
-        require('</Project>' in text, 'Thetis.csproj closing tag missing')
-        text = text.replace('</Project>', item + '</Project>', 1)
+        insert = '\n'.join(lines) + '\n'
+        # Put the reporter sources in the existing Compile ItemGroup, directly
+        # beside cmaster.cs, exactly as the pinned SV1EIA project does.
+        anchor = '    <Compile Include="cmaster.cs"'
+        pos = text.find(anchor)
+        require(pos >= 0, 'Thetis.csproj cmaster.cs Compile anchor missing')
+        text = text[:pos] + insert + text[pos:]
         mod.write_text(path, text)
 
     for p in includes:
         require((mod.CONSOLE / p.replace('\\', '/')).is_file(), 'Reporter source missing on disk: ' + p)
     final = mod.read_text(path)
     for p in includes:
-        require(f'Include="{p}"' in final, 'Reporter Compile item missing: ' + p)
+        require(f'<Compile Include="{p}"' in final, 'Reporter Compile item missing: ' + p)
     print('FREEDV_REPORTER_PROJECT_ITEMS=PASS')
 
 
 def validate():
     console = mod.read_text(mod.CONSOLE / 'console.cs')
+    cdesigner = mod.read_text(mod.CONSOLE / 'console.Designer.cs')
     setup = mod.read_text(mod.CONSOLE / 'setup.cs')
     common = mod.read_text(mod.CONSOLE / 'common.cs')
     designer = mod.read_text(mod.CONSOLE / 'setup.designer.cs')
@@ -226,17 +351,21 @@ def validate():
         'chkVISRX2Mirror', 'cmbRadeVersionRX1Mirror', 'cmbRadeVersionRX2Mirror',
         'SetMoxEnabled', 'SetRx1RadeControlVisible', 'SetRx2RadeControlVisible',
         'RadeMeasureRx1', 'RadeMeasureRx2', 'RadeMeasureTx', 'RadaeEooCallsign',
+        'NotifyRadaeEnabledChanged', 'RadaeEnabledChangedHandlers',
     ):
         require(token in console, 'console dependency missing: ' + token)
+    for token in ('chkRADE', 'chkREPR', 'chkVIS', 'cmbRadeVersionRX1', 'chkRADERX2', 'chkVISRX2', 'cmbRadeVersionRX2'):
+        require(target_has_field(cdesigner, token), 'console designer field missing: ' + token)
     for token in ('_forcingAllEvents', 'm_radaeCallUpdating', 'm_radaeGridUpdating', 'UpdateTxMeasureEnabled'):
-        require(token in setup, 'setup dependency missing: ' + token)
-    for token in ('LogEnabled', 'LogNetError'):
-        require(token in common, 'common dependency missing: ' + token)
-    require('tpGeneralLog' in designer, 'designer dependency missing: tpGeneralLog')
+        require(target_has_field(setup, token) or token == 'UpdateTxMeasureEnabled', 'setup dependency missing: ' + token)
+    for token in ('LogEnabled', 'm_oNetLogLock'):
+        require(target_has_field(common, token), 'common field missing: ' + token)
+    require('LogNetError' in common, 'common dependency missing: LogNetError')
+    require(target_has_field(designer, 'tpGeneralLog'), 'designer dependency missing: tpGeneralLog')
     require('ContainerHidesWhenRADENotEnabled' in meter, 'MeterManager RADE gate missing')
+    require('_console.RadaeEnabledChangedHandlers += OnRadaeEnabledChanged;' in meter, 'MeterManager RADE event subscribe missing')
+    require('_console.RadaeEnabledChangedHandlers -= OnRadaeEnabledChanged;' in meter, 'MeterManager RADE event unsubscribe missing')
 
-    # Never replace the SQ4KOU EOO/PTT arbiter.  The protected workflow gate
-    # still checks the same hooks after this closure step.
     ri = mod.read_text(mod.CONSOLE / 'RadeIntegration.cs')
     for token in ('SetRadaeTxSilenceHold(1)', 'RadaeNotifyEndOfOver()', 'GetRadaeEooFlushed()'):
         require(token in ri, 'SQ4KOU EOO arbiter damaged: ' + token)
@@ -244,6 +373,7 @@ def validate():
 
 
 def main():
+    patch_console_designer_controls()
     patch_console_dependencies()
     patch_setup_dependencies()
     patch_common_dependencies()
