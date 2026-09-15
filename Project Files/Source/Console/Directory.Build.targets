@@ -5,4 +5,20 @@
     <Compile Include="GpsSyncTelemetry.cs" Condition="Exists('GpsSyncTelemetry.cs')" />
     <Compile Include="ucInfoBar.GpsSync.cs" Condition="Exists('ucInfoBar.GpsSync.cs')" />
   </ItemGroup>
+
+  <!--
+    VS/MSBuild 18 compatibility for legacy non-SDK ProjectReference entries.
+    MSB3107 is raised by AssignProjectConfiguration when the old Project GUID
+    metadata is present. Preserve the project paths and all other metadata while
+    removing only the legacy GUID metadata immediately before configuration mapping.
+  -->
+  <Target Name="SQ4KOU_RemoveLegacyProjectReferenceGuidMetadata"
+          BeforeTargets="AssignProjectConfiguration"
+          Condition="'$(MSBuildProjectName)' == 'Thetis' and '@(ProjectReference)' != ''">
+    <ItemGroup>
+      <_SQ4KOUProjectReference Include="@(ProjectReference)" RemoveMetadata="Project" />
+      <ProjectReference Remove="@(ProjectReference)" />
+      <ProjectReference Include="@(_SQ4KOUProjectReference)" />
+    </ItemGroup>
+  </Target>
 </Project>
