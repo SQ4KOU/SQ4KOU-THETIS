@@ -14,7 +14,7 @@ def _code_mask(text):
 
     Braces and method-looking text inside // comments, /* */ comments,
     regular strings, verbatim strings and char literals must never affect
-    member extraction. Newlines stay outside the mask but indexes are kept 1:1.
+    member extraction. Indexes are preserved 1:1 with the source text.
     """
     mask = bytearray(len(text))
     i = 0
@@ -107,8 +107,7 @@ def _code_mask(text):
     return mask
 
 
-def safe_brace_end(text, open_pos):
-    mask = _code_mask(text)
+def _brace_end_with_mask(text, open_pos, mask):
     if open_pos < 0 or open_pos >= len(text) or text[open_pos] != '{' or not mask[open_pos]:
         raise RuntimeError('invalid C# opening brace')
     depth = 0
@@ -123,6 +122,10 @@ def safe_brace_end(text, open_pos):
             if depth == 0:
                 return i + 1
     raise RuntimeError('unbalanced C# braces')
+
+
+def safe_brace_end(text, open_pos):
+    return _brace_end_with_mask(text, open_pos, _code_mask(text))
 
 
 def safe_members_with_bodies(text, regex):
@@ -140,7 +143,7 @@ def safe_members_with_bodies(text, regex):
         if open_pos < 0:
             continue
         try:
-            end = safe_brace_end(text, open_pos)
+            end = _brace_end_with_mask(text, open_pos, mask)
         except RuntimeError:
             continue
         out.append((m.group('name'), m.start(), end, text[m.start():end]))
