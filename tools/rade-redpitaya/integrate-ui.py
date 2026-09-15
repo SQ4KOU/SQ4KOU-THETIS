@@ -267,13 +267,7 @@ def safe_patch_console_named_members():
 
 
 def safe_patch_setup(handler_names):
-    """Idempotent form of the original Setup RADE member transplant.
-
-    After a verified integration commit the target already contains the SV1EIA
-    methods.  Zero missing methods means the integration is complete, not an
-    error.  Keep the original selection rules and ForceAllEvents merge while
-    validating the vendor still exposes the expected RADE surface.
-    """
+    """Idempotent form of the original Setup RADE member transplant."""
     rel = 'Project Files/Source/Console/setup.cs'
     ref = mod.vendor_text(rel)
     path = mod.CONSOLE / 'setup.cs'
@@ -314,6 +308,45 @@ def safe_patch_setup(handler_names):
     print('SV1EIA_SETUP_IDEMPOTENT=PASS')
 
 
+def safe_patch_cmaster():
+    """Idempotent form of the original cmaster RADE interop transplant."""
+    rel = 'Project Files/Source/Console/cmaster.cs'
+    ref = mod.vendor_text(rel)
+    path = mod.CONSOLE / 'cmaster.cs'
+    target = mod.read_text(path)
+    blocks = []
+    candidate_count = 0
+
+    extern_re = re.compile(
+        r'(?ms)^[ \t]*(?:(?:\[[^\r\n]+\])\s*\r?\n[ \t]*)+'
+        r'(?:public|internal|private)\s+static\s+extern\s+[^;]+;')
+    for m in extern_re.finditer(ref):
+        block = m.group(0)
+        if not mod.KEEP_RE.search(block):
+            continue
+        name_m = re.search(r'extern\s+[^\(]+\s+([A-Za-z_]\w*)\s*\(', block)
+        if not name_m:
+            continue
+        candidate_count += 1
+        if not re.search(r'\b' + re.escape(name_m.group(1)) + r'\s*\(', target):
+            blocks.append(block)
+
+    for name, _, _, block in mod.members_with_bodies(ref, mod.METHOD_RE):
+        if not mod.KEEP_RE.search(name) or mod.EOO_DENY_RE.search(name):
+            continue
+        candidate_count += 1
+        if not mod.find_named_method(target, name):
+            blocks.append(block)
+
+    mod.require(candidate_count >= 10,
+                f'too few cmaster RADE members in vendor: {candidate_count}')
+    if blocks:
+        target = mod.insert_class_members(target, blocks)
+        mod.write_text(path, target)
+    print(f'SV1EIA cmaster RADE interop ported: {len(blocks)} members')
+    print('SV1EIA_CMASTER_IDEMPOTENT=PASS')
+
+
 # Patch lexical/member-boundary and real class-boundary detection. Extend the
 # original ports without changing protected RedPitaya/PTT/EOO policy.
 mod.brace_end = safe_brace_end
@@ -323,6 +356,8 @@ _original_patch_console_named_members = mod.patch_console_named_members
 mod.patch_console_named_members = safe_patch_console_named_members
 _original_patch_setup = mod.patch_setup
 mod.patch_setup = safe_patch_setup
+_original_patch_cmaster = mod.patch_cmaster
+mod.patch_cmaster = safe_patch_cmaster
 
 if __name__ == '__main__':
     mod.main()
