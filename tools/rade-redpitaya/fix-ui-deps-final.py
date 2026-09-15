@@ -40,7 +40,12 @@ def patch_setup_public_properties():
 
 
 def normalize_reporter_compile_items():
-    """Put FreeDVReporter Compile items in the existing primary Compile ItemGroup."""
+    """Put FreeDVReporter Compile items in the existing primary Compile ItemGroup.
+
+    This pass is deliberately idempotent.  Never use ``\s`` around item lines:
+    it consumes the indentation of the following Compile node and made the old
+    exact ``cmaster.cs`` anchor disappear on a second integration pass.
+    """
     path = mod.CONSOLE / 'Thetis.csproj'
     text = mod.read_text(path)
 
@@ -54,31 +59,39 @@ def normalize_reporter_compile_items():
     for include, _ in items:
         esc = re.escape(include)
         text = re.sub(
-            r'(?m)^\s*<Compile\s+Include="' + esc + r'"\s*/>\s*\r?\n?',
+            r'(?m)^[ \t]*<Compile\s+Include="' + esc + r'"[ \t]*/>[ \t]*\r?\n?',
             '', text)
         text = re.sub(
-            r'(?ms)^\s*<Compile\s+Include="' + esc + r'"\s*>.*?</Compile>\s*\r?\n?',
+            r'(?ms)^[ \t]*<Compile\s+Include="' + esc + r'"[ \t]*>.*?</Compile>[ \t]*\r?\n?',
             '', text)
 
-    text = re.sub(r'(?ms)^\s*<ItemGroup>\s*</ItemGroup>\s*\r?\n?', '', text)
+    # Remove only genuinely empty ItemGroups; keep following indentation intact.
+    text = re.sub(
+        r'(?m)^[ \t]*<ItemGroup>[ \t]*\r?\n[ \t]*</ItemGroup>[ \t]*\r?\n?',
+        '', text)
+
+    anchor_re = re.compile(
+        r'(?m)^(?P<indent>[ \t]*)<Compile\s+Include="cmaster\.cs"[ \t]*/>')
+    match = anchor_re.search(text)
+    require(match is not None, 'Thetis.csproj cmaster.cs primary Compile anchor missing')
+    indent = match.group('indent') or '    '
 
     lines = [
-        '    <Compile Include="FreeDVReporter\\FreeDVReporterClient.cs" />',
-        '    <Compile Include="FreeDVReporter\\FreeDVReporterForm.cs">',
-        '      <SubType>Form</SubType>',
-        '    </Compile>',
-        '    <Compile Include="FreeDVReporter\\FreeDVReporterManager.cs" />',
-        '    <Compile Include="FreeDVReporter\\Maidenhead.cs" />',
+        indent + '<Compile Include="FreeDVReporter\\FreeDVReporterClient.cs" />',
+        indent + '<Compile Include="FreeDVReporter\\FreeDVReporterForm.cs">',
+        indent + '  <SubType>Form</SubType>',
+        indent + '</Compile>',
+        indent + '<Compile Include="FreeDVReporter\\FreeDVReporterManager.cs" />',
+        indent + '<Compile Include="FreeDVReporter\\Maidenhead.cs" />',
     ]
     payload = '\n'.join(lines) + '\n'
-    anchor = '    <Compile Include="cmaster.cs" />'
-    require(anchor in text, 'Thetis.csproj cmaster.cs primary Compile anchor missing')
-    text = text.replace(anchor, payload + anchor, 1)
+    text = text[:match.start()] + payload + text[match.start():]
     mod.write_text(path, text)
 
     final = mod.read_text(path)
-    cmaster_pos = final.find(anchor)
-    require(cmaster_pos >= 0, 'cmaster.cs anchor lost')
+    cmaster_match = anchor_re.search(final)
+    require(cmaster_match is not None, 'cmaster.cs anchor lost')
+    cmaster_pos = cmaster_match.start()
     for include, _ in items:
         needle = '<Compile Include="' + include + '"'
         require(final.count(needle) == 1,
@@ -116,8 +129,6 @@ def patch_setup_designer_runtime_dependencies():
     text = mod.read_text(path)
     start, end, block = _initialize_component(text)
 
-    # Normalize tpGeneralLog construction to the first executable section of
-    # InitializeComponent.  This guarantees it exists before Controls.Add.
     block = re.sub(
         r'(?m)^\s*this\.tpGeneralLog\s*=\s*new\s+System\.Windows\.Forms\.TabPage\(\);\s*\r?\n?',
         '', block)
@@ -128,8 +139,6 @@ def patch_setup_designer_runtime_dependencies():
     init_line = '            this.tpGeneralLog = new System.Windows.Forms.TabPage();\n'
     block = block[:nl + 1] + init_line + block[nl + 1:]
 
-    # The vendor exposes this as General -> Log.  Attach once, after the
-    # existing General tab additions, without importing unrelated log widgets.
     add_line = '            this.tcGeneral.Controls.Add(this.tpGeneralLog);'
     if add_line not in block:
         adds = list(re.finditer(
@@ -138,8 +147,6 @@ def patch_setup_designer_runtime_dependencies():
         p = adds[-1].end()
         block = block[:p] + '\n' + add_line + block[p:]
 
-    # Give the transplanted tab the exact vendor identity/layout essentials.
-    # Existing RADE/Reporter child Controls.Add calls remain untouched.
     if 'this.tpGeneralLog.Name = "tpGeneralLog";' not in block:
         props = (
             '            this.tpGeneralLog.BackColor = System.Drawing.SystemColors.Control;\n'
@@ -160,8 +167,6 @@ def patch_setup_designer_runtime_dependencies():
     text = text[:start] + block + text[end:]
     mod.write_text(path, text)
 
-    # Static runtime-order gate: every RADE/Reporter control dereferenced in
-    # InitializeComponent must have a preceding `new`, plus the generic owner.
     final = mod.read_text(path)
     _, _, init = _initialize_component(final)
     names = {'tpGeneralLog'}
