@@ -51,6 +51,8 @@ jobs:
           $ErrorActionPreference='Stop'
           python tools/rade-redpitaya/integrate-ui.py
           if($LASTEXITCODE -ne 0){throw 'SV1EIA RADE Setup integration failed'}
+          python tools/rade-redpitaya/fix-ui-deps.py
+          if($LASTEXITCODE -ne 0){throw 'SV1EIA RADE UI dependency closure failed'}
           Write-Host 'SV1EIA_RADE_SETUP_1TO1=PASS'
 
       - name: Gate protected RedPitaya and GPU paths
@@ -177,7 +179,9 @@ jobs:
             'Project Files/Source/Console/Thetis.csproj' 'Project Files/Source/Console/console.cs' `
             'Project Files/Source/Console/setup.cs' 'Project Files/Source/Console/setup.designer.cs' `
             'Project Files/Source/Console/cmaster.cs' 'Project Files/Source/Console/common.cs' `
-            'Project Files/Source/Console/FreeDVReporter' 'tools/rade-redpitaya/INTEGRATED.txt'
+            'Project Files/Source/Console/MeterManager.cs' 'Project Files/Source/Console/ucMeter.cs' `
+            'Project Files/Source/Console/frmMeterDisplay.cs' 'Project Files/Source/Console/FreeDVReporter' `
+            'tools/rade-redpitaya/INTEGRATED.txt'
           if(-not (git diff --cached --quiet)){
             git commit -m 'Restore SV1EIA Setup DSP RADE 1to1 for RedPitaya [RADE-INTEGRATED]'
             git push origin HEAD:feature/rade-redpitaya-v1v2
