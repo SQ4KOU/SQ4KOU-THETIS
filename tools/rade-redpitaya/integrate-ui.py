@@ -1,5 +1,6 @@
 from pathlib import Path
 import importlib.util
+import re
 
 HERE = Path(__file__).resolve().parent
 ORIGINAL = HERE / 'integrate-ui-original.py'
@@ -151,10 +152,84 @@ def safe_members_with_bodies(text, regex):
     return out
 
 
-# Patch only lexical/member-boundary detection. All selection rules, protected
-# RedPitaya/PTT/EOO policy and validation remain exactly in the original integrator.
+_CLASS_RE = re.compile(
+    r'(?m)^[ \t]*(?:(?:public|internal|protected|private|sealed|abstract|static|partial|new)\s+)*'
+    r'(?P<kw>class)\s+(?P<name>[A-Za-z_]\w*)\b')
+
+
+def _code_brace_depth_before(text, pos, mask):
+    depth = 0
+    for i in range(pos):
+        if not mask[i]:
+            continue
+        if text[i] == '{':
+            depth += 1
+        elif text[i] == '}':
+            depth -= 1
+            if depth < 0:
+                raise RuntimeError('unbalanced C# braces before class')
+    return depth
+
+
+def safe_class_insert_pos(text):
+    """Return the real closing-brace position of the single top-level class.
+
+    The original integrator guessed the class end from the final lines of the
+    file. That is unsafe when a source has trailing regions, comments, helper
+    types or a layout different from the expected namespace/class suffix.
+    Here the class body is located lexically and its own matching brace is
+    used as the insertion boundary. Nested classes are ignored.
+    """
+    mask = _code_mask(text)
+    candidates = []
+
+    for m in _CLASS_RE.finditer(text):
+        kw = m.start('kw')
+        if kw >= len(mask) or not mask[kw]:
+            continue
+
+        open_pos = -1
+        i = m.end()
+        while i < len(text):
+            if not mask[i]:
+                i += 1
+                continue
+            ch = text[i]
+            if ch == '{':
+                open_pos = i
+                break
+            if ch in ';}':
+                break
+            i += 1
+        if open_pos < 0:
+            continue
+
+        try:
+            end = _brace_end_with_mask(text, open_pos, mask)
+            depth = _code_brace_depth_before(text, open_pos, mask)
+        except RuntimeError:
+            continue
+        candidates.append((depth, m.group('name'), open_pos, end - 1))
+
+    if not candidates:
+        raise RuntimeError('cannot find lexical top-level C# class')
+
+    min_depth = min(c[0] for c in candidates)
+    top = [c for c in candidates if c[0] == min_depth]
+    if len(top) != 1:
+        names = ', '.join(c[1] for c in top)
+        raise RuntimeError('ambiguous top-level C# classes: ' + names)
+
+    _, _, _, close_pos = top[0]
+    return close_pos
+
+
+# Patch only lexical/member-boundary and real class-boundary detection.
+# All selection rules, protected RedPitaya/PTT/EOO policy and validation remain
+# exactly in the original integrator.
 mod.brace_end = safe_brace_end
 mod.members_with_bodies = safe_members_with_bodies
+mod.class_insert_pos = safe_class_insert_pos
 
 if __name__ == '__main__':
     mod.main()
