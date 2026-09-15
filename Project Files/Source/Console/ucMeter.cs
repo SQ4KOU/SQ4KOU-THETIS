@@ -1,4 +1,4 @@
-﻿/*  ucMeter.cs
+/*  ucMeter.cs
 
 This file is part of a program that implements a Software-Defined Radio.
 
@@ -1233,6 +1233,18 @@ namespace Thetis
             if (!(_dragging || _resizing) && !pnlContainer.ClientRectangle.Contains(pnlContainer.PointToClient(Control.MousePosition)))
                 mouseLeave();
         }
-    }
+    
+
+        private bool _container_hides_when_rade_not_enabled;
+
+        public bool ContainerHidesWhenRADENotEnabled
+        {
+            get { return _container_hides_when_rade_not_enabled; }
+            set
+            {
+                _container_hides_when_rade_not_enabled = value;
+            }
+        }
+}
 }
 

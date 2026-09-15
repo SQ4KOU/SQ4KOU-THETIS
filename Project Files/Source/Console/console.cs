@@ -54186,7 +54186,337 @@ namespace Thetis
         //    Debug.Print(StateListToBase64());
         //}
         //
-    }
+    
+
+        public void NotifyRadaeEnabledChanged(int rx, bool enabled)
+        {
+            try { RadaeEnabledChangedHandlers?.Invoke(rx, enabled); }
+            catch { }
+        }
+
+        public void LogRadaeRxDspSnapshot(int rx)
+        {
+            if (!Common.LogEnabled || !Common.RadaeLogEnabled) return;   // Setup->General->Log gates
+            try
+            {
+                int ch = (rx == 1) ? WDSP.id(0, 0) : WDSP.id(2, 0);
+                int dspIdx = rx - 1;                 // RADE C-side + GetDSPRX index
+                int rate = (rx == 1) ? sample_rate_rx1 : sample_rate_rx2;
+                double size = 4096.0;
+                try { size = (double)specRX.GetSpecRX(rx - 1).FFTSize; } catch { }
+
+                RadioDSPRX d = null;
+                try { if (radio != null) d = radio.GetDSPRX(dspIdx, 0); } catch { }
+
+                Action<string, string> L = (n, v) =>
+                {
+                    try { Common.LogNetError("[RADE-DSP] RX" + rx + "  " + n + " = " + v); } catch { }
+                };
+
+                Common.LogNetError("[RADE-DSP] ===== RX" + rx + " RADE enabled: WDSP/DSP snapshot (wdsp ch " + ch + ") =====");
+
+                // --- identity / front-end ---
+                try { L("DSPMode", (rx == 1 ? RX1DSPMode : RX2DSPMode).ToString()); } catch { }
+                try { L("VFOFreqMHz", (rx == 1 ? VFOAFreq : VFOBFreq).ToString("F6")); } catch { }
+                L("SampleRateHz", rate.ToString());
+                L("FFTSize", size.ToString("F0"));
+                try { L("RADE_enabled", cmaster.GetRadaeRxEnabled(dspIdx).ToString()); } catch { }
+
+                // --- AGC knobs (C#) ---
+                try { L("AGCMode", (rx == 1 ? RX1AGCMode : RX2AGCMode).ToString()); } catch { }
+                if (d != null)
+                {
+                    try { L("AGC_MaxGain_dB", d.RXAGCMaxGain.ToString("F2")); } catch { }
+                    try { L("AGC_FixedGain_dB", d.RXFixedAGC.ToString("F2")); } catch { }
+                    try { L("AGC_Decay_ms", d.RXAGCDecay.ToString()); } catch { }
+                    try { L("AGC_Hang_ms", d.RXAGCHang.ToString()); } catch { }
+                    try { L("AGC_Slope", d.RXAGCSlope.ToString()); } catch { }
+                    try { L("AGC_HangThreshold", d.RXAGCHangThreshold.ToString()); } catch { }
+                }
+
+                // --- AGC cal-offset path (the documented RX1/RX2 asymmetry) ---
+                try { L("agcCalOffset_dB", agcCalOffset(rx).ToString("F2")); } catch { }
+                try { L("PreampOffset_dB", (rx == 1 ? Display.RX1PreampOffset : Display.RX2PreampOffset).ToString("F2")); } catch { }
+                try { L("DisplayCalOffset_dB", (rx == 1 ? Display.RX1DisplayCalOffset : Display.RX2DisplayCalOffset).ToString("F2")); } catch { }
+                try { L("FFTSizeOffset_dB", (rx == 1 ? Display.RX1FFTSizeOffset : Display.RX2FFTSizeOffset).ToString("F2")); } catch { }
+                try { L("AlexPreampOffset_dB", Display.AlexPreampOffset.ToString("F2")); } catch { }
+
+                // --- gains / RADE input level ---
+                if (d != null) { try { L("RXOutputGain", d.RXOutputGain.ToString("F4")); } catch { } }
+                try { L("RADE_AFGain", cmaster.GetRadaeRxAFGain(dspIdx).ToString("F4")); } catch { }
+                try { L("RADE_RxLevel_dBFS", cmaster.GetRadaeRxLevelDb(dspIdx).ToString()); } catch { }
+                try { L("RADE_SNR_dB", cmaster.GetRadaeSnrDb(dspIdx).ToString()); } catch { }
+
+                // --- filter / passband ---
+                if (d != null)
+                {
+                    try { L("FilterLow_Hz", d.RXFilterLow.ToString()); } catch { }
+                    try { L("FilterHigh_Hz", d.RXFilterHigh.ToString()); } catch { }
+                    try { L("FilterSize", d.FilterSize.ToString()); } catch { }
+                    try { L("BandpassWindow", d.RXBandpassWindow.ToString()); } catch { }
+                }
+
+                // --- noise / processing that alters the audio ---
+                if (d != null)
+                {
+                    try { L("NBMode", d.NBMode.ToString()); } catch { }
+                    try { L("NBThreshold", d.NBThreshold.ToString("F3")); } catch { }
+                    try { L("ANR1Run", d.RXANR1Run.ToString()); } catch { }
+                    try { L("ANR2Run", d.RXANR2Run.ToString()); } catch { }
+                    try { L("ANR3Run", d.RXANR3Run.ToString()); } catch { }
+                    try { L("ANR4Run", d.RXANR4Run.ToString()); } catch { }
+                    try { L("EMNRpost2Run", d.RXAEMNRpost2Run.ToString()); } catch { }
+                    try { L("SBNR_reduction", d.RXASBNRreductionAmount.ToString("F3")); } catch { }
+                    try { L("AutoNotch", d.AutoNotchFilter.ToString()); } catch { }
+                    try { L("EQOn", d.RXEQOn.ToString()); } catch { }
+                    try { L("APFRun", d.RXAPFRun.ToString()); } catch { }
+                    try { L("Pan", d.Pan.ToString("F3")); } catch { }
+                    try { L("AMSquelchOn", d.RXAMSquelchOn.ToString()); } catch { }
+                    try { L("FMSquelchOn", d.RXFMSquelchOn.ToString()); } catch { }
+                }
+
+                // --- ACTUAL WDSP runtime variables (no UI knob) ---
+                try { double th = 0.0; unsafe { WDSP.GetRXAAGCThresh(ch, &th, size, rate); } L("WDSP_AGCThresh_dB(actual)", th.ToString("F2")); } catch { }
+                try { double top = 0.0; unsafe { WDSP.GetRXAAGCTop(ch, &top); } L("WDSP_AGCTop_dB(actual)", top.ToString("F2")); } catch { }
+                try { int ht = 0; unsafe { WDSP.GetRXAAGCHangThreshold(ch, &ht); } L("WDSP_AGCHangThreshold(actual)", ht.ToString()); } catch { }
+                try { double hl = 0.0; unsafe { WDSP.GetRXAAGCHangLevel(ch, &hl); } L("WDSP_AGCHangLevel_dB(actual)", hl.ToString("F2")); } catch { }
+                try { L("WDSP_Meter_S_AV_dBm", WDSP.GetRXAMeter(ch, WDSP.rxaMeterType.RXA_S_AV).ToString("F2")); } catch { }
+                try { L("WDSP_Meter_ADC_AV_dB", WDSP.GetRXAMeter(ch, WDSP.rxaMeterType.RXA_ADC_AV).ToString("F2")); } catch { }
+                try { L("WDSP_Meter_AGC_GAIN_dB(actual)", WDSP.GetRXAMeter(ch, WDSP.rxaMeterType.RXA_AGC_GAIN).ToString("F2")); } catch { }
+                try { L("WDSP_Meter_AGC_AV_dB", WDSP.GetRXAMeter(ch, WDSP.rxaMeterType.RXA_AGC_AV).ToString("F2")); } catch { }
+
+                Common.LogNetError("[RADE-DSP] ===== RX" + rx + " snapshot end =====");
+            }
+            catch (Exception ex)
+            {
+                try { Common.LogNetError("[RADE-DSP] RX" + rx + " snapshot FAILED: " + ex.Message); } catch { }
+            }
+        }
+
+        public void ForceRadaeRxCleanAudio(int rx)
+        {
+            if (rx < 1 || rx > 2) return;
+            try
+            {
+                // NR (NR1/NR2/NR3/NR4): step through plain NR, then off, so the
+                // button ends UNCHECKED while displaying "NR" (not NR2/3/4) for
+                // the next click. SelectNR() drives setupNR(), which forces the
+                // WDSP RXANR1-4 run flags off as its last write -- so this also
+                // clears the UI<->WDSP NR desync we observed.
+                try { SelectNR(rx, true, 1); } catch { }   // -> plain NR
+                try { SelectNR(rx, true, 0); } catch { }   // -> off (shows "NR")
+
+                if (rx == 1)
+                {
+                    // NB: only NB2 harms RADE; NB (NB1) is fine. If the NB button
+                    // is at NB2 (CheckState.Indeterminate) drop it to NB1
+                    // (Checked); leave NB1/off untouched.
+                    try { if (chkNB != null && chkNB.CheckState == System.Windows.Forms.CheckState.Indeterminate)
+                              chkNB.CheckState = System.Windows.Forms.CheckState.Checked; } catch { }
+                    // ANF off (UI then WDSP below).
+                    try { if (chkANF != null) chkANF.Checked = false; } catch { }
+                }
+                else
+                {
+                    try { if (chkRX2NB != null && chkRX2NB.CheckState == System.Windows.Forms.CheckState.Indeterminate)
+                              chkRX2NB.CheckState = System.Windows.Forms.CheckState.Checked; } catch { }
+                    try { if (chkRX2ANF != null) chkRX2ANF.Checked = false; } catch { }
+                }
+
+                // ANF WDSP last: force the run flag off even if the checkbox
+                // already showed off while WDSP had drifted on.
+                // NOTE: SNB (chkDSPNB2) is intentionally NOT touched -- NB1 and
+                // SNB are both fine for RADE.
+                RadioDSPRX d = null;
+                try { if (radio != null) d = radio.GetDSPRX(rx - 1, 0); } catch { }
+                if (d != null) { try { d.AutoNotchFilter = false; } catch { } }
+            }
+            catch { }
+        }
+
+        public bool RadaeRx1Enabled
+        {
+            get { return cmaster.GetRadaeRxEnabled(0) != 0; }
+        }
+
+        public bool RadaeRx2Enabled
+        {
+            get { return cmaster.GetRadaeRxEnabled(1) != 0; }
+        }
+
+        public bool RadaeEnabled
+        {
+            get { return RadaeRx1Enabled || RadaeRx2Enabled || cmaster.GetRadaeTxEnabled() != 0; }
+        }
+
+        public bool RadeIgnoreQsyRequest { get { return _rade_ignore_qsy_request; } set { _rade_ignore_qsy_request = value; } }
+
+        public bool RadeReporterTimesUtc { get { return _rade_reporter_times_utc; } set { _rade_reporter_times_utc = value; } }
+
+        private volatile bool _rade_over_was_radae = false;
+
+        private DSPMode _radae_saved_rx1_mode      = DSPMode.FIRST;
+
+        private bool    _radae_bypass_mode_swapped = false;
+
+        private bool _rade_ignore_qsy_request = false;
+
+        private bool _rade_reporter_times_utc = true;
+
+        public RadaeEnabledChanged RadaeEnabledChangedHandlers;
+
+
+        public delegate void RadaeEnabledChanged(int rx, bool enabled);
+
+
+        private bool _rade_measure_rx1 = false;
+
+        private bool _rade_measure_rx2 = false;
+
+        private bool _rade_measure_tx  = false;
+
+        private volatile string _radae_eoo_callsign = "";
+
+        public System.Windows.Forms.CheckBoxTS chkRADEMirror { get { return chkRADE; } }
+
+        public System.Windows.Forms.CheckBoxTS chkREPRMirror { get { return chkREPR; } }
+
+        public System.Windows.Forms.CheckBoxTS chkVISMirror  { get { return chkVIS;  } }
+
+        public System.Windows.Forms.CheckBoxTS chkRADERX2Mirror { get { return chkRADERX2; } }
+
+        public System.Windows.Forms.CheckBoxTS chkVISRX2Mirror  { get { return chkVISRX2;  } }
+
+        public System.Windows.Forms.ComboBoxTS cmbRadeVersionRX1Mirror { get { return cmbRadeVersionRX1; } }
+
+        public System.Windows.Forms.ComboBoxTS cmbRadeVersionRX2Mirror { get { return cmbRadeVersionRX2; } }
+
+        public bool RadeMeasureRx1 { get { return _rade_measure_rx1; } set { _rade_measure_rx1 = value; } }
+
+        public bool RadeMeasureRx2 { get { return _rade_measure_rx2; } set { _rade_measure_rx2 = value; } }
+
+        public bool RadeMeasureTx  { get { return _rade_measure_tx;  } set { _rade_measure_tx  = value; } }
+
+        public string RadaeEooCallsign
+        {
+            get { return _radae_eoo_callsign; }
+            set { _radae_eoo_callsign = value ?? ""; }
+        }
+
+        public void SetMoxEnabled(bool enabled)
+        {
+            try
+            {
+                if (chkMOX == null) return;
+                if (!enabled && chkMOX.Checked) chkMOX.Checked = false;
+                chkMOX.Enabled = enabled;
+            }
+            catch { }
+        }
+
+        public void SetRx1RadeControlVisible(bool visible)
+        {
+            try
+            {
+                if (chkRADE != null) { chkRADE.Visible = visible; chkRADE.Enabled = visible; }
+                if (chkREPR != null) { chkREPR.Visible = visible; chkREPR.Enabled = visible; }
+                if (chkVIS  != null) { chkVIS.Visible  = visible; chkVIS.Enabled  = visible; }
+                // Version combo: visibility follows the master; always enabled.
+                if (cmbRadeVersionRX1 != null) cmbRadeVersionRX1.Visible = visible;
+            }
+            catch { }
+        }
+
+        public void SetRx2RadeControlVisible(bool visible)
+        {
+            try
+            {
+                if (chkRADERX2 != null) { chkRADERX2.Visible = visible; chkRADERX2.Enabled = visible; }
+                // chkREPRRX2 (RX2 reporter) removed from the UI -- a single RX1 reporter covers both RX.
+                // RX2 VIS is shown with the RX2 master but enabled only when the RX1 reporter (chkREPR) is on.
+                if (chkVISRX2  != null) { chkVISRX2.Visible  = visible; chkVISRX2.Enabled  = visible && chkREPR != null && chkREPR.Checked; }
+                // Version combo: visibility follows the master; always enabled.
+                if (cmbRadeVersionRX2 != null) cmbRadeVersionRX2.Visible = visible;
+            }
+            catch { }
+        }
+
+        private void chkRADE_CheckedChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                if (!IsSetupFormNull && SetupForm.RADAE != chkRADE.Checked)
+                    SetupForm.RADAE = chkRADE.Checked;
+            }
+            catch { }
+        }
+
+        private void chkREPR_CheckedChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                if (!IsSetupFormNull && SetupForm.RADAEReporter != chkREPR.Checked)
+                    SetupForm.RADAEReporter = chkREPR.Checked;
+                /* Local greyed-out: VIS is meaningful only when REPR is on.  Both RX1 and RX2 VIS
+                 * now gate on the single RX1 reporter (the RX2 reporter control was removed). */
+                if (chkVIS.Enabled != chkREPR.Checked)
+                    chkVIS.Enabled = chkREPR.Checked;
+                if (chkVISRX2 != null && chkVISRX2.Enabled != chkREPR.Checked)
+                    chkVISRX2.Enabled = chkREPR.Checked;
+            }
+            catch { }
+        }
+
+        private void chkVIS_CheckedChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                if (!IsSetupFormNull && SetupForm.RADAEReporting != chkVIS.Checked)
+                    SetupForm.RADAEReporting = chkVIS.Checked;
+            }
+            catch { }
+        }
+
+        private void chkRADERX2_CheckedChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                if (!IsSetupFormNull && SetupForm.RADAERX2 != chkRADERX2.Checked)
+                    SetupForm.RADAERX2 = chkRADERX2.Checked;
+            }
+            catch { }
+        }
+
+        private void chkVISRX2_CheckedChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                if (!IsSetupFormNull && SetupForm.RADAEReportingRX2 != chkVISRX2.Checked)
+                    SetupForm.RADAEReportingRX2 = chkVISRX2.Checked;
+            }
+            catch { }
+        }
+
+        private void cmbRadeVersionRX1_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                if (!IsSetupFormNull && SetupForm.RADAEVersionRX1 != cmbRadeVersionRX1.SelectedIndex)
+                    SetupForm.RADAEVersionRX1 = cmbRadeVersionRX1.SelectedIndex;
+            }
+            catch { }
+        }
+
+        private void cmbRadeVersionRX2_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                if (!IsSetupFormNull && SetupForm.RADAEVersionRX2 != cmbRadeVersionRX2.SelectedIndex)
+                    SetupForm.RADAEVersionRX2 = cmbRadeVersionRX2.SelectedIndex;
+            }
+            catch { }
+        }
+}
 
     public class DigiMode
     {

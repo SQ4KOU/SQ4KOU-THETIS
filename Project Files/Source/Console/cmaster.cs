@@ -1,4 +1,4 @@
-﻿/*  cmaster.cs
+/*  cmaster.cs
 
 This file is part of a program that implements a Software-Defined Radio.
 
@@ -1991,7 +1991,143 @@ namespace Thetis
 
         #endregion
 
-    }
+    
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "SetRadaeRxEnabled", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetRadaeRxEnabled(int rx, int enable);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "SetRadaeTxEnabled", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetRadaeTxEnabled(int enable);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "GetRadaeRxEnabled", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int GetRadaeRxEnabled(int rx);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "GetRadaeTxEnabled", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int GetRadaeTxEnabled();
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "GetRadaeSync", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int GetRadaeSync(int rx);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "GetRadaeSnrDb", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int GetRadaeSnrDb(int rx);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "GetRadaeRxLevelDb", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int GetRadaeRxLevelDb(int rx);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "GetRadaeClip", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int GetRadaeClip(int rx);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "GetRadaeRemoteCallsign", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+        public static extern int GetRadaeRemoteCallsign(int rx, StringBuilder dst, int max);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "GetRadaeRemoteCallsignSeq", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int GetRadaeRemoteCallsignSeq(int rx);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "GetRadaeEooDecodePulse", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int GetRadaeEooDecodePulse(int rx);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "GetRadaeTxMicLevelDb", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int GetRadaeTxMicLevelDb();
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "GetRadaeTxMicClip", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int GetRadaeTxMicClip();
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "GetRadaeEooFlushed", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int GetRadaeEooFlushed();
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "SetRadaeTxSilenceHold", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetRadaeTxSilenceHold(int on);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "GetRadaeFreqOffset", CallingConvention = CallingConvention.Cdecl)]
+        public static extern float GetRadaeFreqOffset(int rx);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "SetRadaeFreqOffset", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetRadaeFreqOffset(int rx, float hz);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "RadaeNotifyEndOfOver", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void RadaeNotifyEndOfOver();
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "RadaeNotifyBeginOver", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void RadaeNotifyBeginOver();
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "SetRadaeLoopbackEnabled", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetRadaeLoopbackEnabled(int rx, int enable);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "GetRadaeLoopbackEnabled", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int GetRadaeLoopbackEnabled(int rx);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "SetRadaeProtocolV2", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetRadaeProtocolV2(int rx, int on);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "GetRadaeProtocolV2", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int GetRadaeProtocolV2(int rx);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "SetRadaeTxRx", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetRadaeTxRx(int rx);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "GetRadaeTxRx", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int GetRadaeTxRx();
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "SetRadaeMoxState", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetRadaeMoxState(int mox);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "SetRadaeEooCallsign", CallingConvention = CallingConvention.Cdecl, CharSet = CharSet.Ansi)]
+        public static extern void SetRadaeEooCallsign([MarshalAs(UnmanagedType.LPStr)] string callsign);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "SetRadaeMicScale", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetRadaeMicScale(double scale);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "SetRadaeRxScale", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetRadaeRxScale(int rx, double scale);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "SetRadaeRxDialScale", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetRadaeRxDialScale(int rx, double scale);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "SetRadaeRxAFGain", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetRadaeRxAFGain(int rx, double gain);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "GetRadaeRxAFGain", CallingConvention = CallingConvention.Cdecl)]
+        public static extern float GetRadaeRxAFGain(int rx);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "SetRadaeMicRNNoiseEnabled", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetRadaeMicRNNoiseEnabled(int enable);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "SetRadaeMicAGCEnabled", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetRadaeMicAGCEnabled(int enable);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "SetRadaeMicAGCTargetLufs", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetRadaeMicAGCTargetLufs(double target_lufs);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "SetRadaeMicEQEnabled", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetRadaeMicEQEnabled(int enable);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "SetRadaeMicEQBass", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetRadaeMicEQBass(double freq_hz, double gain_db);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "SetRadaeMicEQMid", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetRadaeMicEQMid(double freq_hz, double gain_db, double q);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "SetRadaeMicEQTreble", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetRadaeMicEQTreble(double freq_hz, double gain_db);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "SetRadaeMicEQVol", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetRadaeMicEQVol(double gain_db);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "SetRadaeBypassMicDsp", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetRadaeBypassMicDsp(int enable);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "SetRadaeBypassEncoderCore", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetRadaeBypassEncoderCore(int enable);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "SetRadaeBypassRmatch", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetRadaeBypassRmatch(int enable);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "SetRadaeBypassEncoder", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetRadaeBypassEncoder(int enable);
+
+        [DllImport("ChannelMaster.dll", EntryPoint = "SetRadaeBypassAll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetRadaeBypassAll(int enable);
+}
 
     #region VOX
 

@@ -515,6 +515,12 @@
     <Compile Include="HPSDR\clsRadioDiscovery.cs" />
     <Compile Include="TimeOutTimerManager.cs" />
     <Compile Include="Firewall.cs" />
+    <Compile Include="FreeDVReporter\FreeDVReporterClient.cs" />
+    <Compile Include="FreeDVReporter\FreeDVReporterForm.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="FreeDVReporter\FreeDVReporterManager.cs" />
+    <Compile Include="FreeDVReporter\Maidenhead.cs" />
     <Compile Include="cmaster.cs" />
     <Compile Include="Andromeda\displaysettingsform.cs">
       <SubType>Form</SubType>

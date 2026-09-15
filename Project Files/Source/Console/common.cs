@@ -1930,5 +1930,78 @@ namespace Thetis
             return root;
         }
         //
-    }
+    
+
+        public static void LogReporter(string entry)
+        {
+            if (!LogEnabled || !ReporterLogEnabled) return;
+            LogNetError(entry);
+        }
+
+        public static volatile bool ReporterLogEnabled = false;
+
+        public static volatile bool RadaeLogEnabled = false;
+
+
+        private static readonly object m_oNetLogLock = new object();
+
+        public static volatile bool LogEnabled = false;
+
+        public static volatile int  LogMaxLines = -1;
+
+        public static Action OnLogOverflow = null;
+
+        public static void LogNetError(string entry)
+        {
+            if (!LogEnabled) return;
+            if (m_sLogPath == "") return;
+            if (string.IsNullOrEmpty(entry)) return;
+            try
+            {
+                lock (m_oNetLogLock)
+                {
+                    string path = m_sLogPath + "\\NetErrorLog.txt";
+
+                    if (LogMaxLines > 0 && File.Exists(path))
+                    {
+                        int existing = 0;
+                        try
+                        {
+                            using (StreamReader r = new StreamReader(path))
+                                while (r.ReadLine() != null) existing++;
+                        }
+                        catch { existing = 0; }
+                        if (existing + 1 > LogMaxLines)
+                        {
+                            // Rotate: the next line would exceed "Max lines".
+                            // Drop any previous NetErrorLogOld.txt, rename the
+                            // current log to NetErrorLogOld.txt, then start a
+                            // fresh empty NetErrorLog.txt (the append below
+                            // re-creates it). Keeps one generation of history.
+                            string oldpath = m_sLogPath + "\\NetErrorLogOld.txt";
+                            try { if (File.Exists(oldpath)) File.Delete(oldpath); } catch { }
+                            try { File.Move(path, oldpath); } catch { }
+
+                            Action cb = OnLogOverflow;
+                            if (cb != null)
+                            {
+                                try { cb(); } catch { }
+                            }
+                            // fall through: append to the new empty NetErrorLog.txt
+                        }
+                    }
+
+                    using (StreamWriter w = File.AppendText(path))
+                    {
+                        w.WriteLine(
+                            DateTime.Now.ToString(
+                                "yyyy/MM/dd HH:mm:ss.fff",
+                                System.Globalization.CultureInfo.InvariantCulture)
+                            + " " + entry);
+                    }
+                }
+            }
+            catch { }
+        }
+}
 }
