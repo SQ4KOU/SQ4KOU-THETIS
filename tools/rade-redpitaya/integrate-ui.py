@@ -231,12 +231,63 @@ def safe_class_insert_pos(text):
     return close_pos
 
 
-# Patch only lexical/member-boundary and real class-boundary detection.
-# All selection rules, protected RedPitaya/PTT/EOO policy and validation remain
-# exactly in the original integrator.
+_DELEGATE_RE = re.compile(
+    r'(?m)^[ \t]*(?:(?:public|internal|protected|private|static|new|unsafe)\s+)*'
+    r'delegate\s+[A-Za-z_][\w<>,\.\[\]\? ]*\s+(?P<name>[A-Za-z_]\w*)\s*\([^;{}]*\)\s*;')
+
+
+def _delegate_declarations(text):
+    mask = _code_mask(text)
+    out = []
+    for m in _DELEGATE_RE.finditer(text):
+        if m.start() < len(mask) and mask[m.start()]:
+            out.append((m.group('name'), m.group(0)))
+    return out
+
+
+def safe_patch_console_named_members():
+    """Run the original RADE member port, then copy exact RADE delegate types.
+
+    The original selector covers methods, properties and fields but not C#
+    delegate declarations. RADE exposes members typed with those delegates,
+    so copying a field without its type produces CS0246. Copy declarations
+    verbatim from the pinned SV1EIA source; never synthesize signatures.
+    """
+    _original_patch_console_named_members()
+
+    rel = 'Project Files/Source/Console/console.cs'
+    ref = mod.vendor_text(rel)
+    path = mod.CONSOLE / 'console.cs'
+    target = mod.read_text(path)
+
+    ref_delegates = {
+        name: block for name, block in _delegate_declarations(ref)
+        if mod.KEEP_RE.search(name) and not mod.EOO_DENY_RE.search(name)
+    }
+    mod.require('RadaeEnabledChanged' in ref_delegates,
+                'SV1EIA RadaeEnabledChanged delegate declaration not found')
+
+    target_names = {name for name, _ in _delegate_declarations(target)}
+    missing = [block for name, block in ref_delegates.items() if name not in target_names]
+    if missing:
+        target = mod.insert_class_members(target, missing)
+        mod.write_text(path, target)
+
+    final_names = {name for name, _ in _delegate_declarations(target)}
+    mod.require('RadaeEnabledChanged' in final_names,
+                'RadaeEnabledChanged delegate was not transplanted')
+    print('SV1EIA Console RADE delegates ported: ' +
+          ', '.join(sorted(name for name in ref_delegates if name not in target_names)))
+
+
+# Patch lexical/member-boundary and real class-boundary detection. Extend the
+# original Console port only for exact delegate declarations missing from its
+# selector. All selection rules and protected RedPitaya/PTT/EOO policy remain.
 mod.brace_end = safe_brace_end
 mod.members_with_bodies = safe_members_with_bodies
 mod.class_insert_pos = safe_class_insert_pos
+_original_patch_console_named_members = mod.patch_console_named_members
+mod.patch_console_named_members = safe_patch_console_named_members
 
 if __name__ == '__main__':
     mod.main()
