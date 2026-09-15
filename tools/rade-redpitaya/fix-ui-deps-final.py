@@ -42,9 +42,9 @@ def patch_setup_public_properties():
 def normalize_reporter_compile_items():
     """Put FreeDVReporter Compile items in the existing primary Compile ItemGroup.
 
-    This pass is deliberately idempotent.  Never use ``\s`` around item lines:
-    it consumes the indentation of the following Compile node and made the old
-    exact ``cmaster.cs`` anchor disappear on a second integration pass.
+    This pass is deliberately idempotent. Never use a cross-line whitespace
+    matcher around item lines: it can consume the indentation of the following
+    Compile node and make a valid project look structurally different.
     """
     path = mod.CONSOLE / 'Thetis.csproj'
     text = mod.read_text(path)
@@ -65,7 +65,6 @@ def normalize_reporter_compile_items():
             r'(?ms)^[ \t]*<Compile\s+Include="' + esc + r'"[ \t]*>.*?</Compile>[ \t]*\r?\n?',
             '', text)
 
-    # Remove only genuinely empty ItemGroups; keep following indentation intact.
     text = re.sub(
         r'(?m)^[ \t]*<ItemGroup>[ \t]*\r?\n[ \t]*</ItemGroup>[ \t]*\r?\n?',
         '', text)
@@ -116,15 +115,7 @@ def _initialize_component(text):
 
 
 def patch_setup_designer_runtime_dependencies():
-    """Fix the runtime-only dependency missed by the selective designer port.
-
-    The RADE/Reporter lines add two controls to tpGeneralLog.  The generic
-    owner name did not match the RADE selector, so the field existed but the
-    TabPage was never constructed.  C# therefore compiled but crashed in
-    Setup.InitializeComponent().  Construct the owner before any dereference,
-    attach it to tcGeneral, and gate every RADE/Reporter designer control for
-    assignment-before-use.
-    """
+    """Restore tpGeneralLog and gate every actual child before first use."""
     path = mod.CONSOLE / 'setup.designer.cs'
     text = mod.read_text(path)
     start, end, block = _initialize_component(text)
@@ -169,17 +160,26 @@ def patch_setup_designer_runtime_dependencies():
 
     final = mod.read_text(path)
     _, _, init = _initialize_component(final)
-    names = {'tpGeneralLog'}
+
+    # Gate the controls that are actually attached to tpGeneralLog.  The prior
+    # check guessed two historical WinForms names; the pinned SV1EIA source does
+    # not contain those names.  Deriving children from Controls.Add keeps the
+    # gate exact and future-proof while still detecting the original null bug.
+    child_names = set(re.findall(
+        r'this\.tpGeneralLog\.Controls\.Add\(this\.([A-Za-z_]\w*)\)', init))
+    require(child_names, 'tpGeneralLog has no child controls')
+
+    names = {'tpGeneralLog'} | child_names
     names.update(re.findall(
         r'this\.([A-Za-z_]\w*(?:rade|reporter)[A-Za-z0-9_]*)\.',
         init, flags=re.I))
-    require('chkReporterLogEnable' in names and 'chkRadaeLogEnable' in names,
-            'Reporter/RADAE log controls missing from runtime gate')
 
     for name in sorted(names):
         use_m = re.search(r'this\.' + re.escape(name) + r'\.', init)
         if use_m is None:
-            continue
+            # Controls.Add(this.child) is itself a use; require construction.
+            use_m = re.search(r'this\.' + re.escape(name) + r'\b', init)
+        require(use_m is not None, 'runtime-gated control is never used: ' + name)
         new_m = re.search(r'this\.' + re.escape(name) + r'\s*=\s*new\s+', init)
         require(new_m is not None,
                 'RUNTIME_NULL_RISK: control used without construction: ' + name)
@@ -187,6 +187,7 @@ def patch_setup_designer_runtime_dependencies():
                 'RUNTIME_NULL_RISK: control constructed after first use: ' + name)
 
     require(add_line in init, 'tpGeneralLog is not attached to tcGeneral')
+    print('TPGENERALLOG_CHILDREN=' + ','.join(sorted(child_names)))
     print('TPGENERALLOG_RUNTIME_DEP=PASS')
     print('SV1EIA_SETUP_RUNTIME_CONTROL_ORDER=PASS')
 
