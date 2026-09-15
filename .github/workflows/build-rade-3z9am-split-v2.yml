@@ -1,0 +1,189 @@
+name: Build 3Z9AM RADE Split V2 MSI
+
+on:
+  push:
+    branches: [feature/rade-3z9am-v1v2]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2025
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Base and tooling
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          git config --global core.longpaths true
+          $base='ab0071751b0fbe006ddad243361a37cfd59bed46'
+          git cat-file -e "$base^{commit}"
+          git fetch origin feature/rade-redpitaya-v1v2 --no-tags
+          git checkout origin/feature/rade-redpitaya-v1v2 -- tools/rade-redpitaya
+          git checkout origin/feature/rade-redpitaya-v1v2 -- 'Project Files/Source/Console/RadeNative.cs' 'Project Files/Source/Console/RadeIntegration.cs'
+          $ri='Project Files\Source\Console\RadeIntegration.cs'
+          $s=Get-Content $ri -Raw
+          $s=$s.Replace('Thetis-RedPitaya - FreeDV RADE V1/V2','Thetis-3Z9AM - FreeDV RADE V1/V2')
+          Set-Content $ri $s -Encoding UTF8
+          Write-Host 'BASE_AND_TOOLING=PASS'
+
+      - name: Vendor
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $pin='408f2b5232ff0a2aec9b538a40d4cb1b02627b17'
+          $vendor='Project Files\lib\Thetis-RADE-vendor'
+          if(Test-Path $vendor){Remove-Item $vendor -Recurse -Force}
+          git clone --recursive https://github.com/sv1eia/Thetis-RADE.git $vendor
+          git -C $vendor checkout $pin
+          git -C $vendor submodule update --init --recursive
+          if((git -C $vendor rev-parse HEAD).Trim() -ne $pin){throw 'Wrong RADE vendor'}
+
+      - name: RADE core
+        timeout-minutes: 3
+        shell: pwsh
+        run: python tools/rade-redpitaya/integrate.py
+
+      - name: RADE UI
+        timeout-minutes: 3
+        shell: pwsh
+        run: python tools/rade-redpitaya/integrate-ui.py
+
+      - name: UI dependency closure
+        timeout-minutes: 3
+        shell: pwsh
+        run: python tools/rade-redpitaya/fix-ui-deps.py
+
+      - name: Prune foreign General Log controls
+        timeout-minutes: 2
+        shell: pwsh
+        run: |
+          python tools/rade-3z9am/fix-general-log-runtime.py
+          if($LASTEXITCODE -ne 0){throw '3Z9AM General Log runtime adapter failed'}
+
+      - name: Final UI closure
+        timeout-minutes: 3
+        shell: pwsh
+        run: python tools/rade-redpitaya/fix-ui-deps-final.py
+
+      - name: Dependency closure
+        timeout-minutes: 3
+        shell: pwsh
+        run: python tools/rade-redpitaya/integrate-deps.py
+
+      - name: Startup NRE gate
+        timeout-minutes: 3
+        shell: pwsh
+        run: python tools/rade-redpitaya/fix-setup-nre.py
+
+      - name: Protect 3Z9AM and gate RADE
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $base='ab0071751b0fbe006ddad243361a37cfd59bed46'
+          foreach($p in @('Project Files/Source/Console/Display.GPUWaterfall.cs','Project Files/Source/Console/display.cs','Project Files/Source/Console/NetworkIO.cs','Project Files/Source/Console/PSForm.cs')){
+            if(Test-Path $p){git diff --exit-code $base -- $p; if($LASTEXITCODE -ne 0){throw "Protected 3Z9AM file changed: $p"}}
+          }
+          $c=Get-Content 'Project Files\Source\Console\console.cs' -Raw
+          foreach($t in @('RadeInterceptMoxChange(chkMOX.Checked)','RadeAfterMoxChanged(tx)','RadePttStateMachine(); // SQ4KOU RADE EOO-safe arbiter')){if(-not $c.Contains($t)){throw "Missing: $t"}}
+          $r=Get-Content 'Project Files\Source\Console\RadeIntegration.cs' -Raw
+          foreach($t in @('SetRadaeTxSilenceHold(1)','RadaeNotifyEndOfOver()','GetRadaeEooFlushed()','RadeEooMarginMs = 300','RadeEooTimeoutMs = 3000')){if(-not $r.Contains($t)){throw "Missing: $t"}}
+          Write-Host 'THETIS_3Z9AM_PROTECTED_AND_RADE_GATE=PASS'
+
+      - uses: NuGet/setup-nuget@v2
+      - uses: microsoft/setup-msbuild@v2
+
+      - name: Native RADE dependencies
+        shell: pwsh
+        run: tools/rade-redpitaya/build-rade-deps.ps1 -Configuration Release
+
+      - name: WiX
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $targets=Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if(-not $targets){choco install wixtoolset -y --no-progress}
+          $targets=Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if(-not $targets){$targets=Get-ChildItem 'C:\Program Files (x86)\WiX Toolset*\Wix.targets' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1}
+          if(-not $targets){throw 'WiX 3.x missing'}
+          "WIX_TARGETS=$($targets.FullName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore
+        shell: pwsh
+        run: nuget restore 'Project Files\Source\Thetis_VS2026.sln' -NonInteractive
+
+      - name: Build x64
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Continue'
+          $log=Join-Path $env:RUNNER_TEMP '3z9am-rade-v2-build.log'
+          "BUILD_LOG=$log" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          & msbuild 'Project Files\Source\Thetis_VS2026.sln' /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal 2>&1 | Tee-Object -FilePath $log
+          $code=$LASTEXITCODE
+          $errs=Select-String -Path $log -Pattern ': error |error CS|error C[0-9]{4}|fatal error' -ErrorAction SilentlyContinue
+          if($errs){
+            $e=Join-Path $env:RUNNER_TEMP '3z9am-errors.txt'
+            $errs | ForEach-Object {$_.Line} | Set-Content $e -Encoding UTF8
+            "ERROR_LOG=$e" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          }
+          if($code -ne 0 -or $errs){throw 'MSBuild failed'}
+          Write-Host 'THETIS_3Z9AM_RADE_BUILD=PASS'
+
+      - name: RADE exports
+        if: success()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $dll=Get-ChildItem 'Project Files\bin' -Recurse -Filter ChannelMaster.dll | Where-Object {$_.FullName -match '\\x64\\Release\\'} | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if(-not $dll){throw 'ChannelMaster.dll missing'}
+          $vswhere="${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $vspath=& $vswhere -latest -products * -property installationPath
+          $dump=Get-ChildItem (Join-Path $vspath 'VC\Tools\MSVC') -Recurse -Filter dumpbin.exe | Where-Object {$_.FullName -match '\\Hostx64\\x64\\'} | Sort-Object FullName -Descending | Select-Object -First 1
+          $x=& $dump.FullName /exports $dll.FullName | Out-String
+          foreach($n in @('SetRadaeRxEnabled','SetRadaeProtocolV2','SetRadaeTxRx','GetRadaeSync','SetRadaeMoxState','RadaeNotifyBeginOver','RadaeNotifyEndOfOver','GetRadaeEooFlushed','SetRadaeTxSilenceHold')){if($x -notmatch [regex]::Escape($n)){throw "Missing export: $n"}}
+          Write-Host 'THETIS_3Z9AM_RADE_EXPORTS=PASS'
+
+      - name: MSI
+        if: success()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $msi=Get-ChildItem 'Project Files\bin\Installers\*.msi' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if(-not $msi -or $msi.Length -lt 1MB){throw 'MSI missing'}
+          $f=Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-3Z9AM-RADE-SV1EIA-1TO1-NREFIX-TEST-x64.msi'
+          Copy-Item $msi.FullName $f -Force
+          "FINAL_MSI=$f" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "MSI_BYTES=$($msi.Length)"
+          Write-Host "MSI_SHA256=$((Get-FileHash $f -Algorithm SHA256).Hash)"
+
+      - name: Upload MSI
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-3Z9AM-RADE-SV1EIA-1TO1-NREFIX-TEST-x64
+          path: ${{ env.FINAL_MSI }}
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: Upload errors
+        if: ${{ always() && env.ERROR_LOG != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-3Z9AM-RADE-V2-ERRORS
+          path: ${{ env.ERROR_LOG }}
+          if-no-files-found: error
+
+      - name: Upload build log
+        if: ${{ always() && env.BUILD_LOG != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-3Z9AM-RADE-V2-BUILD-LOG
+          path: ${{ env.BUILD_LOG }}
+          if-no-files-found: error
