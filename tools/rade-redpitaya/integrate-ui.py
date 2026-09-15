@@ -25,6 +25,11 @@ MERGE_FILES = [
     'Project Files/Source/Console/Thetis.csproj',
 ]
 
+UNION_SAFE = {
+    'Project Files/Source/Console/setup.cs',
+    'Project Files/Source/Console/setup.designer.cs',
+}
+
 
 def require(cond, msg):
     if not cond:
@@ -52,10 +57,9 @@ def vendor_text(path):
 def selected_reference(base_text, ref_text, path):
     """Return BASE plus only RADE/FreeDV-related BASE->SV1EIA edits.
 
-    SequenceMatcher opcodes are grouped when separated by <=6 unchanged lines;
-    this keeps WinForms property blocks structurally intact.  For console.cs,
-    SV1EIA's own PTT/MOX/EOO hunks are intentionally excluded because the
-    Red Pitaya branch already has a verified EOO-safe arbiter.
+    Nearby opcodes are grouped to retain complete WinForms property blocks.
+    In console.cs, SV1EIA's own PTT/MOX/EOO changes are deliberately excluded;
+    Red Pitaya keeps its verified EOO-safe arbiter.
     """
     a = base_text.splitlines(keepends=True)
     b = ref_text.splitlines(keepends=True)
@@ -104,6 +108,14 @@ def selected_reference(base_text, ref_text, path):
     return ''.join(out), selected
 
 
+def run_merge(ours, base, theirs, union=False):
+    args = ['git', 'merge-file']
+    if union:
+        args.append('--union')
+    args += ['-p', str(ours), str(base), str(theirs)]
+    return subprocess.run(args, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
+
+
 def merge_three_way(path, base_text, selective_ref):
     target_path = ROOT / path
     require(target_path.exists(), 'target file missing: ' + path)
@@ -117,11 +129,19 @@ def merge_three_way(path, base_text, selective_ref):
         ours.write_text(target_text, encoding='utf-8')
         base.write_text(base_text, encoding='utf-8')
         theirs.write_text(selective_ref, encoding='utf-8')
-        cp = subprocess.run(
-            ['git', 'merge-file', '-p', str(ours), str(base), str(theirs)],
-            cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=False)
-        require(cp.returncode == 0,
-                f'3-way RADE UI merge conflict in {path}: {cp.stderr.decode(errors="replace")}')
+
+        cp = run_merge(ours, base, theirs, union=False)
+        if cp.returncode != 0 and path in UNION_SAFE:
+            # setup.cs / designer contain many independent SQ4KOU additions.
+            # A union merge is correct for these additive WinForms regions:
+            # retain our Red Pitaya/GPU controls AND append SV1EIA RADE blocks.
+            cp = run_merge(ours, base, theirs, union=True)
+            require(cp.returncode == 0, 'union merge failed in ' + path)
+            print('SV1EIA union-resolved additive Setup conflict: ' + path)
+        else:
+            require(cp.returncode == 0,
+                    f'3-way RADE UI merge conflict in {path}: {cp.stderr.decode(errors="replace")}')
+
         merged = cp.stdout.decode('utf-8')
         require('<<<<<<<' not in merged and '>>>>>>>' not in merged,
                 'merge markers remain in ' + path)
@@ -153,6 +173,11 @@ def copy_reporter_sources():
     print(f'FreeDVReporter source copy: {n} files')
 
 
+def require_once(text, pattern, label):
+    n = len(re.findall(pattern, text, flags=re.M))
+    require(n == 1, f'{label}: expected once, found {n}')
+
+
 def validate_setup_surface():
     setup = read_text(CONSOLE / 'setup.cs')
     designer = read_text(CONSOLE / 'setup.designer.cs')
@@ -160,34 +185,31 @@ def validate_setup_surface():
     project = read_text(CONSOLE / 'Thetis.csproj')
 
     must_designer = [
-        'tpDSPRADE',
-        'chkRX1RadeControl',
-        'chkRX2RadeControl',
-        'chkRADAEReporter',
-        'chkRADAEReporting',
-        'chkRadaeMicRNNoise',
-        'chkRadaeMicAGC',
-        'chkRadaeMicEQ',
+        'tpDSPRADE', 'chkRX1RadeControl', 'chkRX2RadeControl',
+        'chkRADAEReporter', 'chkRADAEReporting', 'chkRadaeMicRNNoise',
+        'chkRadaeMicAGC', 'chkRadaeMicEQ',
     ]
     for token in must_designer:
         require(token in designer, 'missing SV1EIA RADE Setup control: ' + token)
 
     must_setup = [
-        'chkRX1RadeControl_CheckedChanged',
-        'chkRX2RadeControl_CheckedChanged',
-        'SetRadaeProtocolV2',
-        'chkRADAEReporter_CheckedChanged',
+        'chkRX1RadeControl_CheckedChanged', 'chkRX2RadeControl_CheckedChanged',
+        'SetRadaeProtocolV2', 'chkRADAEReporter_CheckedChanged',
     ]
     for token in must_setup:
         require(token in setup, 'missing SV1EIA RADE Setup event/wiring: ' + token)
 
+    # Union resolution must not duplicate handlers or control constructors.
+    require_once(setup, r'private\s+void\s+chkRX1RadeControl_CheckedChanged\s*\(', 'RX1 RADE handler')
+    require_once(setup, r'private\s+void\s+chkRX2RadeControl_CheckedChanged\s*\(', 'RX2 RADE handler')
+    require_once(designer, r'this\.tpDSPRADE\s*=\s*new\s+System\.Windows\.Forms\.TabPage\s*\(', 'RADE tab constructor')
+    require_once(designer, r'this\.chkRX1RadeControl\s*=\s*new\s+System\.Windows\.Forms\.CheckBoxTS\s*\(', 'RX1 RADE control constructor')
+    require_once(designer, r'this\.chkRX2RadeControl\s*=\s*new\s+System\.Windows\.Forms\.CheckBoxTS\s*\(', 'RX2 RADE control constructor')
+
     for token in ['SetRadaeRxEnabled', 'SetRadaeProtocolV2', 'SetRadaeRxDialScale']:
         require(token in cmaster, 'missing RADE cmaster interop: ' + token)
-
     require('FreeDVReporter' in project, 'FreeDVReporter is not included in Thetis.csproj')
 
-    # Protect the Red Pitaya-specific EOO arbiter.  The UI import must never
-    # replace or bypass these hooks.
     ri = read_text(CONSOLE / 'RadeIntegration.cs')
     for token in [
         'SetRadaeTxSilenceHold(1)', 'RadaeNotifyEndOfOver()',
