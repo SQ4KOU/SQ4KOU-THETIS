@@ -53,6 +53,8 @@ jobs:
           if($LASTEXITCODE -ne 0){throw 'SV1EIA RADE Setup integration failed'}
           python tools/rade-redpitaya/fix-ui-deps.py
           if($LASTEXITCODE -ne 0){throw 'SV1EIA RADE UI dependency closure failed'}
+          python tools/rade-redpitaya/fix-ui-deps-final.py
+          if($LASTEXITCODE -ne 0){throw 'Final SV1EIA RADE compile closure failed'}
           Write-Host 'SV1EIA_RADE_SETUP_1TO1=PASS'
 
       - name: Gate protected RedPitaya and GPU paths
@@ -80,8 +82,8 @@ jobs:
           }
           $setup=Get-Content 'Project Files\Source\Console\setup.cs' -Raw
           $designer=Get-Content 'Project Files\Source\Console\setup.designer.cs' -Raw
-          foreach($t in @('chkRX1RadeControl_CheckedChanged','chkRX2RadeControl_CheckedChanged','SetRadaeProtocolV2','chkRADAEReporter_CheckedChanged')){
-            if($setup -notmatch [regex]::Escape($t)){throw "Missing SV1EIA Setup RADE event: $t"}
+          foreach($t in @('chkRX1RadeControl_CheckedChanged','chkRX2RadeControl_CheckedChanged','SetRadaeProtocolV2','chkRADAEReporter_CheckedChanged','RADAEVersionRX1','RADAEVersionRX2')){
+            if($setup -notmatch [regex]::Escape($t)){throw "Missing SV1EIA Setup RADE element: $t"}
           }
           foreach($t in @('tpDSPRADE','chkRX1RadeControl','chkRX2RadeControl','chkRADAEReporter','chkRADAEReporting','chkRadaeMicRNNoise','chkRadaeMicAGC','chkRadaeMicEQ')){
             if($designer -notmatch [regex]::Escape($t)){throw "Missing SV1EIA Setup RADE control: $t"}
@@ -177,6 +179,7 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -- 'Project Files/Source/ChannelMaster' 'Project Files/Source/wdsp/dexp.c' `
             'Project Files/Source/Console/Thetis.csproj' 'Project Files/Source/Console/console.cs' `
+            'Project Files/Source/Console/console.Designer.cs' `
             'Project Files/Source/Console/setup.cs' 'Project Files/Source/Console/setup.designer.cs' `
             'Project Files/Source/Console/cmaster.cs' 'Project Files/Source/Console/common.cs' `
             'Project Files/Source/Console/MeterManager.cs' 'Project Files/Source/Console/ucMeter.cs' `
