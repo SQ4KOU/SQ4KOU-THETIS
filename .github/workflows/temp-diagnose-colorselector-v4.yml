@@ -32,23 +32,36 @@ jobs:
           python tools/rade-redpitaya/integrate-deps.py
           if($LASTEXITCODE -ne 0){throw 'integrate-deps.py failed'}
 
-      - name: Locate and dump ColorSelector source
+      - name: Locate every ColorSelector source and project reference
         shell: pwsh
         run: |
           $ErrorActionPreference='Stop'
-          $files = Get-ChildItem 'Project Files\Source' -Recurse -File -Filter '*colorselector*.cs'
-          if(-not $files){throw 'No generated ColorSelector source found'}
+          $needles=@('ConfigureAsPlayerCallsignEditor','DisablePlayerCallSignInput','PlayerCallSignText','CurrentPlayerColor','txtCallSign_TextChanged')
+          $files=Get-ChildItem . -Recurse -File -Filter '*.cs' | Where-Object {
+            $p=$_.FullName
+            $p -notmatch '\\.git\\' -and $p -notmatch '\\packages\\' -and $p -notmatch '\\obj\\' -and $p -notmatch '\\bin\\'
+          }
+          $hits=@()
           foreach($f in $files){
-            Write-Host "COLORSELECTOR_PATH=$($f.FullName)"
-            $tracked = (& git ls-files --error-unmatch -- $f.FullName 2>$null)
-            if($LASTEXITCODE -eq 0){Write-Host 'TRACKED=YES'}else{Write-Host 'TRACKED=NO'}
-            $text = Get-Content $f.FullName -Raw
-            foreach($name in @('ConfigureAsPlayerCallsignEditor','DisablePlayerCallSignInput','PlayerCallSignText','CurrentPlayerColor','txtCallSign_TextChanged')){
-              $count=([regex]::Matches($text,[regex]::Escape($name))).Count
-              Write-Host "COUNT $name=$count"
-            }
-            $lines=Get-Content $f.FullName
-            for($i=0;$i -lt $lines.Count;$i++){
-              if($i -lt 320){ Write-Host ('{0,4}: {1}' -f ($i+1),$lines[$i]) }
+            $text=Get-Content $f.FullName -Raw -ErrorAction SilentlyContinue
+            if($null -eq $text){continue}
+            foreach($n in $needles){
+              if($text -match [regex]::Escape($n)){
+                $hits += $f.FullName
+                Write-Host "HIT $n :: $($f.FullName)"
+              }
             }
           }
+          $hits=$hits | Sort-Object -Unique
+          Write-Host "UNIQUE_SOURCE_FILES=$($hits.Count)"
+          foreach($h in $hits){
+            Write-Host "===== $h ====="
+            $text=Get-Content $h -Raw
+            foreach($n in $needles){Write-Host "COUNT $n=$(([regex]::Matches($text,[regex]::Escape($n))).Count)"}
+          }
+          Write-Host '--- project references ---'
+          Get-ChildItem . -Recurse -File -Include '*.csproj','*.targets','*.props' | Where-Object {$_.FullName -notmatch '\\.git\\'} | ForEach-Object {
+            $m=Select-String -Path $_.FullName -Pattern 'colorselector|ColorSelector' -ErrorAction SilentlyContinue
+            if($m){$m | ForEach-Object {Write-Host "$($_.Path):$($_.LineNumber):$($_.Line)"}}
+          }
+          if($hits.Count -eq 0){throw 'No source containing ColorSelector callsign members found anywhere'}
