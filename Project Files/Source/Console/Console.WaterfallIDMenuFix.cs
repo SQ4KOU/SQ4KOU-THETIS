@@ -5,12 +5,10 @@ namespace Thetis
 {
     public partial class Console
     {
-        protected override void OnShown(EventArgs e)
-        {
-            base.OnShown(e);
-            EnsureWaterfallIDMenuVisible();
-        }
-
+        // The main Console class already owns the Form.OnShown override.
+        // Keep the Waterfall ID menu repair isolated here; the build integration
+        // calls this helper from the existing lifecycle path instead of declaring
+        // a second OnShown override.
         private void EnsureWaterfallIDMenuVisible()
         {
             if (menuStrip1 == null) return;
@@ -21,8 +19,6 @@ namespace Thetis
                 _waterfallIdMenuItem.Name = "waterfallIdToolStripMenuItem";
             }
 
-            // Always route the visible menu entry to the advanced test UI. The legacy handler
-            // remains compiled as a fallback implementation but is deliberately detached here.
             _waterfallIdMenuItem.Click -= WaterfallIdMenuItem_Click;
             _waterfallIdMenuItem.Click -= WaterfallIdAdvancedMenuItem_Click;
             _waterfallIdMenuItem.Click += WaterfallIdAdvancedMenuItem_Click;
@@ -46,8 +42,6 @@ namespace Thetis
                 menuStrip1.Items.Insert(insertIndex, _waterfallIdMenuItem);
             }
 
-            // Match the native CWX menu item, including the normal-state text colour. This fixes
-            // the previously invisible label which only became readable under the hover renderer.
             if (cWXToolStripMenuItem != null)
             {
                 _waterfallIdMenuItem.ForeColor = cWXToolStripMenuItem.ForeColor;
