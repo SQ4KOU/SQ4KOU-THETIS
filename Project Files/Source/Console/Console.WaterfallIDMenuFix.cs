@@ -5,10 +5,32 @@ namespace Thetis
 {
     public partial class Console
     {
-        // The main Console class already owns the Form.OnShown override.
-        // Keep the Waterfall ID menu repair isolated here; the build integration
-        // calls this helper from the existing lifecycle path instead of declaring
-        // a second OnShown override.
+        // Console already overrides Form.OnShown in the native source.  Use a one-shot
+        // Application.Idle hook instead of declaring a second override in this partial class.
+        // This preserves the Waterfall ID menu repair after the main form is created without
+        // colliding with the native lifecycle implementation.
+        private static readonly bool _sq4kouWaterfallIdMenuHook = InstallWaterfallIdMenuHook();
+
+        private static bool InstallWaterfallIdMenuHook()
+        {
+            Application.Idle += Sq4kouWaterfallIdMenuIdle;
+            return true;
+        }
+
+        private static void Sq4kouWaterfallIdMenuIdle(object sender, EventArgs e)
+        {
+            foreach (Form form in Application.OpenForms)
+            {
+                Console console = form as Console;
+                if (console == null || !console.Visible)
+                    continue;
+
+                console.EnsureWaterfallIDMenuVisible();
+                Application.Idle -= Sq4kouWaterfallIdMenuIdle;
+                break;
+            }
+        }
+
         private void EnsureWaterfallIDMenuVisible()
         {
             if (menuStrip1 == null) return;
@@ -19,6 +41,7 @@ namespace Thetis
                 _waterfallIdMenuItem.Name = "waterfallIdToolStripMenuItem";
             }
 
+            // Route the visible entry to the advanced Waterfall ID UI.
             _waterfallIdMenuItem.Click -= WaterfallIdMenuItem_Click;
             _waterfallIdMenuItem.Click -= WaterfallIdAdvancedMenuItem_Click;
             _waterfallIdMenuItem.Click += WaterfallIdAdvancedMenuItem_Click;
@@ -42,6 +65,7 @@ namespace Thetis
                 menuStrip1.Items.Insert(insertIndex, _waterfallIdMenuItem);
             }
 
+            // Match the native CWX menu appearance so the label is visible in normal state.
             if (cWXToolStripMenuItem != null)
             {
                 _waterfallIdMenuItem.ForeColor = cWXToolStripMenuItem.ForeColor;
