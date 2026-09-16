@@ -6,6 +6,7 @@ on:
       - temp/redpitaya-rade-tx-waterfall-id-20260916
     paths:
       - '.github/workflows/temp-diagnose-colorselector-v4.yml'
+      - 'tools/rade-redpitaya/fix-setup-nre.py'
 
 jobs:
   diagnose:
@@ -39,7 +40,8 @@ jobs:
           if(-not $files){throw 'No generated ColorSelector source found'}
           foreach($f in $files){
             Write-Host "COLORSELECTOR_PATH=$($f.FullName)"
-            Write-Host "TRACKED=$(git ls-files --error-unmatch -- $f.FullName 2>$null; if($LASTEXITCODE -eq 0){'YES'}else{'NO'})"
+            $tracked = (& git ls-files --error-unmatch -- $f.FullName 2>$null)
+            if($LASTEXITCODE -eq 0){Write-Host 'TRACKED=YES'}else{Write-Host 'TRACKED=NO'}
             $text = Get-Content $f.FullName -Raw
             foreach($name in @('ConfigureAsPlayerCallsignEditor','DisablePlayerCallSignInput','PlayerCallSignText','CurrentPlayerColor','txtCallSign_TextChanged')){
               $count=([regex]::Matches($text,[regex]::Escape($name))).Count
@@ -47,6 +49,6 @@ jobs:
             }
             $lines=Get-Content $f.FullName
             for($i=0;$i -lt $lines.Count;$i++){
-              if($i -lt 240){ Write-Host ('{0,4}: {1}' -f ($i+1),$lines[$i]) }
+              if($i -lt 320){ Write-Host ('{0,4}: {1}' -f ($i+1),$lines[$i]) }
             }
           }
