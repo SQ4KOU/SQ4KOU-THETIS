@@ -1,0 +1,258 @@
+name: TEMP Build merged RADE + TX Waterfall ID v3
+
+on:
+  push:
+    branches:
+      - temp/redpitaya-rade-tx-waterfall-id-20260916
+    paths:
+      - '.github/workflows/temp-build-rade-waterfall-v3.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  build-msi:
+    runs-on: windows-2025
+    timeout-minutes: 180
+    steps:
+      - name: Checkout merged temporary branch
+        uses: actions/checkout@v4
+        with:
+          ref: temp/redpitaya-rade-tx-waterfall-id-20260916
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Enable long paths
+        shell: pwsh
+        run: git config --global core.longpaths true
+
+      - name: Apply proven RADE NRE-safe build-time integration
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          python tools/rade-redpitaya/integrate.py
+          if($LASTEXITCODE -ne 0){throw 'RADE core integration failed'}
+          python tools/rade-redpitaya/integrate-ui.py
+          if($LASTEXITCODE -ne 0){throw 'RADE UI integration failed'}
+          python tools/rade-redpitaya/fix-setup-nre.py
+          if($LASTEXITCODE -ne 0){throw 'RADE Setup NRE fix failed'}
+          python tools/rade-redpitaya/integrate-deps.py
+          if($LASTEXITCODE -ne 0){throw 'RADE dependency closure failed'}
+          Write-Host 'RADE_NRE_SAFE_INTEGRATION=PASS'
+
+      - name: Restore RedPitaya Waterfall ID compile closure and Setup placement
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          @'
+          from pathlib import Path
+          import re
+
+          p = Path(r"Project Files/Source/Console/Directory.Build.targets")
+          s = p.read_text(encoding="utf-8-sig")
+          required = [
+              '    <Compile Include="Console.WaterfallIDMenuFix.cs" Condition="Exists(\'Console.WaterfallIDMenuFix.cs\')" />',
+              '    <Compile Include="WaterfallID.Advanced.cs" Condition="Exists(\'WaterfallID.Advanced.cs\')" />',
+          ]
+          missing = [x for x in required if x not in s]
+          if missing:
+              marker = "  </ItemGroup>"
+              pos = s.find(marker)
+              if pos < 0:
+                  raise SystemExit("Directory.Build.targets first ItemGroup terminator missing")
+              s = s[:pos] + "\n".join(missing) + "\n" + s[pos:]
+          p.write_text(s, encoding="utf-8")
+
+          p = Path(r"Project Files/Source/Console/setup.designer.cs")
+          s = p.read_text(encoding="utf-8-sig")
+          grp = "            this.grpOzyType.Controls.Add(this.chkNetworkWDT);"
+          grp_anchor = "            this.grpOzyType.Controls.Add(this.ucRadioList_Radios);"
+          if grp not in s:
+              if grp_anchor not in s:
+                  raise SystemExit("grpOzyType anchor missing")
+              s = s.replace(grp_anchor, grp_anchor + "\n" + grp, 1)
+          s = re.sub(r"^[ \t]*this\.panelTS14\.Controls\.Add\(this\.chkNetworkWDT\);\r?\n", "", s, flags=re.M)
+          new_loc = "            this.chkNetworkWDT.Location = new System.Drawing.Point(312, 18);"
+          if new_loc not in s:
+              pat = r"^[ \t]*this\.chkNetworkWDT\.Location = new System\.Drawing\.Point\(\d+,\s*\d+\);$"
+              matches = re.findall(pat, s, flags=re.M)
+              if len(matches) != 1:
+                  raise SystemExit(f"Expected one chkNetworkWDT Location, found {len(matches)}")
+              s = re.sub(pat, new_loc, s, count=1, flags=re.M)
+          p.write_text(s, encoding="utf-8")
+          '@ | Set-Content -Path "$env:RUNNER_TEMP\restore_redpitaya.py" -Encoding UTF8
+          python "$env:RUNNER_TEMP\restore_redpitaya.py"
+          if($LASTEXITCODE -ne 0){throw 'RedPitaya restore failed'}
+
+      - name: Gate RADE and actual TX Waterfall ID implementation
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $red='3e3499201338312691557da13e49bdd73c651dec'
+          git cat-file -e "$red^{commit}"
+
+          $vendor='Project Files\lib\Thetis-RADE-vendor'
+          $vsha=(git -C $vendor rev-parse HEAD).Trim()
+          if($vsha -ne '408f2b5232ff0a2aec9b538a40d4cb1b02627b17'){throw "Wrong RADE vendor: $vsha"}
+
+          foreach($f in @(
+            'Project Files\Source\Console\RadeIntegration.cs',
+            'Project Files\Source\Console\RadeNative.cs',
+            'Project Files\Source\Console\Channel.cs',
+            'Project Files\Source\Console\Console.WaterfallIDMenuFix.cs',
+            'Project Files\Source\Console\WaterfallID.Advanced.cs'
+          )){ if(-not (Test-Path $f)){throw "Missing integrated source: $f"} }
+
+          $targets=Get-Content 'Project Files\Source\Console\Directory.Build.targets' -Raw
+          foreach($t in @('RadeIntegration.cs','RadeNative.cs','Console.WaterfallIDMenuFix.cs','WaterfallID.Advanced.cs')){
+            if($targets -notmatch [regex]::Escape($t)){throw "Missing compile entry: $t"}
+          }
+
+          $channel=Get-Content 'Project Files\Source\Console\Channel.cs' -Raw
+          foreach($t in @('WATERFALL_ID_PLAY_ID','_waterfallIdMenuItem','StartWaterfallID(','PlayFileViaWDSP(','WaterfallIDStateChanged')){
+            if($channel -notmatch [regex]::Escape($t)){throw "Missing TX Waterfall ID implementation element: $t"}
+          }
+
+          $menu=Get-Content 'Project Files\Source\Console\Console.WaterfallIDMenuFix.cs' -Raw
+          foreach($t in @('EnsureWaterfallIDMenuVisible','WaterfallIdAdvancedMenuItem_Click')){
+            if($menu -notmatch [regex]::Escape($t)){throw "Missing Waterfall ID menu routing element: $t"}
+          }
+
+          $advanced=Get-Content 'Project Files\Source\Console\WaterfallID.Advanced.cs' -Raw
+          foreach($t in @('WaterfallIdAdvancedMenuItem_Click','WaterfallIDAdvancedForm','TX Waterfall ID - SQ4KOU / Thetis-RedPitaya')){
+            if($advanced -notmatch [regex]::Escape($t)){throw "Missing advanced Waterfall ID element: $t"}
+          }
+
+          $console=Get-Content 'Project Files\Source\Console\console.cs' -Raw
+          foreach($t in @('RadeInterceptMoxChange(chkMOX.Checked)','RadeAfterMoxChanged(tx)','RadePttStateMachine(); // SQ4KOU RADE EOO-safe arbiter')){
+            if($console -notmatch [regex]::Escape($t)){throw "Missing RADE EOO-safe console hook: $t"}
+          }
+
+          $ri=Get-Content 'Project Files\Source\Console\RadeIntegration.cs' -Raw
+          foreach($t in @('SetRadaeTxSilenceHold(1)','RadaeNotifyEndOfOver()','GetRadaeEooFlushed()','RadeEooMarginMs = 300','RadeEooTimeoutMs = 3000')){
+            if($ri -notmatch [regex]::Escape($t)){throw "Missing RADE EOO element: $t"}
+          }
+
+          foreach($p in @(
+            'Project Files/Source/Console/Display.GPUWaterfall.cs',
+            'Project Files/Source/Console/display.cs',
+            'Project Files/Source/Console/NetworkIO.cs',
+            'Project Files/Source/Console/PSForm.cs'
+          )){
+            git diff --exit-code $red -- $p
+            if($LASTEXITCODE -ne 0){throw "RedPitaya protected path changed: $p"}
+          }
+
+          $setup=Get-Content 'Project Files\Source\Console\setup.designer.cs' -Raw
+          if($setup -notmatch [regex]::Escape('this.grpOzyType.Controls.Add(this.chkNetworkWDT);')){throw 'Network WDT group placement missing'}
+          if($setup -match [regex]::Escape('this.panelTS14.Controls.Add(this.chkNetworkWDT);')){throw 'Network WDT panel regression'}
+          if($setup -notmatch [regex]::Escape('this.chkNetworkWDT.Location = new System.Drawing.Point(312, 18);')){throw 'Network WDT location regression'}
+
+          Write-Host "RADE_VENDOR=$vsha"
+          Write-Host 'RADE_TX_WATERFALL_ID_SOURCE_GATE=PASS'
+
+      - name: Commit exact integrated test source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet
+          if($LASTEXITCODE -ne 0){
+            git commit -m "Finalize RADE + TX Waterfall ID test source"
+            git push origin HEAD:temp/redpitaya-rade-tx-waterfall-id-20260916
+          }
+          Write-Host "FINAL_SOURCE_HEAD=$(git rev-parse HEAD)"
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Verify CMake
+        shell: pwsh
+        run: cmake --version
+
+      - name: Build pinned RADE native dependencies
+        shell: pwsh
+        run: tools/rade-redpitaya/build-rade-deps.ps1 -Configuration Release
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $targets=Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if(-not $targets){choco install wixtoolset -y --no-progress}
+          $targets=Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if(-not $targets){$targets=Get-ChildItem 'C:\Program Files (x86)\WiX Toolset*\Wix.targets' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1}
+          if(-not $targets){throw 'WiX 3.x Wix.targets not found'}
+          "WIX_TARGETS=$($targets.FullName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore Thetis packages
+        shell: pwsh
+        run: nuget restore 'Project Files\Source\Thetis_VS2026.sln' -NonInteractive
+
+      - name: Build Thetis-RedPitaya RADE + TX Waterfall ID Release x64
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $log=Join-Path $env:RUNNER_TEMP 'thetis-redpitaya-rade-tx-waterfall-id-build.log'
+          "BUILD_LOG=$log" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          & msbuild 'Project Files\Source\Thetis_VS2026.sln' /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal 2>&1 | Tee-Object -FilePath $log
+          if($LASTEXITCODE -ne 0){throw "MSBuild failed: $LASTEXITCODE"}
+          $errors=Select-String -Path $log -Pattern ': error ' -ErrorAction SilentlyContinue
+          if($errors){$errors | ForEach-Object {Write-Host $_.Line}; throw 'Build log contains compiler/build errors'}
+          Write-Host 'THETIS_REDPITAYA_RADE_TX_WATERFALL_ID_BUILD=PASS'
+
+      - name: Validate ChannelMaster RADE exports
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $dll=Get-ChildItem 'Project Files\bin' -Recurse -Filter ChannelMaster.dll | Where-Object {$_.FullName -match '\\x64\\Release\\'} | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if(-not $dll){throw 'ChannelMaster.dll x64 Release not found'}
+          $dumpbin=Get-Command dumpbin.exe -ErrorAction SilentlyContinue
+          if(-not $dumpbin){
+            $vswhere="${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+            $vspath=& $vswhere -latest -products * -property installationPath
+            $dumpbin=Get-ChildItem (Join-Path $vspath 'VC\Tools\MSVC') -Recurse -Filter dumpbin.exe | Where-Object {$_.FullName -match '\\Hostx64\\x64\\'} | Sort-Object FullName -Descending | Select-Object -First 1
+          }
+          if(-not $dumpbin){throw 'dumpbin.exe not found'}
+          $exports=& $dumpbin.FullName /exports $dll.FullName | Out-String
+          foreach($name in @('SetRadaeRxEnabled','SetRadaeProtocolV2','SetRadaeTxRx','GetRadaeSync','SetRadaeMoxState','RadaeNotifyBeginOver','RadaeNotifyEndOfOver','GetRadaeEooFlushed','SetRadaeTxSilenceHold')){
+            if($exports -notmatch [regex]::Escape($name)){throw "Missing ChannelMaster export: $name"}
+          }
+          Write-Host 'RADE_EXPORTS_AND_EOO_HANDSHAKE=PASS'
+
+      - name: Locate MSI and record identity
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $msi=Get-ChildItem 'Project Files\bin\Installers\*.msi' -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if(-not $msi -or $msi.Length -lt 1MB){throw 'Valid MSI was not produced'}
+          $final=Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-REDPITAYA-RADE-TX-WATERFALL-ID-TEST-x64.msi'
+          Copy-Item $msi.FullName $final -Force
+          $sha=(Get-FileHash $final -Algorithm SHA256).Hash
+          $head=(git rev-parse HEAD).Trim()
+          "FINAL_MSI=$final" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "MSI_BYTES=$($msi.Length)"
+          Write-Host "MSI_SHA256=$sha"
+          Write-Host "MSI_SOURCE_HEAD=$head"
+
+      - name: Upload combined test MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-REDPITAYA-RADE-TX-WATERFALL-ID-TEST-x64
+          path: ${{ env.FINAL_MSI }}
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: Upload build log
+        if: ${{ always() && env.BUILD_LOG != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-REDPITAYA-RADE-TX-WATERFALL-ID-BUILD-LOG
+          path: ${{ env.BUILD_LOG }}
+          if-no-files-found: error
+          compression-level: 6
