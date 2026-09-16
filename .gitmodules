@@ -1,0 +1,3 @@
+[submodule "Project Files/lib/Thetis-RADE-vendor"]
+	path = Project Files/lib/Thetis-RADE-vendor
+	url = https://github.com/sv1eia/Thetis-RADE.git

@@ -1,0 +1,164 @@
+name: Build RADE Startup NRE Fix MSI
+
+on:
+  push:
+    branches: [feature/rade-redpitaya-v1v2]
+
+permissions:
+  contents: read
+
+jobs:
+  build-nre-fix:
+    runs-on: windows-2025
+    timeout-minutes: 180
+    steps:
+      - name: Checkout exact branch state
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Enable long paths
+        shell: pwsh
+        run: git config --global core.longpaths true
+
+      - name: Verify immutable RedPitaya base and RADE vendor pin
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $base='e9c95220f4fab9eb829015a0a0d42dbce6fc45ac'
+          git cat-file -e "$base^{commit}"
+          $vendor='Project Files\lib\Thetis-RADE-vendor'
+          $vsha=(git -C $vendor rev-parse HEAD).Trim()
+          if($vsha -ne '408f2b5232ff0a2aec9b538a40d4cb1b02627b17'){throw "Wrong RADE vendor: $vsha"}
+          Write-Host "REDPITAYA_BASE=$base"
+          Write-Host "RADE_VENDOR=$vsha"
+
+      - name: Integrate RADE and fix Setup startup NRE
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          python tools/rade-redpitaya/integrate.py
+          if($LASTEXITCODE -ne 0){throw 'RADE core integration failed'}
+          python tools/rade-redpitaya/integrate-ui.py
+          if($LASTEXITCODE -ne 0){throw 'SV1EIA RADE UI integration failed'}
+          python tools/rade-redpitaya/fix-setup-nre.py
+          if($LASTEXITCODE -ne 0){throw 'Setup InitializeComponent NRE gate failed'}
+          python tools/rade-redpitaya/integrate-deps.py
+          if($LASTEXITCODE -ne 0){throw 'RADE dependency closure failed'}
+          Write-Host 'RADE_SETUP_NRE_FIX_AND_INTEGRATION=PASS'
+
+      - name: Gate protected RedPitaya GPU PTT EOO paths
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $base='e9c95220f4fab9eb829015a0a0d42dbce6fc45ac'
+          $protected=@(
+            'Project Files/Source/Console/Display.GPUWaterfall.cs',
+            'Project Files/Source/Console/display.cs',
+            'Project Files/Source/Console/NetworkIO.cs',
+            'Project Files/Source/Console/PSForm.cs'
+          )
+          foreach($p in $protected){
+            git diff --exit-code $base -- $p
+            if($LASTEXITCODE -ne 0){throw "Protected file changed: $p"}
+          }
+          $console=Get-Content 'Project Files\Source\Console\console.cs' -Raw
+          foreach($t in @('RadeInterceptMoxChange(chkMOX.Checked)','RadeAfterMoxChanged(tx)','RadePttStateMachine(); // SQ4KOU RADE EOO-safe arbiter')){
+            if($console -notmatch [regex]::Escape($t)){throw "Missing EOO-safe console hook: $t"}
+          }
+          $ri=Get-Content 'Project Files\Source\Console\RadeIntegration.cs' -Raw
+          foreach($t in @('SetRadaeTxSilenceHold(1)','RadaeNotifyEndOfOver()','GetRadaeEooFlushed()','RadeEooMarginMs = 300','RadeEooTimeoutMs = 3000')){
+            if($ri -notmatch [regex]::Escape($t)){throw "Missing EOO-safe arbiter element: $t"}
+          }
+          Write-Host 'REDPITAYA_GPU_PTT_EOO_GATE=PASS'
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Verify CMake
+        shell: pwsh
+        run: cmake --version
+
+      - name: Build pinned RADE native dependencies
+        shell: pwsh
+        run: tools/rade-redpitaya/build-rade-deps.ps1 -Configuration Release
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $targets=Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if(-not $targets){choco install wixtoolset -y --no-progress}
+          $targets=Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if(-not $targets){$targets=Get-ChildItem 'C:\Program Files (x86)\WiX Toolset*\Wix.targets' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1}
+          if(-not $targets){throw 'WiX 3.x Wix.targets not found'}
+          "WIX_TARGETS=$($targets.FullName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore Thetis packages
+        shell: pwsh
+        run: nuget restore 'Project Files\Source\Thetis_VS2026.sln' -NonInteractive
+
+      - name: Build Thetis-RedPitaya RADE Release x64
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $log=Join-Path $env:RUNNER_TEMP 'thetis-redpitaya-rade-nrefix-build.log'
+          "BUILD_LOG=$log" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          & msbuild 'Project Files\Source\Thetis_VS2026.sln' /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal 2>&1 | Tee-Object -FilePath $log
+          if($LASTEXITCODE -ne 0){throw "MSBuild failed: $LASTEXITCODE"}
+          $errors=Select-String -Path $log -Pattern ': error ' -ErrorAction SilentlyContinue
+          if($errors){$errors | ForEach-Object {Write-Host $_.Line}; throw 'Build log contains compiler/build errors'}
+          Write-Host 'THETIS_REDPITAYA_RADE_NREFIX_BUILD=PASS'
+
+      - name: Validate ChannelMaster RADE exports
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $dll=Get-ChildItem 'Project Files\bin' -Recurse -Filter ChannelMaster.dll | Where-Object {$_.FullName -match '\\x64\\Release\\'} | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if(-not $dll){throw 'ChannelMaster.dll x64 Release not found'}
+          $dumpbin=Get-Command dumpbin.exe -ErrorAction SilentlyContinue
+          if(-not $dumpbin){
+            $vswhere="${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+            $vspath=& $vswhere -latest -products * -property installationPath
+            $dumpbin=Get-ChildItem (Join-Path $vspath 'VC\Tools\MSVC') -Recurse -Filter dumpbin.exe | Where-Object {$_.FullName -match '\\Hostx64\\x64\\'} | Sort-Object FullName -Descending | Select-Object -First 1
+          }
+          if(-not $dumpbin){throw 'dumpbin.exe not found'}
+          $exports=& $dumpbin.FullName /exports $dll.FullName | Out-String
+          foreach($name in @('SetRadaeRxEnabled','SetRadaeProtocolV2','SetRadaeTxRx','GetRadaeSync','SetRadaeMoxState','RadaeNotifyBeginOver','RadaeNotifyEndOfOver','GetRadaeEooFlushed','SetRadaeTxSilenceHold')){
+            if($exports -notmatch [regex]::Escape($name)){throw "Missing ChannelMaster export: $name"}
+          }
+          Write-Host 'RADE_EXPORTS_AND_EOO_HANDSHAKE=PASS'
+
+      - name: Locate verified NRE-fixed MSI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $msi=Get-ChildItem 'Project Files\bin\Installers\*.msi' -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if(-not $msi -or $msi.Length -lt 1MB){throw 'Valid MSI was not produced'}
+          $final=Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-REDPITAYA-RADE-SV1EIA-1TO1-NREFIX-TEST-x64.msi'
+          Copy-Item $msi.FullName $final -Force
+          "FINAL_MSI=$final" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "MSI_BYTES=$($msi.Length)"
+          Write-Host "MSI_SHA256=$((Get-FileHash $final -Algorithm SHA256).Hash)"
+
+      - name: Upload NRE-fixed RADE MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-REDPITAYA-RADE-SV1EIA-1TO1-NREFIX-TEST-x64
+          path: ${{ env.FINAL_MSI }}
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: Upload NRE-fix build log
+        if: ${{ always() && env.BUILD_LOG != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-REDPITAYA-RADE-NREFIX-BUILD-LOG
+          path: ${{ env.BUILD_LOG }}
+          if-no-files-found: error
+          compression-level: 6

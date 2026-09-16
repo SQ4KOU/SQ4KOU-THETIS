@@ -1,0 +1,99 @@
+name: Diagnose RADE Setup InitializeComponent NRE
+
+on:
+  push:
+    branches: [feature/rade-redpitaya-v1v2]
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: windows-2025
+    timeout-minutes: 20
+    steps:
+      - name: Checkout exact branch state
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Generate exact integrated RADE source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          python tools/rade-redpitaya/integrate.py
+          if($LASTEXITCODE -ne 0){throw 'core integration failed'}
+          python tools/rade-redpitaya/integrate-ui.py
+          if($LASTEXITCODE -ne 0){throw 'UI integration failed'}
+          python tools/rade-redpitaya/integrate-deps.py
+          if($LASTEXITCODE -ne 0){throw 'dependency integration failed'}
+
+      - name: Analyze generated InitializeComponent
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          import re
+
+          p = Path(r'Project Files/Source/Console/setup.designer.cs')
+          text = p.read_text(encoding='utf-8-sig')
+          marker = '// SV1EIA RADE Setup -> DSP -> RADE'
+          m = text.find(marker)
+          if m < 0:
+              raise SystemExit('RADE marker missing')
+          end = text.find('this.ResumeLayout(false);', m)
+          if end < 0:
+              end = min(len(text), m + 80000)
+          block = text[m:end]
+
+          lines = block.splitlines()
+          assigned = set()
+          receiver_before_new = []
+          event_lines = []
+          for no, line in enumerate(lines, 1):
+              for fld in re.findall(r'this\.([A-Za-z_]\w*)\s*=\s*new\b', line):
+                  assigned.add(fld)
+              for fld in re.findall(r'this\.([A-Za-z_]\w*)\.', line):
+                  if fld not in assigned:
+                      receiver_before_new.append((no, fld, line.strip()))
+              if '+=' in line:
+                  event_lines.append((no, line.strip()))
+
+          all_new = set(re.findall(r'this\.([A-Za-z_]\w*)\s*=\s*new\b', block))
+          suspicious = [(n,f,l) for n,f,l in receiver_before_new if f in all_new]
+
+          out = []
+          out.append('=== RADE GENERATED BLOCK ===')
+          out.extend(f'{i:04d}: {line}' for i,line in enumerate(lines,1))
+          out.append('\n=== RECEIVER BEFORE ITS NEW (within RADE-created fields) ===')
+          out.extend(f'{n:04d}: {f}: {l}' for n,f,l in suspicious)
+          out.append('\n=== EVENT SUBSCRIPTIONS ===')
+          out.extend(f'{n:04d}: {l}' for n,l in event_lines)
+          out.append(f'\nSUMMARY new_fields={len(all_new)} suspicious={len(suspicious)} events={len(event_lines)}')
+
+          q = Path(r'Project Files/Source/Console/setup.cs')
+          st = q.read_text(encoding='utf-8-sig')
+          idx = st.find('Setup(Console')
+          if idx < 0:
+              idx = st.find('Setup (Console')
+          if idx >= 0:
+              out.append('\n=== SETUP CONSTRUCTOR CONTEXT ===')
+              out.append(st[max(0,idx-1200):idx+4000])
+
+          report = '\n'.join(out)
+          print(report)
+          Path('rade-setup-nre-report.txt').write_text(report, encoding='utf-8')
+          '@ | Set-Content -Encoding UTF8 diagnose_rade_setup.py
+          python diagnose_rade_setup.py
+
+      - name: Upload diagnostic report and generated designer
+        uses: actions/upload-artifact@v4
+        with:
+          name: RADE-SETUP-NRE-DIAGNOSTIC
+          path: |
+            rade-setup-nre-report.txt
+            Project Files/Source/Console/setup.designer.cs
+            Project Files/Source/Console/setup.cs
+          if-no-files-found: error

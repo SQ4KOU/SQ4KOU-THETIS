@@ -1,4 +1,4 @@
-﻿/*  frmMeterDisplay.cs
+/*  frmMeterDisplay.cs
 
 This file is part of a program that implements a Software-Defined Radio.
 
@@ -204,5 +204,14 @@ namespace Thetis
             // Move it back to the original position
             SetWindowPos(handle, IntPtr.Zero, originalX, originalY, 0, 0, SWP_NOSIZE | SWP_NOZORDER);
         }
-    }
+    
+
+        private bool _container_hides_when_rade_not_enabled = false;
+
+        public bool ContainerHidesWhenRADENotEnabled
+        {
+            get { return _container_hides_when_rade_not_enabled; }
+            set { _container_hides_when_rade_not_enabled = value; }
+        }
+}
 }

@@ -25,6 +25,7 @@ warren@wpratt.com
 */
 
 #include "cmcomm.h"
+#include "radae.h"
 
 pipe pip  = {0};
 PIPE ppip = &pip;
@@ -113,6 +114,7 @@ void create_pipe()
 		ppip->rcvr[i].recordwave_run = 0;		// recordwave run
 	}
 	create_tci();
+	create_radae();
 	create_spc0();
 }
 
@@ -120,6 +122,7 @@ void destroy_pipe()
 {
 	int i;
 	destroy_spc0();
+	destroy_radae();
 	destroy_tci();
 	for (i = 0; i < pcm->cmRCVR; i++)
 	{
@@ -181,6 +184,7 @@ void xpipe (int stream, int pos, double** buffs)
 			xvacOUT(rx, 0, buff);																// data to VAC
 			break;
 		case 1: // Audio data
+			xradae_rx(rx, buffs[0]); // FreeDV RADE V1/V2 post-WDSP decode
 			memcpy (ppip->rbuff[rx], buffs[0], pcm->rcvr[rx].ch_outsize * sizeof (complex));
 			for (i = 1; i < pcm->cmSubRCVR; i++)
 				for (j = 0; j < 2 * pcm->rcvr[rx].ch_outsize; j++)
@@ -204,6 +208,7 @@ void xpipe (int stream, int pos, double** buffs)
 			xvacOUT(rx, 0, buff);																// data to VAC
 			break;
 		case 1: // Audio data
+			xradae_rx(rx, buffs[0]); // FreeDV RADE V1/V2 post-WDSP decode
 			memcpy (ppip->rbuff[rx], buffs[0], pcm->rcvr[rx].ch_outsize * sizeof (complex));
 			for (i = 1; i < pcm->cmSubRCVR; i++)
 				for (j = 0; j < 2 * pcm->rcvr[rx].ch_outsize; j++)
@@ -226,6 +231,7 @@ void xpipe (int stream, int pos, double** buffs)
 				if (pip.xmtr[0].txvac == 0)  { xvacIN(0, buff, 0);  xvacIN(1, buff, 1); }
 				if (pip.xmtr[0].txvac == 1)  { xvacIN(1, buff, 0);  xvacIN(0, buff, 1); }
 			}
+			xradae_tx(buff); // FreeDV RADE V1/V2 pre-TXA modem injection
 			xrecordwave(0, 1, 0, buff);															// wav recorder 0 //[2.10.3.6]MW0LGE moved after vac
 			xrecordwave(1, 1, 0, buff);															// wav recorder 1
 			break;

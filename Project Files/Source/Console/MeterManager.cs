@@ -1,4 +1,4 @@
-﻿/*  MeterManager.cs
+/*  MeterManager.cs
 
 This file is part of a program that implements a Software-Defined Radio.
 
@@ -3596,6 +3596,7 @@ namespace Thetis
 
             _console.RX2EnabledChangedHandlers += OnRX2EnabledChanged;
             _console.RX2EnabledPreChangedHandlers += OnRX2EnabledPreChanged;
+            _console.RadaeEnabledChangedHandlers += OnRadaeEnabledChanged;
 
             _console.EQChangedHandlers += OnEQChanged;
             _console.LevelerChangedHandlers += OnLevelerChanged;
@@ -3707,6 +3708,7 @@ namespace Thetis
 
             _console.RX2EnabledChangedHandlers -= OnRX2EnabledChanged;
             _console.RX2EnabledPreChangedHandlers -= OnRX2EnabledPreChanged;
+            _console.RadaeEnabledChangedHandlers -= OnRadaeEnabledChanged;
 
             _console.EQChangedHandlers -= OnEQChanged;
             _console.LevelerChangedHandlers -= OnLevelerChanged;
@@ -41315,7 +41317,109 @@ namespace Thetis
                 }
             }            
         }        
-    }
+    
+
+        private static bool containerShouldHide(ucMeter uc)
+        {
+            if (_console == null || uc == null) return false;
+
+            if (uc.RX == 2 && !_console.RX2Enabled && uc.ContainerHidesWhenRXNotUsed)
+                return true;
+
+            if (uc.ContainerHidesWhenRADENotEnabled)
+            {
+                bool radeOn = (uc.RX == 2) ? _console.RadaeRx2Enabled : _console.RadaeRx1Enabled;
+                if (!radeOn) return true;
+            }
+            return false;
+        }
+
+        private static void applyContainerVisibilityGates(ucMeter uc)
+        {
+            if (uc == null) return;
+            if (_lstMeterDisplayForms == null || !_lstMeterDisplayForms.ContainsKey(uc.ID)) return;
+
+            bool hide = containerShouldHide(uc);
+            if (hide)
+            {
+                if (uc.Floating)
+                    _lstMeterDisplayForms[uc.ID].Hide();
+                else
+                {
+                    uc.Hide();
+                    uc.Repaint();
+                }
+                containerVisible(uc.ID, false);
+            }
+            else
+            {
+                if (uc.MeterEnabled && !uc.HiddenByMacro)
+                {
+                    frmMeterDisplay frm = _lstMeterDisplayForms[uc.ID];
+                    // For a floating container, uc.Visible stays true while the
+                    // host form is hidden, so checking !uc.Visible would never
+                    // re-show it when its gate (e.g. RADE-enable) opens. Use the
+                    // host form's actual visibility for floating containers.
+                    bool currentlyShown = uc.Floating ? (frm != null && frm.Visible) : uc.Visible;
+                    if (!currentlyShown)
+                    {
+                        if (uc.Floating)
+                            setMeterFloating(uc, frm);
+                        else
+                            returnMeterFromFloating(uc, frm);
+
+                        containerVisible(uc.ID, true);
+                    }
+                }
+            }
+        }
+
+        private static void OnRadaeEnabledChanged(int rx, bool enabled)
+        {
+            lock (_metersLock)
+            {
+                if (_lstUCMeters == null) return;
+                foreach (KeyValuePair<string, ucMeter> kvp in _lstUCMeters)
+                {
+                    ucMeter ucM = kvp.Value;
+                    if (ucM.RX != rx) continue;
+                    if (_lstMeterDisplayForms == null || !_lstMeterDisplayForms.ContainsKey(ucM.ID)) continue;
+                    applyContainerVisibilityGates(ucM);
+                }
+            }
+        }
+
+        public static void ContainerHidesWhenRADENotEnabled(string sId, bool hides)
+        {
+            lock (_metersLock)
+            {
+                if (_meters == null || !_meters.ContainsKey(sId)) return;
+                if (_lstUCMeters == null || !_lstUCMeters.ContainsKey(sId)) return;
+                if (_lstMeterDisplayForms == null || !_lstMeterDisplayForms.ContainsKey(sId)) return;
+
+                ucMeter uc = _lstUCMeters[sId];
+                frmMeterDisplay f = _lstMeterDisplayForms[uc.ID];
+
+                uc.ContainerHidesWhenRADENotEnabled = hides;
+                f.ContainerHidesWhenRADENotEnabled = hides;
+
+                // Re-evaluate visibility under both gates.
+                applyContainerVisibilityGates(uc);
+            }
+        }
+
+        public static bool ContainerHidesWhenRADENotEnabled(string sId)
+        {
+            lock (_metersLock)
+            {
+                if (_lstUCMeters == null) return false;
+                if (!_lstUCMeters.ContainsKey(sId)) return false;
+
+                ucMeter uc = _lstUCMeters[sId];
+                return uc.ContainerHidesWhenRADENotEnabled;
+            }
+        }
+}
 #endregion DX
     #region MMIO
     public static class MultiMeterIO

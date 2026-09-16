@@ -1,9 +1,33 @@
-﻿<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <!-- SQ4KOU extensions compiled without editing the legacy Thetis.csproj. -->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!-- SQ4KOU GPS/PPS status extension.
+       Place beside Thetis.csproj. No edit of Thetis.csproj is required. -->
   <ItemGroup>
     <Compile Include="GpsSyncTelemetry.cs" Condition="Exists('GpsSyncTelemetry.cs')" />
     <Compile Include="ucInfoBar.GpsSync.cs" Condition="Exists('ucInfoBar.GpsSync.cs')" />
+
+    <!-- Ensure the RADE partial Console implementation is compiled exactly once.
+         integrate.py creates these files before MSBuild evaluates this project. -->
+    <Compile Remove="RadeNative.cs" />
+    <Compile Remove="RadeIntegration.cs" />
+    <Compile Include="RadeNative.cs" Condition="Exists('RadeNative.cs')" />
+    <Compile Include="RadeIntegration.cs" Condition="Exists('RadeIntegration.cs')" />
     <Compile Include="Console.WaterfallIDMenuFix.cs" Condition="Exists('Console.WaterfallIDMenuFix.cs')" />
     <Compile Include="WaterfallID.Advanced.cs" Condition="Exists('WaterfallID.Advanced.cs')" />
   </ItemGroup>
+
+  <!--
+    VS/MSBuild 18 compatibility for legacy non-SDK ProjectReference entries.
+    MSB3107 is raised by AssignProjectConfiguration when the old Project GUID
+    metadata is present. Preserve the project paths and all other metadata while
+    removing only the legacy GUID metadata immediately before configuration mapping.
+  -->
+  <Target Name="SQ4KOU_RemoveLegacyProjectReferenceGuidMetadata"
+          BeforeTargets="AssignProjectConfiguration"
+          Condition="'$(MSBuildProjectName)' == 'Thetis' and '@(ProjectReference)' != ''">
+    <ItemGroup>
+      <_SQ4KOUProjectReference Include="@(ProjectReference)" RemoveMetadata="Project" />
+      <ProjectReference Remove="@(ProjectReference)" />
+      <ProjectReference Include="@(_SQ4KOUProjectReference)" />
+    </ItemGroup>
+  </Target>
 </Project>
