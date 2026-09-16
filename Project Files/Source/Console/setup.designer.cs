@@ -72757,8 +72757,6 @@ namespace Thetis
             this.tpDSPRADE = new System.Windows.Forms.TabPage();
             this.chkContainer_hideRADEnotenabled = new System.Windows.Forms.CheckBoxTS();
             this.tpDSPRADE.SuspendLayout();
-            this.tpGeneralLog.Controls.Add(this.chkReporterLogEnable);
-            this.tpGeneralLog.Controls.Add(this.chkRadaeLogEnable);
             this.chkReporterLogEnable.AutoSize = true;
             this.chkReporterLogEnable.Checked = false;
             this.chkReporterLogEnable.CheckState = System.Windows.Forms.CheckState.Unchecked;
