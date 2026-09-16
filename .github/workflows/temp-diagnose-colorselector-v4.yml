@@ -1,0 +1,52 @@
+name: TEMP Diagnose generated ColorSelector V4
+
+on:
+  push:
+    branches:
+      - temp/redpitaya-rade-tx-waterfall-id-20260916
+    paths:
+      - '.github/workflows/temp-diagnose-colorselector-v4.yml'
+
+jobs:
+  diagnose:
+    runs-on: windows-2025
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: temp/redpitaya-rade-tx-waterfall-id-20260916
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Reproduce RADE build-time source transform
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          python tools/rade-redpitaya/integrate.py
+          if($LASTEXITCODE -ne 0){throw 'integrate.py failed'}
+          python tools/rade-redpitaya/integrate-ui.py
+          if($LASTEXITCODE -ne 0){throw 'integrate-ui.py failed'}
+          python tools/rade-redpitaya/fix-setup-nre.py
+          if($LASTEXITCODE -ne 0){throw 'fix-setup-nre.py failed'}
+          python tools/rade-redpitaya/integrate-deps.py
+          if($LASTEXITCODE -ne 0){throw 'integrate-deps.py failed'}
+
+      - name: Locate and dump ColorSelector source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $files = Get-ChildItem 'Project Files\Source' -Recurse -File -Filter '*colorselector*.cs'
+          if(-not $files){throw 'No generated ColorSelector source found'}
+          foreach($f in $files){
+            Write-Host "COLORSELECTOR_PATH=$($f.FullName)"
+            Write-Host "TRACKED=$(git ls-files --error-unmatch -- $f.FullName 2>$null; if($LASTEXITCODE -eq 0){'YES'}else{'NO'})"
+            $text = Get-Content $f.FullName -Raw
+            foreach($name in @('ConfigureAsPlayerCallsignEditor','DisablePlayerCallSignInput','PlayerCallSignText','CurrentPlayerColor','txtCallSign_TextChanged')){
+              $count=([regex]::Matches($text,[regex]::Escape($name))).Count
+              Write-Host "COUNT $name=$count"
+            }
+            $lines=Get-Content $f.FullName
+            for($i=0;$i -lt $lines.Count;$i++){
+              if($i -lt 240){ Write-Host ('{0,4}: {1}' -f ($i+1),$lines[$i]) }
+            }
+          }
