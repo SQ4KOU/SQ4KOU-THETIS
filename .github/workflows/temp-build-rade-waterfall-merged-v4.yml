@@ -49,11 +49,13 @@ jobs:
             if($targets -notmatch [regex]::Escape($t)){throw "Missing compile entry: $t"}
           }
 
-          # Preserve the complete working TX Waterfall ID implementation exactly from Thetis-RedPitaya.
+          # Preserve the working TX Waterfall ID implementation from Thetis-RedPitaya.
+          # Console.WaterfallIDMenuFix.cs is intentionally exempted from byte identity because
+          # the merged source already has a native Console.OnShown override. Its semantic gate
+          # below verifies the collision-free one-shot menu hook instead.
           foreach($p in @(
             'Project Files/Source/Console/Channel.cs',
             'Project Files/Source/Console/WaterfallID.Advanced.cs',
-            'Project Files/Source/Console/Console.WaterfallIDMenuFix.cs',
             'Project Files/Source/Console/Display.GPUWaterfall.cs',
             'Project Files/Source/Console/display.cs',
             'Project Files/Source/Console/NetworkIO.cs',
@@ -62,6 +64,13 @@ jobs:
             git diff --exit-code $red -- $p
             if($LASTEXITCODE -ne 0){throw "RedPitaya/Waterfall-ID protected path changed: $p"}
           }
+
+          $menuFix=Get-Content 'Project Files\Source\Console\Console.WaterfallIDMenuFix.cs' -Raw
+          if($menuFix -match 'protected\s+override\s+void\s+OnShown\s*\('){throw 'Duplicate Console.OnShown regression in Waterfall ID menu fix'}
+          foreach($t in @('_sq4kouWaterfallIdMenuHook','InstallWaterfallIdMenuHook','Sq4kouWaterfallIdMenuIdle','EnsureWaterfallIDMenuVisible')){
+            if($menuFix -notmatch [regex]::Escape($t)){throw "Missing Waterfall ID lifecycle element: $t"}
+          }
+          Write-Host 'WATERFALL_ID_ONSHOWN_COLLISION_FIX=PASS'
 
           # Preserve the proven RADE EOO-safe arbitration hooks.
           $console=Get-Content 'Project Files\Source\Console\console.cs' -Raw
@@ -161,7 +170,7 @@ jobs:
             "RADE_VENDOR=408f2b5232ff0a2aec9b538a40d4cb1b02627b17",
             "MSI_SHA256=$sha",
             "RADE=PASS",
-            "TX_WATERFALL_ID=BYTE_IDENTICAL_TO_REDPITAYA"
+            "TX_WATERFALL_ID=PASS_WITH_ONSHOWN_COLLISION_FIX"
           ) | Set-Content $info -Encoding UTF8
           "FINAL_MSI=$final" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
           "FINAL_INFO=$info" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
