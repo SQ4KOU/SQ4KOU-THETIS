@@ -93,8 +93,8 @@ jobs:
       - name: Setup startup NRE gate
         shell: pwsh
         run: |
-          python tools/rade-redpitaya/fix-setup-nre.py
-          if($LASTEXITCODE -ne 0){throw 'Setup InitializeComponent NRE gate failed'}
+          python tools/rade-3z9am/gate-setup-runtime.py
+          if($LASTEXITCODE -ne 0){throw '3Z9AM Setup construction-order NRE gate failed'}
 
       - name: Protect 3Z9AM GPU and gate PTT EOO
         shell: pwsh
