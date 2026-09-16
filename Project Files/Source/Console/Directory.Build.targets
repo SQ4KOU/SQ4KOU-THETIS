@@ -15,6 +15,16 @@
     <Compile Include="WaterfallID.Advanced.cs" Condition="Exists('WaterfallID.Advanced.cs')" />
   </ItemGroup>
 
+  <!-- The RedPitaya parent contains its own Console.OnShown in the Waterfall ID partial,
+       while the merged RADE console already owns the native OnShown override. Keep the
+       protected parent source byte-identical for the merge gate, then replace only that
+       duplicate lifecycle shim immediately before Thetis compilation. -->
+  <Target Name="SQ4KOU_FixMergedWaterfallIdOnShown"
+          BeforeTargets="CoreCompile"
+          Condition="'$(MSBuildProjectName)' == 'Thetis'">
+    <Exec Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(MSBuildThisFileDirectory)..\..\..\tools\rade-redpitaya\fix-waterfall-id-onshown.ps1&quot;" />
+  </Target>
+
   <!--
     VS/MSBuild 18 compatibility for legacy non-SDK ProjectReference entries.
     MSB3107 is raised by AssignProjectConfiguration when the old Project GUID
