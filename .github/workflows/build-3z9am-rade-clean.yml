@@ -37,10 +37,11 @@ jobs:
           if($merge -ne $base){throw "Wrong merge base: $merge"}
 
           $changed=git diff --name-only "$base...HEAD"
+          $foreignPattern=('(?i)red'+'pitaya|rade-red'+'pitaya')
           foreach($p in $changed){
             if(Test-Path -LiteralPath $p){
               $txt=Get-Content -LiteralPath $p -Raw -ErrorAction SilentlyContinue
-              if($null -ne $txt -and $txt -match '(?i)redpitaya|rade-redpitaya'){
+              if($null -ne $txt -and $txt -match $foreignPattern){
                 throw "Cross-line reference found in 3Z9AM integration file: $p"
               }
             }
@@ -117,9 +118,9 @@ jobs:
           }
 
           $ri=Get-Content 'Project Files\Source\Console\RadeIntegration.cs' -Raw
-          if($ri -match '(?i)redpitaya'){throw 'RadeIntegration contains foreign hardware-line reference'}
+          if($ri -match ('(?i)red'+'pitaya')){throw 'RadeIntegration contains foreign hardware-line reference'}
           $rn=Get-Content 'Project Files\Source\Console\RadeNative.cs' -Raw
-          if($rn -match '(?i)redpitaya'){throw 'RadeNative contains foreign hardware-line reference'}
+          if($rn -match ('(?i)red'+'pitaya')){throw 'RadeNative contains foreign hardware-line reference'}
 
           $console=Get-Content 'Project Files\Source\Console\console.cs' -Raw
           foreach($t in @(
