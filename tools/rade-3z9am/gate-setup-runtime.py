@@ -46,7 +46,7 @@ def main():
     require(attached, 'tpGeneralLog has no attached controls')
 
     # These two are the RADE/Reporter controls that triggered the original
-    # RedPitaya startup crash. In 3Z9AM they are valid and must remain attached,
+    # legacy startup crash. In 3Z9AM they are valid and must remain attached,
     # provided their construction order is correct.
     for child in ('chkReporterLogEnable', 'chkRadaeLogEnable'):
         require(child in attached, 'Required RADE/Reporter log control not attached: ' + child)
@@ -62,7 +62,7 @@ def main():
     # Generic RADE/Reporter receiver gate: if an imported control is used as a
     # method/property receiver, it must have a constructor assignment before
     # that first use. This catches the class of startup NRE seen in the first
-    # RedPitaya test without forbidding valid Controls.Add statements.
+    # legacy test without forbidding valid Controls.Add statements.
     receiver_rx = re.compile(
         r'this\.([A-Za-z_]\w*(?:rade|reporter)[A-Za-z0-9_]*)\.', re.I)
     checked = set()
