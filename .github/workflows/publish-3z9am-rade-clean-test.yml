@@ -1,0 +1,91 @@
+name: Publish exact 3Z9AM RADE clean test release
+
+on:
+  push:
+    branches:
+      - feature/3z9am-rade-clean-ab007175
+    paths:
+      - .github/workflows/publish-3z9am-rade-clean-test.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publish:
+    runs-on: windows-2025
+    steps:
+      - name: Checkout release metadata commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Download exact verified MSI artifact
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $artifactId='10602403536'
+          $zip=Join-Path $env:RUNNER_TEMP 'exact-3z9am-rade-artifact.zip'
+          gh api -H 'Accept: application/vnd.github+json' "/repos/SQ4KOU/SQ4KOU-THETIS/actions/artifacts/$artifactId/zip" > $zip
+          if(-not (Test-Path $zip) -or (Get-Item $zip).Length -lt 1MB){throw 'Artifact ZIP download failed'}
+          $out=Join-Path $env:RUNNER_TEMP 'exact-3z9am-rade'
+          if(Test-Path $out){Remove-Item $out -Recurse -Force}
+          Expand-Archive -LiteralPath $zip -DestinationPath $out -Force
+          $msi=Get-ChildItem $out -Recurse -Filter 'SQ4KOU-THETIS-3Z9AM-RADE-CLEAN-x64.msi' | Select-Object -First 1
+          if(-not $msi){throw 'Expected MSI not found in exact build artifact'}
+          $expected='2B325588B74C474522C046E935B468949E21986AAF841CBFD85DC8941E08D60E'
+          $actual=(Get-FileHash $msi.FullName -Algorithm SHA256).Hash.ToUpperInvariant()
+          if($actual -ne $expected){throw "MSI SHA256 mismatch: $actual"}
+          if($msi.Length -ne 109842432){throw "MSI size mismatch: $($msi.Length)"}
+          $releaseMsi=Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-3Z9AM-RADE-CLEAN-x64.msi'
+          Copy-Item $msi.FullName $releaseMsi -Force
+          $sum=Join-Path $env:RUNNER_TEMP 'SHA256SUMS.txt'
+          "$expected  SQ4KOU-THETIS-3Z9AM-RADE-CLEAN-x64.msi" | Set-Content $sum -Encoding ascii
+          "RELEASE_MSI=$releaseMsi" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "SHA_FILE=$sum" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host 'EXACT_BUILD_ARTIFACT=PASS'
+          Write-Host "MSI_BYTES=$($msi.Length)"
+          Write-Host "MSI_SHA256=$actual"
+
+      - name: Create exact test release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ErrorActionPreference='Stop'
+          $tag='sq4kou-thetis-3z9am-rade-clean-test-2026-09-20'
+          $target='1310fbf442d34cd6bfc8fb863ca3dbeda4c062b9'
+          $title='SQ4KOU Thetis-3Z9AM RADE — CLEAN TEST 2026-09-20'
+          $notes=@'
+          # SQ4KOU Thetis-3Z9AM RADE — CLEAN TEST
+
+          Test release built from the confirmed 3Z9AM hardware line only.
+
+          - Confirmed 3Z9AM base: ab0071751b0fbe006ddad243361a37cfd59bed46
+          - Integration branch: feature/3z9am-rade-clean-ab007175
+          - Exact source/build commit: 1310fbf442d34cd6bfc8fb863ca3dbeda4c062b9
+          - Original successful GitHub Actions build run: 35501748770
+          - Original MSI artifact ID: 10602403536
+          - RADE vendor pin: sv1eia/Thetis-RADE@408f2b5232ff0a2aec9b538a40d4cb1b02627b17
+          - MSI SHA-256: 2B325588B74C474522C046E935B468949E21986AAF841CBFD85DC8941E08D60E
+          - MSI size: 109842432 bytes
+
+          This release reuses the exact MSI from build run 35501748770. No rebuild was performed during publication.
+
+          Hardware-line isolation gates passed. The 3Z9AM native hardware line remains separate from other hardware variants.
+          '@
+          if(gh release view $tag --repo SQ4KOU/SQ4KOU-THETIS *> $null){
+            throw "Release tag already exists: $tag"
+          }
+          gh release create $tag "$env:RELEASE_MSI" "$env:SHA_FILE" `
+            --repo SQ4KOU/SQ4KOU-THETIS `
+            --target $target `
+            --title $title `
+            --notes $notes `
+            --prerelease
+          if($LASTEXITCODE -ne 0){throw 'gh release create failed'}
+          gh release view $tag --repo SQ4KOU/SQ4KOU-THETIS --json url,tagName,name,isPrerelease,targetCommitish
