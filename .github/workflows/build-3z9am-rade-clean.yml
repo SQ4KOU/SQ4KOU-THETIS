@@ -1,0 +1,257 @@
+name: Build 3Z9AM RADE Clean x64
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feature/3z9am-rade-clean-ab007175
+    paths:
+      - .github/workflows/build-3z9am-rade-clean.yml
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-2025
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout isolated 3Z9AM branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Verify exact 3Z9AM lineage and isolation
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          git config --global core.longpaths true
+          $base='ab0071751b0fbe006ddad243361a37cfd59bed46'
+          git cat-file -e "$base^{commit}"
+          git merge-base --is-ancestor $base HEAD
+          if($LASTEXITCODE -ne 0){throw 'Current branch does not descend from the confirmed 3Z9AM base'}
+
+          $merge=(git merge-base $base HEAD).Trim()
+          if($merge -ne $base){throw "Wrong merge base: $merge"}
+
+          $changed=git diff --name-only "$base...HEAD"
+          foreach($p in $changed){
+            if(Test-Path -LiteralPath $p){
+              $txt=Get-Content -LiteralPath $p -Raw -ErrorAction SilentlyContinue
+              if($null -ne $txt -and $txt -match '(?i)redpitaya|rade-redpitaya'){
+                throw "Cross-line reference found in 3Z9AM integration file: $p"
+              }
+            }
+          }
+
+          foreach($p in @(
+            'Project Files/Source/Console/Display.GPUWaterfall.cs',
+            'Project Files/Source/Console/display.cs',
+            'Project Files/Source/Console/NetworkIO.cs',
+            'Project Files/Source/Console/PSForm.cs'
+          )){
+            git diff --exit-code $base -- $p
+            if($LASTEXITCODE -ne 0){throw "Protected 3Z9AM base file changed before RADE integration: $p"}
+          }
+          Write-Host "THETIS_3Z9AM_BASE=$base"
+          Write-Host '3Z9AM_HARDWARE_LINE_ISOLATION=PASS'
+
+      - name: Checkout pinned SV1EIA RADE vendor
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $pin='408f2b5232ff0a2aec9b538a40d4cb1b02627b17'
+          $vendor='Project Files\lib\Thetis-RADE-vendor'
+          if(Test-Path $vendor){Remove-Item $vendor -Recurse -Force}
+          git clone --recursive https://github.com/sv1eia/Thetis-RADE.git $vendor
+          if($LASTEXITCODE -ne 0){throw 'SV1EIA RADE clone failed'}
+          git -C $vendor checkout $pin
+          if($LASTEXITCODE -ne 0){throw 'SV1EIA RADE checkout failed'}
+          git -C $vendor submodule update --init --recursive
+          if($LASTEXITCODE -ne 0){throw 'SV1EIA RADE submodule update failed'}
+          $head=(git -C $vendor rev-parse HEAD).Trim()
+          if($head -ne $pin){throw "Wrong RADE vendor pin: $head"}
+          Write-Host "RADE_VENDOR_PIN=$head"
+
+      - name: Integrate RADE core into native 3Z9AM
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          python tools/rade-3z9am/integrate.py
+          if($LASTEXITCODE -ne 0){throw '3Z9AM RADE core integration failed'}
+
+      - name: Integrate SV1EIA RADE UI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          python tools/rade-3z9am/integrate-ui.py
+          if($LASTEXITCODE -ne 0){throw '3Z9AM RADE UI integration failed'}
+          python tools/rade-3z9am/fix-ui-deps.py
+          if($LASTEXITCODE -ne 0){throw '3Z9AM RADE UI dependency closure failed'}
+          python tools/rade-3z9am/prune-general-log-orphans.py
+          if($LASTEXITCODE -ne 0){throw '3Z9AM General Log prune failed'}
+          python tools/rade-3z9am/fix-ui-deps-final.py
+          if($LASTEXITCODE -ne 0){throw '3Z9AM final RADE UI closure failed'}
+          python tools/rade-3z9am/integrate-deps.py
+          if($LASTEXITCODE -ne 0){throw '3Z9AM RADE managed dependency integration failed'}
+          python tools/rade-3z9am/restore-projectrefs.py
+          if($LASTEXITCODE -ne 0){throw '3Z9AM native project reference restore failed'}
+          python tools/rade-3z9am/gate-setup-runtime.py
+          if($LASTEXITCODE -ne 0){throw '3Z9AM Setup runtime gate failed'}
+
+      - name: Verify protected 3Z9AM hardware paths after integration
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $base='ab0071751b0fbe006ddad243361a37cfd59bed46'
+          foreach($p in @(
+            'Project Files/Source/Console/Display.GPUWaterfall.cs',
+            'Project Files/Source/Console/display.cs',
+            'Project Files/Source/Console/NetworkIO.cs',
+            'Project Files/Source/Console/PSForm.cs'
+          )){
+            git diff --exit-code $base -- $p
+            if($LASTEXITCODE -ne 0){throw "RADE integration altered protected 3Z9AM file: $p"}
+          }
+
+          $ri=Get-Content 'Project Files\Source\Console\RadeIntegration.cs' -Raw
+          if($ri -match '(?i)redpitaya'){throw 'RadeIntegration contains foreign hardware-line reference'}
+          $rn=Get-Content 'Project Files\Source\Console\RadeNative.cs' -Raw
+          if($rn -match '(?i)redpitaya'){throw 'RadeNative contains foreign hardware-line reference'}
+
+          $console=Get-Content 'Project Files\Source\Console\console.cs' -Raw
+          foreach($t in @(
+            'RadeInterceptMoxChange(chkMOX.Checked)',
+            'RadeAfterMoxChanged(tx)',
+            'RadePttStateMachine(); // SQ4KOU RADE EOO-safe arbiter'
+          )){
+            if(-not $console.Contains($t)){throw "Missing native 3Z9AM RADE PTT/EOO hook: $t"}
+          }
+
+          $r=Get-Content 'Project Files\Source\Console\RadeIntegration.cs' -Raw
+          foreach($t in @(
+            'SetRadaeTxSilenceHold(1)',
+            'RadaeNotifyEndOfOver()',
+            'GetRadaeEooFlushed()',
+            'RadeEooMarginMs = 300',
+            'RadeEooTimeoutMs = 3000'
+          )){
+            if(-not $r.Contains($t)){throw "Missing RADE EOO arbiter element: $t"}
+          }
+          Write-Host '3Z9AM_NATIVE_RA DE_INTEGRATION_GATE=PASS'.Replace('RA DE','RADE')
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build pinned RADE native dependencies
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          tools/rade-3z9am/build-rade-deps.ps1 -Configuration Release
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $targets=Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if(-not $targets){choco install wixtoolset -y --no-progress}
+          $targets=Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if(-not $targets){$targets=Get-ChildItem 'C:\Program Files (x86)\WiX Toolset*\Wix.targets' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1}
+          if(-not $targets){throw 'WiX 3.x Wix.targets not found'}
+          "WIX_TARGETS=$($targets.FullName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore Thetis packages
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          nuget restore 'Project Files\Source\Thetis_VS2026.sln' -NonInteractive
+          if($LASTEXITCODE -ne 0){throw 'NuGet restore failed'}
+
+      - name: Build Thetis-3Z9AM RADE Release x64
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Continue'
+          $log=Join-Path $env:RUNNER_TEMP 'thetis-3z9am-rade-clean-build.log'
+          "BUILD_LOG=$log" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          & msbuild 'Project Files\Source\Thetis_VS2026.sln' /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal 2>&1 | Tee-Object -FilePath $log
+          $code=$LASTEXITCODE
+          $errs=Select-String -Path $log -Pattern ': error |error CS|error C[0-9]{4}|fatal error|MSB[0-9]{4}:' -ErrorAction SilentlyContinue
+          if($errs){
+            $e=Join-Path $env:RUNNER_TEMP '3z9am-rade-clean-errors.txt'
+            $errs | ForEach-Object {$_.Line} | Set-Content $e -Encoding UTF8
+            "ERROR_LOG=$e" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          }
+          if($code -ne 0 -or $errs){throw 'MSBuild failed'}
+          Write-Host 'THETIS_3Z9AM_RADE_BUILD=PASS'
+
+      - name: Validate RADE native exports
+        if: success()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $dll=Get-ChildItem 'Project Files\bin' -Recurse -Filter ChannelMaster.dll | Where-Object {$_.FullName -match '\\x64\\Release\\'} | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if(-not $dll){throw 'ChannelMaster.dll x64 Release not found'}
+          $vswhere="${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $vspath=& $vswhere -latest -products * -property installationPath
+          $dump=Get-ChildItem (Join-Path $vspath 'VC\Tools\MSVC') -Recurse -Filter dumpbin.exe | Where-Object {$_.FullName -match '\\Hostx64\\x64\\'} | Sort-Object FullName -Descending | Select-Object -First 1
+          if(-not $dump){throw 'dumpbin.exe not found'}
+          $x=& $dump.FullName /exports $dll.FullName | Out-String
+          foreach($n in @(
+            'SetRadaeRxEnabled',
+            'SetRadaeProtocolV2',
+            'SetRadaeTxRx',
+            'GetRadaeSync',
+            'SetRadaeMoxState',
+            'RadaeNotifyBeginOver',
+            'RadaeNotifyEndOfOver',
+            'GetRadaeEooFlushed',
+            'SetRadaeTxSilenceHold'
+          )){
+            if($x -notmatch [regex]::Escape($n)){throw "Missing ChannelMaster RADE export: $n"}
+          }
+          Write-Host 'THETIS_3Z9AM_RADE_EXPORTS=PASS'
+
+      - name: Locate verified 3Z9AM RADE MSI
+        if: success()
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $msi=Get-ChildItem 'Project Files\bin\Installers\*.msi' -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if(-not $msi -or $msi.Length -lt 1MB){throw 'Valid MSI was not produced'}
+          $final=Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-3Z9AM-RADE-CLEAN-x64.msi'
+          Copy-Item $msi.FullName $final -Force
+          "FINAL_MSI=$final" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          $sha=(Get-FileHash $final -Algorithm SHA256).Hash
+          Write-Host "MSI_BYTES=$((Get-Item $final).Length)"
+          Write-Host "MSI_SHA256=$sha"
+
+      - name: Upload verified 3Z9AM RADE MSI
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-3Z9AM-RADE-CLEAN-x64
+          path: ${{ env.FINAL_MSI }}
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: Upload build errors
+        if: ${{ always() && env.ERROR_LOG != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-3Z9AM-RADE-CLEAN-ERRORS
+          path: ${{ env.ERROR_LOG }}
+          if-no-files-found: error
+
+      - name: Upload build log
+        if: ${{ always() && env.BUILD_LOG != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-3Z9AM-RADE-CLEAN-BUILD-LOG
+          path: ${{ env.BUILD_LOG }}
+          if-no-files-found: error
+          compression-level: 6
