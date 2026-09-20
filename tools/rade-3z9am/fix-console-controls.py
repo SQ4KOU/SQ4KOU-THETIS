@@ -3,7 +3,7 @@ import importlib.util
 import re
 
 ROOT = Path(__file__).resolve().parents[2]
-HELPER = ROOT / 'tools' / 'rade-redpitaya' / 'fix-ui-deps.py'
+HELPER = ROOT / 'tools' / 'rade-3z9am' / 'fix-ui-deps.py'
 DESIGNER = ROOT / 'Project Files' / 'Source' / 'Console' / 'console.Designer.cs'
 CONTROLS = (
     'chkRADE', 'chkREPR', 'chkVIS', 'cmbRadeVersionRX1',
@@ -17,7 +17,7 @@ def require(cond, msg):
 
 
 def main():
-    require(HELPER.is_file(), 'RedPitaya RADE UI helper missing')
+    require(HELPER.is_file(), '3Z9AM RADE UI helper missing')
     spec = importlib.util.spec_from_file_location('sq4kou_rade_ui_deps', HELPER)
     mod = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(mod)
