@@ -1,0 +1,180 @@
+name: Build DB persistence test MSI
+
+on:
+  push:
+    branches:
+      - build/db-persistence-msi-a8242ee
+    paths:
+      - '.github/workflows/build-db-persistence-test-msi.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  build-msi:
+    runs-on: windows-2025
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout exact build branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Verify source baseline and DB persistence patch
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $source='a8242ee75b6a7bfbb90dbdeb897eabe0ece15247'
+          git cat-file -e "$source^{commit}"
+
+          foreach($p in @(
+            'Project Files/Source/Console/common.cs',
+            'Project Files/Source/Console/database.cs',
+            'Project Files/Source/Console/RadeIntegration.cs',
+            'Project Files/Source/Console/WaterfallID.Advanced.cs'
+          )){
+            git diff --exit-code $source -- $p
+            if($LASTEXITCODE -ne 0){ throw "Source drift from audited commit: $p" }
+          }
+
+          $common=Get-Content 'Project Files/Source/Console/common.cs' -Raw
+          $db=Get-Content 'Project Files/Source/Console/database.cs' -Raw
+          $rade=Get-Content 'Project Files/Source/Console/RadeIntegration.cs' -Raw
+          $wfid=Get-Content 'Project Files/Source/Console/WaterfallID.Advanced.cs' -Raw
+
+          foreach($t in @(
+            'case CheckBox check_box:',
+            'case ComboBox combo_box:',
+            'case NumericUpDown numeric_up_down:',
+            'case RadioButton radio_button:',
+            'case TextBox text_box:',
+            'case TrackBar track_bar:',
+            'case TabControl tab_control:',
+            "int separator = s.IndexOf('/');",
+            'TryParsePersistedDecimal'
+          )){
+            if(-not $common.Contains($t)){ throw "Missing Common persistence token: $t" }
+          }
+
+          if($common.Contains('name.StartsWith("chk")')){ throw 'Legacy prefix-based restore still present' }
+
+          foreach($t in @(
+            "int separator = s.IndexOf('/');",
+            'string value = s.Substring(separator + 1);',
+            'if (!bSaveEmptyValues && value.Length == 0)',
+            'File.Replace(temp, fn, lastGood, true)',
+            'fs.Flush(true)',
+            'verify.ReadXml(temp)',
+            '_loaded_from_lastgood'
+          )){
+            if(-not $db.Contains($t)){ throw "Missing DB token: $t" }
+          }
+
+          foreach($t in @(
+            'chkRadeRx1',
+            'comboRadeProtocolRx1',
+            'udRadeMicDb',
+            'txtRadeEooCallsign',
+            'Common.RestoreForm(this, "RadeControlForm", false);',
+            'Common.SaveForm(this, "RadeControlForm");'
+          )){
+            if(-not $rade.Contains($t)){ throw "Missing RADE persistence token: $t" }
+          }
+
+          foreach($t in @(
+            'tabsWaterfallIDSource',
+            'udWaterfallIDLevelDb',
+            'RestorePersistentState();',
+            'SavePersistentState();',
+            'WaterfallIDSourcePath/'
+          )){
+            if(-not $wfid.Contains($t)){ throw "Missing Waterfall ID persistence token: $t" }
+          }
+
+          Write-Host 'DB_PERSISTENCE_SOURCE_AUDIT=PASS'
+
+      - name: Enable long paths
+        shell: pwsh
+        run: git config --global core.longpaths true
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Verify CMake
+        shell: pwsh
+        run: cmake --version
+
+      - name: Build pinned RADE native dependencies
+        shell: pwsh
+        run: tools/rade-redpitaya/build-rade-deps.ps1 -Configuration Release
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $targets=Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if(-not $targets){ choco install wixtoolset -y --no-progress }
+          $targets=Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if(-not $targets){
+            $targets=Get-ChildItem 'C:\Program Files (x86)\WiX Toolset*\Wix.targets' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          }
+          if(-not $targets){ throw 'WiX 3.x Wix.targets not found' }
+          "WIX_TARGETS=$($targets.FullName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore NuGet packages
+        shell: pwsh
+        run: nuget restore 'Project Files\Source\Thetis_VS2026.sln' -NonInteractive
+
+      - name: Build Release x64 and MSI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $log=Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-REDPITAYA-DB-PERSISTENCE-BUILD.log'
+          "BUILD_LOG=$log" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          & msbuild 'Project Files\Source\Thetis_VS2026.sln' /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal 2>&1 | Tee-Object -FilePath $log
+          if($LASTEXITCODE -ne 0){ throw "MSBuild failed: $LASTEXITCODE" }
+          $errors=Select-String -Path $log -Pattern ': error ' -ErrorAction SilentlyContinue
+          if($errors){
+            $errors | ForEach-Object { Write-Host $_.Line }
+            throw 'Build log contains compiler/build errors'
+          }
+          Write-Host 'MSBUILD=PASS'
+
+      - name: Verify and stage MSI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $msi=Get-ChildItem 'Project Files\bin\Installers\*.msi' -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if(-not $msi){ throw 'MSI was not produced' }
+          if($msi.Length -lt 1MB){ throw "MSI unexpectedly small: $($msi.Length) bytes" }
+
+          $final=Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-REDPITAYA-DB-PERSISTENCE-TEST-x64.msi'
+          Copy-Item $msi.FullName $final -Force
+          $hash=(Get-FileHash $final -Algorithm SHA256).Hash
+          Write-Host "MSI=$final"
+          Write-Host "MSI_SIZE=$((Get-Item $final).Length)"
+          Write-Host "MSI_SHA256=$hash"
+          "FINAL_MSI_PATH=$final" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Upload MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-REDPITAYA-DB-PERSISTENCE-TEST-x64
+          path: ${{ env.FINAL_MSI_PATH }}
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-REDPITAYA-DB-PERSISTENCE-BUILD-LOG
+          path: ${{ env.BUILD_LOG }}
+          if-no-files-found: ignore
+          compression-level: 6
