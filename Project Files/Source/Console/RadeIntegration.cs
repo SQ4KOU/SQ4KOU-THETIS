@@ -260,6 +260,20 @@ namespace Thetis
             MaximizeBox = false;
             MinimizeBox = false;
 
+            // Stable names are required for database-backed form persistence.
+            _rx1.Name = "chkRadeRx1";
+            _rx2.Name = "chkRadeRx2";
+            _v1v2Rx1.Name = "comboRadeProtocolRx1";
+            _v1v2Rx2.Name = "comboRadeProtocolRx2";
+            _mic.Name = "udRadeMicDb";
+            _rx1Level.Name = "udRadeRx1LevelDb";
+            _rx2Level.Name = "udRadeRx2LevelDb";
+            _rnnoise.Name = "chkRadeRnNoise";
+            _agc.Name = "chkRadeMicAgc";
+            _agcTarget.Name = "udRadeAgcTargetLufs";
+            _loopback.Name = "chkRadeRx1Loopback";
+            _call.Name = "txtRadeEooCallsign";
+
             int y = 16;
             _rx1.Text = "RX1 RADE"; _rx1.SetBounds(16, y, 105, 24);
             _v1v2Rx1.DropDownStyle = ComboBoxStyle.DropDownList; _v1v2Rx1.Items.AddRange(new object[] { "V1", "V2" }); _v1v2Rx1.SelectedIndex = 0; _v1v2Rx1.SetBounds(130, y, 72, 24);
@@ -313,6 +327,15 @@ namespace Thetis
             _agcTarget.ValueChanged += delegate { Safe(delegate { RadeNative.SetRadaeMicAGCTargetLufs((double)_agcTarget.Value); }); };
             _loopback.CheckedChanged += delegate { Safe(delegate { RadeNative.SetRadaeLoopbackEnabled(0, _loopback.Checked ? 1 : 0); }); };
             _call.TextChanged += delegate { Safe(delegate { RadeNative.SetRadaeEooCallsign(_call.Text.Trim()); }); };
+
+            // Restore after handlers are connected so the restored UI state is also
+            // propagated to the native RADE engine.
+            Common.RestoreForm(this, "RadeControlForm", false);
+            FormClosing += delegate
+            {
+                Common.SaveForm(this, "RadeControlForm");
+                _meterTimer.Stop();
+            };
 
             _meterTimer.Interval = 250;
             _meterTimer.Tick += delegate { UpdateMeters(); };

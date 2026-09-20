@@ -338,174 +338,239 @@ namespace Thetis
 
 		public static void ControlList(Control c, ref List<Control> a)
 		{
-			if(c.Controls.Count > 0)
+			if (c.Controls.Count > 0)
 			{
-                foreach (Control c2 in c.Controls)
-                {
-                    ControlList(c2, ref a);
-                }
+				foreach (Control c2 in c.Controls)
+				{
+					ControlList(c2, ref a);
+				}
 			}
 
-			if(c.GetType() == typeof(CheckBoxTS) || c.GetType() == typeof(CheckBoxTS) ||
-				c.GetType() == typeof(ComboBoxTS) || c.GetType() == typeof(ComboBox) ||
-				c.GetType() == typeof(NumericUpDownTS) || c.GetType() == typeof(NumericUpDown) ||
-				c.GetType() == typeof(RadioButtonTS) || c.GetType() == typeof(RadioButton) ||
-				c.GetType() == typeof(TextBoxTS) || c.GetType() == typeof(TextBox) ||
-				c.GetType() == typeof(TrackBarTS) || c.GetType() == typeof(TrackBar) ||
-				c.GetType() == typeof(ColorButton))
+			// Keep the discovery list and Save/Restore type handling strictly symmetric.
+			// Use "is" rather than exact GetType() so derived/custom controls are included.
+			if (c is CheckBox ||
+				c is ComboBox ||
+				c is NumericUpDown ||
+				c is RadioButton ||
+				c is TextBox ||
+				c is TrackBar ||
+				c is TabControl ||
+				c is ColorButton)
+			{
 				a.Add(c);
-
+			}
 		}
-        public static void SaveForm(Form form, string tablename)
-        {
-            if (DB.ds == null) return;
 
-            List<string> control_data = new List<string>();
-            List<Control> temp = new List<Control>();
+		private static bool TryParsePersistedInt(string value, out int parsed)
+		{
+			return int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out parsed) ||
+				int.TryParse(value, NumberStyles.Integer, CultureInfo.CurrentCulture, out parsed);
+		}
 
-            ControlList(form, ref temp);
+		private static bool TryParsePersistedDecimal(string value, out decimal parsed)
+		{
+			return decimal.TryParse(value, NumberStyles.Number, CultureInfo.InvariantCulture, out parsed) ||
+				decimal.TryParse(value, NumberStyles.Number, CultureInfo.CurrentCulture, out parsed);
+		}
 
-            foreach (Control control in temp)
-            {
-                switch (control)
-                {
-                    case CheckBoxTS check_box:
-                        control_data.Add($"{check_box.Name}/{check_box.Checked}");
-                        break;
-                    case ComboBoxTS combo_box:
-                        control_data.Add($"{combo_box.Name}/{combo_box.Text}");
-                        break;
-                    case NumericUpDownTS numeric_up_down:
-                        control_data.Add($"{numeric_up_down.Name}/{numeric_up_down.Value}");
-                        break;
-                    case RadioButtonTS radio_button:
-                        control_data.Add($"{radio_button.Name}/{radio_button.Checked}");
-                        break;
-                    case TextBoxTS text_box:
-                        control_data.Add($"{text_box.Name}/{text_box.Text}");
-                        break;
-                    case TrackBarTS track_bar:
-                        control_data.Add($"{track_bar.Name}/{track_bar.Value}");
-                        break;
-                    case ColorButton color_button:
-                        Color clr = color_button.Color;
-                        control_data.Add($"{color_button.Name}/{clr.R}.{clr.G}.{clr.B}.{clr.A}");
-                        break;
+		private static void RestoreComboBoxText(ComboBox comboBox, string value)
+		{
+			if (comboBox.DropDownStyle != ComboBoxStyle.DropDownList)
+			{
+				comboBox.Text = value;
+				return;
+			}
+
+			for (int i = 0; i < comboBox.Items.Count; i++)
+			{
+				object item = comboBox.Items[i];
+				if (item != null && string.Equals(item.ToString(), value, StringComparison.Ordinal))
+				{
+					comboBox.SelectedIndex = i;
+					return;
+				}
+			}
+		}
+
+		public static void SaveForm(Form form, string tablename)
+		{
+			if (DB.ds == null || form == null) return;
+
+			List<string> control_data = new List<string>();
+			List<Control> temp = new List<Control>();
+
+			ControlList(form, ref temp);
+
+			foreach (Control control in temp)
+			{
+				// Programmatically-created controls without stable names cannot be restored safely.
+				if (string.IsNullOrEmpty(control.Name)) continue;
+
+				switch (control)
+				{
+					case ColorButton color_button:
+						Color clr = color_button.Color;
+						control_data.Add(color_button.Name + "/" +
+							clr.R.ToString(CultureInfo.InvariantCulture) + "." +
+							clr.G.ToString(CultureInfo.InvariantCulture) + "." +
+							clr.B.ToString(CultureInfo.InvariantCulture) + "." +
+							clr.A.ToString(CultureInfo.InvariantCulture));
+						break;
+					case CheckBox check_box:
+						control_data.Add(check_box.Name + "/" + check_box.Checked.ToString(CultureInfo.InvariantCulture));
+						break;
+					case ComboBox combo_box:
+						control_data.Add(combo_box.Name + "/" + (combo_box.Text ?? string.Empty));
+						break;
+					case NumericUpDown numeric_up_down:
+						control_data.Add(numeric_up_down.Name + "/" + numeric_up_down.Value.ToString(CultureInfo.InvariantCulture));
+						break;
+					case RadioButton radio_button:
+						control_data.Add(radio_button.Name + "/" + radio_button.Checked.ToString(CultureInfo.InvariantCulture));
+						break;
+					case TextBox text_box:
+						control_data.Add(text_box.Name + "/" + (text_box.Text ?? string.Empty));
+						break;
+					case TrackBar track_bar:
+						control_data.Add(track_bar.Name + "/" + track_bar.Value.ToString(CultureInfo.InvariantCulture));
+						break;
+					case TabControl tab_control:
+						control_data.Add(tab_control.Name + "/" + tab_control.SelectedIndex.ToString(CultureInfo.InvariantCulture));
+						break;
+				}
+			}
+
+			control_data.Add("Top/" + form.Top.ToString(CultureInfo.InvariantCulture));
+			control_data.Add("Left/" + form.Left.ToString(CultureInfo.InvariantCulture));
+			control_data.Add("Width/" + form.Width.ToString(CultureInfo.InvariantCulture));
+			control_data.Add("Height/" + form.Height.ToString(CultureInfo.InvariantCulture));
+
+			DB.SaveVars(tablename, control_data);
+		}
+
+		public static void RestoreForm(Form form, string tablename, bool restore_size)
+		{
+			if (DB.ds == null || form == null) return;
+
+			List<Control> temp = new List<Control>();
+			ControlList(form, ref temp);
+
+			Dictionary<string, Control> ctrls = new Dictionary<string, Control>(StringComparer.Ordinal);
+			foreach (Control c in temp)
+			{
+				if (string.IsNullOrEmpty(c.Name) || ctrls.ContainsKey(c.Name)) continue;
+				ctrls.Add(c.Name, c);
+			}
+
+			List<string> control_data = DB.GetVars(tablename).OfType<string>().ToList();
+			control_data.Sort(StringComparer.Ordinal);
+
+			foreach (string s in control_data)
+			{
+				if (string.IsNullOrEmpty(s)) continue;
+
+				// Split at the first separator only. Values are allowed to contain '/'.
+				int separator = s.IndexOf('/');
+				if (separator <= 0) continue;
+
+				string name = s.Substring(0, separator);
+				string val = s.Substring(separator + 1);
+
+				if (name == "Top" || name == "Left" || name == "Width" || name == "Height")
+				{
+					int parsed_value;
+					if (!TryParsePersistedInt(val, out parsed_value)) continue;
+
+					switch (name)
+					{
+						case "Top":
+							form.StartPosition = FormStartPosition.Manual;
+							form.Top = parsed_value;
+							break;
+						case "Left":
+							form.StartPosition = FormStartPosition.Manual;
+							form.Left = parsed_value;
+							break;
+						case "Width":
+							if (restore_size && parsed_value > 0) form.Width = parsed_value;
+							break;
+						case "Height":
+							if (restore_size && parsed_value > 0) form.Height = parsed_value;
+							break;
+					}
+					continue;
+				}
+
+				Control control;
+				if (!ctrls.TryGetValue(name, out control)) continue;
+
+				try
+				{
+					if (control is ColorButton color_button)
+					{
+						string[] colors = val.Split('.');
+						int r, g, b, a;
+						if (colors.Length == 4 &&
+							TryParsePersistedInt(colors[0], out r) &&
+							TryParsePersistedInt(colors[1], out g) &&
+							TryParsePersistedInt(colors[2], out b) &&
+							TryParsePersistedInt(colors[3], out a) &&
+							r >= 0 && r <= 255 && g >= 0 && g <= 255 &&
+							b >= 0 && b <= 255 && a >= 0 && a <= 255)
+						{
+							color_button.Color = Color.FromArgb(a, r, g, b);
+						}
+					}
+					else if (control is CheckBox check_box)
+					{
+						bool parsed;
+						if (bool.TryParse(val, out parsed)) check_box.Checked = parsed;
+					}
+					else if (control is ComboBox combo_box)
+					{
+						RestoreComboBoxText(combo_box, val);
+					}
+					else if (control is NumericUpDown numeric_up_down)
+					{
+						decimal numeric_value;
+						if (TryParsePersistedDecimal(val, out numeric_value))
+							numeric_up_down.Value = Math.Max(numeric_up_down.Minimum, Math.Min(numeric_value, numeric_up_down.Maximum));
+					}
+					else if (control is RadioButton radio_button)
+					{
+						bool parsed;
+						if (bool.TryParse(val, out parsed)) radio_button.Checked = parsed;
+					}
+					else if (control is TextBox text_box)
+					{
+						text_box.Text = val;
+					}
+					else if (control is TrackBar track_bar)
+					{
+						int track_bar_value;
+						if (TryParsePersistedInt(val, out track_bar_value))
+							track_bar.Value = Math.Max(track_bar.Minimum, Math.Min(track_bar_value, track_bar.Maximum));
+					}
+					else if (control is TabControl tab_control)
+					{
+						int selected_index;
+						if (TryParsePersistedInt(val, out selected_index) &&
+							selected_index >= 0 && selected_index < tab_control.TabPages.Count)
+						{
+							tab_control.SelectedIndex = selected_index;
+						}
+					}
+				}
+				catch (Exception ex)
+				{
 #if DEBUG
-                    case GroupBox gb:
-                    case CheckBox cb:
-                    case ComboBox cob:
-                    case NumericUpDown nu:
-                    case RadioButton rb:
-                    case TextBox tb:
-                    case TrackBar trk:
-                        Debug.WriteLine($"{form.Name} -> {control.Name} needs to be converted to a Thread Safe control.");
-                        break;
+					Debug.WriteLine("RestoreForm skipped invalid value for " + form.Name + "." + name + ": " + ex.Message);
 #endif
-                }
-            }
+				}
+			}
 
-            control_data.Add($"Top/{form.Top}");
-            control_data.Add($"Left/{form.Left}");
-            control_data.Add($"Width/{form.Width}");
-            control_data.Add($"Height/{form.Height}");
-
-            DB.SaveVars(tablename, control_data);
-        }
-
-        public static void RestoreForm(Form form, string tablename, bool restore_size)
-        {
-            if (DB.ds == null) return;
-
-            List<Control> temp = new List<Control>();
-            ControlList(form, ref temp);
-
-            Dictionary<string, Control> ctrls = new Dictionary<string, Control>();
-            foreach (Control c in temp)
-            {
-                ctrls.Add(c.Name, c);
-            }
-
-            temp.Clear();
-
-            List<string> control_data = DB.GetVars(tablename).OfType<string>().ToList();
-            control_data.Sort();
-
-            foreach (string s in control_data)
-            {
-                string[] vals = s.Split('/');
-                if (vals.Length < 2) continue;
-
-                string name = vals[0];
-                string val = vals[1];
-
-                if (name == "Top" || name == "Left" || name == "Width" || name == "Height")
-                {
-                    int parsed_value = int.Parse(val);
-                    switch (name)
-                    {
-                        case "Top":
-                            form.StartPosition = FormStartPosition.Manual;
-                            form.Top = parsed_value;
-                            break;
-                        case "Left":
-                            form.StartPosition = FormStartPosition.Manual;
-                            form.Left = parsed_value;
-                            break;
-                        case "Width":
-                            if (restore_size) form.Width = parsed_value;
-                            break;
-                        case "Height":
-                            if (restore_size) form.Height = parsed_value;
-                            break;
-                    }
-                    continue;
-                }
-
-                if (!ctrls.TryGetValue(name, out Control control)) continue;
-
-                if (name.StartsWith("chk") && control is CheckBoxTS check_box)
-                {
-                    check_box.Checked = bool.Parse(val);
-                }
-                else if (name.StartsWith("combo") && control is ComboBoxTS combo_box)
-                {
-                    combo_box.Text = val;
-                }
-                else if (name.StartsWith("ud") && control is NumericUpDownTS numeric_up_down)
-                {
-                    decimal numeric_value = decimal.Parse(val);
-                    numeric_up_down.Value = Math.Max(numeric_up_down.Minimum, Math.Min(numeric_value, numeric_up_down.Maximum));
-                }
-                else if (name.StartsWith("rad") && control is RadioButtonTS radio_button)
-                {
-                    radio_button.Checked = bool.Parse(val);
-                }
-                else if (name.StartsWith("txt") && control is TextBoxTS text_box)
-                {
-                    text_box.Text = val;
-                }
-                else if (name.StartsWith("tb") && control is TrackBarTS track_bar)
-                {
-                    int track_bar_value = int.Parse(val);
-                    track_bar.Value = Math.Max(track_bar.Minimum, Math.Min(track_bar_value, track_bar.Maximum));
-                }
-                else if (name.StartsWith("clrbtn") && control is ColorButton color_button)
-                {
-                    string[] colors = val.Split('.');
-                    if (colors.Length == 4 &&
-                        int.TryParse(colors[0], out int R) &&
-                        int.TryParse(colors[1], out int G) &&
-                        int.TryParse(colors[2], out int B) &&
-                        int.TryParse(colors[3], out int A))
-                    {
-                        color_button.Color = Color.FromArgb(A, R, G, B);
-                    }
-                }
-            }
-
-            ForceFormOnScreen(form);
-        }
+			ForceFormOnScreen(form);
+		}
 
         public static (bool resized, bool relocated) ForceFormOnScreen(Form f, bool shrink_to_fit = false, bool keep_on_screen = false)
         {

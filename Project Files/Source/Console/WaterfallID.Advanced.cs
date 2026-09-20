@@ -411,17 +411,94 @@ namespace Thetis
             _status.Size = new Size(886, 70);
             Controls.Add(_status);
 
+            AssignPersistenceNames();
             _console.WaterfallIDStateChanged += Console_WaterfallIDStateChanged;
             FormClosing += WaterfallIDAdvancedForm_FormClosing;
             DragEnter += WaterfallIDAdvancedForm_DragEnter;
             DragDrop += WaterfallIDAdvancedForm_DragDrop;
             Shown += delegate
             {
-                UpdateAutoBand();
+                if (_autoBand.Checked) UpdateAutoBand();
                 RefreshPreview();
             };
 
             AutoBand_CheckedChanged(null, EventArgs.Empty);
+            RestorePersistentState();
+        }
+
+        private const string PersistenceTable = "WaterfallIDAdvancedForm";
+
+        private void AssignPersistenceNames()
+        {
+            _sourceTabs.Name = "tabsWaterfallIDSource";
+            _text.Name = "txtWaterfallIDText";
+            _font.Name = "comboWaterfallIDFont";
+            _bold.Name = "chkWaterfallIDBold";
+            _textAlign.Name = "comboWaterfallIDTextAlign";
+            _fitMode.Name = "comboWaterfallIDFit";
+            _raster.Name = "comboWaterfallIDRaster";
+            _brightness.Name = "udWaterfallIDBrightness";
+            _contrast.Name = "udWaterfallIDContrast";
+            _gamma.Name = "udWaterfallIDGamma";
+            _threshold.Name = "udWaterfallIDThreshold";
+            _invert.Name = "chkWaterfallIDInvert";
+            _binary.Name = "chkWaterfallIDBinary";
+            _autoLevels.Name = "chkWaterfallIDAutoLevels";
+            _sharpen.Name = "chkWaterfallIDSharpen";
+            _autoBand.Name = "chkWaterfallIDAutoBand";
+            _lowHz.Name = "udWaterfallIDLowHz";
+            _highHz.Name = "udWaterfallIDHighHz";
+            _rowMs.Name = "udWaterfallIDRowMs";
+            _levelDb.Name = "udWaterfallIDLevelDb";
+            _preMs.Name = "udWaterfallIDPreMs";
+            _postMs.Name = "udWaterfallIDPostMs";
+            _repeat.Name = "udWaterfallIDRepeat";
+            _pauseMs.Name = "udWaterfallIDPauseMs";
+        }
+
+        private void RestorePersistentState()
+        {
+            Common.RestoreForm(this, PersistenceTable, false);
+
+            Dictionary<string, string> vars = DB.GetVarsDictionary(PersistenceTable);
+            string sourcePath;
+            if (vars.TryGetValue("WaterfallIDSourcePath", out sourcePath) &&
+                !string.IsNullOrWhiteSpace(sourcePath) &&
+                !string.Equals(sourcePath, "Clipboard", StringComparison.OrdinalIgnoreCase) &&
+                File.Exists(sourcePath))
+            {
+                try
+                {
+                    using (Image loaded = Image.FromFile(sourcePath))
+                    {
+                        SetSourceImage(new Bitmap(loaded), sourcePath);
+                    }
+                }
+                catch
+                {
+                    // A stale or unreadable external image must not prevent the form from opening.
+                }
+            }
+
+            if (_autoBand.Checked) UpdateAutoBand();
+            RefreshPreview();
+        }
+
+        private void SavePersistentState()
+        {
+            Common.SaveForm(this, PersistenceTable);
+
+            string sourcePath = _sourcePath;
+            if (string.IsNullOrWhiteSpace(sourcePath) ||
+                string.Equals(sourcePath, "Clipboard", StringComparison.OrdinalIgnoreCase))
+            {
+                sourcePath = string.Empty;
+            }
+
+            DB.SaveVars(PersistenceTable, new List<string>
+            {
+                "WaterfallIDSourcePath/" + sourcePath
+            });
         }
 
         private static void AddNumericRow(Control parent, string labelText, int x, int y, int min, int max, int value, int increment, out NumericUpDown control)
@@ -939,6 +1016,8 @@ namespace Thetis
 
         private void WaterfallIDAdvancedForm_FormClosing(object sender, FormClosingEventArgs e)
         {
+            SavePersistentState();
+
             if (_console.WaterfallIDIsActive)
             {
                 string ignored;
