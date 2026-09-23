@@ -468,6 +468,7 @@ namespace Thetis
                     px[i * 4 + 2] = (byte)cols[idx].R;
                     px[i * 4 + 3] = 255;
                 }
+                ApplySQ4KOUEnhancerToLut(px);
                 return;
             }
 
@@ -542,6 +543,41 @@ namespace Thetis
                         px[i * 4 + 0] = 0; px[i * 4 + 1] = 0; px[i * 4 + 2] = 0; px[i * 4 + 3] = 255;
                         break;
                 }
+            }
+
+            ApplySQ4KOUEnhancerToLut(px);
+        }
+
+        private static void ApplySQ4KOUEnhancerToLut(byte[] px)
+        {
+            if (px == null) return;
+            bool tone = WaterfallEnhancer.ToneMap != WaterfallEnhancer.ToneMapMode.None;
+            bool gamma = Math.Abs(WaterfallEnhancer.Gamma - 1.0f) > 0.0001f;
+            if (!tone && !gamma) return;
+
+            for (int i = 0; i < WfLutSize; i++)
+            {
+                int p = i * 4;
+                float b = px[p + 0];
+                float g = px[p + 1];
+                float r = px[p + 2];
+
+                if (tone)
+                {
+                    b = WaterfallEnhancer.ApplyToneMap(b);
+                    g = WaterfallEnhancer.ApplyToneMap(g);
+                    r = WaterfallEnhancer.ApplyToneMap(r);
+                }
+                if (gamma)
+                {
+                    b = WaterfallEnhancer.ApplyGammaFloat(b);
+                    g = WaterfallEnhancer.ApplyGammaFloat(g);
+                    r = WaterfallEnhancer.ApplyGammaFloat(r);
+                }
+
+                px[p + 0] = (byte)Math.Max(0, Math.Min(255, (int)(b + 0.5f)));
+                px[p + 1] = (byte)Math.Max(0, Math.Min(255, (int)(g + 0.5f)));
+                px[p + 2] = (byte)Math.Max(0, Math.Min(255, (int)(r + 0.5f)));
             }
         }
 
