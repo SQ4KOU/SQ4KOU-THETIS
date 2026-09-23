@@ -758,21 +758,9 @@ namespace Thetis
 
 	private void UpdateWaterfallPaletteItems(bool gpuMode)
 	{
-		if (_paletteItemsUpdating)
-		{
-			return;
-		}
-		_paletteItemsUpdating = true;
-		try
-		{
-			UpdateOnePaletteCombo(comboColorPalette, gpuMode);
-			UpdateOnePaletteCombo(comboRX2ColorPalette, gpuMode);
-			UpdateOnePaletteCombo(comboColorPalette_tx, gpuMode);
-		}
-		finally
-		{
-			_paletteItemsUpdating = false;
-		}
+		// SDR-VST3 keeps the current Thetis palette list. The recovered menu used
+		// extra 256-palette names that are not part of this base's combo handlers.
+		// Do not rewrite those combos here; quality A/B is controlled independently.
 	}
 
 
