@@ -372,6 +372,15 @@
     <Compile Include="Display.Pan2DMesh.cs" />
     <Compile Include="Display.WaterfallMesh.cs" />
     <Compile Include="Display.SQ4KOUHighResWaterfall.cs" />
+    <Compile Include="Display.EU2AVWaterfallCompat.cs" />
+    <Compile Include="GPUDetector.cs" />
+    <Compile Include="GPUDetectorNative.cs" />
+    <Compile Include="GPUWaterfallMagnitudeMode.cs" />
+    <Compile Include="GPUWaterfallResamplingMode.cs" />
+    <Compile Include="GPUWaterfallWindowType.cs" />
+    <Compile Include="NoiseFloorPro.cs" />
+    <Compile Include="WaterfallEnhancer.cs" />
+    <Compile Include="Setup.GPUWaterfall.cs" />
     <Compile Include="Display.SpectrumCompute.cs" />
     <Compile Include="Display.OverlayMesh.cs" />
     <Compile Include="GpuUsageMonitor.cs" />
