@@ -147,6 +147,8 @@
     <ClInclude Include="radae_micdsp.h" />
     <ClInclude Include="fldigi_mod.h" />
     <ClInclude Include="wsjtx_mod.h" />
+    <ClInclude Include="waterfall_iq.h" />
+    <ClInclude Include="gpu_waterfall.h" />
     <ClInclude Include="r8brain_wrap.h" />
   </ItemGroup>
   <ItemGroup>
@@ -156,6 +158,10 @@
     <ClCompile Include="bandwidth_monitor.c" />
     <ClCompile Include="cmasio.c" />
     <ClCompile Include="cmaster.c" />
+    <ClCompile Include="waterfall_iq.c" />
+    <ClCompile Include="gpu_waterfall.cpp">
+      <CompileAs>CompileAsCpp</CompileAs>
+    </ClCompile>
     <ClCompile Include="cmbuffs.c" />
     <ClCompile Include="cmsetup.c" />
     <ClCompile Include="ilv.c" />
