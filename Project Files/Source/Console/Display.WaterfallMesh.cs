@@ -105,6 +105,24 @@ namespace Thetis
             return _wf[rx == 2 ? 1 : 0].MeshOwnsPane;
         }
 
+        public static string WaterfallPresenterStatusRX1
+        {
+            get { return WaterfallPresenterStatus(1); }
+        }
+
+        public static string WaterfallPresenterStatusRX2
+        {
+            get { return WaterfallPresenterStatus(2); }
+        }
+
+        private static string WaterfallPresenterStatus(int rx)
+        {
+            if (!GpuMeshEnabled) return "D2D (GPU MESH OFF)";
+            if (m_eRenderPath != DXRenderPath.Hardware) return "D2D (" + RenderPathString() + ")";
+            if (_device == null || !_bDX2Setup) return "D2D (DX NOT READY)";
+            return WfMeshOwnsPane(rx) ? "GPU MESH ACTIVE" : "D2D FALLBACK";
+        }
+
         private static void CaptureWaterfallPaneParams(int nVerticalShift, int W, int H, int rx)
         {
             _wfPane[rx == 2 ? 1 : 0] = new WfPaneParams
