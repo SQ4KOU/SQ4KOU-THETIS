@@ -115,6 +115,32 @@ namespace Thetis
             get { return WaterfallPresenterStatus(2); }
         }
 
+        public static bool SQ4KOUWaterfallMeshEnabled
+        {
+            get { return GpuMeshEnabled; }
+            set
+            {
+                if (GpuMeshEnabled == value) return;
+                GpuMeshEnabled = value;
+                if (!value)
+                {
+                    ReleaseWaterfallRing(ref _wf[0]);
+                    ReleaseWaterfallRing(ref _wf[1]);
+                }
+            }
+        }
+
+        public static string WaterfallColorComputeStatus
+        {
+            get
+            {
+                if (!GpuComputeEnabled) return "CPU COLOR";
+                if (m_eRenderPath != DXRenderPath.Hardware) return "CPU COLOR (" + RenderPathString() + ")";
+                if (_device == null || !_bDX2Setup) return "CPU COLOR (DX NOT READY)";
+                return "GPU COLOR COMPUTE";
+            }
+        }
+
         private static string WaterfallPresenterStatus(int rx)
         {
             if (!GpuMeshEnabled) return "D2D (GPU MESH OFF)";
