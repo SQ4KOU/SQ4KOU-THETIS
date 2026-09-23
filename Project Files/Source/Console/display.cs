@@ -8572,6 +8572,14 @@ namespace Thetis
                     max_y = local_max_y;
                     min_y_w3sz = local_min_y_w3sz;
 
+                    // SQ4KOU synthesis: replace the legacy analyser row with a true
+                    // full-pixel 16384-point GPU FFT row when the native backend is ready.
+                    // The original row remains the calibration reference and immediate fallback.
+                    float[] sq4kouHighResRow;
+                    bool sq4kouHighResActive = TrySQ4KOUHighResWaterfall(
+                        rx, W, waterfall_data, nDecimatedWidth, m_nDecimation,
+                        local_mox, displayduplex, out sq4kouHighResRow);
+
                     byte nbBitmapAlpaha = 255;
                     int pixel_size = 4;
                     byte[] row = new byte[W * pixel_size];
@@ -9527,8 +9535,11 @@ namespace Thetis
                     {
                         float linCor = (cScheme == ColorScheme.LinLog) ? LinLogCor :
                                        (cScheme == ColorScheme.LinRad || cScheme == ColorScheme.LinAuto) ? LinCor : 0f;
-                        bComputeFilledRow = TryDispatchWaterfallCompute(waterfall_data, row, W,
-                            nDecimatedWidth, m_nDecimation, cScheme, low_threshold, high_threshold,
+                        float[] computeSource = sq4kouHighResActive ? sq4kouHighResRow : waterfall_data;
+                        int computeWidth = sq4kouHighResActive ? W : nDecimatedWidth;
+                        int computeDecimation = sq4kouHighResActive ? 1 : m_nDecimation;
+                        bComputeFilledRow = TryDispatchWaterfallCompute(computeSource, row, W,
+                            computeWidth, computeDecimation, cScheme, low_threshold, high_threshold,
                             linCor, rx == 2, local_mox);
                     }
 
