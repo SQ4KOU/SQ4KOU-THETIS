@@ -82,6 +82,36 @@ namespace Thetis
 
         #endregion
 
+        // SQ4KOU: minimal database corruption protection only.
+        // Keep SDR-VST3 schema/import/migration semantics unchanged.
+        private static bool _loaded_from_lastgood = false;
+
+        private static string LastGoodFileName(string filename)
+        {
+            string dir = Path.GetDirectoryName(filename);
+            if (string.IsNullOrEmpty(dir)) dir = ".";
+            string name = Path.GetFileNameWithoutExtension(filename);
+            string ext = Path.GetExtension(filename);
+            return Path.Combine(dir, name + ".lastgood" + ext);
+        }
+
+        private static bool TryReadDatabase(string filename, out DataSet loaded)
+        {
+            loaded = null;
+            if (string.IsNullOrEmpty(filename) || !File.Exists(filename)) return false;
+            try
+            {
+                DataSet candidate = new DataSet("Data");
+                candidate.ReadXml(filename);
+                loaded = candidate;
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         #region Private Member Functions
         // ======================================================
         // Private Member Functions
@@ -9805,7 +9835,9 @@ namespace Thetis
         {
             _merged = false;
             ds = new DataSet("Data");
-            
+            _loaded_from_lastgood = false;
+            string lastGood = LastGoodFileName(_file_name);
+
             if (File.Exists(_file_name))
             {
                 try
@@ -9814,9 +9846,14 @@ namespace Thetis
                 }
                 catch
                 {
-                    return false;
+                    if (!TryReadDatabase(lastGood, out DataSet recovered))
+                        return false;
+
+                    ds = recovered;
+                    _loaded_from_lastgood = true;
+                    Debug.Print("Database.xml could not be read. Loaded database.lastgood.xml instead.");
                 }
-            }                
+            }
 
             VerifyTables();
 
@@ -9878,13 +9915,63 @@ namespace Thetis
         //-W2PA Write specific dataset to a file 
         public static bool WriteDB(string fn, DataSet dsIN)
         {
+            string temp = fn + ".tmp";
+            string lastGood = LastGoodFileName(fn);
+            bool primaryFile = string.Equals(Path.GetFullPath(fn), Path.GetFullPath(_file_name), StringComparison.OrdinalIgnoreCase);
+            bool existedBeforeWrite = File.Exists(fn);
+
             try
             {
-                dsIN.WriteXml(fn, XmlWriteMode.WriteSchema);
+                // Fresh database creation keeps the original SDR-VST3 path.
+                if (!existedBeforeWrite)
+                {
+                    dsIN.WriteXml(fn, XmlWriteMode.WriteSchema);
+
+                    DataSet firstWriteVerify = new DataSet("Data");
+                    firstWriteVerify.ReadXml(fn);
+
+                    if (!File.Exists(lastGood))
+                        File.Copy(fn, lastGood, false);
+
+                    if (primaryFile) _loaded_from_lastgood = false;
+                    DBMan.DBWritten();
+                    return true;
+                }
+
+                // Existing database: protected atomic replacement.
+                if (File.Exists(temp)) File.Delete(temp);
+
+                using (FileStream fs = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+                {
+                    dsIN.WriteXml(fs, XmlWriteMode.WriteSchema);
+                    fs.Flush(true);
+                }
+
+                // An unreadable temporary XML must never replace the live database.
+                DataSet verify = new DataSet("Data");
+                verify.ReadXml(temp);
+
+                if (primaryFile && _loaded_from_lastgood)
+                {
+                    // Live database was unreadable; preserve the known-good backup.
+                    File.Replace(temp, fn, null, true);
+                }
+                else
+                {
+                    File.Replace(temp, fn, lastGood, true);
+                }
+
+                if (primaryFile) _loaded_from_lastgood = false;
                 DBMan.DBWritten();
             }
             catch (Exception ex)
             {
+                try { if (File.Exists(temp)) File.Delete(temp); } catch { }
+                if (!existedBeforeWrite)
+                {
+                    try { if (File.Exists(fn)) File.Delete(fn); } catch { }
+                }
+
                 MessageBox.Show("A database write to file operation failed.  " +
                     "The exception error was:\n\n" + ex.Message,
                     "ERROR: Database Write Error",
