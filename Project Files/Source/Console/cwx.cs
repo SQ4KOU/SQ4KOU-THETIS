@@ -274,7 +274,56 @@ namespace Thetis
 
         #region radio interface and fifo functions
 
+        // SQ4KOU P1 CWX: keep MOX/PTT asserted across a standard 7-element
+        // Morse word gap.  The user's CWX Drop Delay remains authoritative when
+        // it is longer; 8 dot periods are only a Protocol-1 software-CWX minimum.
+        private int p1_cwx_ptt_hold_elements()
+        {
+            int configured = tel > 0 ? Math.Max(0, ttdel / tel) : 0;
+            if (NetworkIO.CurrentRadioProtocol == RadioProtocol.USB &&
+                console.SQ4KOUP1SoftwareCWXActive)
+                return Math.Max(configured, 8);
+
+            return configured;
+        }
+
         private bool setptt_memory = false;
+        private bool cwx_mox_latched = false;
+
+        private void set_cwx_mox_latch(bool state)
+        {
+            RadioProtocol protocol = NetworkIO.CurrentRadioProtocol;
+            bool p1 = protocol == RadioProtocol.USB;
+            bool p2 = protocol == RadioProtocol.ETH;
+            if (!p1 && !p2) return;
+            if (cwx_mox_latched == state) return;
+
+            if (state)
+            {
+                console.CurrentPTTMode = PTTMode.SPACE;
+
+                // P1: disable firmware-keyer packing and configure normal IQ first.
+                if (p1 && !console.SQ4KOUStartP1SoftwareCWX()) return;
+
+                console.MOX = true;
+
+                // In CW mode normal MOX does not start the WDSP TX channel.
+                if (p1) console.SQ4KOUArmP1SoftwareCWXTX();
+            }
+            else
+            {
+                if (p1) console.SQ4KOUSetP1SoftwareCWXKey(false);
+
+                // Keep software-CW mode active through the MOX->RX transition so
+                // the native CW frequency/key-up handling sees the correct state.
+                console.MOX = false;
+
+                if (p1) console.SQ4KOUStopP1SoftwareCWX();
+            }
+
+            cwx_mox_latched = state;
+        }
+
         private void setptt(bool state)
         {
             if (setptt_memory != state)
@@ -289,6 +338,11 @@ namespace Thetis
                 if (state) pttLed.BackColor = System.Drawing.Color.Red;
                 else pttLed.BackColor = System.Drawing.Color.Black;
 
+                if (state)
+                    set_cwx_mox_latch(true);
+                else if (NetworkIO.CurrentRadioProtocol == RadioProtocol.USB)
+                    set_cwx_mox_latch(false);
+
                 setptt_memory = state;
             }
             //			if (newptt) Thread.Sleep(200);
@@ -299,7 +353,10 @@ namespace Thetis
         {
             if (setkey_memory != state)
             {
-                NetworkIO.SetCWX(Convert.ToInt32(state));
+                if (NetworkIO.CurrentRadioProtocol == RadioProtocol.USB && console.SQ4KOUP1SoftwareCWXActive)
+                    console.SQ4KOUSetP1SoftwareCWXKey(state);
+                else
+                    NetworkIO.SetCWX(Convert.ToInt32(state));
 
                 if (state) keyLed.BackColor = System.Drawing.Color.Yellow;
                 else keyLed.BackColor = System.Drawing.Color.Black;
@@ -313,6 +370,8 @@ namespace Thetis
             clear_fifo2();
             setkey(false); //[2.10.3]MW0LGE swap
             setptt(false);
+
+            set_cwx_mox_latch(false);
             ttx = 0; pause = 0; newptt = 0;
             keying = false;
             NetworkIO.SendHighPriority(1);
@@ -2248,7 +2307,7 @@ namespace Thetis
             if (newptt > 0)
             {
                 newptt--;
-                ttx = ttdel / tel;
+                ttx = p1_cwx_ptt_hold_elements();
                 if (newptt > 0) return;
                 //				Debug.WriteLine("newppt delay over");
                 setkey(true);				// this was the defered key down
@@ -2283,7 +2342,7 @@ namespace Thetis
                 if (data == EL_PTT)		// ptt only command
                 {
                     setptt(true);
-                    ttx = ttdel / tel;
+                    ttx = p1_cwx_ptt_hold_elements();
                 }
                 if ((data == EL_KEYDOWN) || (data == EL_KEYUP))		// key command
                 {
@@ -2295,7 +2354,7 @@ namespace Thetis
                             //							Debug.WriteLine("start newptt");
                         }
                         setptt(true);
-                        ttx = ttdel / tel;
+                        ttx = p1_cwx_ptt_hold_elements();
                         if (newptt > 0) return;		// the key will get pressed after newptt
                         setkey(true);
                     }
