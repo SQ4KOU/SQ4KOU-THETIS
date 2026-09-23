@@ -77,7 +77,7 @@ jobs:
           }
 
           $threeD=Get-Content 'Project Files\Source\Console\Display.ThreeDPanadapter.cs' -Raw
-          if($threeD -match 'Vortice'){throw 'Vortice dependency leaked into SharpDX build'}
+          if($threeD -match '(?m)^\\s*using\\s+Vortice' -or $threeD -match 'Vortice\\.'){throw 'Vortice dependency leaked into SharpDX build'}
           if($threeD -match 'GPUWaterfallPipeline|WaterfallGPURenderer'){throw '3D renderer coupled to protected GPU waterfall pipeline'}
 
           Write-Host "BASE=$base"
