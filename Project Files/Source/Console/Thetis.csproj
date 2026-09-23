@@ -109,6 +109,7 @@
     <Compile Include="CAT\TCPIPcatServer.cs" />
     <Compile Include="CAT\UsbBCDCable.cs" />
     <Compile Include="Channel.cs" />
+    <Compile Include="Console.SQ4KOUP1CWX.cs" />
     <Compile Include="WaterfallID.Core.cs" />
     <Compile Include="WaterfallID.Advanced.cs" />
     <Compile Include="Console.WaterfallIDMenuFix.cs" />
