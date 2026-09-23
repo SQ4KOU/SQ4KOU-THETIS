@@ -10,7 +10,7 @@ if ($text -match [regex]::Escape('_sq4kouWaterfallIdMenuHook')) {
     exit 0
 }
 
-$pattern = '(?s)\s*protected\s+override\s+void\s+OnShown\s*\(\s*EventArgs\s+e\s*\)\s*\{\s*base\.OnShown\s*\(\s*e\s*\)\s*;\s*EnsureWaterfallIDMenuVisible\s*\(\s*\)\s*;\s*\}'
+$pattern = '(?s)\s*protected\s+override\s+void\s+OnShown\s*\(\s*EventArgs\s+e\s*\)\s*\{\s*base\.OnShown\s*\(\s*e\s*\)\s*;\s*EnsureWaterfallIDMenuVisible\s*\(\s*\)\s*;\s*(?:Ensure3DPanadapterMenuVisible\s*\(\s*\)\s*;\s*)?\}'
 $matches = [regex]::Matches($text, $pattern)
 if ($matches.Count -ne 1) { throw "Expected exactly one Waterfall ID OnShown override, found $($matches.Count)" }
 
@@ -36,6 +36,7 @@ $replacement = @'
                     continue;
 
                 console.EnsureWaterfallIDMenuVisible();
+                console.Ensure3DPanadapterMenuVisible();
                 Application.Idle -= Sq4kouWaterfallIdMenuIdle;
                 break;
             }
@@ -48,7 +49,7 @@ $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
 
 $verify = [System.IO.File]::ReadAllText($path)
 if ($verify -match 'protected\s+override\s+void\s+OnShown\s*\(') { throw 'Duplicate OnShown override still present after build fix' }
-foreach ($token in @('_sq4kouWaterfallIdMenuHook','InstallWaterfallIdMenuHook','Sq4kouWaterfallIdMenuIdle','EnsureWaterfallIDMenuVisible')) {
+foreach ($token in @('_sq4kouWaterfallIdMenuHook','InstallWaterfallIdMenuHook','Sq4kouWaterfallIdMenuIdle','EnsureWaterfallIDMenuVisible','Ensure3DPanadapterMenuVisible')) {
     if ($verify -notmatch [regex]::Escape($token)) { throw "Missing post-fix token: $token" }
 }
 Write-Host 'WATERFALL_ID_ONSHOWN_BUILD_FIX=PASS'
