@@ -10385,38 +10385,40 @@ namespace Thetis
 
             foreach (string s in list)
             {
-                string[] vals = s.Split('/');
-                if (vals.Length > 2)
-                {
-                    for (int i = 2; i < vals.Length; i++)
-                        vals[1] += "/" + vals[i];
-                }
+                if (string.IsNullOrEmpty(s)) continue;
 
-                if (!bSaveEmptyValues && vals.Length <= 1) // skip it as no data was provided
+                // The first '/' separates key from value. The value itself may legally contain '/'.
+                int separator = s.IndexOf('/');
+                if (separator <= 0) continue;
+
+                string key = s.Substring(0, separator);
+                string value = s.Substring(separator + 1);
+
+                if (!bSaveEmptyValues && value.Length == 0)
                     continue;
-                
-                //DataRow[] rows = ds.Tables[tableName].Select("Key = '" + vals[0] + "'");
 
                 //MW0LGE converted to Rows.Find because it is insanely faster, needs a primary key though
                 DataRow r = null;
                 try
                 {
-                    r = ds.Tables[tableName].Rows.Find(vals[0]);
+                    r = ds.Tables[tableName].Rows.Find(key);
                 }
-                catch {
+                catch
+                {
                 }
+
                 if (r != null)
                 {
-                    r[1] = vals[1];
+                    r[1] = value;
                 }
                 else
                 {
                     DataRow newRow = ds.Tables[tableName].NewRow();
-                    newRow[0] = vals[0];
-                    newRow[1] = vals[1];
+                    newRow[0] = key;
+                    newRow[1] = value;
                     ds.Tables[tableName].Rows.Add(newRow);
                 }
-             }
+            }
         }
         public static Dictionary<string, string> GetVarsDictionary(string table_name)
         {
