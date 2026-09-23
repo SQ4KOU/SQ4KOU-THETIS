@@ -1,0 +1,6 @@
+Upstream: nubbyless/SDR-VST3
+Upstream branch: master
+Upstream commit: 4ac6842736f8849add0f63cec71988c46793bb5e
+Imported for: SQ4KOU Red Pitaya hardware integration
+Note: upstream .github/workflows omitted because the GitHub App token
+intentionally has no workflows permission.
