@@ -29,3 +29,45 @@ jobs:
 
       - name: Build
         run: msbuild "Project Files/Source/Thetis_VS2026.sln" -p:Configuration=Release -p:Platform=x64 -m -nologo
+
+      - name: Verify SQ4KOU native export
+        shell: pwsh
+        run: |
+          $dll = Get-ChildItem "Project Files" -Recurse -Filter ChannelMaster.dll |
+            Where-Object { $_.FullName -match '\\bin\\x64\\Release\\' } |
+            Select-Object -First 1
+          if (-not $dll) { throw "ChannelMaster.dll not found" }
+
+          $dumpbin = Get-ChildItem "C:\Program Files\Microsoft Visual Studio" -Recurse -Filter dumpbin.exe -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -match 'Hostx64\\x64' } |
+            Select-Object -First 1
+          if (-not $dumpbin) { throw "dumpbin.exe not found" }
+
+          $exports = & $dumpbin.FullName /exports $dll.FullName | Out-String
+          if ($exports -notmatch 'GetSQ4KOUHardwareState') {
+            throw "GetSQ4KOUHardwareState export missing from ChannelMaster.dll"
+          }
+          Write-Host "PASS: GetSQ4KOUHardwareState exported by $($dll.FullName)"
+
+      - name: Build test MSI
+        shell: pwsh
+        run: |
+          $wixTargets = "C:/Program Files (x86)/MSBuild/Microsoft/WiX/v3.x/Wix.targets"
+          msbuild "Project Files/Source/Thetis-Installer/Thetis-Installer.wixproj" -p:Configuration=Release -p:Platform=x64 "-p:WixTargetsPath=$wixTargets" -m -nologo
+
+      - name: Locate MSI
+        id: msi
+        shell: pwsh
+        run: |
+          $msi = Get-ChildItem "Project Files/bin/Installers/SDR-VST3-v*.msi" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $msi) { throw "Test MSI not found" }
+          Write-Host "MSI: $($msi.FullName)"
+          "path=$($msi.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Upload test MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-SDR-VST3-HW-NET10-x64
+          path: ${{ steps.msi.outputs.path }}
+          if-no-files-found: error
+          retention-days: 14
