@@ -1,0 +1,31 @@
+name: SQ4KOU SDR-VST3 HW Build
+
+on:
+  push:
+    branches:
+      - feature/sdr-vst3-sq4kou-hw
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: msbuild "Project Files/Source/Thetis_VS2026.sln" -t:Restore -p:Configuration=Release -p:Platform=x64 -m -nologo
+
+      - name: Build
+        run: msbuild "Project Files/Source/Thetis_VS2026.sln" -p:Configuration=Release -p:Platform=x64 -m -nologo
