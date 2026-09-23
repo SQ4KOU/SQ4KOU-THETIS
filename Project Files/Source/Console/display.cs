@@ -4352,7 +4352,7 @@ namespace Thetis
                                 DrawSpectrumDX2D(1, displayTargetWidth, m_nRX1DisplayHeight, false);
                                 break;
                             case DisplayMode.PANADAPTER:
-                                DrawPanadapterDX2D(0, displayTargetWidth, m_nRX1DisplayHeight, 1, false);
+                                DrawPanadapterDX2D(0, displayTargetWidth, m_nRX1DisplayHeight, 1, false, _pan3DEnabled);
                                 if (_showTCISpots) drawSpots(1, 0, displayTargetWidth, false);
                                 break;
                             case DisplayMode.SCOPE:
@@ -4379,7 +4379,7 @@ namespace Thetis
                                 {
                                     m_nRX1DisplayHeight = (int)(displayTargetHeight * m_fPanafallSplitPerc);
                                     split_display = PanafallSplitBarPos <= (displayTargetHeight / 2); // add more granularity, TODO change based on avaialble height
-                                    DrawPanadapterDX2D(0, displayTargetWidth, m_nRX1DisplayHeight, 1, false);
+                                    DrawPanadapterDX2D(0, displayTargetWidth, m_nRX1DisplayHeight, 1, false, _pan3DEnabled);
                                     DrawWaterfallDX2D(PanafallSplitBarPos, displayTargetWidth, displayTargetHeight - m_nRX1DisplayHeight, 1, true);
                                     if (_showTCISpots) drawSpots(1, 0, displayTargetWidth, false);
                                     split_display = false;
@@ -4390,7 +4390,7 @@ namespace Thetis
                                 {
                                     m_nRX1DisplayHeight = displayTargetHeight / 2;
                                     split_display = true;
-                                    DrawPanadapterDX2D(0, displayTargetWidth, m_nRX1DisplayHeight, 1, false);
+                                    DrawPanadapterDX2D(0, displayTargetWidth, m_nRX1DisplayHeight, 1, false, _pan3DEnabled);
                                     DrawScopeDX2D(displayTargetWidth, m_nRX1DisplayHeight, true);
                                     if (_showTCISpots) drawSpots(1, 0, displayTargetWidth, false);
                                     split_display = false;
@@ -4430,7 +4430,7 @@ namespace Thetis
                                 DrawPhase2DX2D(displayTargetWidth, m_nRX1DisplayHeight, false);
                                 break;
                             case DisplayMode.PANADAPTER:
-                                DrawPanadapterDX2D(0, displayTargetWidth, m_nRX1DisplayHeight, 1, false);
+                                DrawPanadapterDX2D(0, displayTargetWidth, m_nRX1DisplayHeight, 1, false, _pan3DEnabled);
                                 if (_showTCISpots) drawSpots(1, 0, displayTargetWidth, false);
                                 break;
                             case DisplayMode.WATERFALL:
@@ -4442,7 +4442,7 @@ namespace Thetis
                                 break;
                             case DisplayMode.PANAFALL:
                                 m_nRX1DisplayHeight = displayTargetHeight / 4;
-                                DrawPanadapterDX2D(0, displayTargetWidth, m_nRX1DisplayHeight, 1, false);
+                                DrawPanadapterDX2D(0, displayTargetWidth, m_nRX1DisplayHeight, 1, false, _pan3DEnabled);
                                 DrawWaterfallDX2D(m_nRX1DisplayHeight, displayTargetWidth, m_nRX1DisplayHeight, 1, true);
                                 if (_showTCISpots) drawSpots(1, 0, displayTargetWidth, false);
                                 break;
@@ -5272,13 +5272,10 @@ namespace Thetis
         private static float _ema_oip5;
         //
 
-        unsafe static private bool DrawPanadapterDX2D(int nVerticalShift, int W, int H, int rx, bool bottom)
+        unsafe static private bool DrawPanadapterDX2D(int nVerticalShift, int W, int H, int rx, bool bottom, bool draw3DHistory = false)
         {
-            //if (grid_control) //[2.10.3.9]MW0LGE raw grid control option now just turns off the grid, all other elements are shown
-            //{
-                int centre_x = drawPanadapterAndWaterfallGridDX2D(nVerticalShift, W, H, rx, bottom, out long left_edge, out long right_edge, false);
-            //}
-
+            // SQ4KOU 3D: the history surface is rendered before the grid so all
+            // normal panadapter labels, filters and cursors remain readable.
             float local_max_y = float.MinValue;
             float local_max_x = float.MinValue;
 
@@ -5403,6 +5400,15 @@ namespace Thetis
                 dataCopy = current_display_data_bottom_copy;
             }
 
+            if (draw3DHistory && rx == 1 && !local_mox)
+            {
+                Capture3DHistoryFrame(data, nDecimatedWidth, local_mox);
+                DrawPanadapter3DHistoryDX2D(nVerticalShift, W, H, rx, grid_max, nDecimatedWidth, m_nDecimation);
+            }
+
+            // Draw the normal Thetis grid after the 3D surface.
+            int centre_x = drawPanadapterAndWaterfallGridDX2D(nVerticalShift, W, H, rx, bottom, out long left_edge, out long right_edge, false);
+
             dBmSpectralPeakFall /= (float)m_nFps;
 
             float max;
@@ -5410,6 +5416,10 @@ namespace Thetis
             float fOffset;
 
             fOffset = rx == 1 ? RX1Offset : RX2Offset;
+
+            bool live3DMapping = draw3DHistory && rx == 1 && !local_mox && _pan3DEnabled && _3dHistoryCount >= 2;
+            float live3DBottomY = nVerticalShift + H;
+            float live3DRidge = H * _pan3DRidgeHeight;
 
             //MW0LGE not used, as filling vertically with lines is faster than a filled very detailed
             //geometry. Just kept for reference
@@ -5460,12 +5470,35 @@ namespace Thetis
                 line_width = _display_line_width;
             }
 
+            SharpDX.Direct2D1.SolidColorBrush threeDLineBrush = null;
+            SharpDX.Direct2D1.SolidColorBrush threeDLiveFillBrush = null;
+            if (live3DMapping)
+            {
+                threeDLineBrush = new SharpDX.Direct2D1.SolidColorBrush(_d2dRenderTarget,
+                    new SharpDX.Color4(_pan3DLineColor.R / 255f, _pan3DLineColor.G / 255f, _pan3DLineColor.B / 255f, 1f));
+                lineBrush = threeDLineBrush;
+
+                if (_pan3DFillColorEnabled)
+                {
+                    threeDLiveFillBrush = new SharpDX.Direct2D1.SolidColorBrush(_d2dRenderTarget,
+                        new SharpDX.Color4(_pan3DFillColor.R / 255f, _pan3DFillColor.G / 255f, _pan3DFillColor.B / 255f, _pan3DFillAlpha));
+                }
+            }
+
             float dbmToPixel = H / (float)yRange;
 
             // calc start pos
             int Y;
             max = data[0] + fOffset;
-            Y = (int)((grid_max - max) * dbmToPixel - 0.5f) + nVerticalShift;// -0.5 to mimic floor
+            if (live3DMapping)
+            {
+                float sLive0 = Math.Max(0f, Math.Min(1f, (max - grid_min) / (float)yRange));
+                Y = (int)(live3DBottomY - Lift3D(sLive0) * live3DRidge - 0.5f);
+            }
+            else
+            {
+                Y = (int)((grid_max - max) * dbmToPixel - 0.5f) + nVerticalShift;// -0.5 to mimic floor
+            }
 
             bool bIgnoringPoints = false;
             SharpDX.Vector2 point = new SharpDX.Vector2();
@@ -5562,7 +5595,15 @@ namespace Thetis
                         averageCount++;
                     }
 
-                    Y = (int)((grid_max - max) * dbmToPixel - 0.5f) + nVerticalShift;// -0.5 to mimic floor
+                            if (live3DMapping)
+                    {
+                        float sLive = Math.Max(0f, Math.Min(1f, (max - grid_min) / (float)yRange));
+                        Y = (int)(live3DBottomY - Lift3D(sLive) * live3DRidge - 0.5f);
+                    }
+                    else
+                    {
+                        Y = (int)((grid_max - max) * dbmToPixel - 0.5f) + nVerticalShift;// -0.5 to mimic floor
+                    }
                     point.Y = Y;
 
                     if (max > local_max_y)
@@ -5621,11 +5662,13 @@ namespace Thetis
                     }
 
                     //pana fill
-                    if (pan_fill)
+                    if (pan_fill || (live3DMapping && _pan3DFillColorEnabled))
                     {
-                        // draw vertical line, this is so much faster than FillGeometry as the geo created would be so complex any fill alogorthm would struggle
+                        // In 3D this is the live front wall; the historical surface behind it
+                        // remains rendered by Display.ThreeDPanadapter.cs.
                         bottomPoint.X = point.X;
-                        _d2dRenderTarget.DrawLine(bottomPoint, point, fillBrush, sw(local_Decimation));
+                        SharpDX.Direct2D1.Brush activeFill = threeDLiveFillBrush ?? fillBrush;
+                        _d2dRenderTarget.DrawLine(bottomPoint, point, activeFill, sw(local_Decimation));
                     }
 
                     //spectral peak
@@ -6015,6 +6058,9 @@ namespace Thetis
                     }
                     else if (_ema_dbc != -999) _ema_dbc = -999;
                 }
+
+                if (threeDLiveFillBrush != null) threeDLiveFillBrush.Dispose();
+                if (threeDLineBrush != null) threeDLineBrush.Dispose();
 
                 _d2dRenderTarget.PopAxisAlignedClip();
             }
