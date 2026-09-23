@@ -5,6 +5,7 @@ using System.Globalization;
 using System.Linq;
 using SharpDX;
 using SharpDX.Direct2D1;
+using Color = System.Drawing.Color;
 
 namespace Thetis
 {
