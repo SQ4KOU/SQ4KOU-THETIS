@@ -124,6 +124,7 @@ namespace Thetis
             InitializeVacVstControls();
             InitializeTciVstControls();
             InitPhaseRotatorControls(); // Yurij-eu2av - 2026-07-08: build Phase Rotator extras programmatically
+            InitGPUWaterfallSetupUI();   // SQ4KOU: restore original Setup -> Display -> Waterfall page
 
             _original_pnlP1_adcs_location = pnlP1_adcs.Location;
 
