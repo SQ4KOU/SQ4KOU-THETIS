@@ -227,6 +227,8 @@ namespace Thetis
                     for (int i = 0; i < width; i++)
                         row[i] += cal;
 
+                    ApplySQ4KOUWaterfallPro(pane, row, width);
+
                     highResRow = row;
                     _sq4kouHighResPaneStatus[pane] = "GPU FFT " + _sq4kouHighResFftSize + " ACTIVE";
 
