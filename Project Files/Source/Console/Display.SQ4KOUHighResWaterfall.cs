@@ -9,7 +9,6 @@ namespace Thetis
         // native DirectCompute FFT / IQ analysis from the proven GPU waterfall,
         // feeding the SDR-VST3 Vortice colour-compute + WaterfallMesh presenter.
         // Legacy Thetis data remains the permanent fallback.
-        private const int SQ4KOUHighResFftSize = 16384;
 
         [DllImport("ChannelMaster.dll", CallingConvention = CallingConvention.Cdecl)]
         private static extern int CM_GPUWaterfall_Init(int channel, int fftSize, int ringCapacity);
@@ -35,9 +34,54 @@ namespace Thetis
         private static readonly bool[] _sq4kouHighResCalValid = new bool[3];
         private static readonly string[] _sq4kouHighResPaneStatus = new string[2] { "LEGACY", "LEGACY" };
 
+        private static int _sq4kouHighResFftSize = 16384;
+        private static int _sq4kouHighResWindowType = 1;       // Hamming
+        private static float _sq4kouHighResKaiserBeta = 8.6f;
+        private static int _sq4kouHighResMagnitudeMode = 0;    // dBFS
+        private static bool _sq4kouHighResAutoOverlap = false;
+        private static float _sq4kouHighResOverlapPercent = 0.0f;
+        private static int _sq4kouHighResLanczosWindow = 3;
+        private static int _sq4kouHighResResamplingMode = 0;   // Linear
+
         public static bool SQ4KOUHighResWaterfallEnabled { get; set; } = true;
+        public static int SQ4KOUHighResFftSize { get { return _sq4kouHighResFftSize; } }
+        public static int SQ4KOUHighResWindowType { get { return _sq4kouHighResWindowType; } }
+        public static int SQ4KOUHighResResamplingMode { get { return _sq4kouHighResResamplingMode; } }
+        public static float SQ4KOUHighResOverlapPercent { get { return _sq4kouHighResOverlapPercent; } }
+        public static bool SQ4KOUHighResAutoOverlap { get { return _sq4kouHighResAutoOverlap; } }
         public static string SQ4KOUHighResWaterfallStatusRX1 { get { return _sq4kouHighResPaneStatus[0]; } }
         public static string SQ4KOUHighResWaterfallStatusRX2 { get { return _sq4kouHighResPaneStatus[1]; } }
+
+        public static void ConfigureSQ4KOUHighResWaterfall(int fftSize, int windowType,
+            int resamplingMode, bool autoOverlap, float overlapPercent)
+        {
+            int[] allowed = new int[] { 2048, 4096, 8192, 16384, 32768, 65536 };
+            bool validFft = false;
+            for (int i = 0; i < allowed.Length; i++)
+                if (allowed[i] == fftSize) { validFft = true; break; }
+            if (!validFft) fftSize = 16384;
+
+            windowType = Math.Max(0, Math.Min(5, windowType));
+            resamplingMode = Math.Max(0, Math.Min(3, resamplingMode));
+            overlapPercent = Math.Max(0.0f, Math.Min(95.0f, overlapPercent));
+
+            lock (_sq4kouHighResLock)
+            {
+                _sq4kouHighResFftSize = fftSize;
+                _sq4kouHighResWindowType = windowType;
+                _sq4kouHighResResamplingMode = resamplingMode;
+                _sq4kouHighResAutoOverlap = autoOverlap;
+                _sq4kouHighResOverlapPercent = overlapPercent;
+
+                for (int i = 0; i < 3; i++)
+                {
+                    _sq4kouHighResReady[i] = false;
+                    _sq4kouHighResCalValid[i] = false;
+                    _sq4kouHighResLoggedActive[i] = false;
+                    _sq4kouHighResLoggedFailure[i] = false;
+                }
+            }
+        }
 
         private static float MedianCalibration(int source, float[] gpuRow, int gpuWidth,
             float[] cpuReference, int cpuCount, int pixelStep)
@@ -93,11 +137,13 @@ namespace Thetis
             highResRow = null;
             int pane = rx == 2 ? 1 : 0;
 
-            // Full-resolution source is intentionally tied to the hardware GPU compute path.
-            // If Vortice compute is unavailable, retain the complete legacy/D2D fallback.
+            // High-res data path uses the Vortice colour-compute stage, so keep it
+            // tied to ComputeArmed. Legacy Thetis remains an immediate fallback.
             if (!SQ4KOUHighResWaterfallEnabled || !ComputeArmed || width < 64)
             {
-                _sq4kouHighResPaneStatus[pane] = "LEGACY";
+                _sq4kouHighResPaneStatus[pane] = SQ4KOUHighResWaterfallEnabled
+                    ? "LEGACY (GPU COLOR COMPUTE UNAVAILABLE)"
+                    : "LEGACY (A/B)";
                 return false;
             }
 
@@ -124,7 +170,7 @@ namespace Thetis
 
             if (sampleRate <= 0 || highHz <= lowHz)
             {
-                _sq4kouHighResPaneStatus[pane] = "LEGACY";
+                _sq4kouHighResPaneStatus[pane] = "LEGACY (INVALID RATE/SPAN)";
                 return false;
             }
 
@@ -134,7 +180,7 @@ namespace Thetis
                 {
                     if (!_sq4kouHighResReady[source] || CM_GPUWaterfall_IsReady(source) == 0)
                     {
-                        if (CM_GPUWaterfall_Init(source, SQ4KOUHighResFftSize, SQ4KOUHighResFftSize * 4) == 0)
+                        if (CM_GPUWaterfall_Init(source, _sq4kouHighResFftSize, _sq4kouHighResFftSize * 4) == 0)
                         {
                             _sq4kouHighResReady[source] = false;
                             _sq4kouHighResPaneStatus[pane] = "GPU FFT INIT FAILED -> LEGACY";
@@ -146,9 +192,15 @@ namespace Thetis
                             return false;
                         }
 
-                        // Recovered EU2AV/SQ4KOU quality baseline:
-                        // FFT 16384, Hamming, dBFS, no forced overlap, linear bin-to-pixel mapping.
-                        CM_GPUWaterfall_Configure(source, 1, 8.6f, 0, 0, 0.0f, 3, 0);
+                        CM_GPUWaterfall_Configure(source,
+                            _sq4kouHighResWindowType,
+                            _sq4kouHighResKaiserBeta,
+                            _sq4kouHighResMagnitudeMode,
+                            _sq4kouHighResAutoOverlap ? 1 : 0,
+                            _sq4kouHighResOverlapPercent,
+                            _sq4kouHighResLanczosWindow,
+                            _sq4kouHighResResamplingMode);
+
                         _sq4kouHighResReady[source] = true;
                         _sq4kouHighResCalValid[source] = false;
                     }
@@ -176,12 +228,13 @@ namespace Thetis
                         row[i] += cal;
 
                     highResRow = row;
-                    _sq4kouHighResPaneStatus[pane] = "GPU FFT 16384 ACTIVE";
+                    _sq4kouHighResPaneStatus[pane] = "GPU FFT " + _sq4kouHighResFftSize + " ACTIVE";
 
                     if (!_sq4kouHighResLoggedActive[source])
                     {
                         _sq4kouHighResLoggedActive[source] = true;
-                        Common.MeshDiagLog("SQ4KOU high-res waterfall ACTIVE: native DirectCompute FFT=16384 -> Vortice colour compute -> WaterfallMesh/D2D presenter");
+                        Common.MeshDiagLog("SQ4KOU high-res waterfall ACTIVE: native DirectCompute FFT=" +
+                            _sq4kouHighResFftSize + " -> Vortice colour compute -> WaterfallMesh/D2D presenter");
                     }
                     return true;
                 }
