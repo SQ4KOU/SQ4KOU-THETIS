@@ -9,6 +9,7 @@ namespace Thetis
         {
             base.OnShown(e);
             EnsureWaterfallIDMenuVisible();
+            Ensure3DPanadapterMenuVisible();
         }
 
         private void EnsureWaterfallIDMenuVisible()
