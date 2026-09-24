@@ -39,7 +39,11 @@ namespace Thetis
             internal static extern int CM_GPUWaterfall_IsReady(int channel);
         }
 
-        private static bool TryGetSharpWaterfallData(
+        // Return contract:
+        //  1 = a new GPU row is ready
+        //  0 = GPU source is healthy but waiting for enough fresh IQ (do NOT insert WDSP)
+        // -1 = GPU source unavailable/failed (WDSP fallback is allowed)
+        private static int TryGetSharpWaterfallData(
             int rx,
             int width,
             float[] reference,
@@ -51,15 +55,15 @@ namespace Thetis
             dataCopy = null;
 
             if (console == null || !console.PowerOn || width < 64 || width > BUFFER_SIZE)
-                return false;
+                return -1;
 
             int slot = rx - 1;
             if (slot < 0 || slot > 1)
-                return false;
+                return -1;
 
             long now = DateTime.UtcNow.Ticks;
             if (now < _sharpWaterfallRetryAfterTicks)
-                return false;
+                return -1;
 
             lock (_sharpWaterfallLock)
             {
@@ -70,13 +74,13 @@ namespace Thetis
                     {
                         if (SharpWaterfallNative.CM_GPUWaterfall_Init(
                             slot, SharpWaterfallFftSize, SharpWaterfallRingCapacity) == 0)
-                            return false;
+                            return -1;
 
                         // 4=Nuttall, magnitudeMode=2 (PeakHoldPower contract),
                         // fixed 85% overlap, Lanczos-3, quality/peak resampling=3.
                         if (SharpWaterfallNative.CM_GPUWaterfall_Configure(
                             slot, 4, 6.0f, 2, 0, 85.0f, 3, 3) == 0)
-                            return false;
+                            return -1;
 
                         _sharpWaterfallInitialized[slot] = true;
                         _sharpWaterfallCalReady[slot] = false;
@@ -103,8 +107,16 @@ namespace Thetis
                     int result = SharpWaterfallNative.CM_GPUWaterfall_Process(
                         slot, width, sampleRate, lowHz, highHz, _sharpWaterfallData[slot]);
 
-                    if (result != 1)
-                        return false;
+                    if (result == 0)
+                        return 0;
+
+                    if (result < 0)
+                    {
+                        _sharpWaterfallInitialized[slot] = false;
+                        _sharpWaterfallCalReady[slot] = false;
+                        _sharpWaterfallRetryAfterTicks = DateTime.UtcNow.AddSeconds(2).Ticks;
+                        return -1;
+                    }
 
                     // Match the recovered GPU row to the existing WDSP dB scale.
                     // Median calibration only adjusts a constant offset; it does not
@@ -146,7 +158,7 @@ namespace Thetis
 
                     data = _sharpWaterfallData[slot];
                     dataCopy = _sharpWaterfallCopy[slot];
-                    return true;
+                    return 1;
                 }
                 catch (Exception ex)
                 {
@@ -154,7 +166,7 @@ namespace Thetis
                     _sharpWaterfallInitialized[slot] = false;
                     _sharpWaterfallCalReady[slot] = false;
                     _sharpWaterfallRetryAfterTicks = DateTime.UtcNow.AddSeconds(2).Ticks;
-                    return false;
+                    return -1;
                 }
             }
         }

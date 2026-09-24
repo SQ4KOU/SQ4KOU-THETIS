@@ -8477,6 +8477,27 @@ namespace Thetis
                     }
                 }
 
+                int sharpWaterfallStatus = -1;
+                float[] sharpData = null;
+                float[] sharpDataCopy = null;
+
+                if (bRXdraw && !local_mox)
+                {
+                    float[] sharpReference = rx == 1
+                        ? current_waterfall_data_copy
+                        : current_waterfall_data_bottom_copy;
+
+                    sharpWaterfallStatus = TryGetSharpWaterfallData(
+                        rx, W, sharpReference, nDecimatedWidth,
+                        out sharpData, out sharpDataCopy);
+
+                    // A healthy GPU source that is waiting for its next overlapped
+                    // FFT window must freeze the history for this frame. Never splice
+                    // a WDSP line into the GPU history: that caused the B93 striping.
+                    if (sharpWaterfallStatus == 0)
+                        bRXdraw = false;
+                }
+
                 if (bRXdraw)
                 {
                     float[] data;
@@ -8493,16 +8514,13 @@ namespace Thetis
                         dataCopy = current_waterfall_data_bottom_copy;
                     }
 
-                    bool usingSharpWaterfall = false;
-                    if (!local_mox &&
-                        TryGetSharpWaterfallData(rx, W, dataCopy, nDecimatedWidth,
-                            out float[] sharpData, out float[] sharpDataCopy))
+                    bool usingSharpWaterfall = sharpWaterfallStatus == 1;
+                    if (usingSharpWaterfall)
                     {
                         data = sharpData;
                         dataCopy = sharpDataCopy;
                         waterfallDecimation = 1;
                         nDecimatedWidth = W;
-                        usingSharpWaterfall = true;
                     }
 
                     float max;
