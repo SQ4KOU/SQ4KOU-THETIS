@@ -375,6 +375,7 @@
     <Compile Include="Display.Pan3DMesh.cs" />
     <Compile Include="Display.Pan2DMesh.cs" />
     <Compile Include="Display.WaterfallMesh.cs" />
+    <Compile Include="Display.WaterfallQuality.cs" />
     <Compile Include="Display.SQ4KOUHighResWaterfall.cs" />
     <Compile Include="GPUWaterfallNative.cs" />
     <Compile Include="GPUWaterfallPipeline.cs" />
