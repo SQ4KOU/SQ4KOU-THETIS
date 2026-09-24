@@ -28,6 +28,11 @@ namespace Thetis
         private static readonly bool[] _sq4kouHighResReady = new bool[3];
         private static readonly bool[] _sq4kouHighResLoggedActive = new bool[3];
         private static readonly bool[] _sq4kouHighResLoggedFailure = new bool[3];
+        // Once a native GPU row exists, keep that source authoritative between
+        // FFT updates. Never interleave a one-frame legacy row: the legacy and
+        // native paths can have opposite spectral orientation and produced the
+        // visible normal/mirrored zebra pattern.
+        private static readonly bool[] _sq4kouHighResHasRow = new bool[3];
         private static readonly float[][] _sq4kouHighResRows = new float[3][];
         private static readonly float[][] _sq4kouHighResCalScratch = new float[3][];
         private static readonly float[] _sq4kouHighResCal = new float[3];
@@ -74,6 +79,7 @@ namespace Thetis
                 for (int i = 0; i < 3; i++)
                 {
                     _sq4kouHighResReady[i] = false;
+                    _sq4kouHighResHasRow[i] = false;
                     _sq4kouHighResCalValid[i] = false;
                     _sq4kouHighResLoggedActive[i] = false;
                     _sq4kouHighResLoggedFailure[i] = false;
@@ -198,22 +204,37 @@ namespace Thetis
                             _sq4kouHighResResamplingMode);
 
                         _sq4kouHighResReady[source] = true;
+                        _sq4kouHighResHasRow[source] = false;
                         _sq4kouHighResCalValid[source] = false;
                     }
 
                     if (_sq4kouHighResRows[source] == null || _sq4kouHighResRows[source].Length != width)
+                    {
                         _sq4kouHighResRows[source] = new float[width];
+                        _sq4kouHighResHasRow[source] = false;
+                    }
 
                     float[] row = _sq4kouHighResRows[source];
                     int rc = CM_GPUWaterfall_Process(source, width, sampleRate, lowHz, highHz, row);
                     if (rc == 0)
                     {
-                        _sq4kouHighResPaneStatus[pane] = "GPU FFT WAITING FOR IQ";
+                        // No fresh FFT row yet. Reuse the last native row instead
+                        // of falling back for a single display frame. Mixing the
+                        // two sources was the cause of alternating mirrored lines.
+                        if (_sq4kouHighResHasRow[source])
+                        {
+                            highResRow = row;
+                            _sq4kouHighResPaneStatus[pane] = "GPU FFT " + _sq4kouHighResFftSize + " ACTIVE (HOLD)";
+                            return true;
+                        }
+
+                        _sq4kouHighResPaneStatus[pane] = "GPU FFT PRIMING";
                         return false;
                     }
                     if (rc < 0)
                     {
                         _sq4kouHighResReady[source] = false;
+                        _sq4kouHighResHasRow[source] = false;
                         _sq4kouHighResPaneStatus[pane] = "GPU FFT ERROR -> LEGACY";
                         Common.MeshDiagLog("SQ4KOU high-res waterfall: native GPU FFT process error " + rc + "; legacy fallback active");
                         return false;
@@ -225,6 +246,7 @@ namespace Thetis
 
                     ApplySQ4KOUWaterfallPro(pane, row, width);
 
+                    _sq4kouHighResHasRow[source] = true;
                     highResRow = row;
                     _sq4kouHighResPaneStatus[pane] = "GPU FFT " + _sq4kouHighResFftSize + " ACTIVE";
 
@@ -239,6 +261,7 @@ namespace Thetis
                 catch (Exception e)
                 {
                     _sq4kouHighResReady[source] = false;
+                    _sq4kouHighResHasRow[source] = false;
                     _sq4kouHighResPaneStatus[pane] = "GPU FFT EXCEPTION -> LEGACY";
                     Common.MeshDiagLog("SQ4KOU high-res waterfall exception; legacy fallback active: " + e.Message);
                     return false;

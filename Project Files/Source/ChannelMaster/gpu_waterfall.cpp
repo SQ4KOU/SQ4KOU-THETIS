@@ -182,7 +182,7 @@ struct GPUWaterfallState
 
     int windowType;          // 0 Hann, 1 Hamming, 2 Blackman, 3 Blackman-Harris, 4 Nuttall, 5 Kaiser
     float kaiserBeta;
-    int magnitudeMode;       // 0 amplitude dBFS, 1 PSD dBFS/Hz
+    int magnitudeMode;       // 0 dBFS, 1 PSD dBFS/Hz
     bool autoOverlap;
     float overlapPercent;
     int lanczosWindow;       // 2..4
@@ -675,7 +675,7 @@ extern "C" __declspec(dllexport) int __cdecl CM_GPUWaterfall_Configure(int chann
     if (kaiserBeta < 0.0f) kaiserBeta = 0.0f;
     if (kaiserBeta > 20.0f) kaiserBeta = 20.0f;
     if (magnitudeMode < 0) magnitudeMode = 0;
-    if (magnitudeMode > 1) magnitudeMode = 1;
+    if (magnitudeMode > 2) magnitudeMode = 2;
     if (overlapPercent < 0.0f) overlapPercent = 0.0f;
     if (overlapPercent > 95.0f) overlapPercent = 95.0f;
     if (lanczosWindow < 2) lanczosWindow = 2;

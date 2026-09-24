@@ -105,21 +105,19 @@ namespace Thetis
             set { _autoEnableGPU = value; }
         }
 
-        // Compatibility alias only. Source, colour and presenter are independent.
         public static bool GPUEffectsEnabled
         {
             get { return _gpuEffectsEnabled && GpuComputeEnabled; }
-            set { _gpuEffectsEnabled = value; GpuComputeEnabled = value; }
+            set
+            {
+                _gpuEffectsEnabled = value;
+                GpuComputeEnabled = value;
+                if (!value)
+                    SQ4KOUHighResWaterfallEnabled = false;
+            }
         }
 
-        public static bool GPUColorComputeEnabled
-        {
-            get { return GpuComputeEnabled; }
-            set { _gpuEffectsEnabled = value; GpuComputeEnabled = value; }
-        }
-
-        public static bool GPUColorComputeAvailable { get { return GpuComputeAvailable; } }
-        public static bool GPUEffectsAvailable { get { return GpuComputeAvailable; } }
+        public static bool GPUEffectsAvailable { get { return GPUDetector.HasBuiltInEffects; } }
         public static string GPUName { get { return GPUDetector.GPUName ?? "unknown"; } }
         public static int GPUDetectionLevel { get { return (int)GPUDetector.Level; } }
 
@@ -209,10 +207,11 @@ namespace Thetis
 
         public static GPUWaterfallResamplingMode GPUWaterfallResamplingMode
         {
-            get { return (GPUWaterfallResamplingMode)Math.Max(0, Math.Min(3, _sq4kouHighResResamplingMode)); }
+            get { return (GPUWaterfallResamplingMode)Math.Max(0, Math.Min(1, _sq4kouHighResResamplingMode)); }
             set
             {
-                _sq4kouHighResResamplingMode = Math.Max(0, Math.Min(3, (int)value));
+                // Original menu: Fast = linear, Quality = power-average.
+                _sq4kouHighResResamplingMode = ((int)value == 0) ? 0 : 1;
                 ResetSQ4KOUHighResBackend();
             }
         }
