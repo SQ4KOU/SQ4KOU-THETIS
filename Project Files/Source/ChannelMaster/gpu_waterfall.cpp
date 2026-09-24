@@ -736,8 +736,8 @@ extern "C" __declspec(dllexport) int __cdecl CM_GPUWaterfall_Process(int channel
         if (got != s.fftSize) return 0;
         for (int i = 0; i < s.fftSize; ++i)
         {
-            s.rolling[i].x = s.tempQ[i];
-            s.rolling[i].y = s.tempI[i];
+            s.rolling[i].x = s.tempI[i];
+            s.rolling[i].y = s.tempQ[i];
         }
         s.primed = true;
     }
