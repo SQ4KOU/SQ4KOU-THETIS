@@ -448,6 +448,54 @@
               />
       </Component>
 
+      <!-- SQ4KOU final GPU Waterfall: isolated recovered SharpDX D3D11 compute backend.
+           SDR-VST3 continues to use Vortice for its main display renderer. -->
+      <Component Guid="*">
+        <File Id="SQ4KOUSharpDXDLL"
+              Source="$(var.FilesPath)SharpDX.dll"
+              KeyPath="yes" />
+      </Component>
+      <Component Guid="*">
+        <File Id="SQ4KOUSharpDXDirect3D11DLL"
+              Source="$(var.FilesPath)SharpDX.Direct3D11.dll"
+              KeyPath="yes" />
+      </Component>
+      <Component Guid="*">
+        <File Id="SQ4KOUSharpDXDXGIDLL"
+              Source="$(var.FilesPath)SharpDX.DXGI.dll"
+              KeyPath="yes" />
+      </Component>
+      <Component Guid="*">
+        <File Id="SQ4KOUSharpDXMathematicsDLL"
+              Source="$(var.FilesPath)SharpDX.Mathematics.dll"
+              KeyPath="yes" />
+      </Component>
+
+      <Component Guid="*">
+        <File Id="SQ4KOUWFFFTBitReverse"
+              Source="$(var.FilesPath)waterfall_fft_bitreverse_cs.bin"
+              KeyPath="yes"
+              Checksum="yes" />
+      </Component>
+      <Component Guid="*">
+        <File Id="SQ4KOUWFFFTStageAB"
+              Source="$(var.FilesPath)waterfall_fft_stage_ab_cs.bin"
+              KeyPath="yes"
+              Checksum="yes" />
+      </Component>
+      <Component Guid="*">
+        <File Id="SQ4KOUWFFFTStageBA"
+              Source="$(var.FilesPath)waterfall_fft_stage_ba_cs.bin"
+              KeyPath="yes"
+              Checksum="yes" />
+      </Component>
+      <Component Guid="*">
+        <File Id="SQ4KOUWFFFTMagnitude"
+              Source="$(var.FilesPath)waterfall_fft_magnitude_cs.bin"
+              KeyPath="yes"
+              Checksum="yes" />
+      </Component>
+
       <!-- [4.6] WinForms.DataVisualization port (chart controls) -->
       <Component Guid="*">
         <File Id="WinFormsDataVisualizationDLL"
