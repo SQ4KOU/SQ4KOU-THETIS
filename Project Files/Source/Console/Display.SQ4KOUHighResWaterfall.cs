@@ -1,137 +1,343 @@
 using System;
-using System.Runtime.InteropServices;
+using SharpDX.Direct3D;
+using SharpDX.Direct3D11;
 
 namespace Thetis
 {
     partial class Display
     {
-        // SQ4KOU synthesis:
-        // native DirectCompute FFT / IQ analysis from the proven GPU waterfall,
-        // feeding the SDR-VST3 Vortice colour-compute + WaterfallMesh presenter.
-        // Legacy Thetis data remains the permanent fallback.
-
-        [DllImport("ChannelMaster.dll", CallingConvention = CallingConvention.Cdecl)]
-        private static extern int CM_GPUWaterfall_Init(int channel, int fftSize, int ringCapacity);
-
-        [DllImport("ChannelMaster.dll", CallingConvention = CallingConvention.Cdecl)]
-        private static extern int CM_GPUWaterfall_Configure(int channel, int windowType, float kaiserBeta,
-            int magnitudeMode, int autoOverlap, float overlapPercent, int lanczosWindow, int resamplingMode);
-
-        [DllImport("ChannelMaster.dll", CallingConvention = CallingConvention.Cdecl)]
-        private static extern int CM_GPUWaterfall_Process(int channel, int displayWidth, int sampleRate,
-            float displayLowHz, float displayHighHz, [In, Out] float[] outputDb);
-
-        [DllImport("ChannelMaster.dll", CallingConvention = CallingConvention.Cdecl)]
-        private static extern int CM_GPUWaterfall_IsReady(int channel);
-
         private static readonly object _sq4kouHighResLock = new object();
-        private static readonly bool[] _sq4kouHighResReady = new bool[3];
-        private static readonly bool[] _sq4kouHighResLoggedActive = new bool[3];
-        private static readonly bool[] _sq4kouHighResLoggedFailure = new bool[3];
-        // Once a native GPU row exists, keep that source authoritative between
-        // FFT updates. Never interleave a one-frame legacy row: the legacy and
-        // native paths can have opposite spectral orientation and produced the
-        // visible normal/mirrored zebra pattern.
-        private static readonly bool[] _sq4kouHighResHasRow = new bool[3];
-        private static readonly float[][] _sq4kouHighResRows = new float[3][];
-        private static readonly float[][] _sq4kouHighResCalScratch = new float[3][];
-        private static readonly float[] _sq4kouHighResCal = new float[3];
-        private static readonly bool[] _sq4kouHighResCalValid = new bool[3];
+        private static SharpDX.Direct3D11.Device _sq4kouGpuDevice;
+        private static readonly GPUWaterfallPipeline[] _sq4kouGpuPipe = new GPUWaterfallPipeline[2];
+        private static readonly float[][] _sq4kouRingI = new float[2][];
+        private static readonly float[][] _sq4kouRingQ = new float[2][];
+        private static readonly int[] _sq4kouRingHead = new int[2];
+        private static readonly int[] _sq4kouRingCount = new int[2];
+        private static readonly int[] _sq4kouSampleCredit = new int[2];
+        private static readonly bool[] _sq4kouFirstFill = new bool[2];
+        private static readonly int[] _sq4kouLastSource = new int[2] { -1, -1 };
+        private static readonly float[][] _sq4kouAccumI = new float[2][];
+        private static readonly float[][] _sq4kouAccumQ = new float[2][];
+        private static readonly float[][] _sq4kouFftI = new float[2][];
+        private static readonly float[][] _sq4kouFftQ = new float[2][];
+        private static readonly float[][] _sq4kouLastRow = new float[2][];
+        private static readonly bool[] _sq4kouHasRow = new bool[2];
+        private static readonly float[][] _sq4kouCalScratch = new float[2][];
+        private static readonly float[] _sq4kouCalOffset = new float[2];
+        private static readonly bool[] _sq4kouCalValid = new bool[2];
         private static readonly string[] _sq4kouHighResPaneStatus = new string[2] { "LEGACY", "LEGACY" };
+        private static readonly double[] _sq4kouLastEffectiveOverlap = new double[2] { -1.0, -1.0 };
 
-        private static int _sq4kouHighResFftSize = 16384;
-        private static int _sq4kouHighResWindowType = 1;       // Hamming
-        private static float _sq4kouHighResKaiserBeta = 8.6f;
-        private static int _sq4kouHighResMagnitudeMode = 0;    // dBFS
-        private static bool _sq4kouHighResAutoOverlap = false;
-        private static float _sq4kouHighResOverlapPercent = 0.0f;
-        private static int _sq4kouHighResLanczosWindow = 3;
-        private static int _sq4kouHighResResamplingMode = 0;   // Linear
+        // State expected by the final GPU Waterfall UI.
+        private static bool _gpuWaterfallLinearDraw = true;
+        private static readonly bool[] _gpuRendererHasData = new bool[2];
 
-        public static bool SQ4KOUHighResWaterfallEnabled { get; set; } = true;
-        public static int SQ4KOUHighResFftSize { get { return _sq4kouHighResFftSize; } }
-        public static int SQ4KOUHighResWindowType { get { return _sq4kouHighResWindowType; } }
-        public static int SQ4KOUHighResResamplingMode { get { return _sq4kouHighResResamplingMode; } }
-        public static float SQ4KOUHighResOverlapPercent { get { return _sq4kouHighResOverlapPercent; } }
-        public static bool SQ4KOUHighResAutoOverlap { get { return _sq4kouHighResAutoOverlap; } }
+        private static bool _gpuWaterfallPipelineEnabled = false;
+        private static int _gpuWaterfallFFTSize = 16384;
+        private static int _gpuWaterfallOverlapPercent = 85;
+        private static GPUWaterfallWindowType _gpuWaterfallWindowType = GPUWaterfallWindowType.Nuttall;
+        private static double _gpuWaterfallKaiserBeta = 6.0;
+        private static GPUWaterfallMagnitudeMode _gpuWaterfallMagnitudeMode = GPUWaterfallMagnitudeMode.PeakHoldPower;
+        private static bool _gpuWaterfallAutoOverlap = false;
+        private static int _gpuWaterfallLanczosWindow = 3;
+        private static GPUWaterfallResamplingMode _gpuWaterfallResamplingMode = GPUWaterfallResamplingMode.Quality;
+
+        public static bool SQ4KOUHighResWaterfallEnabled
+        {
+            get { return _gpuWaterfallPipelineEnabled; }
+            set { GPUWaterfallPipelineEnabled = value; }
+        }
+
+        public static int SQ4KOUHighResFftSize { get { return _gpuWaterfallFFTSize; } }
+        public static int SQ4KOUHighResWindowType { get { return (int)_gpuWaterfallWindowType; } }
+        public static int SQ4KOUHighResResamplingMode { get { return (int)_gpuWaterfallResamplingMode; } }
+        public static float SQ4KOUHighResOverlapPercent { get { return _gpuWaterfallOverlapPercent; } }
+        public static bool SQ4KOUHighResAutoOverlap { get { return _gpuWaterfallAutoOverlap; } }
         public static string SQ4KOUHighResWaterfallStatusRX1 { get { return _sq4kouHighResPaneStatus[0]; } }
         public static string SQ4KOUHighResWaterfallStatusRX2 { get { return _sq4kouHighResPaneStatus[1]; } }
+
+        public static event Action<int, double> GPUWaterfallEffectiveOverlapChanged;
+
+        public static bool GPUWaterfallPipelineEnabled
+        {
+            get { return _gpuWaterfallPipelineEnabled; }
+            set
+            {
+                if (_gpuWaterfallPipelineEnabled == value) return;
+                _gpuWaterfallPipelineEnabled = value;
+                SetNativeWaterfallIQEnabled(value);
+                ResetGPUWaterfallState(1);
+                ResetGPUWaterfallState(2);
+            }
+        }
+
+        public static int GPUWaterfallFFTSize
+        {
+            get { return _gpuWaterfallFFTSize; }
+            set
+            {
+                int v = PowerOfTwo(Math.Max(1024, Math.Min(262144, value)));
+                if (_gpuWaterfallFFTSize == v) return;
+                _gpuWaterfallFFTSize = v;
+                ResetGPUWaterfallState(1);
+                ResetGPUWaterfallState(2);
+            }
+        }
+
+        public static GPUWaterfallWindowType GPUWaterfallWindowType
+        {
+            get { return _gpuWaterfallWindowType; }
+            set
+            {
+                if (_gpuWaterfallWindowType == value) return;
+                _gpuWaterfallWindowType = value;
+                ReconfigurePipelines();
+            }
+        }
+
+        public static double GPUWaterfallKaiserBeta
+        {
+            get { return _gpuWaterfallKaiserBeta; }
+            set
+            {
+                double v = Math.Max(0.0, Math.Min(20.0, value));
+                if (Math.Abs(_gpuWaterfallKaiserBeta - v) < 0.01) return;
+                _gpuWaterfallKaiserBeta = v;
+                ReconfigurePipelines();
+            }
+        }
+
+        public static GPUWaterfallMagnitudeMode GPUWaterfallMagnitudeMode
+        {
+            get { return _gpuWaterfallMagnitudeMode; }
+            set
+            {
+                if (_gpuWaterfallMagnitudeMode == value) return;
+                _gpuWaterfallMagnitudeMode = value;
+                ReconfigurePipelines();
+            }
+        }
+
+        public static int GPUWaterfallOverlapPercent
+        {
+            get { return _gpuWaterfallOverlapPercent; }
+            set { _gpuWaterfallOverlapPercent = Math.Max(0, Math.Min(95, value)); }
+        }
+
+        public static bool GPUWaterfallAutoOverlap
+        {
+            get { return _gpuWaterfallAutoOverlap; }
+            set { _gpuWaterfallAutoOverlap = value; }
+        }
+
+        public static int GPUWaterfallLanczosWindow
+        {
+            get { return _gpuWaterfallLanczosWindow; }
+            set
+            {
+                int v = value <= 0 ? 2 : Math.Max(2, Math.Min(4, value));
+                if (_gpuWaterfallLanczosWindow == v) return;
+                _gpuWaterfallLanczosWindow = v;
+                ReconfigurePipelines();
+            }
+        }
+
+        public static GPUWaterfallResamplingMode GPUWaterfallResamplingMode
+        {
+            get { return _gpuWaterfallResamplingMode; }
+            set
+            {
+                if (_gpuWaterfallResamplingMode == value) return;
+                _gpuWaterfallResamplingMode = value;
+                ReconfigurePipelines();
+            }
+        }
 
         public static void ConfigureSQ4KOUHighResWaterfall(int fftSize, int windowType,
             int resamplingMode, bool autoOverlap, float overlapPercent)
         {
-            bool validFft = fftSize >= 1024 && fftSize <= 262144 &&
-                (fftSize & (fftSize - 1)) == 0;
-            if (!validFft) fftSize = 16384;
+            GPUWaterfallFFTSize = fftSize;
+            GPUWaterfallWindowType = (GPUWaterfallWindowType)Math.Max(0, Math.Min(5, windowType));
+            GPUWaterfallResamplingMode = (GPUWaterfallResamplingMode)Math.Max(0, Math.Min(1, resamplingMode));
+            GPUWaterfallAutoOverlap = autoOverlap;
+            GPUWaterfallOverlapPercent = (int)Math.Round(Math.Max(0.0f, Math.Min(95.0f, overlapPercent)));
+        }
 
-            windowType = Math.Max(0, Math.Min(5, windowType));
-            resamplingMode = Math.Max(0, Math.Min(3, resamplingMode));
-            overlapPercent = Math.Max(0.0f, Math.Min(95.0f, overlapPercent));
-
+        private static void ReconfigurePipelines()
+        {
             lock (_sq4kouHighResLock)
             {
-                _sq4kouHighResFftSize = fftSize;
-                _sq4kouHighResWindowType = windowType;
-                _sq4kouHighResResamplingMode = resamplingMode;
-                _sq4kouHighResAutoOverlap = autoOverlap;
-                _sq4kouHighResOverlapPercent = overlapPercent;
-
-                for (int i = 0; i < 3; i++)
+                for (int i = 0; i < 2; i++)
                 {
-                    _sq4kouHighResReady[i] = false;
-                    _sq4kouHighResHasRow[i] = false;
-                    _sq4kouHighResCalValid[i] = false;
-                    _sq4kouHighResLoggedActive[i] = false;
-                    _sq4kouHighResLoggedFailure[i] = false;
+                    GPUWaterfallPipeline p = _sq4kouGpuPipe[i];
+                    if (p != null && p.IsInitialized)
+                    {
+                        p.WindowType = _gpuWaterfallWindowType;
+                        p.KaiserBeta = _gpuWaterfallKaiserBeta;
+                        p.MagnitudeMode = _gpuWaterfallMagnitudeMode;
+                        p.LanczosWindow = _gpuWaterfallLanczosWindow;
+                        p.ResamplingMode = _gpuWaterfallResamplingMode;
+                    }
                 }
             }
         }
 
-        private static float MedianCalibration(int source, float[] gpuRow, int gpuWidth,
-            float[] cpuReference, int cpuCount, int pixelStep)
+        private static bool EnsureSQ4KOUDevice()
         {
-            if (gpuRow == null || cpuReference == null || cpuCount < 16)
-                return _sq4kouHighResCal[source];
-
-            if (_sq4kouHighResCalScratch[source] == null || _sq4kouHighResCalScratch[source].Length < cpuCount)
-                _sq4kouHighResCalScratch[source] = new float[cpuCount];
-
-            float[] scratch = _sq4kouHighResCalScratch[source];
-            int count = 0;
-            int step = Math.Max(1, pixelStep);
-
-            for (int i = 0; i < cpuCount; i++)
+            if (_sq4kouGpuDevice != null) return true;
+            try
             {
-                int x = Math.Min(gpuWidth - 1, i * step + step / 2);
-                float a = cpuReference[i];
-                float b = gpuRow[x];
-                if (float.IsNaN(a) || float.IsInfinity(a) || float.IsNaN(b) || float.IsInfinity(b))
-                    continue;
-                scratch[count++] = a - b;
+                _sq4kouGpuDevice = new SharpDX.Direct3D11.Device(DriverType.Hardware, DeviceCreationFlags.None);
+                SetNativeWaterfallIQEnabled(true);
+                LogGPU("Managed GPU waterfall device created");
+                return true;
             }
-
-            if (count < 16)
-                return _sq4kouHighResCal[source];
-
-            Array.Sort(scratch, 0, count);
-            float candidate = scratch[count / 2];
-            if (candidate > 200f) candidate = 200f;
-            if (candidate < -200f) candidate = -200f;
-
-            if (!_sq4kouHighResCalValid[source])
+            catch (Exception ex)
             {
-                _sq4kouHighResCal[source] = candidate;
-                _sq4kouHighResCalValid[source] = true;
+                LogGPU("Managed GPU waterfall device creation failed: " + ex.Message);
+                _sq4kouGpuDevice = null;
+                return false;
+            }
+        }
+
+        private static void EnsurePipeline(int pane, int width, int sampleRate)
+        {
+            if (!EnsureSQ4KOUDevice()) return;
+            GPUWaterfallPipeline p = _sq4kouGpuPipe[pane];
+            if (p == null)
+            {
+                p = new GPUWaterfallPipeline(_sq4kouGpuDevice, _gpuWaterfallFFTSize, width, sampleRate);
+                _sq4kouGpuPipe[pane] = p;
+                ResetGPUWaterfallState(pane + 1, false);
             }
             else
             {
-                float delta = candidate - _sq4kouHighResCal[source];
-                if (delta > 2.0f) delta = 2.0f;
-                if (delta < -2.0f) delta = -2.0f;
-                _sq4kouHighResCal[source] += 0.25f * delta;
+                p.Resize(_gpuWaterfallFFTSize, width, sampleRate);
             }
 
-            return _sq4kouHighResCal[source];
+            if (p.IsInitialized)
+            {
+                p.WindowType = _gpuWaterfallWindowType;
+                p.KaiserBeta = _gpuWaterfallKaiserBeta;
+                p.MagnitudeMode = _gpuWaterfallMagnitudeMode;
+                p.LanczosWindow = _gpuWaterfallLanczosWindow;
+                p.ResamplingMode = _gpuWaterfallResamplingMode;
+            }
+        }
+
+        private static void SetNativeWaterfallIQEnabled(bool enabled)
+        {
+            for (int ch = 0; ch < 3; ch++)
+            {
+                try
+                {
+                    if (enabled) GPUWaterfallNative.CM_WaterfallIQ_Init(ch, 524288);
+                    GPUWaterfallNative.CM_WaterfallIQ_SetEnabled(ch, enabled ? 1 : 0);
+                    if (!enabled) GPUWaterfallNative.CM_WaterfallIQ_ResetDropped(ch);
+                }
+                catch (Exception ex)
+                {
+                    LogGPU("Native IQ control failed ch" + ch + ": " + ex.Message);
+                }
+            }
+        }
+
+        private static int ReadWaterfallIQ(int stream, float[] outI, float[] outQ, int maxSamples)
+        {
+            if (outI == null || outQ == null || outI.Length < maxSamples || outQ.Length < maxSamples) return 0;
+            int n;
+            try { n = GPUWaterfallNative.CM_WaterfallIQ_Get(stream, maxSamples, outI, outQ); }
+            catch { return 0; }
+
+            // Exact final branch convention. Without this swap the spectrum is mirrored.
+            for (int i = 0; i < n; i++)
+            {
+                float t = outI[i];
+                outI[i] = outQ[i];
+                outQ[i] = t;
+            }
+            return n;
+        }
+
+        private static void ResetGPUWaterfallState(int rx, bool resetCalibration = true)
+        {
+            int pane = rx == 2 ? 1 : 0;
+            lock (_sq4kouHighResLock)
+            {
+                _sq4kouRingHead[pane] = 0;
+                _sq4kouRingCount[pane] = 0;
+                _sq4kouSampleCredit[pane] = 0;
+                _sq4kouFirstFill[pane] = false;
+                _sq4kouLastSource[pane] = -1;
+                _sq4kouHasRow[pane] = false;
+                _gpuRendererHasData[pane] = false;
+                if (_sq4kouRingI[pane] != null) Array.Clear(_sq4kouRingI[pane], 0, _sq4kouRingI[pane].Length);
+                if (_sq4kouRingQ[pane] != null) Array.Clear(_sq4kouRingQ[pane], 0, _sq4kouRingQ[pane].Length);
+                if (resetCalibration)
+                {
+                    _sq4kouCalValid[pane] = false;
+                    _sq4kouCalOffset[pane] = 0f;
+                }
+                try
+                {
+                    GPUWaterfallPipeline p = _sq4kouGpuPipe[pane];
+                    if (p != null)
+                    {
+                        p.Dispose();
+                        _sq4kouGpuPipe[pane] = null;
+                    }
+                }
+                catch { }
+            }
+        }
+
+        private static int PowerOfTwo(int value)
+        {
+            int p = 1;
+            while (p < value && p < 262144) p <<= 1;
+            return p > 262144 ? 262144 : p;
+        }
+
+        private static float Median(float[] data, int count, int pane)
+        {
+            if (data == null || count <= 0) return -200f;
+            if (_sq4kouCalScratch[pane] == null || _sq4kouCalScratch[pane].Length < count)
+                _sq4kouCalScratch[pane] = new float[count];
+            float[] tmp = _sq4kouCalScratch[pane];
+            Array.Copy(data, tmp, count);
+            Array.Sort(tmp, 0, count);
+            int mid = count / 2;
+            return (count & 1) != 0 ? tmp[mid] : 0.5f * (tmp[mid - 1] + tmp[mid]);
+        }
+
+        private static void UpdateCalibration(int pane, float[] gpuRow, int width,
+            float[] cpuReference, int cpuCount)
+        {
+            if (gpuRow == null || cpuReference == null || width <= 0 || cpuCount < 16) return;
+            float[] refRow = new float[width];
+            for (int x = 0; x < width; x++)
+            {
+                int src = (int)((long)x * cpuCount / width);
+                if (src >= cpuCount) src = cpuCount - 1;
+                refRow[x] = cpuReference[src];
+            }
+
+            float diff = Median(refRow, width, pane) - Median(gpuRow, width, pane);
+            if (float.IsNaN(diff) || float.IsInfinity(diff) || diff < -12f || diff > 7f) return;
+
+            if (!_sq4kouCalValid[pane])
+            {
+                _sq4kouCalOffset[pane] = diff;
+                _sq4kouCalValid[pane] = true;
+            }
+            else
+            {
+                float old = _sq4kouCalOffset[pane];
+                float next = old * 0.9f + diff * 0.1f;
+                if (next > old + 1f) next = old + 1f;
+                else if (next < old - 1f) next = old - 1f;
+                _sq4kouCalOffset[pane] = next;
+            }
         }
 
         private static bool TrySQ4KOUHighResWaterfall(int rx, int width,
@@ -140,133 +346,160 @@ namespace Thetis
         {
             highResRow = null;
             int pane = rx == 2 ? 1 : 0;
-
-            // Independent source path: ChannelMaster owns its own D3D11 DirectCompute
-            // device. HLSL colour compute and WaterfallMesh are separate optional stages.
-            if (!SQ4KOUHighResWaterfallEnabled || width < 64)
+            if (!_gpuWaterfallPipelineEnabled || width < 64)
             {
                 _sq4kouHighResPaneStatus[pane] = "LEGACY (GPU FFT OFF)";
                 return false;
             }
 
-            int source;
-            int sampleRate;
-            float lowHz;
-            float highHz;
-
-            if (localMox && !displayDuplex)
-            {
-                source = 2; // post-DSP TX IQ
-                sampleRate = cmaster.GetChannelOutputRate(1, 0);
-                if (sampleRate <= 0) sampleRate = cmaster.GetInputRate(1, 0);
-                lowHz = tx_display_low;
-                highHz = tx_display_high;
-            }
-            else
-            {
-                source = rx == 2 ? 1 : 0;
-                sampleRate = cmaster.GetInputRate(0, source);
-                lowHz = rx == 2 ? RX2DisplayLow : RXDisplayLow;
-                highHz = rx == 2 ? RX2DisplayHigh : RXDisplayHigh;
-            }
-
-            if (sampleRate <= 0 || highHz <= lowHz)
-            {
-                _sq4kouHighResPaneStatus[pane] = "LEGACY (INVALID RATE/SPAN)";
-                return false;
-            }
+            int source = localMox && !displayDuplex ? 2 : pane;
+            int sampleRate = source == 2 ? cmaster.GetChannelOutputRate(1, 0) : cmaster.GetInputRate(0, pane);
+            if (sampleRate <= 0 && source == 2) sampleRate = cmaster.GetInputRate(1, 0);
+            if (sampleRate <= 0) sampleRate = source == 2 ? 192000 : (rx == 1 ? SampleRateRX1 : SampleRateRX2);
 
             lock (_sq4kouHighResLock)
             {
-                try
+                EnsurePipeline(pane, width, sampleRate);
+                GPUWaterfallPipeline pipe = _sq4kouGpuPipe[pane];
+                if (pipe == null || !pipe.IsInitialized)
                 {
-                    if (!_sq4kouHighResReady[source] || CM_GPUWaterfall_IsReady(source) == 0)
-                    {
-                        if (CM_GPUWaterfall_Init(source, _sq4kouHighResFftSize, _sq4kouHighResFftSize * 4) == 0)
-                        {
-                            _sq4kouHighResReady[source] = false;
-                            _sq4kouHighResPaneStatus[pane] = "GPU FFT INIT FAILED -> LEGACY";
-                            if (!_sq4kouHighResLoggedFailure[source])
-                            {
-                                _sq4kouHighResLoggedFailure[source] = true;
-                                Common.MeshDiagLog("SQ4KOU high-res waterfall: native GPU FFT init failed; legacy fallback active");
-                            }
-                            return false;
-                        }
-
-                        CM_GPUWaterfall_Configure(source,
-                            _sq4kouHighResWindowType,
-                            _sq4kouHighResKaiserBeta,
-                            _sq4kouHighResMagnitudeMode,
-                            _sq4kouHighResAutoOverlap ? 1 : 0,
-                            _sq4kouHighResOverlapPercent,
-                            _sq4kouHighResLanczosWindow,
-                            _sq4kouHighResResamplingMode);
-
-                        _sq4kouHighResReady[source] = true;
-                        _sq4kouHighResHasRow[source] = false;
-                        _sq4kouHighResCalValid[source] = false;
-                    }
-
-                    if (_sq4kouHighResRows[source] == null || _sq4kouHighResRows[source].Length != width)
-                    {
-                        _sq4kouHighResRows[source] = new float[width];
-                        _sq4kouHighResHasRow[source] = false;
-                    }
-
-                    float[] row = _sq4kouHighResRows[source];
-                    int rc = CM_GPUWaterfall_Process(source, width, sampleRate, lowHz, highHz, row);
-                    if (rc == 0)
-                    {
-                        // No fresh FFT row yet. Reuse the last native row instead
-                        // of falling back for a single display frame. Mixing the
-                        // two sources was the cause of alternating mirrored lines.
-                        if (_sq4kouHighResHasRow[source])
-                        {
-                            highResRow = row;
-                            _sq4kouHighResPaneStatus[pane] = "GPU FFT " + _sq4kouHighResFftSize + " ACTIVE (HOLD)";
-                            return true;
-                        }
-
-                        _sq4kouHighResPaneStatus[pane] = "GPU FFT PRIMING";
-                        return false;
-                    }
-                    if (rc < 0)
-                    {
-                        _sq4kouHighResReady[source] = false;
-                        _sq4kouHighResHasRow[source] = false;
-                        _sq4kouHighResPaneStatus[pane] = "GPU FFT ERROR -> LEGACY";
-                        Common.MeshDiagLog("SQ4KOU high-res waterfall: native GPU FFT process error " + rc + "; legacy fallback active");
-                        return false;
-                    }
-
-                    float cal = MedianCalibration(source, row, width, cpuReference, cpuCount, pixelStep);
-                    for (int i = 0; i < width; i++)
-                        row[i] += cal;
-
-                    ApplySQ4KOUWaterfallPro(pane, row, width);
-
-                    _sq4kouHighResHasRow[source] = true;
-                    highResRow = row;
-                    _sq4kouHighResPaneStatus[pane] = "GPU FFT " + _sq4kouHighResFftSize + " ACTIVE";
-
-                    if (!_sq4kouHighResLoggedActive[source])
-                    {
-                        _sq4kouHighResLoggedActive[source] = true;
-                        Common.MeshDiagLog("SQ4KOU high-res waterfall ACTIVE: native DirectCompute FFT=" +
-                            _sq4kouHighResFftSize + " -> Vortice colour compute -> WaterfallMesh/D2D presenter");
-                    }
-                    return true;
-                }
-                catch (Exception e)
-                {
-                    _sq4kouHighResReady[source] = false;
-                    _sq4kouHighResHasRow[source] = false;
-                    _sq4kouHighResPaneStatus[pane] = "GPU FFT EXCEPTION -> LEGACY";
-                    Common.MeshDiagLog("SQ4KOU high-res waterfall exception; legacy fallback active: " + e.Message);
+                    _sq4kouHighResPaneStatus[pane] = "GPU FFT INIT FAILED -> LEGACY";
                     return false;
                 }
+
+                if (_sq4kouLastSource[pane] != source)
+                {
+                    _sq4kouRingHead[pane] = 0;
+                    _sq4kouRingCount[pane] = 0;
+                    _sq4kouSampleCredit[pane] = 0;
+                    _sq4kouFirstFill[pane] = false;
+                    _sq4kouHasRow[pane] = false;
+                    _sq4kouCalValid[pane] = false;
+                    _sq4kouLastSource[pane] = source;
+                }
+
+                int fftSize = pipe.FFTSize;
+                if (_sq4kouRingI[pane] == null || _sq4kouRingI[pane].Length < 524288)
+                {
+                    _sq4kouRingI[pane] = new float[524288];
+                    _sq4kouRingQ[pane] = new float[524288];
+                }
+                if (_sq4kouAccumI[pane] == null || _sq4kouAccumI[pane].Length < 524288)
+                {
+                    _sq4kouAccumI[pane] = new float[524288];
+                    _sq4kouAccumQ[pane] = new float[524288];
+                    _sq4kouFftI[pane] = new float[524288];
+                    _sq4kouFftQ[pane] = new float[524288];
+                }
+
+                int available = GPUWaterfallNative.CM_WaterfallIQ_Available(source);
+                if (available > 0)
+                {
+                    int want = Math.Min(available, 2 * fftSize);
+                    int got = ReadWaterfallIQ(source, _sq4kouAccumI[pane], _sq4kouAccumQ[pane], want);
+                    if (got > 0)
+                    {
+                        int head = _sq4kouRingHead[pane];
+                        for (int i = 0; i < got; i++)
+                        {
+                            _sq4kouRingI[pane][head] = _sq4kouAccumI[pane][i];
+                            _sq4kouRingQ[pane][head] = _sq4kouAccumQ[pane][i];
+                            head = (head + 1) % fftSize;
+                        }
+                        _sq4kouRingHead[pane] = head;
+                        _sq4kouRingCount[pane] = Math.Min(_sq4kouRingCount[pane] + got, fftSize);
+                        _sq4kouSampleCredit[pane] += got;
+                    }
+                }
+
+                if (_sq4kouRingCount[pane] < fftSize)
+                {
+                    _sq4kouHighResPaneStatus[pane] = "GPU FFT PRIMING";
+                    return false;
+                }
+
+                double overlap = _gpuWaterfallOverlapPercent / 100.0;
+                int hop = Math.Max(1, Math.Min(fftSize, (int)Math.Round(fftSize * (1.0 - overlap))));
+                if (_gpuWaterfallAutoOverlap)
+                {
+                    double fps = Math.Max(1.0, m_nFps);
+                    int period = Math.Max(1, rx == 1 ? waterfall_update_period : rx2_waterfall_update_period);
+                    double targetRows = Math.Min(fps / period, 30.0);
+                    double maxRows = sampleRate / (0.05 * fftSize);
+                    if (targetRows > maxRows) targetRows = maxRows;
+                    hop = Math.Max(1, Math.Min(fftSize, (int)Math.Round(sampleRate / targetRows)));
+                }
+
+                double effectiveOverlap = 1.0 - (double)hop / fftSize;
+                if (Math.Abs(effectiveOverlap - _sq4kouLastEffectiveOverlap[pane]) > 0.005)
+                {
+                    _sq4kouLastEffectiveOverlap[pane] = effectiveOverlap;
+                    GPUWaterfallEffectiveOverlapChanged?.Invoke(rx, effectiveOverlap);
+                }
+
+                if (!_sq4kouFirstFill[pane])
+                {
+                    _sq4kouFirstFill[pane] = true;
+                    _sq4kouSampleCredit[pane] = 0;
+                }
+                else
+                {
+                    if (_sq4kouSampleCredit[pane] < hop)
+                    {
+                        if (_sq4kouHasRow[pane])
+                        {
+                            highResRow = _sq4kouLastRow[pane];
+                            _sq4kouHighResPaneStatus[pane] = "GPU FFT " + fftSize + " ACTIVE (HOLD)";
+                            return true;
+                        }
+                        return false;
+                    }
+                    _sq4kouSampleCredit[pane] -= hop;
+                }
+                if (_sq4kouSampleCredit[pane] > hop * 2) _sq4kouSampleCredit[pane] = hop * 2;
+
+                int headNow = _sq4kouRingHead[pane];
+                for (int i = 0; i < fftSize; i++)
+                {
+                    int src = (headNow + i) % fftSize;
+                    _sq4kouFftI[pane][i] = _sq4kouRingI[pane][src];
+                    _sq4kouFftQ[pane][i] = _sq4kouRingQ[pane][src];
+                }
+
+                float lowHz = localMox && !displayDuplex ? tx_display_low : (rx == 1 ? RXDisplayLow : RX2DisplayLow);
+                float highHz = localMox && !displayDuplex ? tx_display_high : (rx == 1 ? RXDisplayHigh : RX2DisplayHigh);
+                pipe.SetFrequencySpan(lowHz, highHz);
+
+                float[] row = pipe.Process(_sq4kouFftI[pane], _sq4kouFftQ[pane], fftSize);
+                if (row == null)
+                {
+                    if (_sq4kouHasRow[pane])
+                    {
+                        highResRow = _sq4kouLastRow[pane];
+                        _sq4kouHighResPaneStatus[pane] = "GPU FFT " + fftSize + " ACTIVE (READBACK HOLD)";
+                        return true;
+                    }
+                    _sq4kouHighResPaneStatus[pane] = "GPU FFT READBACK";
+                    return false;
+                }
+
+                if (_sq4kouLastRow[pane] == null || _sq4kouLastRow[pane].Length != width)
+                    _sq4kouLastRow[pane] = new float[width];
+
+                UpdateCalibration(pane, row, width, cpuReference, cpuCount);
+                float cal = _sq4kouCalValid[pane] ? _sq4kouCalOffset[pane] : 0f;
+                for (int i = 0; i < width; i++) _sq4kouLastRow[pane][i] = row[i] + cal;
+
+                _sq4kouHasRow[pane] = true;
+                highResRow = _sq4kouLastRow[pane];
+                _sq4kouHighResPaneStatus[pane] = "GPU FFT " + fftSize + " ACTIVE";
+                return true;
             }
+        }
+
+        private static void LogGPU(string message)
+        {
+            GPUWaterfallLogger.Log("GPU-DISP", message);
         }
     }
 }

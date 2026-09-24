@@ -22,7 +22,6 @@ namespace Thetis
         private ComboBoxTS comboTemporal; private LabelTS lblTemporal; private LabelTS lblGPUSep; private LabelTS lblPalSharp; private TrackBarTS tbPalSharp;
         private LabelTS lblPalSharpVal; private LabelTS lblPalContrast; private TrackBarTS tbPalContrast; private LabelTS lblPalContrastVal;
         private ComboBoxTS comboGPU; private LabelTS lblGPU; private LabelTS lblGPUInfo; private ButtonTS btnTestGPU; private System.Windows.Forms.Timer _gpuStatusTimer;
-        private CheckBoxTS chkSQ4KOUWaterfallMesh; private CheckBoxTS chkSQ4KOUDiagLog;
         private LabelTS lblWaterfallRenderQuality; private ComboBoxTS comboWaterfallRenderQuality; private LabelTS lblWaterfallRenderQualityHint;
         private CheckBoxTS chkGPUWaterfallFFT; private LabelTS lblGPUWaterfallFFTSize; private ComboBoxTS comboGPUWaterfallFFTSize;
         private LabelTS lblGPUWaterfallWindow; private ComboBoxTS comboGPUWaterfallWindow; private LabelTS lblGPUWaterfallKaiserBeta; private NumericUpDownTS udGPUWaterfallKaiserBeta;
@@ -205,7 +204,7 @@ namespace Thetis
 		chkGPUWaterfallFFT.Text = "GPU FFT Waterfall";
 		chkGPUWaterfallFFT.AutoSize = true;
 		chkGPUWaterfallFFT.Location = new Point(12, num);
-		chkGPUWaterfallFFT.Visible = true;
+		chkGPUWaterfallFFT.Visible = false;
 		chkGPUWaterfallFFT.CheckedChanged += chkGPUWaterfallFFT_CheckedChanged;
 		wfProGroup.Controls.Add(chkGPUWaterfallFFT);
 		chkGPUWaterfallFFT.BringToFront();
@@ -485,35 +484,17 @@ namespace Thetis
 		lblGPUInfo = new LabelTS();
 		lblGPUInfo.Text = "Detecting...";
 		lblGPUInfo.Location = new Point(340, num3);
-		lblGPUInfo.Size = new Size(330, 58);
+		lblGPUInfo.Size = new Size(330, 36);
 		lblGPUInfo.ForeColor = Color.SlateGray;
 		wfProGroup.Controls.Add(lblGPUInfo);
 		num3 += 40;
 		btnTestGPU = new ButtonTS();
 		btnTestGPU.Name = "btnTestGPU";
 		btnTestGPU.Text = "Test GPU";
-		btnTestGPU.Location = new Point(570, num3 - 68);
-		btnTestGPU.Size = new Size(92, 24);
+		btnTestGPU.Location = new Point(340, num3);
+		btnTestGPU.Size = new Size(80, 24);
 		btnTestGPU.Click += btnTestGPU_Click;
 		wfProGroup.Controls.Add(btnTestGPU);
-
-		chkSQ4KOUWaterfallMesh = new CheckBoxTS();
-		chkSQ4KOUWaterfallMesh.Name = "chkSQ4KOUWaterfallMesh";
-		chkSQ4KOUWaterfallMesh.Text = "WaterfallMesh";
-		chkSQ4KOUWaterfallMesh.AutoSize = true;
-		chkSQ4KOUWaterfallMesh.Location = new Point(570, num3 - 40);
-		chkSQ4KOUWaterfallMesh.Checked = Display.SQ4KOUWaterfallMeshEnabled;
-		chkSQ4KOUWaterfallMesh.CheckedChanged += chkSQ4KOUWaterfallMesh_CheckedChanged;
-		wfProGroup.Controls.Add(chkSQ4KOUWaterfallMesh);
-
-		chkSQ4KOUDiagLog = new CheckBoxTS();
-		chkSQ4KOUDiagLog.Name = "chkSQ4KOUDiagLog";
-		chkSQ4KOUDiagLog.Text = "Diag log";
-		chkSQ4KOUDiagLog.AutoSize = true;
-		chkSQ4KOUDiagLog.Location = new Point(570, num3 - 20);
-		chkSQ4KOUDiagLog.Checked = Common.MeshDiagLogEnabled;
-		chkSQ4KOUDiagLog.CheckedChanged += chkSQ4KOUDiagLog_CheckedChanged;
-		wfProGroup.Controls.Add(chkSQ4KOUDiagLog);
 		if (chkGPUWaterfallFFT != null)
 		{
 			chkGPUWaterfallFFT.Checked = Display.GPUWaterfallPipelineEnabled;
@@ -611,19 +592,12 @@ namespace Thetis
 			string text = Display.GPUName ?? "unknown";
 			int gPUDetectionLevel = Display.GPUDetectionLevel;
 			string text2 = GPUDetector.FeaturesList ?? "";
-			if (string.IsNullOrEmpty(text2)) text2 = "(none detected)";
-
-			string source = Display.SQ4KOUHighResWaterfallStatusRX1;
-			string color = Display.WaterfallColorComputeStatus;
-			string presenter = Display.WaterfallPresenterStatusRX1;
-			lblGPUInfo.Text = text + " | Level " + gPUDetectionLevel + "\n" +
-				"Source RX1: " + source + "\n" +
-				"Color: " + color + " | Presenter: " + presenter;
-
-			if (chkSQ4KOUWaterfallMesh != null && !chkSQ4KOUWaterfallMesh.Focused)
-				chkSQ4KOUWaterfallMesh.Checked = Display.SQ4KOUWaterfallMeshEnabled;
-			if (chkSQ4KOUDiagLog != null && !chkSQ4KOUDiagLog.Focused)
-				chkSQ4KOUDiagLog.Checked = Common.MeshDiagLogEnabled;
+			if (string.IsNullOrEmpty(text2))
+			{
+				text2 = "(none detected)";
+			}
+			string text3 = ((!GPUDetector.HasDeviceContext) ? "Pending... (connect radio to detect)" : ((!Display.GPUEffectsEnabled) ? "INACTIVE (CPU mode)" : "ACTIVE ✓ (GPU post-processing ON)"));
+			lblGPUInfo.Text = text + "\nLevel " + gPUDetectionLevel + ": " + text2 + "\n" + text3;
 		}
 		catch
 		{
@@ -759,9 +733,21 @@ namespace Thetis
 
 	private void UpdateWaterfallPaletteItems(bool gpuMode)
 	{
-		// SDR-VST3 keeps the current Thetis palette list. The recovered menu used
-		// extra 256-palette names that are not part of this base's combo handlers.
-		// Do not rewrite those combos here; quality A/B is controlled independently.
+		if (_paletteItemsUpdating)
+		{
+			return;
+		}
+		_paletteItemsUpdating = true;
+		try
+		{
+			UpdateOnePaletteCombo(comboColorPalette, gpuMode);
+			UpdateOnePaletteCombo(comboRX2ColorPalette, gpuMode);
+			UpdateOnePaletteCombo(comboColorPalette_tx, gpuMode);
+		}
+		finally
+		{
+			_paletteItemsUpdating = false;
+		}
 	}
 
 
@@ -1106,18 +1092,6 @@ namespace Thetis
 		}
 	}
 
-
-	private void chkSQ4KOUWaterfallMesh_CheckedChanged(object sender, EventArgs e)
-	{
-		if (!initializing)
-			Display.SQ4KOUWaterfallMeshEnabled = chkSQ4KOUWaterfallMesh.Checked;
-	}
-
-	private void chkSQ4KOUDiagLog_CheckedChanged(object sender, EventArgs e)
-	{
-		if (!initializing)
-			Common.MeshDiagLogEnabled = chkSQ4KOUDiagLog.Checked;
-	}
 
 	private void OnGPUWaterfallEffectiveOverlapChanged(int rx, double overlap)
 	{
