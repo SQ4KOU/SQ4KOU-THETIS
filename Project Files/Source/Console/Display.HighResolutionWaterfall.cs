@@ -5,12 +5,15 @@ namespace Thetis
     partial class Display
     {
         private const int NativeHighResolutionWaterfallFftSize = 262144;
+        private const int NativeHighResolutionWaterfallOversample = 4;
+        private const int NativeHighResolutionWaterfallMaxPixels = 32768;
         private static readonly object _nativeHighResolutionWaterfallLock = new object();
         private static clsSpectrumProcessor _nativeHighResolutionWaterfallProcessor;
         private static readonly bool[] _nativeHighResolutionWaterfallAdded = new bool[2];
         private static readonly int[] _nativeHighResolutionWaterfallWidth = new int[2];
         private static readonly float[][] _nativeHighResolutionWaterfallData = new float[2][];
         private static readonly float[][] _nativeHighResolutionWaterfallDataCopy = new float[2][];
+        private static readonly float[][] _nativeHighResolutionWaterfallOversampled = new float[2][];
         private static long _nativeHighResolutionWaterfallRetryAfterTicks;
 
         private static bool TryGetNativeHighResolutionWaterfallData(
@@ -47,11 +50,20 @@ namespace Thetis
                     int frameRate = Math.Max(1, Math.Min(120, source.FrameRate));
                     int sampleRate = source.SampleRate > 0 ? source.SampleRate : 192000;
 
+                    // Do not ask WDSP to collapse the whole visible RF span directly
+                    // into one spectrum value per screen pixel.  That destroys narrow
+                    // carriers (FT8 is the most obvious case) before the waterfall ever
+                    // sees them.  Instead request an oversampled row and reduce it to
+                    // the screen width with a peak-preserving detector below.
+                    int analyzerPixels = Math.Min(
+                        NativeHighResolutionWaterfallMaxPixels,
+                        Math.Max(width, width * NativeHighResolutionWaterfallOversample));
+
                     if (!_nativeHighResolutionWaterfallAdded[receiverId])
                     {
                         if (!_nativeHighResolutionWaterfallProcessor.AddReceiver(
                             receiverId,
-                            width,
+                            analyzerPixels,
                             frameRate,
                             NativeHighResolutionWaterfallFftSize))
                         {
@@ -59,12 +71,12 @@ namespace Thetis
                         }
 
                         _nativeHighResolutionWaterfallAdded[receiverId] = true;
-                        _nativeHighResolutionWaterfallWidth[receiverId] = width;
+                        _nativeHighResolutionWaterfallWidth[receiverId] = analyzerPixels;
                     }
-                    else if (_nativeHighResolutionWaterfallWidth[receiverId] != width)
+                    else if (_nativeHighResolutionWaterfallWidth[receiverId] != analyzerPixels)
                     {
-                        _nativeHighResolutionWaterfallProcessor.SetReceiverPixelResolution(receiverId, width);
-                        _nativeHighResolutionWaterfallWidth[receiverId] = width;
+                        _nativeHighResolutionWaterfallProcessor.SetReceiverPixelResolution(receiverId, analyzerPixels);
+                        _nativeHighResolutionWaterfallWidth[receiverId] = analyzerPixels;
                     }
 
                     // Keep the independent analyzer locked to the exact RX viewport
@@ -90,25 +102,53 @@ namespace Thetis
                         _nativeHighResolutionWaterfallDataCopy[receiverId] = new float[width];
                     }
 
+                    if (_nativeHighResolutionWaterfallOversampled[receiverId] == null ||
+                        _nativeHighResolutionWaterfallOversampled[receiverId].Length != analyzerPixels)
+                    {
+                        _nativeHighResolutionWaterfallOversampled[receiverId] = new float[analyzerPixels];
+                    }
+
                     int pixelCount;
                     int dataIndex;
                     if (!_nativeHighResolutionWaterfallProcessor.TryCopyReceiverPixels(
                         receiverId,
-                        _nativeHighResolutionWaterfallDataCopy[receiverId],
+                        _nativeHighResolutionWaterfallOversampled[receiverId],
                         out pixelCount,
                         out dataIndex) ||
-                        pixelCount != width)
+                        pixelCount != analyzerPixels)
                     {
                         return false;
                     }
 
-                    Array.Copy(
-                        _nativeHighResolutionWaterfallDataCopy[receiverId],
-                        _nativeHighResolutionWaterfallData[receiverId],
-                        width);
+                    // Peak-preserving horizontal reduction.  Each destination pixel
+                    // keeps the strongest dBm sample from its exact source interval
+                    // instead of averaging/interpolating it away.  This mirrors the
+                    // important visual property of the former GPU waterfall's
+                    // PeakHoldPower resampling without restoring that renderer.
+                    float[] oversampled = _nativeHighResolutionWaterfallOversampled[receiverId];
+                    float[] reduced = _nativeHighResolutionWaterfallData[receiverId];
+                    float[] reducedCopy = _nativeHighResolutionWaterfallDataCopy[receiverId];
 
-                    data = _nativeHighResolutionWaterfallData[receiverId];
-                    dataCopy = _nativeHighResolutionWaterfallDataCopy[receiverId];
+                    for (int x = 0; x < width; x++)
+                    {
+                        int start = (int)(((long)x * analyzerPixels) / width);
+                        int end = (int)(((long)(x + 1) * analyzerPixels) / width);
+                        if (end <= start) end = start + 1;
+                        if (end > analyzerPixels) end = analyzerPixels;
+
+                        float peak = oversampled[start];
+                        for (int src = start + 1; src < end; src++)
+                        {
+                            if (oversampled[src] > peak)
+                                peak = oversampled[src];
+                        }
+
+                        reduced[x] = peak;
+                        reducedCopy[x] = peak;
+                    }
+
+                    data = reduced;
+                    dataCopy = reducedCopy;
                     return true;
                 }
                 catch (Exception ex)
@@ -145,6 +185,7 @@ namespace Thetis
                     _nativeHighResolutionWaterfallWidth[i] = 0;
                     _nativeHighResolutionWaterfallData[i] = null;
                     _nativeHighResolutionWaterfallDataCopy[i] = null;
+                    _nativeHighResolutionWaterfallOversampled[i] = null;
                 }
             }
         }
