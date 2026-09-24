@@ -30,7 +30,7 @@ jobs:
       - name: Build
         run: msbuild "Project Files/Source/Thetis_VS2026.sln" -p:Configuration=Release -p:Platform=x64 -m -nologo
 
-      - name: Verify SQ4KOU native export
+      - name: Verify SQ4KOU native and exact GPU waterfall exports
         shell: pwsh
         run: |
           $dll = Get-ChildItem "Project Files" -Recurse -Filter ChannelMaster.dll |
@@ -44,10 +44,33 @@ jobs:
           if (-not $dumpbin) { throw "dumpbin.exe not found" }
 
           $exports = & $dumpbin.FullName /exports $dll.FullName | Out-String
-          if ($exports -notmatch 'GetSQ4KOUHardwareState') {
-            throw "GetSQ4KOUHardwareState export missing from ChannelMaster.dll"
+          $requiredExports = @(
+            'GetSQ4KOUHardwareState',
+            'CM_GPUWaterfallExact_Init',
+            'CM_GPUWaterfallExact_Configure',
+            'CM_GPUWaterfallExact_Process',
+            'CM_GPUWaterfallExact_RenderRow'
+          )
+          foreach ($name in $requiredExports) {
+            if ($exports -notmatch [regex]::Escape($name)) {
+              throw "$name export missing from ChannelMaster.dll"
+            }
           }
-          Write-Host "PASS: GetSQ4KOUHardwareState exported by $($dll.FullName)"
+          Write-Host "PASS: SQ4KOU + exact GPU waterfall exports present in $($dll.FullName)"
+
+          $binDir = Split-Path $dll.FullName -Parent
+          $requiredShaders = @(
+            'waterfall_fft_bitreverse_cs.bin',
+            'waterfall_fft_stage_ab_cs.bin',
+            'waterfall_fft_stage_ba_cs.bin',
+            'waterfall_fft_magnitude_cs.bin',
+            'waterfall_row_cs.bin'
+          )
+          foreach ($shader in $requiredShaders) {
+            $path = Join-Path $binDir $shader
+            if (-not (Test-Path $path)) { throw "Required GPU waterfall shader missing: $path" }
+          }
+          Write-Host "PASS: all exact GPU waterfall shaders are present in release output"
 
       - name: Build test MSI
         shell: pwsh
