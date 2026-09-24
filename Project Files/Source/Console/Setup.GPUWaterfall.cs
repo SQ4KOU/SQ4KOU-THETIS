@@ -812,6 +812,45 @@ namespace Thetis
 	}
 
 
+	private void ApplyWaterfallReferenceControlsAfterRestore()
+	{
+		if (grpWaterfallCore == null) return;
+		_waterfallReferenceUpdating = true;
+		try
+		{
+			Display.AutoThresholdEnabled = chkWFAutoThreshold.Checked;
+			Display.AutoThresholdFineOffset = (float)udWFAutoThresholdFine.Value;
+			if (comboGPUWaterfallResampling.SelectedIndex >= 0)
+				Display.GPUWaterfallResamplingMode = (GPUWaterfallResamplingMode)comboGPUWaterfallResampling.SelectedIndex;
+			Display.ShowFrameRateIssue = chkWFWarningRenderDelay.Checked;
+			Display.ShowGetPixelsIssue = chkWFWarningGetPixels.Checked;
+
+			if (comboWFDisplayThreadPriority.SelectedIndex >= 0 && comboDisplayThreadPriority != null)
+				comboDisplayThreadPriority.SelectedIndex = comboWFDisplayThreadPriority.SelectedIndex;
+			if (chkShowFPS != null) chkShowFPS.Checked = chkWFShowFPS.Checked;
+			if (chkAntiAlias != null) chkAntiAlias.Checked = chkWFAntiAlias.Checked;
+
+			// Registry is authoritative because DPI awareness must be read before the DB/UI exists.
+			chkWFDpiAwareness.Checked = LogTool.GetRegistryDpiAwareness();
+
+			if (comboWFQuality.SelectedIndex >= 0)
+				WaterfallEnhancer.SetQuality((WaterfallEnhancer.QualityLevel)comboWFQuality.SelectedIndex);
+			WaterfallEnhancer.SetDither(chkWFDither.Checked);
+			float gamma = tbWFGamma.Value / 100f;
+			WaterfallEnhancer.SetGamma(gamma);
+			lblWFGammaValue.Text = gamma.ToString("0.00");
+
+			WaterfallEnhancer.SetColorDepth(comboWFDepth.SelectedIndex == 1
+				? WaterfallEnhancer.ColorDepth.Bit16
+				: WaterfallEnhancer.ColorDepth.Bit8);
+			WaterfallPixelWriter.UpdateFormat();
+		}
+		finally
+		{
+			_waterfallReferenceUpdating = false;
+		}
+	}
+
 	private void chkWFAutoThreshold_CheckedChanged(object sender, EventArgs e)
 	{
 		if (_waterfallReferenceUpdating || initializing) return;
