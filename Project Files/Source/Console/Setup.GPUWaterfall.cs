@@ -637,6 +637,14 @@ namespace Thetis
 		Display.GPUEffectsEnabled = effectiveTarget >= 1 && hasBuiltInEffects;
 		Display.AutoEnableGPU = effectiveTarget >= 1;
 
+		// Keep the three GPU layers synchronized with the selected capability level.
+		// Level 0: pure CPU/D2D baseline.
+		// Level 1: D2D basic effects only; no compute shaders and no mesh presenter.
+		// Level 2: advanced FFT/compute. Presentation deliberately stays on the
+		// proven D2D bitmap path until the direct mesh presenter is separately proven.
+		Display.GpuComputeEnabled = effectiveTarget >= 2 && hasCustomShaders;
+		Display.SQ4KOUWaterfallMeshEnabled = false;
+
 		if (hasDeviceContext || selectedIndex != 0)
 		{
 			UpdateWaterfallRenderQualityItems(effectiveTarget);
