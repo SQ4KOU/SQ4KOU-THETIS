@@ -3346,10 +3346,13 @@ namespace Thetis
                             int h = Math.Min(H - 20, (int)_waterfall_bmp_dx2d.Size.Height);
                             preservedRows = h;
 
-                            tmp = _d2dRenderTarget.CreateBitmap(new Vortice.Mathematics.SizeI((int)_waterfall_bmp_dx2d.Size.Width, h),
-                                    IntPtr.Zero, 0, new BitmapProperties(new SDXPixelFormat(Format.B8G8R8A8_UNorm, ALPHA_MODE)));
+                            if (_waterfall_bmp_dx2d.PixelFormat.Format == WaterfallBitmapFormat)
+                            {
+                                tmp = _d2dRenderTarget.CreateBitmap(new Vortice.Mathematics.SizeI((int)_waterfall_bmp_dx2d.Size.Width, h),
+                                        IntPtr.Zero, 0, new BitmapProperties(new SDXPixelFormat(WaterfallBitmapFormat, WaterfallBitmapAlphaMode)));
 
-                            tmp.CopyFromBitmap(new System.Drawing.Point(0, 0), _waterfall_bmp_dx2d, new System.Drawing.Rectangle(0, 0, (int)tmp.Size.Width, (int)tmp.Size.Height));
+                                tmp.CopyFromBitmap(new System.Drawing.Point(0, 0), _waterfall_bmp_dx2d, new System.Drawing.Rectangle(0, 0, (int)tmp.Size.Width, (int)tmp.Size.Height));
+                            }
                             //
                         }
                     }
@@ -3359,7 +3362,7 @@ namespace Thetis
                         _waterfall_bmp_dx2d?.Dispose();
                         _waterfall_bmp_dx2d = null;
                     }
-                    _waterfall_bmp_dx2d = _d2dRenderTarget.CreateBitmap(new Vortice.Mathematics.SizeI(displayTargetWidth, H - 20), IntPtr.Zero, 0, new BitmapProperties(new SDXPixelFormat(_swapChain.Description.BufferDescription.Format, ALPHA_MODE)));
+                    _waterfall_bmp_dx2d = _d2dRenderTarget.CreateBitmap(new Vortice.Mathematics.SizeI(displayTargetWidth, H - 20), IntPtr.Zero, 0, new BitmapProperties(new SDXPixelFormat(WaterfallBitmapFormat, WaterfallBitmapAlphaMode)));
                     clearWaterfallBitmapRegion(_waterfall_bmp_dx2d, 0, 0, displayTargetWidth, H - 20);
 
                     if (tmp != null)
@@ -3401,10 +3404,13 @@ namespace Thetis
                             int h = Math.Min(H - 20, (int)_waterfall_bmp2_dx2d.Size.Height);
                             preservedRows = h;
 
-                            tmp = _d2dRenderTarget.CreateBitmap(new Vortice.Mathematics.SizeI((int)_waterfall_bmp2_dx2d.Size.Width, h),
-                                    IntPtr.Zero, 0, new BitmapProperties(new SDXPixelFormat(Format.B8G8R8A8_UNorm, ALPHA_MODE)));
+                            if (_waterfall_bmp2_dx2d.PixelFormat.Format == WaterfallBitmapFormat)
+                            {
+                                tmp = _d2dRenderTarget.CreateBitmap(new Vortice.Mathematics.SizeI((int)_waterfall_bmp2_dx2d.Size.Width, h),
+                                        IntPtr.Zero, 0, new BitmapProperties(new SDXPixelFormat(WaterfallBitmapFormat, WaterfallBitmapAlphaMode)));
 
-                            tmp.CopyFromBitmap(new System.Drawing.Point(0, 0), _waterfall_bmp2_dx2d, new System.Drawing.Rectangle(0, 0, (int)tmp.Size.Width, (int)tmp.Size.Height));
+                                tmp.CopyFromBitmap(new System.Drawing.Point(0, 0), _waterfall_bmp2_dx2d, new System.Drawing.Rectangle(0, 0, (int)tmp.Size.Width, (int)tmp.Size.Height));
+                            }
                             //
                         }
                     }
@@ -3414,7 +3420,7 @@ namespace Thetis
                         _waterfall_bmp2_dx2d?.Dispose();
                         _waterfall_bmp2_dx2d = null;
                     }
-                    _waterfall_bmp2_dx2d = _d2dRenderTarget.CreateBitmap(new Vortice.Mathematics.SizeI(displayTargetWidth, H - 20), IntPtr.Zero, 0, new BitmapProperties(new SDXPixelFormat(_swapChain.Description.BufferDescription.Format, ALPHA_MODE)));
+                    _waterfall_bmp2_dx2d = _d2dRenderTarget.CreateBitmap(new Vortice.Mathematics.SizeI(displayTargetWidth, H - 20), IntPtr.Zero, 0, new BitmapProperties(new SDXPixelFormat(WaterfallBitmapFormat, WaterfallBitmapAlphaMode)));
                     clearWaterfallBitmapRegion(_waterfall_bmp2_dx2d, 0, 0, displayTargetWidth, H - 20);
 
                     if (tmp != null)
@@ -8096,17 +8102,14 @@ namespace Thetis
         {
             if (bitmap == null || width <= 0 || height <= 0) return;
 
-            const int pixelSize = 4;
+            int pixelSize = WaterfallBitmapPixelSize;
             int stride = width * pixelSize;
             int bytesNeeded = stride * height;
             byte[] clearBuffer = ArrayPool<byte>.Shared.Rent(bytesNeeded);
 
             try
             {
-                Array.Clear(clearBuffer, 0, bytesNeeded);
-                for (int j = 3; j < bytesNeeded; j += pixelSize)
-                    clearBuffer[j] = 255;
-
+                WaterfallPixelWriter.FillClearBuffer(clearBuffer, bytesNeeded);
                 bitmap.CopyFromMemory(new System.Drawing.Rectangle(x, y, width, height), clearBuffer, (uint)stride);
             }
             finally
@@ -9560,6 +9563,9 @@ namespace Thetis
                             rx == 2, local_mox);
                     }
 
+                    byte[] displayRow = PrepareWaterfallDisplayRow(rx, row, W);
+                    int displayPixelSize = WaterfallBitmapPixelSize;
+
                     int preservedBitmapHeight = (int)waterfallBitmap.Size.Height - (addRow ? 1 : 0);
 
                     // Tier 3 GPU mesh waterfall: give the GPU ring the line first
@@ -9579,7 +9585,7 @@ namespace Thetis
                             clearWaterfallBitmapRegion(waterfallBitmap, 0, 0, W, (int)waterfallBitmap.Size.Height);
                         }
 
-                        topPixels = _d2dRenderTarget.CreateBitmap(new Vortice.Mathematics.SizeI((int)waterfallBitmap.Size.Width, preservedBitmapHeight), IntPtr.Zero, 0, new BitmapProperties(new SDXPixelFormat(waterfallBitmap.PixelFormat.Format, ALPHA_MODE)));
+                        topPixels = _d2dRenderTarget.CreateBitmap(new Vortice.Mathematics.SizeI((int)waterfallBitmap.Size.Width, preservedBitmapHeight), IntPtr.Zero, 0, new BitmapProperties(new SDXPixelFormat(waterfallBitmap.PixelFormat.Format, WaterfallBitmapAlphaMode)));
 
                         topPixels.CopyFromBitmap(new System.Drawing.Point(0, 0), waterfallBitmap, new System.Drawing.Rectangle(0, 0, (int)topPixels.Size.Width, preservedBitmapHeight));
                     }
@@ -9588,7 +9594,7 @@ namespace Thetis
                     {
                         if (addRow)
                         {
-                            waterfallBitmap.CopyFromMemory(new System.Drawing.Rectangle(0, 0, W, 1), row, (uint)(W * pixel_size));
+                            waterfallBitmap.CopyFromMemory(new System.Drawing.Rectangle(0, 0, W, 1), displayRow, (uint)(W * displayPixelSize));
                         }
 
                         int copyWidth = W - Math.Abs(horizontalShiftPixels);
