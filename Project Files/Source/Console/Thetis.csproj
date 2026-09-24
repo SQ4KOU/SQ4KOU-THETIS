@@ -388,6 +388,7 @@
     <Compile Include="GPUWaterfallWindowType.cs" />
     <Compile Include="NoiseFloorPro.cs" />
     <Compile Include="WaterfallEnhancer.cs" />
+    <Compile Include="WaterfallPixelWriter.cs" />
     <Compile Include="Setup.GPUWaterfall.cs" />
     <Compile Include="Display.SpectrumCompute.cs" />
     <Content Include="waterfall_fft_bitreverse_cs.bin"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
