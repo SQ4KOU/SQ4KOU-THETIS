@@ -1487,8 +1487,12 @@ namespace Thetis
             return sb.ToString().Trim();
         }
 
-        //[DllImport("shcore.dll")]
-        //private static extern int SetProcessDpiAwareness(int awareness);
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr SetProcessDpiAwarenessContext(IntPtr value);
+        [DllImport("shcore.dll", SetLastError = true)]
+        private static extern int SetProcessDpiAwareness(int awareness);
+        private static readonly IntPtr DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2 = new IntPtr(-4);
+        private const int PROCESS_PER_MONITOR_DPI_AWARE = 2;
         // ======================================================
         // Main
         // ======================================================
@@ -1504,6 +1508,16 @@ namespace Thetis
                 .Select(a => cleanArg(a))
                 .Where(a => !string.IsNullOrWhiteSpace(a))
                 .ToArray();
+
+            if (LogTool.GetRegistryDpiAwareness())
+            {
+                try
+                {
+                    bool ok = SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2) != IntPtr.Zero;
+                    if (!ok) SetProcessDpiAwareness(PROCESS_PER_MONITOR_DPI_AWARE);
+                }
+                catch { }
+            }
 
             if (Common.HasArg(args, "-help"))
             {
@@ -1603,7 +1617,6 @@ namespace Thetis
 
                 Win32.TimeBeginPeriod(1); // set timer resolution to 1ms => freq=1000Hz
 
-                //SetProcessDpiAwareness(2); // Per-Monitor DPI Awareness
                 Application.EnableVisualStyles();
                 Application.DoEvents();
 
