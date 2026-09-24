@@ -129,6 +129,7 @@
     <Compile Include="clsLegacyItemController.cs" />
     <Compile Include="clsMeterScriptEngine.cs" />
     <Compile Include="clsSpectrumProcessor.cs" />
+    <Compile Include="Display.ExactGPUWaterfallSource.cs" />
     <Compile Include="frmCFCConfig.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -377,6 +378,10 @@
     <Compile Include="display.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Content Include="waterfall_fft_bitreverse_cs.bin"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="waterfall_fft_stage_ab_cs.bin"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="waterfall_fft_stage_ba_cs.bin"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
+    <Content Include="waterfall_fft_magnitude_cs.bin"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>
     <Compile Include="DiversityForm.cs">
       <SubType>Form</SubType>
     </Compile>
