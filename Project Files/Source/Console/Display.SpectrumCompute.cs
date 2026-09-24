@@ -503,7 +503,6 @@ namespace Thetis
                     px[i * 4 + 2] = (byte)cols[idx].R;
                     px[i * 4 + 3] = 255;
                 }
-                ApplySQ4KOUEnhancerToLut(px);
                 return;
             }
 
@@ -584,8 +583,6 @@ namespace Thetis
                         break;
                 }
             }
-
-            ApplySQ4KOUEnhancerToLut(px);
         }
 
         private static void ApplySQ4KOUEnhancerToLut(byte[] px)
@@ -697,8 +694,6 @@ namespace Thetis
                 h = h * 31 + linCor.GetHashCode();
                 h = h * 31 + (isRx2 ? 1 : 0);
                 h = h * 31 + (isMox ? 1 : 0);
-                h = h * 31 + (int)WaterfallEnhancer.ToneMap;
-                h = h * 31 + WaterfallEnhancer.Gamma.GetHashCode();
                 Color low = isMox ? waterfall_low_color_tx : waterfall_low_color;
                 h = h * 31 + low.ToArgb();
                 if (scheme == ColorScheme.Custom)
