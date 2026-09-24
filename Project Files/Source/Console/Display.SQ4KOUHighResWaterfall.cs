@@ -206,9 +206,11 @@ namespace Thetis
             GPUWaterfallPipeline p = _sq4kouGpuPipe[pane];
             if (p == null)
             {
+                // Reset ring/credit state before constructing the new pipeline.
+                // Calling Reset after assignment would dispose the pipeline we just created.
+                ResetGPUWaterfallState(pane + 1, false);
                 p = new GPUWaterfallPipeline(_sq4kouGpuDevice, _gpuWaterfallFFTSize, width, sampleRate);
                 _sq4kouGpuPipe[pane] = p;
-                ResetGPUWaterfallState(pane + 1, false);
             }
             else
             {
