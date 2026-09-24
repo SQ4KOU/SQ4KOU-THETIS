@@ -1944,8 +1944,8 @@ namespace Thetis
             //those controls will never be saved to the database, so when we recover, the count will be less than the number of controls as
             //this is checked before tabs are removed. A complete recovery is then done, which resets everything to default every
             //single time. TODO !!!!
-            if (a.Count < controls.Count)		// some control values are not in the database
-            {								    // so set all of them to the defaults
+            if (a.Count == 0)                 // only an empty Options store means no persisted setup exists
+            {                                    // newly-added controls keep their code defaults until first save
                 InitGeneralTab(recoveryList);
                 InitAudioTab(recoveryList);
                 InitAdvancedAudioTab(recoveryList);
@@ -2261,6 +2261,7 @@ namespace Thetis
                 ucRadioList_Radios.ClearRadios();
             }
 
+            ApplyWaterfallReferenceControlsAfterRestore();
             _gettingOptions = false;
         }
 
