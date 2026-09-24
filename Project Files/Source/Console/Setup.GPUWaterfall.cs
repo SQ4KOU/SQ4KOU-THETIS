@@ -29,12 +29,37 @@ namespace Thetis
         private CheckBoxTS chkGPUWaterfallAutoOverlap; private LabelTS lblGPUWaterfallEffectiveOverlap; private LabelTS lblGPUWaterfallLanczos; private ComboBoxTS comboGPUWaterfallLanczos;
         private ComboBoxTS comboGPUWaterfallResampling;
 
+        // Setup -> Display -> Waterfall reference controls.
+        private GroupBoxTS grpWaterfallCore;
+        private GroupBoxTS grpWaterfallWarnings;
+        private GroupBoxTS grpWaterfallDirectX;
+        private CheckBoxTS chkWFAutoThreshold;
+        private NumericUpDownTS udWFAutoThresholdFine;
+        private LabelTS lblWFAutoThresholdFine;
+        private LabelTS lblWFResampling;
+        private CheckBoxTS chkWFWarningRenderDelay;
+        private CheckBoxTS chkWFWarningGetPixels;
+        private ComboBoxTS comboWFDisplayThreadPriority;
+        private CheckBoxTS chkWFShowFPS;
+        private CheckBoxTS chkWFAntiAlias;
+        private CheckBoxTS chkWFDpiAwareness;
+        private LabelTS lblWFQuality;
+        private ComboBoxTS comboWFQuality;
+        private CheckBoxTS chkWFDither;
+        private LabelTS lblWFGamma;
+        private TrackBarTS tbWFGamma;
+        private LabelTS lblWFGammaValue;
+        private LabelTS lblWFDepth;
+        private ComboBoxTS comboWFDepth;
+        private bool _waterfallReferenceUpdating;
+
 
         // SQ4KOU test: exact Setup > Display > Waterfall window recovered from
         // Thetis 2.10.3.16 Extended Final. No visual reconstruction.
         private void InitGPUWaterfallSetupUI()
         {
             InitWaterfallTab();
+            InitWaterfallReferenceControls();
             if (_tpWaterfall != null && grpDisplayDriverEngine != null)
                 InitNoiseFloorProControls(grpDisplayDriverEngine, 0);
         }
@@ -51,13 +76,229 @@ namespace Thetis
 			_tpWaterfall.Padding = new Padding(3);
 			_tpWaterfall.Size = new Size(721, 403);
 			_tpWaterfall.Text = "Waterfall";
-			_tpWaterfall.AutoScroll = false;
+			_tpWaterfall.AutoScroll = true;
 			_tpWaterfall.UseVisualStyleBackColor = true;
 			tcDisplay.Controls.Add(_tpWaterfall);
 			tcDisplay.Controls.SetChildIndex(_tpWaterfall, 1);
 		}
 	}
 
+
+	private void InitWaterfallReferenceControls()
+	{
+		if (_tpWaterfall == null || grpWaterfallCore != null) return;
+
+		grpWaterfallCore = new GroupBoxTS();
+		grpWaterfallCore.Text = "Waterfall";
+		grpWaterfallCore.Location = new Point(8, 8);
+		grpWaterfallCore.Size = new Size(320, 102);
+		_tpWaterfall.Controls.Add(grpWaterfallCore);
+
+		chkWFAutoThreshold = new CheckBoxTS();
+		chkWFAutoThreshold.Name = "chkWFAutoThreshold";
+		chkWFAutoThreshold.Text = "Auto Threshold";
+		chkWFAutoThreshold.AutoSize = true;
+		chkWFAutoThreshold.Location = new Point(8, 20);
+		chkWFAutoThreshold.CheckedChanged += chkWFAutoThreshold_CheckedChanged;
+		grpWaterfallCore.Controls.Add(chkWFAutoThreshold);
+
+		lblWFAutoThresholdFine = new LabelTS();
+		lblWFAutoThresholdFine.Text = "Fine:";
+		lblWFAutoThresholdFine.Location = new Point(18, 48);
+		lblWFAutoThresholdFine.Size = new Size(34, 16);
+		grpWaterfallCore.Controls.Add(lblWFAutoThresholdFine);
+
+		udWFAutoThresholdFine = new NumericUpDownTS();
+		udWFAutoThresholdFine.Name = "udWFAutoThresholdFine";
+		udWFAutoThresholdFine.Minimum = -20;
+		udWFAutoThresholdFine.Maximum = 20;
+		udWFAutoThresholdFine.DecimalPlaces = 0;
+		udWFAutoThresholdFine.Increment = 1;
+		udWFAutoThresholdFine.Location = new Point(58, 45);
+		udWFAutoThresholdFine.Size = new Size(48, 21);
+		udWFAutoThresholdFine.ValueChanged += udWFAutoThresholdFine_ValueChanged;
+		grpWaterfallCore.Controls.Add(udWFAutoThresholdFine);
+		LabelTS fineDb = new LabelTS();
+		fineDb.Text = "dB";
+		fineDb.Location = new Point(110, 48);
+		fineDb.Size = new Size(22, 16);
+		grpWaterfallCore.Controls.Add(fineDb);
+
+		lblWFResampling = new LabelTS();
+		lblWFResampling.Text = "Resampling:";
+		lblWFResampling.Location = new Point(18, 75);
+		lblWFResampling.Size = new Size(76, 16);
+		grpWaterfallCore.Controls.Add(lblWFResampling);
+
+		comboGPUWaterfallResampling = new ComboBoxTS();
+		comboGPUWaterfallResampling.Name = "comboGPUWaterfallResampling";
+		comboGPUWaterfallResampling.DropDownStyle = ComboBoxStyle.DropDownList;
+		comboGPUWaterfallResampling.Items.AddRange(new object[] { "Fast", "Quality" });
+		comboGPUWaterfallResampling.Location = new Point(98, 72);
+		comboGPUWaterfallResampling.Size = new Size(86, 21);
+		comboGPUWaterfallResampling.SelectedIndexChanged += comboGPUWaterfallResampling_SelectedIndexChanged;
+		grpWaterfallCore.Controls.Add(comboGPUWaterfallResampling);
+
+		grpWaterfallWarnings = new GroupBoxTS();
+		grpWaterfallWarnings.Text = "Spectral Warning LEDs";
+		grpWaterfallWarnings.Location = new Point(8, 116);
+		grpWaterfallWarnings.Size = new Size(320, 82);
+		_tpWaterfall.Controls.Add(grpWaterfallWarnings);
+
+		chkWFWarningRenderDelay = new CheckBoxTS();
+		chkWFWarningRenderDelay.Name = "chkWFWarningRenderDelay";
+		chkWFWarningRenderDelay.Text = "Unable to render in time";
+		chkWFWarningRenderDelay.AutoSize = true;
+		chkWFWarningRenderDelay.Location = new Point(8, 21);
+		chkWFWarningRenderDelay.CheckedChanged += chkWFWarningRenderDelay_CheckedChanged;
+		grpWaterfallWarnings.Controls.Add(chkWFWarningRenderDelay);
+
+		chkWFWarningGetPixels = new CheckBoxTS();
+		chkWFWarningGetPixels.Name = "chkWFWarningGetPixels";
+		chkWFWarningGetPixels.Text = "GetPixels not ready";
+		chkWFWarningGetPixels.AutoSize = true;
+		chkWFWarningGetPixels.Location = new Point(8, 49);
+		chkWFWarningGetPixels.CheckedChanged += chkWFWarningGetPixels_CheckedChanged;
+		grpWaterfallWarnings.Controls.Add(chkWFWarningGetPixels);
+
+		grpWaterfallDirectX = new GroupBoxTS();
+		grpWaterfallDirectX.Text = "DirectX Display Settings";
+		grpWaterfallDirectX.Location = new Point(340, 8);
+		grpWaterfallDirectX.Size = new Size(360, 190);
+		_tpWaterfall.Controls.Add(grpWaterfallDirectX);
+
+		comboWFDisplayThreadPriority = new ComboBoxTS();
+		comboWFDisplayThreadPriority.Name = "comboWFDisplayThreadPriority";
+		comboWFDisplayThreadPriority.DropDownStyle = ComboBoxStyle.DropDownList;
+		comboWFDisplayThreadPriority.Items.AddRange(new object[] { "Lowest", "Below Normal", "Normal", "Above Normal", "High" });
+		comboWFDisplayThreadPriority.Location = new Point(8, 20);
+		comboWFDisplayThreadPriority.Size = new Size(128, 21);
+		comboWFDisplayThreadPriority.SelectedIndexChanged += comboWFDisplayThreadPriority_SelectedIndexChanged;
+		grpWaterfallDirectX.Controls.Add(comboWFDisplayThreadPriority);
+
+		chkWFShowFPS = new CheckBoxTS();
+		chkWFShowFPS.Name = "chkWFShowFPS";
+		chkWFShowFPS.Text = "Show FPS";
+		chkWFShowFPS.AutoSize = true;
+		chkWFShowFPS.Location = new Point(8, 47);
+		chkWFShowFPS.CheckedChanged += chkWFShowFPS_CheckedChanged;
+		grpWaterfallDirectX.Controls.Add(chkWFShowFPS);
+
+		chkWFAntiAlias = new CheckBoxTS();
+		chkWFAntiAlias.Name = "chkWFAntiAlias";
+		chkWFAntiAlias.Text = "Anti-aliased";
+		chkWFAntiAlias.AutoSize = true;
+		chkWFAntiAlias.Location = new Point(8, 71);
+		chkWFAntiAlias.CheckedChanged += chkWFAntiAlias_CheckedChanged;
+		grpWaterfallDirectX.Controls.Add(chkWFAntiAlias);
+
+		chkWFDpiAwareness = new CheckBoxTS();
+		chkWFDpiAwareness.Name = "chkWFDpiAwareness";
+		chkWFDpiAwareness.Text = "HiDPI / 2K mode";
+		chkWFDpiAwareness.AutoSize = true;
+		chkWFDpiAwareness.Location = new Point(8, 95);
+		chkWFDpiAwareness.CheckedChanged += chkWFDpiAwareness_CheckedChanged;
+		grpWaterfallDirectX.Controls.Add(chkWFDpiAwareness);
+
+		lblWFQuality = new LabelTS();
+		lblWFQuality.Text = "Quality:";
+		lblWFQuality.Location = new Point(160, 23);
+		lblWFQuality.Size = new Size(50, 16);
+		grpWaterfallDirectX.Controls.Add(lblWFQuality);
+
+		comboWFQuality = new ComboBoxTS();
+		comboWFQuality.Name = "comboWFQuality";
+		comboWFQuality.DropDownStyle = ComboBoxStyle.DropDownList;
+		comboWFQuality.Items.AddRange(new object[] { "Classic", "Vivid", "Sharp", "Ultra" });
+		comboWFQuality.Location = new Point(212, 20);
+		comboWFQuality.Size = new Size(86, 21);
+		comboWFQuality.SelectedIndexChanged += comboWFQuality_SelectedIndexChanged;
+		grpWaterfallDirectX.Controls.Add(comboWFQuality);
+
+		chkWFDither = new CheckBoxTS();
+		chkWFDither.Name = "chkWFDither";
+		chkWFDither.Text = "Dither";
+		chkWFDither.AutoSize = true;
+		chkWFDither.Location = new Point(160, 49);
+		chkWFDither.CheckedChanged += chkWFDither_CheckedChanged;
+		grpWaterfallDirectX.Controls.Add(chkWFDither);
+
+		lblWFGamma = new LabelTS();
+		lblWFGamma.Text = "Gamma:";
+		lblWFGamma.Location = new Point(160, 78);
+		lblWFGamma.Size = new Size(50, 16);
+		grpWaterfallDirectX.Controls.Add(lblWFGamma);
+
+		tbWFGamma = new TrackBarTS();
+		tbWFGamma.Name = "tbWFGamma";
+		tbWFGamma.Minimum = 50;
+		tbWFGamma.Maximum = 200;
+		tbWFGamma.Value = 100;
+		tbWFGamma.TickFrequency = 25;
+		tbWFGamma.Location = new Point(212, 72);
+		tbWFGamma.Size = new Size(96, 28);
+		tbWFGamma.Scroll += tbWFGamma_Scroll;
+		grpWaterfallDirectX.Controls.Add(tbWFGamma);
+
+		lblWFGammaValue = new LabelTS();
+		lblWFGammaValue.Text = "1.00";
+		lblWFGammaValue.Location = new Point(310, 78);
+		lblWFGammaValue.Size = new Size(38, 16);
+		grpWaterfallDirectX.Controls.Add(lblWFGammaValue);
+
+		lblWFDepth = new LabelTS();
+		lblWFDepth.Text = "Depth:";
+		lblWFDepth.Location = new Point(160, 110);
+		lblWFDepth.Size = new Size(50, 16);
+		grpWaterfallDirectX.Controls.Add(lblWFDepth);
+
+		comboWFDepth = new ComboBoxTS();
+		comboWFDepth.Name = "comboWFDepth";
+		comboWFDepth.DropDownStyle = ComboBoxStyle.DropDownList;
+		comboWFDepth.Items.AddRange(new object[] { "8-bit", "16-bit Float" });
+		comboWFDepth.Location = new Point(212, 106);
+		comboWFDepth.Size = new Size(100, 21);
+		comboWFDepth.SelectedIndexChanged += comboWFDepth_SelectedIndexChanged;
+		grpWaterfallDirectX.Controls.Add(comboWFDepth);
+
+		SyncWaterfallReferenceControlsFromState();
+	}
+
+	private void SyncWaterfallReferenceControlsFromState()
+	{
+		if (grpWaterfallCore == null) return;
+		_waterfallReferenceUpdating = true;
+		try
+		{
+			chkWFAutoThreshold.Checked = Display.AutoThresholdEnabled;
+			decimal fine = (decimal)Display.AutoThresholdFineOffset;
+			if (fine < udWFAutoThresholdFine.Minimum) fine = udWFAutoThresholdFine.Minimum;
+			if (fine > udWFAutoThresholdFine.Maximum) fine = udWFAutoThresholdFine.Maximum;
+			udWFAutoThresholdFine.Value = fine;
+			comboGPUWaterfallResampling.SelectedIndex = (int)Display.GPUWaterfallResamplingMode;
+			chkWFWarningRenderDelay.Checked = Display.ShowFrameRateIssue;
+			chkWFWarningGetPixels.Checked = Display.ShowGetPixelsIssue;
+			if (comboDisplayThreadPriority != null && comboDisplayThreadPriority.SelectedIndex >= 0)
+				comboWFDisplayThreadPriority.SelectedIndex = comboDisplayThreadPriority.SelectedIndex;
+			else
+				comboWFDisplayThreadPriority.SelectedIndex = 3;
+			chkWFShowFPS.Checked = chkShowFPS != null && chkShowFPS.Checked;
+			chkWFAntiAlias.Checked = chkAntiAlias != null && chkAntiAlias.Checked;
+			chkWFDpiAwareness.Checked = LogTool.GetRegistryDpiAwareness();
+			comboWFQuality.SelectedIndex = (int)WaterfallEnhancer.Quality;
+			chkWFDither.Checked = WaterfallEnhancer.DitherEnabled;
+			int gamma = (int)Math.Round(WaterfallEnhancer.Gamma * 100f);
+			if (gamma < tbWFGamma.Minimum) gamma = tbWFGamma.Minimum;
+			if (gamma > tbWFGamma.Maximum) gamma = tbWFGamma.Maximum;
+			tbWFGamma.Value = gamma;
+			lblWFGammaValue.Text = WaterfallEnhancer.Gamma.ToString("0.00");
+			comboWFDepth.SelectedIndex = WaterfallEnhancer.Depth == WaterfallEnhancer.ColorDepth.Bit16 ? 1 : 0;
+		}
+		finally
+		{
+			_waterfallReferenceUpdating = false;
+		}
+	}
 
 	private void InitNoiseFloorProControls(GroupBox grp, int startY)
 	{
@@ -67,7 +308,7 @@ namespace Thetis
 		}
 		wfProGroup = new GroupBoxTS();
 		wfProGroup.Text = "Waterfall Pro";
-		wfProGroup.Location = new Point(8, 8);
+		wfProGroup.Location = new Point(8, 210);
 		wfProGroup.Size = new Size(700, 380);
 		int num = 22;
 		lblNFProSep = new LabelTS();
@@ -551,7 +792,7 @@ namespace Thetis
 			if (_tpWaterfall != null)
 			{
 				_tpWaterfall.Controls.Add(wfProGroup);
-				wfProGroup.Location = new Point(8, 8);
+				wfProGroup.Location = new Point(8, 210);
 				wfProGroup.BringToFront();
 			}
 			else
@@ -570,6 +811,110 @@ namespace Thetis
 		Display.GPUWaterfallEffectiveOverlapChanged += OnGPUWaterfallEffectiveOverlapChanged;
 	}
 
+
+	private void chkWFAutoThreshold_CheckedChanged(object sender, EventArgs e)
+	{
+		if (_waterfallReferenceUpdating || initializing) return;
+		Display.AutoThresholdEnabled = chkWFAutoThreshold.Checked;
+	}
+
+	private void udWFAutoThresholdFine_ValueChanged(object sender, EventArgs e)
+	{
+		if (_waterfallReferenceUpdating || initializing) return;
+		Display.AutoThresholdFineOffset = (float)udWFAutoThresholdFine.Value;
+	}
+
+	private void chkWFWarningRenderDelay_CheckedChanged(object sender, EventArgs e)
+	{
+		if (_waterfallReferenceUpdating || initializing) return;
+		Display.ShowFrameRateIssue = chkWFWarningRenderDelay.Checked;
+		if (chkSpecWarningLEDRenderDelay != null && chkSpecWarningLEDRenderDelay.Checked != chkWFWarningRenderDelay.Checked)
+			chkSpecWarningLEDRenderDelay.Checked = chkWFWarningRenderDelay.Checked;
+	}
+
+	private void chkWFWarningGetPixels_CheckedChanged(object sender, EventArgs e)
+	{
+		if (_waterfallReferenceUpdating || initializing) return;
+		Display.ShowGetPixelsIssue = chkWFWarningGetPixels.Checked;
+		if (chkSpecWarningLEDGetPixels != null && chkSpecWarningLEDGetPixels.Checked != chkWFWarningGetPixels.Checked)
+			chkSpecWarningLEDGetPixels.Checked = chkWFWarningGetPixels.Checked;
+	}
+
+	private void comboWFDisplayThreadPriority_SelectedIndexChanged(object sender, EventArgs e)
+	{
+		if (_waterfallReferenceUpdating || initializing || comboWFDisplayThreadPriority.SelectedIndex < 0) return;
+		if (comboDisplayThreadPriority != null && comboDisplayThreadPriority.SelectedIndex != comboWFDisplayThreadPriority.SelectedIndex)
+			comboDisplayThreadPriority.SelectedIndex = comboWFDisplayThreadPriority.SelectedIndex;
+	}
+
+	private void chkWFShowFPS_CheckedChanged(object sender, EventArgs e)
+	{
+		if (_waterfallReferenceUpdating || initializing) return;
+		if (chkShowFPS != null && chkShowFPS.Checked != chkWFShowFPS.Checked)
+			chkShowFPS.Checked = chkWFShowFPS.Checked;
+	}
+
+	private void chkWFAntiAlias_CheckedChanged(object sender, EventArgs e)
+	{
+		if (_waterfallReferenceUpdating || initializing) return;
+		if (chkAntiAlias != null && chkAntiAlias.Checked != chkWFAntiAlias.Checked)
+			chkAntiAlias.Checked = chkWFAntiAlias.Checked;
+	}
+
+	private void chkWFDpiAwareness_CheckedChanged(object sender, EventArgs e)
+	{
+		if (_waterfallReferenceUpdating || initializing) return;
+		LogTool.SetRegistryDpiAwareness(chkWFDpiAwareness.Checked);
+		MessageBox.Show("DPI Awareness setting changed. Restart SDR-VST3 for it to take effect.",
+			"Restart Required", MessageBoxButtons.OK, MessageBoxIcon.Information,
+			MessageBoxDefaultButton.Button1, (MessageBoxOptions)262144);
+	}
+
+	private void comboWFQuality_SelectedIndexChanged(object sender, EventArgs e)
+	{
+		if (_waterfallReferenceUpdating || initializing || comboWFQuality.SelectedIndex < 0) return;
+		WaterfallEnhancer.SetQuality((WaterfallEnhancer.QualityLevel)comboWFQuality.SelectedIndex);
+		if (comboWFQuality.SelectedIndex == (int)WaterfallEnhancer.QualityLevel.Ultra)
+		{
+			WaterfallEnhancer.SetDither(true);
+			_waterfallReferenceUpdating = true;
+			chkWFDither.Checked = true;
+			_waterfallReferenceUpdating = false;
+		}
+	}
+
+	private void chkWFDither_CheckedChanged(object sender, EventArgs e)
+	{
+		if (_waterfallReferenceUpdating || initializing) return;
+		WaterfallEnhancer.SetDither(chkWFDither.Checked);
+	}
+
+	private void tbWFGamma_Scroll(object sender, EventArgs e)
+	{
+		if (_waterfallReferenceUpdating) return;
+		float gamma = tbWFGamma.Value / 100f;
+		WaterfallEnhancer.SetGamma(gamma);
+		lblWFGammaValue.Text = gamma.ToString("0.00");
+	}
+
+	private void comboWFDepth_SelectedIndexChanged(object sender, EventArgs e)
+	{
+		if (_waterfallReferenceUpdating || initializing || comboWFDepth.SelectedIndex < 0) return;
+		WaterfallEnhancer.ColorDepth requested = comboWFDepth.SelectedIndex == 1
+			? WaterfallEnhancer.ColorDepth.Bit16
+			: WaterfallEnhancer.ColorDepth.Bit8;
+		WaterfallEnhancer.SetColorDepth(requested);
+		bool ok = Display.RebuildWaterfallForColorDepth();
+		if (!ok || WaterfallEnhancer.Depth != requested)
+		{
+			_waterfallReferenceUpdating = true;
+			comboWFDepth.SelectedIndex = 0;
+			_waterfallReferenceUpdating = false;
+			MessageBox.Show("The selected 16-bit waterfall surface is not supported by this GPU/driver. Depth reverted to 8-bit.",
+				"Waterfall Color Depth", MessageBoxButtons.OK, MessageBoxIcon.Warning,
+				MessageBoxDefaultButton.Button1, (MessageBoxOptions)262144);
+		}
+	}
 
 	private void UpdateNFLowHighEnabledState()
 	{
