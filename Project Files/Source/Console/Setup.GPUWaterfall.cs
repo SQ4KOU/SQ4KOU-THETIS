@@ -608,34 +608,54 @@ namespace Thetis
 
 	private void ApplyGPUSelection(int selectedIndex)
 	{
-		int gPUDetectionLevel = Display.GPUDetectionLevel;
-		int num = selectedIndex switch
+		int detectedLevel = Display.GPUDetectionLevel;
+		int requestedTarget = selectedIndex switch
 		{
-			1 => 0, 
-			2 => 1, 
-			3 => 2, 
-			_ => gPUDetectionLevel, 
+			1 => 0,
+			2 => 1,
+			3 => 2,
+			_ => detectedLevel,
 		};
+
 		bool hasDeviceContext = GPUDetector.HasDeviceContext;
-		Display.GPUEffectsEnabled = num >= 1 && GPUDetector.HasBuiltInEffects;
-		Display.AutoEnableGPU = num >= 1;
+		bool hasBuiltInEffects = GPUDetector.HasBuiltInEffects;
+		bool hasCustomShaders = GPUDetector.HasCustomShaders;
+
+		// Capability levels are strict:
+		//   L0 = CPU only
+		//   L1 = built-in D2D effects only
+		//   L2 = custom/compute shader waterfall path
+		// Never arm the L2 FFT pipeline while Level 1 is selected.  The previous
+		// code did that indirectly through High render quality, which could let an
+		// unsupported/partially initialized compute surface cover the spectrum.
+		int effectiveTarget = requestedTarget;
+		if (effectiveTarget >= 2 && !hasCustomShaders)
+			effectiveTarget = hasBuiltInEffects ? 1 : 0;
+		if (effectiveTarget >= 1 && !hasBuiltInEffects)
+			effectiveTarget = 0;
+
+		Display.GPUEffectsEnabled = effectiveTarget >= 1 && hasBuiltInEffects;
+		Display.AutoEnableGPU = effectiveTarget >= 1;
+
 		if (hasDeviceContext || selectedIndex != 0)
 		{
-			UpdateWaterfallRenderQualityItems(num);
+			UpdateWaterfallRenderQualityItems(effectiveTarget);
 		}
 		else
 		{
 			_renderFilterPending = true;
 		}
-		UpdateWaterfallPaletteItems(num >= 1);
-		SyncGPUWaterfallPipelineEnabled(num);
+
+		UpdateWaterfallPaletteItems(effectiveTarget >= 1);
+		SyncGPUWaterfallPipelineEnabled(effectiveTarget);
+
 		if (hasDeviceContext)
 		{
-			if (num >= 2 && !GPUDetector.HasCustomShaders)
+			if (requestedTarget >= 2 && effectiveTarget < 2)
 			{
-				MessageBox.Show("Custom HLSL shaders (Level 2) are not available in this build.\nUsing Level 1 (Built-in Effects) instead.", "GPU Acceleration", MessageBoxButtons.OK, MessageBoxIcon.Asterisk, MessageBoxDefaultButton.Button1, (MessageBoxOptions)262144);
+				MessageBox.Show("Custom HLSL shaders (Level 2) are not available.\nUsing Level 1 (Built-in Effects) instead.", "GPU Acceleration", MessageBoxButtons.OK, MessageBoxIcon.Asterisk, MessageBoxDefaultButton.Button1, (MessageBoxOptions)262144);
 			}
-			else if (num >= 1 && !GPUDetector.HasBuiltInEffects)
+			else if (requestedTarget >= 1 && effectiveTarget == 0)
 			{
 				MessageBox.Show("Built-in D2D Effects are not available on this system.\nUsing CPU post-processing (Level 0).", "GPU Acceleration", MessageBoxButtons.OK, MessageBoxIcon.Asterisk, MessageBoxDefaultButton.Button1, (MessageBoxOptions)262144);
 			}
@@ -753,7 +773,14 @@ namespace Thetis
 
 	private void SyncGPUWaterfallPipelineEnabled(int target)
 	{
-		Display.GPUWaterfallPipelineEnabled = target >= 1 && Display.WaterfallQuality == Display.WaterfallRenderQuality.High;
+		// The managed FFT/compute path is Level 2 only.  Level 1 must stay on the
+		// proven D2D/basic-effects renderer and must never take ownership of an FFT
+		// surface merely because render quality is set to High.
+		bool enableAdvancedPipeline =
+			target >= 2 &&
+			GPUDetector.HasCustomShaders &&
+			Display.WaterfallQuality == Display.WaterfallRenderQuality.High;
+		Display.GPUWaterfallPipelineEnabled = enableAdvancedPipeline;
 	}
 
 
@@ -800,7 +827,13 @@ namespace Thetis
 				lblWaterfallRenderQualityHint.Text = (gPUEffectsEnabled ? "GPU pipeline, Linear" : "CPU pipeline, 8-bit, Linear");
 				break;
 			case "High":
-				lblWaterfallRenderQualityHint.Text = (flag ? "GPU pipeline + FFT, 16-bit" : "GPU pipeline + FFT, 8-bit");
+				int target = CurrentGPUTarget();
+				if (target >= 2 && GPUDetector.HasCustomShaders && Display.GPUWaterfallPipelineEnabled)
+					lblWaterfallRenderQualityHint.Text = (flag ? "GPU Level 2 + FFT, 16-bit" : "GPU Level 2 + FFT, 8-bit");
+				else if (gPUEffectsEnabled)
+					lblWaterfallRenderQualityHint.Text = (flag ? "GPU Level 1, 16-bit" : "GPU Level 1, 8-bit");
+				else
+					lblWaterfallRenderQualityHint.Text = (flag ? "CPU pipeline, 16-bit" : "CPU pipeline, 8-bit");
 				break;
 			default:
 				lblWaterfallRenderQualityHint.Text = "";
@@ -1011,7 +1044,11 @@ namespace Thetis
 	{
 		if (!initializing)
 		{
-			Display.GPUWaterfallPipelineEnabled = chkGPUWaterfallFFT.Checked;
+			bool allowAdvanced =
+				CurrentGPUTarget() >= 2 &&
+				GPUDetector.HasCustomShaders &&
+				Display.WaterfallQuality == Display.WaterfallRenderQuality.High;
+			Display.GPUWaterfallPipelineEnabled = chkGPUWaterfallFFT.Checked && allowAdvanced;
 		}
 	}
 
