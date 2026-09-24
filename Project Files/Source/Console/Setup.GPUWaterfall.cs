@@ -27,7 +27,7 @@ namespace Thetis
         private LabelTS lblPalSharpVal, lblPalContrastVal;
 
         private CheckBoxTS chkGPUColorCompute, chkSQ4KOUWaterfallMesh, chkSQ4KOUDiagLog;
-        private LabelTS lblGPUInfo;
+        private TextBox txtGPUInfo;
         private ButtonTS btnTestGPU;
 
         private LabelTS L(string text, int x, int y, int w = 90)
@@ -236,22 +236,74 @@ namespace Thetis
 
         private void BuildWaterfallGpuControls()
         {
-            int x=340,y=246;
-            Section("── GPU paths (independent) ──",x,y,200); y+=22;
-            chkGPUColorCompute=new CheckBoxTS(); chkGPUColorCompute.Name="chkGPUColorCompute"; chkGPUColorCompute.Text="GPU color compute (HLSL)"; chkGPUColorCompute.AutoSize=true;
-            chkGPUColorCompute.Location=new Point(x,y); chkGPUColorCompute.Checked=Display.GPUColorComputeEnabled; chkGPUColorCompute.CheckedChanged += chkGPUColorCompute_CheckedChanged; wfProGroup.Controls.Add(chkGPUColorCompute); y+=20;
-            chkSQ4KOUWaterfallMesh=new CheckBoxTS(); chkSQ4KOUWaterfallMesh.Name="chkSQ4KOUWaterfallMesh"; chkSQ4KOUWaterfallMesh.Text="WaterfallMesh presenter"; chkSQ4KOUWaterfallMesh.AutoSize=true;
-            chkSQ4KOUWaterfallMesh.Location=new Point(x,y); chkSQ4KOUWaterfallMesh.Checked=Display.SQ4KOUWaterfallMeshEnabled; chkSQ4KOUWaterfallMesh.CheckedChanged += chkSQ4KOUWaterfallMesh_CheckedChanged; wfProGroup.Controls.Add(chkSQ4KOUWaterfallMesh); y+=20;
-            chkSQ4KOUDiagLog=new CheckBoxTS(); chkSQ4KOUDiagLog.Name="chkSQ4KOUDiagLog"; chkSQ4KOUDiagLog.Text="GPU diagnostic log"; chkSQ4KOUDiagLog.AutoSize=true;
-            chkSQ4KOUDiagLog.Location=new Point(x,y); chkSQ4KOUDiagLog.Checked=Common.MeshDiagLogEnabled; chkSQ4KOUDiagLog.CheckedChanged += chkSQ4KOUDiagLog_CheckedChanged; wfProGroup.Controls.Add(chkSQ4KOUDiagLog);
+            // Keep this section below Enhancement. Enhancement's contrast slider
+            // extends to ~y=259, so start GPU paths at y=266 with a clear gap.
+            int x = 340, y = 266;
 
-            btnTestGPU=new ButtonTS(); btnTestGPU.Name="btnTestGPU"; btnTestGPU.Text="Test GPU"; btnTestGPU.Location=new Point(x,y+25); btnTestGPU.Size=new Size(82,24);
-            btnTestGPU.Click += btnTestGPU_Click; wfProGroup.Controls.Add(btnTestGPU);
-            lblGPUInfo=L("Detecting...",x+92,y-42,255); lblGPUInfo.Size=new Size(255,108); lblGPUInfo.ForeColor=Color.SlateGray; wfProGroup.Controls.Add(lblGPUInfo);
+            Section("── GPU paths (independent) ──", x, y, 200);
+            y += 22;
 
-            _gpuStatusTimer=new System.Windows.Forms.Timer();
-            _gpuStatusTimer.Interval=1500;
-            _gpuStatusTimer.Tick += (s,e)=>{ try { SyncPaletteMirrors(); UpdateGPUInfoLabel(); } catch {} };
+            chkGPUColorCompute = new CheckBoxTS();
+            chkGPUColorCompute.Name = "chkGPUColorCompute";
+            chkGPUColorCompute.Text = "GPU color compute (HLSL)";
+            chkGPUColorCompute.AutoSize = true;
+            chkGPUColorCompute.Location = new Point(x, y);
+            chkGPUColorCompute.Checked = Display.GPUColorComputeEnabled;
+            chkGPUColorCompute.CheckedChanged += chkGPUColorCompute_CheckedChanged;
+            wfProGroup.Controls.Add(chkGPUColorCompute);
+
+            chkSQ4KOUWaterfallMesh = new CheckBoxTS();
+            chkSQ4KOUWaterfallMesh.Name = "chkSQ4KOUWaterfallMesh";
+            chkSQ4KOUWaterfallMesh.Text = "WaterfallMesh presenter";
+            chkSQ4KOUWaterfallMesh.AutoSize = true;
+            chkSQ4KOUWaterfallMesh.Location = new Point(x, y + 21);
+            chkSQ4KOUWaterfallMesh.Checked = Display.SQ4KOUWaterfallMeshEnabled;
+            chkSQ4KOUWaterfallMesh.CheckedChanged += chkSQ4KOUWaterfallMesh_CheckedChanged;
+            wfProGroup.Controls.Add(chkSQ4KOUWaterfallMesh);
+
+            chkSQ4KOUDiagLog = new CheckBoxTS();
+            chkSQ4KOUDiagLog.Name = "chkSQ4KOUDiagLog";
+            chkSQ4KOUDiagLog.Text = "GPU diagnostic log";
+            chkSQ4KOUDiagLog.AutoSize = true;
+            chkSQ4KOUDiagLog.Location = new Point(x, y + 42);
+            chkSQ4KOUDiagLog.Checked = Common.MeshDiagLogEnabled;
+            chkSQ4KOUDiagLog.CheckedChanged += chkSQ4KOUDiagLog_CheckedChanged;
+            wfProGroup.Controls.Add(chkSQ4KOUDiagLog);
+
+            btnTestGPU = new ButtonTS();
+            btnTestGPU.Name = "btnTestGPU";
+            btnTestGPU.Text = "Test GPU";
+            btnTestGPU.Location = new Point(x, y + 64);
+            btnTestGPU.Size = new Size(82, 24);
+            btnTestGPU.Click += btnTestGPU_Click;
+            wfProGroup.Controls.Add(btnTestGPU);
+
+            // The old multi-line Label overlapped the checkboxes and Enhancement.
+            // Give runtime diagnostics a dedicated, bounded area instead.
+            txtGPUInfo = new TextBox();
+            txtGPUInfo.Name = "txtGPUInfo";
+            txtGPUInfo.Multiline = true;
+            txtGPUInfo.ReadOnly = true;
+            txtGPUInfo.WordWrap = false;
+            txtGPUInfo.ScrollBars = ScrollBars.Vertical;
+            txtGPUInfo.BorderStyle = BorderStyle.FixedSingle;
+            txtGPUInfo.BackColor = SystemColors.Window;
+            txtGPUInfo.Location = new Point(490, y);
+            txtGPUInfo.Size = new Size(195, 88);
+            txtGPUInfo.TabStop = false;
+            wfProGroup.Controls.Add(txtGPUInfo);
+
+            _gpuStatusTimer = new System.Windows.Forms.Timer();
+            _gpuStatusTimer.Interval = 1500;
+            _gpuStatusTimer.Tick += (s, e) =>
+            {
+                try
+                {
+                    SyncPaletteMirrors();
+                    UpdateGPUInfoLabel();
+                }
+                catch { }
+            };
             _gpuStatusTimer.Start();
         }
 
@@ -288,12 +340,13 @@ namespace Thetis
 
         private void UpdateGPUInfoLabel()
         {
-            if (lblGPUInfo==null) return;
-            lblGPUInfo.Text=(Display.GPUName??"unknown")+"\n"+
-                "Renderer: "+Display.RenderPathString()+"\n"+
-                "Source: "+Display.SQ4KOUHighResWaterfallStatusRX1+"\n"+
-                "Color: "+Display.WaterfallColorComputeStatus+"\n"+
-                "Presenter: "+Display.WaterfallPresenterStatusRX1;
+            if (txtGPUInfo == null) return;
+            txtGPUInfo.Text =
+                "GPU: " + (Display.GPUName ?? "unknown") + Environment.NewLine +
+                "Renderer: " + Display.RenderPathString() + Environment.NewLine +
+                "Source: " + Display.SQ4KOUHighResWaterfallStatusRX1 + Environment.NewLine +
+                "Color: " + Display.WaterfallColorComputeStatus + Environment.NewLine +
+                "Presenter: " + Display.WaterfallPresenterStatusRX1;
         }
 
         private void btnTestGPU_Click(object sender, EventArgs e)
