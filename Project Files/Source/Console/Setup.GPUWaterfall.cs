@@ -226,11 +226,11 @@ namespace Thetis
 
             wfProGroup.Controls.Add(L("Palette sharp:",x,y+5,80));
             tbPalSharp=new TrackBarTS(); tbPalSharp.Name="tbPalSharp"; tbPalSharp.Minimum=0; tbPalSharp.Maximum=150; tbPalSharp.TickFrequency=25;
-            tbPalSharp.Value=(int)(WaterfallEnhancer.PaletteSharpness*100f); tbPalSharp.Location=new Point(x+82,y); tbPalSharp.Size=new Size(140,28); tbPalSharp.Scroll += tbPalSharp_Scroll; wfProGroup.Controls.Add(tbPalSharp);
+            tbPalSharp.Value=(int)(WaterfallEnhancer.PaletteSharpness*100f); tbPalSharp.Location=new Point(x+82,y); tbPalSharp.Size=new Size(140,28); tbPalSharp.ValueChanged += tbPalSharp_Scroll; wfProGroup.Controls.Add(tbPalSharp);
             lblPalSharpVal=L(tbPalSharp.Value.ToString(),x+225,y+5,32); wfProGroup.Controls.Add(lblPalSharpVal); y+=34;
             wfProGroup.Controls.Add(L("Palette contrast:",x,y+5,90));
             tbPalContrast=new TrackBarTS(); tbPalContrast.Name="tbPalContrast"; tbPalContrast.Minimum=0; tbPalContrast.Maximum=150; tbPalContrast.TickFrequency=25;
-            tbPalContrast.Value=(int)(WaterfallEnhancer.PaletteContrast*100f); tbPalContrast.Location=new Point(x+92,y); tbPalContrast.Size=new Size(130,28); tbPalContrast.Scroll += tbPalContrast_Scroll; wfProGroup.Controls.Add(tbPalContrast);
+            tbPalContrast.Value=(int)(WaterfallEnhancer.PaletteContrast*100f); tbPalContrast.Location=new Point(x+92,y); tbPalContrast.Size=new Size(130,28); tbPalContrast.ValueChanged += tbPalContrast_Scroll; wfProGroup.Controls.Add(tbPalContrast);
             lblPalContrastVal=L(tbPalContrast.Value.ToString(),x+225,y+5,32); wfProGroup.Controls.Add(lblPalContrastVal);
         }
 
@@ -314,55 +314,54 @@ namespace Thetis
         }
 
         private void chkGPUColorCompute_CheckedChanged(object sender, EventArgs e)
-        { if(!initializing){ Display.GPUColorComputeEnabled=chkGPUColorCompute.Checked; UpdateGPUInfoLabel(); } }
+        { Display.GPUColorComputeEnabled=chkGPUColorCompute.Checked; UpdateGPUInfoLabel(); }
         private void chkSQ4KOUWaterfallMesh_CheckedChanged(object sender, EventArgs e)
-        { if(!initializing){ Display.SQ4KOUWaterfallMeshEnabled=chkSQ4KOUWaterfallMesh.Checked; UpdateGPUInfoLabel(); } }
+        { Display.SQ4KOUWaterfallMeshEnabled=chkSQ4KOUWaterfallMesh.Checked; UpdateGPUInfoLabel(); }
         private void chkSQ4KOUDiagLog_CheckedChanged(object sender, EventArgs e)
-        { if(!initializing) Common.MeshDiagLogEnabled=chkSQ4KOUDiagLog.Checked; }
+        { Common.MeshDiagLogEnabled=chkSQ4KOUDiagLog.Checked; }
 
         private void comboNFMode_SelectedIndexChanged(object sender, EventArgs e)
-        { if(!initializing){ Display.NFMode=comboNFMode.SelectedIndex==1?NoiseFloorPro.DetectionMode.Percentile:NoiseFloorPro.DetectionMode.Average; UpdateNFLowHighEnabledState(); } }
+        { Display.NFMode=comboNFMode.SelectedIndex==1?NoiseFloorPro.DetectionMode.Percentile:NoiseFloorPro.DetectionMode.Average; UpdateNFLowHighEnabledState(); }
         private void UpdateNFLowHighEnabledState()
         { bool b=comboNFMode!=null&&comboNFMode.SelectedIndex==1; if(udNFLowPct!=null)udNFLowPct.Enabled=b; if(udNFHighPct!=null)udNFHighPct.Enabled=b; }
-        private void udNFLowPct_ValueChanged(object sender,EventArgs e){if(!initializing)Display.NFLowPct=(float)udNFLowPct.Value;}
-        private void udNFHighPct_ValueChanged(object sender,EventArgs e){if(!initializing)Display.NFHighPct=(float)udNFHighPct.Value;}
-        private void chkAutoHigh_CheckedChanged(object sender,EventArgs e){if(!initializing){Display.AutoHighEnabledRX1=chkAutoHigh.Checked;Display.AutoHighEnabledRX2=chkAutoHigh.Checked;}}
-        private void udAutoHighMargin_ValueChanged(object sender,EventArgs e){if(!initializing)Display.AutoHighMarginDb=(float)udAutoHighMargin.Value;}
+        private void udNFLowPct_ValueChanged(object sender,EventArgs e){Display.NFLowPct=(float)udNFLowPct.Value;}
+        private void udNFHighPct_ValueChanged(object sender,EventArgs e){Display.NFHighPct=(float)udNFHighPct.Value;}
+        private void chkAutoHigh_CheckedChanged(object sender,EventArgs e){Display.AutoHighEnabledRX1=chkAutoHigh.Checked;Display.AutoHighEnabledRX2=chkAutoHigh.Checked;}
+        private void udAutoHighMargin_ValueChanged(object sender,EventArgs e){Display.AutoHighMarginDb=(float)udAutoHighMargin.Value;}
         private void comboAGCSmooth_SelectedIndexChanged(object sender,EventArgs e)
-        { if(!initializing)Display.WaterfallAgcSmoothing=comboAGCSmooth.SelectedIndex==0?0.2f:(comboAGCSmooth.SelectedIndex==2?0.6f:0.4f); }
+        { Display.WaterfallAgcSmoothing=comboAGCSmooth.SelectedIndex==0?0.2f:(comboAGCSmooth.SelectedIndex==2?0.6f:0.4f); }
         private void comboWFDetector_SelectedIndexChanged(object sender,EventArgs e)
         {
-            if(initializing)return;
             int d=comboWFDetector.SelectedIndex==1?2:(comboWFDetector.SelectedIndex==2?3:0);
             if(comboDispWFDetector!=null)comboDispWFDetector.SelectedIndex=d;
             if(comboRX2DispWFDetector!=null)comboRX2DispWFDetector.SelectedIndex=d;
             if(console!=null&&console.specRX!=null){console.specRX.GetSpecRX(0).DetTypeWF=d;console.specRX.GetSpecRX(1).DetTypeWF=d;}
         }
         private void chkZoomAdaptive_CheckedChanged(object sender,EventArgs e)
-        { if(!initializing){Display.ZoomAdaptiveEnabled=chkZoomAdaptive.Checked;comboToneMap.Enabled=!chkZoomAdaptive.Checked;comboTemporal.Enabled=!chkZoomAdaptive.Checked;} }
+        { Display.ZoomAdaptiveEnabled=chkZoomAdaptive.Checked; if(comboToneMap!=null)comboToneMap.Enabled=!chkZoomAdaptive.Checked; if(comboTemporal!=null)comboTemporal.Enabled=!chkZoomAdaptive.Checked; }
 
         private void comboToneMap_SelectedIndexChanged(object sender,EventArgs e)
-        { if(!initializing)WaterfallEnhancer.SetToneMap(comboToneMap.SelectedIndex==1?WaterfallEnhancer.ToneMapMode.Reinhard:(comboToneMap.SelectedIndex==2?WaterfallEnhancer.ToneMapMode.ACES:WaterfallEnhancer.ToneMapMode.None)); }
+        { WaterfallEnhancer.SetToneMap(comboToneMap.SelectedIndex==1?WaterfallEnhancer.ToneMapMode.Reinhard:(comboToneMap.SelectedIndex==2?WaterfallEnhancer.ToneMapMode.ACES:WaterfallEnhancer.ToneMapMode.None); }
         private void comboTemporal_SelectedIndexChanged(object sender,EventArgs e)
-        { if(!initializing){float a=comboTemporal.SelectedIndex==1?0.15f:(comboTemporal.SelectedIndex==2?0.30f:(comboTemporal.SelectedIndex==3?0.45f:0f));Display.TemporalStrength=a;Display.TemporalEnabled=a>0;}}
+        { float a=comboTemporal.SelectedIndex==1?0.15f:(comboTemporal.SelectedIndex==2?0.30f:(comboTemporal.SelectedIndex==3?0.45f:0f));Display.TemporalStrength=a;Display.TemporalEnabled=a>0;}
         private void tbPalSharp_Scroll(object sender,EventArgs e){lblPalSharpVal.Text=tbPalSharp.Value.ToString();WaterfallEnhancer.SetPaletteSharpness(tbPalSharp.Value/100f);}
         private void tbPalContrast_Scroll(object sender,EventArgs e){lblPalContrastVal.Text=tbPalContrast.Value.ToString();WaterfallEnhancer.SetPaletteContrast(tbPalContrast.Value/100f);}
 
         private void chkGPUWaterfallFFT_CheckedChanged(object sender,EventArgs e)
-        { if(!initializing){Display.GPUWaterfallPipelineEnabled=chkGPUWaterfallFFT.Checked;UpdateGPUInfoLabel();}}
+        { Display.GPUWaterfallPipelineEnabled=chkGPUWaterfallFFT.Checked;UpdateGPUInfoLabel();}
         private void comboGPUWaterfallFFTSize_SelectedIndexChanged(object sender,EventArgs e)
-        { if(!initializing&&int.TryParse(comboGPUWaterfallFFTSize.Text,out int n))Display.GPUWaterfallFFTSize=n; }
+        { if(int.TryParse(comboGPUWaterfallFFTSize.Text,out int n))Display.GPUWaterfallFFTSize=n; }
         private void comboGPUWaterfallWindow_SelectedIndexChanged(object sender,EventArgs e)
-        { if(!initializing&&Enum.TryParse(comboGPUWaterfallWindow.Text,out GPUWaterfallWindowType w)){Display.GPUWaterfallWindowType=w;UpdateKaiserBetaVisibility();}}
+        { if(Enum.TryParse(comboGPUWaterfallWindow.Text,out GPUWaterfallWindowType w)){Display.GPUWaterfallWindowType=w;UpdateKaiserBetaVisibility();}}
         private void UpdateKaiserBetaVisibility()
         { bool v=comboGPUWaterfallWindow!=null&&comboGPUWaterfallWindow.Text==GPUWaterfallWindowType.Kaiser.ToString();if(lblGPUWaterfallKaiserBeta!=null)lblGPUWaterfallKaiserBeta.Visible=v;if(udGPUWaterfallKaiserBeta!=null)udGPUWaterfallKaiserBeta.Visible=v;}
-        private void udGPUWaterfallKaiserBeta_ValueChanged(object sender,EventArgs e){if(!initializing)Display.GPUWaterfallKaiserBeta=(double)udGPUWaterfallKaiserBeta.Value;}
-        private void comboGPUWaterfallMagnitudeMode_SelectedIndexChanged(object sender,EventArgs e){if(!initializing)Display.GPUWaterfallMagnitudeMode=(GPUWaterfallMagnitudeMode)comboGPUWaterfallMagnitudeMode.SelectedIndex;}
-        private void udGPUWaterfallOverlap_ValueChanged(object sender,EventArgs e){if(!initializing)Display.GPUWaterfallOverlapPercent=(int)udGPUWaterfallOverlap.Value;}
-        private void chkGPUWaterfallAutoOverlap_CheckedChanged(object sender,EventArgs e){if(!initializing)Display.GPUWaterfallAutoOverlap=chkGPUWaterfallAutoOverlap.Checked;}
+        private void udGPUWaterfallKaiserBeta_ValueChanged(object sender,EventArgs e){Display.GPUWaterfallKaiserBeta=(double)udGPUWaterfallKaiserBeta.Value;}
+        private void comboGPUWaterfallMagnitudeMode_SelectedIndexChanged(object sender,EventArgs e){Display.GPUWaterfallMagnitudeMode=(GPUWaterfallMagnitudeMode)comboGPUWaterfallMagnitudeMode.SelectedIndex;}
+        private void udGPUWaterfallOverlap_ValueChanged(object sender,EventArgs e){Display.GPUWaterfallOverlapPercent=(int)udGPUWaterfallOverlap.Value;}
+        private void chkGPUWaterfallAutoOverlap_CheckedChanged(object sender,EventArgs e){Display.GPUWaterfallAutoOverlap=chkGPUWaterfallAutoOverlap.Checked;}
         private void comboGPUWaterfallResampling_SelectedIndexChanged(object sender,EventArgs e)
-        { if(!initializing){Display.GPUWaterfallResamplingMode=(GPUWaterfallResamplingMode)comboGPUWaterfallResampling.SelectedIndex;UpdateLanczosControls();}}
-        private void comboGPUWaterfallLanczos_SelectedIndexChanged(object sender,EventArgs e){if(!initializing)Display.GPUWaterfallLanczosWindow=comboGPUWaterfallLanczos.SelectedIndex+2;}
+        { Display.GPUWaterfallResamplingMode=(GPUWaterfallResamplingMode)comboGPUWaterfallResampling.SelectedIndex;UpdateLanczosControls();}
+        private void comboGPUWaterfallLanczos_SelectedIndexChanged(object sender,EventArgs e){Display.GPUWaterfallLanczosWindow=comboGPUWaterfallLanczos.SelectedIndex+2;}
         private void UpdateLanczosControls()
         { bool b=comboGPUWaterfallResampling!=null&&comboGPUWaterfallResampling.SelectedIndex==(int)GPUWaterfallResamplingMode.Lanczos;if(lblGPUWaterfallLanczos!=null)lblGPUWaterfallLanczos.Enabled=b;if(comboGPUWaterfallLanczos!=null)comboGPUWaterfallLanczos.Enabled=b;}
 
