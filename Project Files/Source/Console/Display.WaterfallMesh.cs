@@ -92,9 +92,11 @@ namespace Thetis
 
         /// <summary>Master gate: experimental GPU mesh toggle, hardware path only.
         /// Force-CPU / WARP sessions never arm any mesh path.</summary>
+        private static bool _sq4kouWaterfallMeshEnabled = true;
+
         private static bool WfMeshArmed
         {
-            get { return GpuMeshEnabled && m_eRenderPath == DXRenderPath.Hardware && _device != null && _bDX2Setup; }
+            get { return _sq4kouWaterfallMeshEnabled && m_eRenderPath == DXRenderPath.Hardware && _device != null && _bDX2Setup; }
         }
 
         /// <summary>True while the GPU ring owns presentation of this rx's pane (the
@@ -117,11 +119,11 @@ namespace Thetis
 
         public static bool SQ4KOUWaterfallMeshEnabled
         {
-            get { return GpuMeshEnabled; }
+            get { return _sq4kouWaterfallMeshEnabled; }
             set
             {
-                if (GpuMeshEnabled == value) return;
-                GpuMeshEnabled = value;
+                if (_sq4kouWaterfallMeshEnabled == value) return;
+                _sq4kouWaterfallMeshEnabled = value;
                 if (!value)
                 {
                     ReleaseWaterfallRing(ref _wf[0]);
@@ -143,7 +145,7 @@ namespace Thetis
 
         private static string WaterfallPresenterStatus(int rx)
         {
-            if (!GpuMeshEnabled) return "D2D (GPU MESH OFF)";
+            if (!_sq4kouWaterfallMeshEnabled) return "D2D (WATERFALL MESH OFF)";
             if (m_eRenderPath != DXRenderPath.Hardware) return "D2D (" + RenderPathString() + ")";
             if (_device == null || !_bDX2Setup) return "D2D (DX NOT READY)";
             return WfMeshOwnsPane(rx) ? "GPU MESH ACTIVE" : "D2D FALLBACK";
