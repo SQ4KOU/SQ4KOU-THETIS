@@ -341,7 +341,7 @@ namespace Thetis
         { Display.ZoomAdaptiveEnabled=chkZoomAdaptive.Checked; if(comboToneMap!=null)comboToneMap.Enabled=!chkZoomAdaptive.Checked; if(comboTemporal!=null)comboTemporal.Enabled=!chkZoomAdaptive.Checked; }
 
         private void comboToneMap_SelectedIndexChanged(object sender,EventArgs e)
-        { WaterfallEnhancer.SetToneMap(comboToneMap.SelectedIndex==1?WaterfallEnhancer.ToneMapMode.Reinhard:(comboToneMap.SelectedIndex==2?WaterfallEnhancer.ToneMapMode.ACES:WaterfallEnhancer.ToneMapMode.None); }
+        { WaterfallEnhancer.SetToneMap(comboToneMap.SelectedIndex==1 ? WaterfallEnhancer.ToneMapMode.Reinhard : (comboToneMap.SelectedIndex==2 ? WaterfallEnhancer.ToneMapMode.ACES : WaterfallEnhancer.ToneMapMode.None)); }
         private void comboTemporal_SelectedIndexChanged(object sender,EventArgs e)
         { float a=comboTemporal.SelectedIndex==1?0.15f:(comboTemporal.SelectedIndex==2?0.30f:(comboTemporal.SelectedIndex==3?0.45f:0f));Display.TemporalStrength=a;Display.TemporalEnabled=a>0;}
         private void tbPalSharp_Scroll(object sender,EventArgs e){lblPalSharpVal.Text=tbPalSharp.Value.ToString();WaterfallEnhancer.SetPaletteSharpness(tbPalSharp.Value/100f);}
