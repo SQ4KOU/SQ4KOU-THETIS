@@ -588,6 +588,35 @@
               />
       </Component>
 
+      <!-- SQ4KOU: exact GPU waterfall shaders are runtime-loaded from the Thetis.exe directory.
+           They MUST be packaged with the MSI; otherwise CM_GPUWaterfallExact_Init fails and
+           the display silently falls back to the legacy waterfall. -->
+      <Component Guid="*">
+        <File Id="WaterfallFftBitreverseCS"
+              Source="$(var.FilesPath)waterfall_fft_bitreverse_cs.bin"
+              KeyPath="yes" />
+      </Component>
+      <Component Guid="*">
+        <File Id="WaterfallFftStageABCS"
+              Source="$(var.FilesPath)waterfall_fft_stage_ab_cs.bin"
+              KeyPath="yes" />
+      </Component>
+      <Component Guid="*">
+        <File Id="WaterfallFftStageBACS"
+              Source="$(var.FilesPath)waterfall_fft_stage_ba_cs.bin"
+              KeyPath="yes" />
+      </Component>
+      <Component Guid="*">
+        <File Id="WaterfallFftMagnitudeCS"
+              Source="$(var.FilesPath)waterfall_fft_magnitude_cs.bin"
+              KeyPath="yes" />
+      </Component>
+      <Component Guid="*">
+        <File Id="WaterfallRowCS"
+              Source="$(var.FilesPath)waterfall_row_cs.bin"
+              KeyPath="yes" />
+      </Component>
+
       <Component Guid="*">
         <File Id="cmASIODLL"
               Source="$(var.FilesPath)cmASIO.dll"
