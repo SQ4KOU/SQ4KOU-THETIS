@@ -570,12 +570,6 @@ namespace Thetis
 			}
 
 			ForceFormOnScreen(form);
-
-			// SQ4KOU: DirectX/3D controls are restored from the Options table like the
-			// rest of Setup. Install the immediate-write bridge only after restoration
-			// has finished so programmatic restore events cannot overwrite the database.
-			if (form is Setup setup && string.Equals(tablename, "Options", StringComparison.Ordinal))
-				setup.InstallDirectXDisplayPersistenceHooks();
 		}
 
         public static (bool resized, bool relocated) ForceFormOnScreen(Form f, bool shrink_to_fit = false, bool keep_on_screen = false)

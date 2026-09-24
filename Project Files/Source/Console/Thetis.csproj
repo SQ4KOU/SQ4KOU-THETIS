@@ -502,7 +502,6 @@
     <Compile Include="setup.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Setup.DirectXDisplayPersistence.cs" />
     <Compile Include="setup.designer.cs">
       <DependentUpon>setup.cs</DependentUpon>
     </Compile>

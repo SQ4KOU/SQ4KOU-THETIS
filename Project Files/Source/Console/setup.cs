@@ -13104,6 +13104,7 @@ namespace Thetis
             if (initializing) return;
             Display.Pan3DEnabled = chkDisplay3DPanadapter.Checked;
             console.SyncDisplay3DPanButton(chkDisplay3DPanadapter.Checked);
+            PersistDirectXDisplaySettings();
         }
 
         private frm3DPanadapter _frm3DPanadapter = null;
@@ -19899,6 +19900,7 @@ namespace Thetis
         private void chkShowFPS_CheckedChanged(object sender, EventArgs e)
         {
             Display.ShowFPS = chkShowFPS.Checked;
+            if (!initializing) PersistDirectXDisplaySettings();
         }
 
         private void chkSmallModeFilteronVFOs_CheckedChanged(object sender, EventArgs e)
@@ -19922,6 +19924,7 @@ namespace Thetis
             if (comboDisplayThreadPriority.SelectedIndex < 0) return; // ignore 0 or not selected
 
             console.DisplayThreadPriority = (ThreadPriority)comboDisplayThreadPriority.SelectedIndex;
+            if (!initializing) PersistDirectXDisplaySettings();
         }
 
         private void btnShowSeqLog_Click(object sender, EventArgs e)
@@ -19947,6 +19950,7 @@ namespace Thetis
         private void chkAntiAlias_CheckedChanged(object sender, EventArgs e)
         {
             console.AntiAlias = chkAntiAlias.Checked;
+            if (!initializing) PersistDirectXDisplaySettings();
         }
 
         private void clrbtnStatusBarBackground_Changed(object sender, EventArgs e)
@@ -20074,11 +20078,33 @@ namespace Thetis
                 Display.VerticalBlanks = 0;
                 MeterManager.SetVsync(false);
             }
+            PersistDirectXDisplaySettings();
         }
 
-        private bool _gpuMeshSavedState = false;
-        private bool _gpuComputeSavedState = false;
-        private bool _gpuOverlaySavedState = false;
+        private void PersistDirectXDisplaySettings()
+        {
+            if (initializing || _gettingOptions || _savingOptions) return;
+
+            try
+            {
+                Dictionary<string, string> options = DB.GetVarsDictionary("Options");
+                options["chkDisplay3DPanadapter"] = chkDisplay3DPanadapter.Checked.ToString();
+                options["comboDisplayThreadPriority"] = comboDisplayThreadPriority.Text;
+                options["chkShowFPS"] = chkShowFPS.Checked.ToString();
+                options["chkAntiAlias"] = chkAntiAlias.Checked.ToString();
+                options["chkGpuMesh3D"] = chkGpuMesh3D.Checked.ToString();
+                options["chkGpuComputeShaders"] = chkGpuComputeShaders.Checked.ToString();
+                options["chkGpuOverlay"] = chkGpuOverlay.Checked.ToString();
+                options["chkVSyncDX"] = chkVSyncDX.Checked.ToString();
+                options["chkForceCPURendering"] = chkForceCPURendering.Checked.ToString();
+                DB.SaveVarsDictionary("Options", ref options, true);
+                DB.WriteDB();
+            }
+            catch (Exception ex)
+            {
+                LogTool.AddLogEntry("PersistDirectXDisplaySettings failed: " + ex.Message, "SETUP");
+            }
+        }
 
         private void chkForceCPURendering_CheckedChanged(object sender, EventArgs e)
         {
@@ -20086,35 +20112,18 @@ namespace Thetis
 
             Display.ForceCPURendering = chkForceCPURendering.Checked;
 
-            // forcing CPU rendering forces all GPU features to the CPU mode
-            if (chkForceCPURendering.Checked)
-            {
-                _gpuMeshSavedState = chkGpuMesh3D.Checked;
-                _gpuComputeSavedState = chkGpuComputeShaders.Checked;
-                _gpuOverlaySavedState = chkGpuOverlay.Checked;
+            // Force CPU must gate GPU execution only. Never rewrite the user's
+            // persisted GPU checkbox preferences during startup or mode changes.
+            bool gpuControlsEnabled = !chkForceCPURendering.Checked;
+            chkGpuMesh3D.Enabled = gpuControlsEnabled;
+            chkGpuComputeShaders.Enabled = gpuControlsEnabled;
+            chkGpuOverlay.Enabled = gpuControlsEnabled;
 
-                chkGpuMesh3D.Checked = false;
-                chkGpuComputeShaders.Checked = false;
-                chkGpuOverlay.Checked = false;
+            Display.GpuMeshEnabled = gpuControlsEnabled && chkGpuMesh3D.Checked;
+            Display.GpuComputeEnabled = gpuControlsEnabled && chkGpuComputeShaders.Checked;
+            Display.GpuOverlayEnabled = gpuControlsEnabled && chkGpuOverlay.Checked;
 
-                chkGpuMesh3D.Enabled = false;
-                chkGpuComputeShaders.Enabled = false;
-                chkGpuOverlay.Enabled = false;
-
-                Display.GpuMeshEnabled = false;
-                Display.GpuComputeEnabled = false;
-                Display.GpuOverlayEnabled = false;
-            }
-            else
-            {
-                chkGpuMesh3D.Enabled = true;
-                chkGpuComputeShaders.Enabled = true;
-                chkGpuOverlay.Enabled = true;
-
-                chkGpuMesh3D.Checked = _gpuMeshSavedState;
-                chkGpuComputeShaders.Checked = _gpuComputeSavedState;
-                chkGpuOverlay.Checked = _gpuOverlaySavedState;
-            }
+            PersistDirectXDisplaySettings();
 
             console.RestartDisplayDX();
             if (_frm3DPanadapter != null && !_frm3DPanadapter.IsDisposed)
@@ -20130,19 +20139,22 @@ namespace Thetis
         private void chkGpuMesh3D_CheckedChanged(object sender, EventArgs e)
         {
             if (initializing) return;
-            Display.GpuMeshEnabled = chkGpuMesh3D.Checked;
+            Display.GpuMeshEnabled = chkGpuMesh3D.Checked && !chkForceCPURendering.Checked;
+            PersistDirectXDisplaySettings();
         }
 
         private void chkGpuComputeShaders_CheckedChanged(object sender, EventArgs e)
         {
             if (initializing) return;
-            Display.GpuComputeEnabled = chkGpuComputeShaders.Checked;
+            Display.GpuComputeEnabled = chkGpuComputeShaders.Checked && !chkForceCPURendering.Checked;
+            PersistDirectXDisplaySettings();
         }
 
         private void chkGpuOverlay_CheckedChanged(object sender, EventArgs e)
         {
             if (initializing) return;
-            Display.GpuOverlayEnabled = chkGpuOverlay.Checked;
+            Display.GpuOverlayEnabled = chkGpuOverlay.Checked && !chkForceCPURendering.Checked;
+            PersistDirectXDisplaySettings();
         }
 
         private void chkMeshDiagLog_CheckedChanged(object sender, EventArgs e)
