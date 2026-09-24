@@ -11,9 +11,9 @@ namespace Thetis
         private static readonly byte[][] _waterfallQualityEncodedRows = new byte[2][];
         private static readonly int[] _waterfallQualityDitherRow = new int[2];
 
-        private static AlphaMode WaterfallBitmapAlphaMode
+        private static Vortice.DCommon.AlphaMode WaterfallBitmapAlphaMode
         {
-            get { return WaterfallEnhancer.Depth == WaterfallEnhancer.ColorDepth.Bit16 ? AlphaMode.Ignore : ALPHA_MODE; }
+            get { return WaterfallEnhancer.Depth == WaterfallEnhancer.ColorDepth.Bit16 ? Vortice.DCommon.AlphaMode.Ignore : ALPHA_MODE; }
         }
 
         private static Format WaterfallBitmapFormat
