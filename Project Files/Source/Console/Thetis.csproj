@@ -371,7 +371,6 @@
     <Compile Include="Display.Pan3DMesh.cs" />
     <Compile Include="Display.Pan2DMesh.cs" />
     <Compile Include="Display.WaterfallMesh.cs" />
-    <Compile Include="Display.HighResolutionWaterfall.cs" />
     <Compile Include="Display.SpectrumCompute.cs" />
     <Compile Include="Display.OverlayMesh.cs" />
     <Compile Include="GpuUsageMonitor.cs" />

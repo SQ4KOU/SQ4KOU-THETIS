@@ -236,54 +236,6 @@ namespace Thetis
             return true;
         }
 
-        public bool SetReceiverDetectorType(int receiverId, int detectorType)
-        {
-            SpectrumEndpoint endpoint;
-            if (!TryGetEndpoint(SpectrumSourceType.Receiver, receiverId, out endpoint)) return false;
-
-            endpoint.SetDetectorType(ClampInt(detectorType, 0, 4));
-            return true;
-        }
-
-        public bool SetReceiverAverageMode(int receiverId, int averageMode)
-        {
-            SpectrumEndpoint endpoint;
-            if (!TryGetEndpoint(SpectrumSourceType.Receiver, receiverId, out endpoint)) return false;
-
-            endpoint.SetAverageMode(ClampInt(averageMode, 0, 3));
-            return true;
-        }
-
-        public bool SetReceiverAverageTau(int receiverId, double averageTau)
-        {
-            SpectrumEndpoint endpoint;
-            if (!TryGetEndpoint(SpectrumSourceType.Receiver, receiverId, out endpoint)) return false;
-
-            if (double.IsNaN(averageTau) || double.IsInfinity(averageTau) || averageTau <= 0.0)
-                averageTau = DefaultAverageTau;
-
-            endpoint.SetAverageTau(averageTau);
-            return true;
-        }
-
-        public bool SetReceiverAverageOn(int receiverId, bool averageOn)
-        {
-            SpectrumEndpoint endpoint;
-            if (!TryGetEndpoint(SpectrumSourceType.Receiver, receiverId, out endpoint)) return false;
-
-            endpoint.SetAverageOn(averageOn);
-            return true;
-        }
-
-        public bool SetReceiverPeakOn(int receiverId, bool peakOn)
-        {
-            SpectrumEndpoint endpoint;
-            if (!TryGetEndpoint(SpectrumSourceType.Receiver, receiverId, out endpoint)) return false;
-
-            endpoint.SetPeakOn(peakOn);
-            return true;
-        }
-
         public bool SetReceiverSampleRate(int receiverId, int sampleRate)
         {
             return SetSampleRate(SpectrumSourceType.Receiver, receiverId, sampleRate);
@@ -807,76 +759,6 @@ namespace Thetis
 
                     _fftSize = fftSize;
                     RefreshLocked();
-                }
-            }
-
-            public void SetDetectorType(int detectorType)
-            {
-                lock (_syncRoot)
-                {
-                    if (_shutdown || detectorType == _detectorTypePan) return;
-
-                    _detectorTypePan = detectorType;
-                    _spec.DetTypePan = _detectorTypePan;
-                    _spec.resetPixelBuffers();
-                    _hasData = false;
-                    _nextReadUtcTicks = 0;
-                }
-            }
-
-            public void SetAverageMode(int averageMode)
-            {
-                lock (_syncRoot)
-                {
-                    if (_shutdown || averageMode == _averageMode) return;
-
-                    _averageMode = averageMode;
-                    _spec.AverageMode = _averageMode;
-                    _spec.resetPixelBuffers();
-                    _hasData = false;
-                    _nextReadUtcTicks = 0;
-                }
-            }
-
-            public void SetAverageTau(double averageTau)
-            {
-                lock (_syncRoot)
-                {
-                    if (_shutdown || Math.Abs(averageTau - _averageTau) < 0.000001) return;
-
-                    _averageTau = averageTau;
-                    _spec.AvTau = _averageTau;
-                    _spec.resetPixelBuffers();
-                    _hasData = false;
-                    _nextReadUtcTicks = 0;
-                }
-            }
-
-            public void SetAverageOn(bool averageOn)
-            {
-                lock (_syncRoot)
-                {
-                    if (_shutdown || averageOn == _averageOn) return;
-
-                    _averageOn = averageOn;
-                    _spec.AverageOn = _averageOn;
-                    _spec.resetPixelBuffers();
-                    _hasData = false;
-                    _nextReadUtcTicks = 0;
-                }
-            }
-
-            public void SetPeakOn(bool peakOn)
-            {
-                lock (_syncRoot)
-                {
-                    if (_shutdown || peakOn == _peakOn) return;
-
-                    _peakOn = peakOn;
-                    _spec.PeakOn = _peakOn;
-                    _spec.resetPixelBuffers();
-                    _hasData = false;
-                    _nextReadUtcTicks = 0;
                 }
             }
 

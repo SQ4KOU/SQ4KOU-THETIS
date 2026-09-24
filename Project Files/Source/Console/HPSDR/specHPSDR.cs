@@ -503,21 +503,6 @@ namespace Thetis
         }
         public void initAnalyzer()
         {
-            // SQ4KOU WATERFALL_HIRES_FFT:
-            // Increase the real WDSP spectral resolution for waterfall/panafall only.
-            // 262144 is already the maximum FFT exposed by the existing SDR-VST3 UI,
-            // so this stays inside the analyzer's supported operating range.
-            int effective_fft_size = this.fft_size;
-            bool hiResWaterfall =
-                (disp == 1)
-                    ? (Display.CurrentDisplayModeBottom == DisplayMode.WATERFALL ||
-                       Display.CurrentDisplayModeBottom == DisplayMode.PANAFALL)
-                    : (Display.CurrentDisplayMode == DisplayMode.WATERFALL ||
-                       Display.CurrentDisplayMode == DisplayMode.PANAFALL);
-
-            if (hiResWaterfall && effective_fft_size < 262144)
-                effective_fft_size = 262144;
-
             //no spur elimination => only one spur_elim_fft and it's spectrum is not flipped
             int[] flip = { 0 };
             GCHandle handle = GCHandle.Alloc(flip, GCHandleType.Pinned);
@@ -544,19 +529,19 @@ namespace Thetis
                         const double CLIP_FRACTION = 0.04;
 
                         //set overlap as needed to achieve the desired frame_rate
-                        overlap = (int)Math.Max(0.0, Math.Ceiling(effective_fft_size - (double)sample_rate / (double)frame_rate));
+                        overlap = (int)Math.Max(0.0, Math.Ceiling(fft_size - (double)sample_rate / (double)frame_rate));
 
                         //clip is the number of bins to clip off each side of each sub-span
-                        clip = (int)Math.Floor(CLIP_FRACTION * effective_fft_size);
+                        clip = (int)Math.Floor(CLIP_FRACTION * fft_size);
 
                         //the amount of frequency in each fft bin (for complex samples) is given by:
                         //   this is also equal to the interval width!
-                        double bin_width = (double)sample_rate / (double)effective_fft_size;
-                        //double bin_width_tx = 96000.0 / (double)effective_fft_size;
+                        double bin_width = (double)sample_rate / (double)fft_size;
+                        //double bin_width_tx = 96000.0 / (double)fft_size;
 
                         //the number of useable bins per subspan is
                         //   the '-1' is due to clipping the Nyquist bin
-                        int bins_per_subspan = effective_fft_size - 1 - 2 * clip;
+                        int bins_per_subspan = fft_size - 1 - 2 * clip;
 
                         //the amount of useable bandwidth we get from each subspan is:
                         //  we'd subtract '1' from 'bins_per_subspan' if we wanted the interval_width_per_subspan
@@ -597,7 +582,7 @@ namespace Thetis
                         _low_freq = -(int)((intervals / 2.0 - span_clip_l) * bin_width);
                         _high_freq = +(int)((intervals / 2.0 - span_clip_h) * bin_width);
                         
-                        max_w = effective_fft_size + (int)Math.Min(KEEP_TIME * sample_rate, KEEP_TIME * effective_fft_size * frame_rate);
+                        max_w = fft_size + (int)Math.Min(KEEP_TIME * sample_rate, KEEP_TIME * fft_size * frame_rate);
                         break;
                     }
             }
@@ -642,7 +627,7 @@ namespace Thetis
                         spur_eliminationtion_ffts,
                         data_type,
                         h_flip,
-                        effective_fft_size,
+                        fft_size,
                         blocksize,
                         window_type,
                         kaiser_pi,

@@ -13643,16 +13643,6 @@ namespace Thetis
         {
             int oldDecimation = Display.Decimation;
 
-            // SQ4KOU waterfall HQ: a visible waterfall always runs at native display width.
-            // Decimation remains available for display modes that do not contain a waterfall.
-            bool waterfallVisible =
-                Display.CurrentDisplayMode == DisplayMode.WATERFALL ||
-                Display.CurrentDisplayMode == DisplayMode.PANAFALL ||
-                Display.CurrentDisplayModeBottom == DisplayMode.WATERFALL ||
-                Display.CurrentDisplayModeBottom == DisplayMode.PANAFALL;
-            if (waterfallVisible)
-                decimation = 1;
-
             _pause_DisplayThread = true;
 
             Display.Decimation = decimation;
