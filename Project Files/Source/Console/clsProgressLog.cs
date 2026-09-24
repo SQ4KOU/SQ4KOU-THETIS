@@ -247,6 +247,16 @@ namespace Thetis
             return readRegistryShow(out show);
         }
 
+        public static void SetRegistryDpiAwareness(bool enabled)
+        {
+            writeRegistryDpiAwareness(enabled);
+        }
+
+        public static bool GetRegistryDpiAwareness()
+        {
+            return readRegistryDpiAwareness();
+        }
+
         static void addCore(string text, string id, bool colour_warn)
         {
             DateTime start = DateTime.UtcNow;
@@ -377,6 +387,31 @@ namespace Thetis
         {
             RegistryKey key = Registry.CurrentUser.CreateSubKey(_reg_subkey);
             key.SetValue("ShowLog", show ? 1 : 0, RegistryValueKind.DWord);
+            key.Close();
+        }
+
+        static bool readRegistryDpiAwareness()
+        {
+            bool enabled = false;
+            try
+            {
+                RegistryKey key = Registry.CurrentUser.OpenSubKey(_reg_subkey, false);
+                if (key != null)
+                {
+                    object o = key.GetValue("DpiAwareness");
+                    key.Close();
+                    if (o is int) enabled = ((int)o) == 1;
+                    else if (o is string) enabled = string.Equals((string)o, "1", StringComparison.OrdinalIgnoreCase);
+                }
+            }
+            catch { }
+            return enabled;
+        }
+
+        static void writeRegistryDpiAwareness(bool enabled)
+        {
+            RegistryKey key = Registry.CurrentUser.CreateSubKey(_reg_subkey);
+            key.SetValue("DpiAwareness", enabled ? 1 : 0, RegistryValueKind.DWord);
             key.Close();
         }
 
