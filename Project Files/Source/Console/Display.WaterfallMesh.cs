@@ -134,10 +134,10 @@ namespace Thetis
         {
             get
             {
-                if (!GpuComputeEnabled) return "CPU COLOR";
+                if (!GpuComputeEnabled) return "CPU COLOR (HLSL OFF)";
                 if (m_eRenderPath != DXRenderPath.Hardware) return "CPU COLOR (" + RenderPathString() + ")";
                 if (_device == null || !_bDX2Setup) return "CPU COLOR (DX NOT READY)";
-                return "GPU COLOR COMPUTE";
+                return GpuComputeWaterfallStatus;
             }
         }
 

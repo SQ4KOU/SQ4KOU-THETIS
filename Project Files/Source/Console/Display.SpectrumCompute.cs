@@ -90,7 +90,40 @@ namespace Thetis
         /// <summary>Experimental GPU compute shader toggle (session only).
         /// When true and the render path is Hardware, the colour conversion
         /// and spectrum normalisation are offloaded to D3D11 compute shaders.</summary>
-        public static bool GpuComputeEnabled { get; set; } = true;
+        private static bool _gpuComputeEnabled = true;
+        private static string _gpuComputeProbeStatus = "not tested";
+        private static string _gpuComputeWaterfallStatus = "CPU COLOR";
+
+        public static bool GpuComputeEnabled
+        {
+            get { return _gpuComputeEnabled; }
+            set
+            {
+                _gpuComputeEnabled = value;
+                if (!value) _gpuComputeWaterfallStatus = "CPU COLOR (HLSL OFF)";
+            }
+        }
+
+        public static string GpuComputeProbeStatus { get { return _gpuComputeProbeStatus; } }
+        public static string GpuComputeWaterfallStatus { get { return _gpuComputeWaterfallStatus; } }
+
+        public static bool GpuComputeAvailable
+        {
+            get
+            {
+                if (m_eRenderPath != DXRenderPath.Hardware || _device == null || !_bDX2Setup)
+                {
+                    _gpuComputeProbeStatus = "hardware DX context unavailable";
+                    return false;
+                }
+                lock (_objDX2Lock)
+                {
+                    bool ok = BuildWaterfallComputePipeline(_device);
+                    _gpuComputeProbeStatus = ok ? "HLSL cs_5_0 ready" : "HLSL pipeline build failed";
+                    return ok;
+                }
+            }
+        }
 
         /// <summary>True when all conditions for compute dispatch are met.</summary>
         private static bool ComputeArmed
@@ -132,8 +165,8 @@ namespace Thetis
                     t = 1.0;
                 else
                 {
-                    float v = dBm - CB_Low + CB_LinLogCor;
-                    t = v / (CB_High - CB_Low);
+                    // Lin palette offsets are baked into the LUT.
+                    t = (dBm - CB_Low) / (CB_High - CB_Low);
                 }
                 t = clamp(t, 0.0, 1.0);
 
@@ -443,6 +476,8 @@ namespace Thetis
         private static void BuildWaterfallComputeLut(ColorScheme scheme, float lowThreshold,
             float highThreshold, float linCor, bool isRx2, bool isMox)
         {
+            if (_wfComputeLutPixels == null || _wfComputeLutPixels.Length != WfLutSize * 4)
+                _wfComputeLutPixels = new byte[WfLutSize * 4];
             byte[] px = _wfComputeLutPixels;
 
             if (scheme == ColorScheme.Custom)
@@ -509,12 +544,17 @@ namespace Thetis
                         else
                         {
                             float lp = t * 100f;
-                            if (lp < 51f) { R = G = 0; B = (int)lp * 5; }
-                            else if (lp < 66f) { R = G = (int)(lp - 50) * 2; B = 255; }
-                            else if (lp < 77f) { R = G = (int)(lp - 50) * 3; B = 255; }
-                            else if (lp < 88f) { R = G = (int)(lp - 50) * 4; B = 255; }
-                            else if (lp < 99f) { R = G = (int)(lp - 50) * 5; B = 255; }
-                            else { R = G = 255; B = 255; }
+                            if (lp < 51f) { R = 0; G = 0; B = (int)lp * 5; }
+                            else if (lp < 66f) { R = 0; G = (int)((lp - 51f) * 6.93f); B = 255; }
+                            else if (lp < 78f)
+                            {
+                                int q = (int)((lp - 66f) * 8.5f);
+                                R = q; G = 255; B = 255 - q;
+                            }
+                            else
+                            {
+                                R = 255; G = 255 - (int)((lp - 78f) * 11.36f); B = 0;
+                            }
                         }
                         px[i * 4 + 0] = (byte)B; px[i * 4 + 1] = (byte)G; px[i * 4 + 2] = (byte)R; px[i * 4 + 3] = 255;
                         break;
@@ -645,6 +685,67 @@ namespace Thetis
             else { R = 252; G = 252; B = 252; }
         }
 
+        private static int ComputeWaterfallLutHash(ColorScheme scheme, float lowThreshold,
+            float highThreshold, float linCor, bool isRx2, bool isMox)
+        {
+            unchecked
+            {
+                int h = 17;
+                h = h * 31 + (int)scheme;
+                h = h * 31 + lowThreshold.GetHashCode();
+                h = h * 31 + highThreshold.GetHashCode();
+                h = h * 31 + linCor.GetHashCode();
+                h = h * 31 + (isRx2 ? 1 : 0);
+                h = h * 31 + (isMox ? 1 : 0);
+                h = h * 31 + (int)WaterfallEnhancer.ToneMap;
+                h = h * 31 + WaterfallEnhancer.Gamma.GetHashCode();
+                Color low = isMox ? waterfall_low_color_tx : waterfall_low_color;
+                h = h * 31 + low.ToArgb();
+                if (scheme == ColorScheme.Custom)
+                {
+                    Color[] cols = isMox ? _tx_waterfall_grad :
+                        (isRx2 ? _rx2_waterfall_grad : _rx1_waterfall_grad);
+                    if (cols != null)
+                    {
+                        h = h * 31 + cols.Length;
+                        for (int i = 0; i < cols.Length; i++) h = h * 31 + cols[i].ToArgb();
+                    }
+                }
+                return h;
+            }
+        }
+
+        private static bool FillWaterfallRowCpuFromLut(float[] source, byte[] row,
+            int W, int sourceCount, int decimation, ColorScheme scheme,
+            float lowThreshold, float highThreshold, float linCor, bool isRx2, bool isMox)
+        {
+            if (source == null || row == null || sourceCount <= 0 || decimation <= 0 ||
+                row.Length < W * 4 || source.Length < sourceCount) return false;
+
+            BuildWaterfallComputeLut(scheme, lowThreshold, highThreshold, linCor, isRx2, isMox);
+            float range = highThreshold - lowThreshold;
+            if (range <= 0.000001f) range = 1f;
+            int n = Math.Min(sourceCount, (W + decimation - 1) / decimation);
+            for (int i = 0; i < n; i++)
+            {
+                float t = (source[i] - lowThreshold) / range;
+                if (t < 0f) t = 0f; else if (t > 1f) t = 1f;
+                int li = (int)(t * (WfLutSize - 1) + 0.5f);
+                if (li < 0) li = 0; else if (li >= WfLutSize) li = WfLutSize - 1;
+                int lp = li * 4;
+                int first = i * decimation;
+                for (int j = 0; j < decimation && first + j < W; j++)
+                {
+                    int d = (first + j) * 4;
+                    row[d] = _wfComputeLutPixels[lp];
+                    row[d + 1] = _wfComputeLutPixels[lp + 1];
+                    row[d + 2] = _wfComputeLutPixels[lp + 2];
+                    row[d + 3] = 255;
+                }
+            }
+            return true;
+        }
+
         #endregion
 
         #region GPU compute dispatch - waterfall colour conversion
@@ -671,7 +772,16 @@ namespace Thetis
             int W, int nDecimatedWidth, int m_nDecimation, ColorScheme scheme,
             float lowThreshold, float highThreshold, float linCor, bool isRx2, bool isMox)
         {
-            if (!ComputeArmed || _paused_display) return false;
+            if (!GpuComputeEnabled)
+            {
+                _gpuComputeWaterfallStatus = "CPU COLOR (HLSL OFF)";
+                return false;
+            }
+            if (!ComputeArmed || _paused_display)
+            {
+                _gpuComputeWaterfallStatus = "CPU COLOR (" + RenderPathString() + ")";
+                return false;
+            }
 
             try
             {
@@ -681,8 +791,8 @@ namespace Thetis
                 ID3D11DeviceContext dc = _device.ImmediateContext;
 
                 // --- upload LUT if dirty ---
-                int lutHash = ((int)scheme * 73856093) ^ lowThreshold.GetHashCode() ^
-                    highThreshold.GetHashCode() ^ linCor.GetHashCode();
+                int lutHash = ComputeWaterfallLutHash(scheme, lowThreshold, highThreshold,
+                    linCor, isRx2, isMox);
                 if (lutHash != _wfComputeLutVersion)
                 {
                     BuildWaterfallComputeLut(scheme, lowThreshold, highThreshold, linCor, isRx2, isMox);
@@ -810,6 +920,7 @@ namespace Thetis
                 }
                 dc.Unmap((ID3D11Resource)_wfComputeOutputStaging, 0);
 
+                _gpuComputeWaterfallStatus = "GPU COLOR HLSL ACTIVE";
                 if (!_wfComputeLoggedActive)
                 {
                     _wfComputeLoggedActive = true;
@@ -820,6 +931,7 @@ namespace Thetis
             }
             catch (Exception e)
             {
+                _gpuComputeWaterfallStatus = "CPU COLOR (HLSL FALLBACK)";
                 Common.MeshDiagLog("GPU compute waterfall: dispatch failed - " + e.Message);
                 ReleaseComputeObjects();
                 return false;

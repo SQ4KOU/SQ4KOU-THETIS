@@ -2,7 +2,6 @@ namespace Thetis;
 
 public enum GPUWaterfallMagnitudeMode
 {
-	PeakHoldAmplitude,
-	AveragePower,
-	PeakHoldPower
+    AmplitudeDbFS = 0,
+    PsdDbFSPerHz = 1
 }

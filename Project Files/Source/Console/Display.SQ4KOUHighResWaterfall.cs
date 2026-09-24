@@ -55,10 +55,8 @@ namespace Thetis
         public static void ConfigureSQ4KOUHighResWaterfall(int fftSize, int windowType,
             int resamplingMode, bool autoOverlap, float overlapPercent)
         {
-            int[] allowed = new int[] { 2048, 4096, 8192, 16384, 32768, 65536 };
-            bool validFft = false;
-            for (int i = 0; i < allowed.Length; i++)
-                if (allowed[i] == fftSize) { validFft = true; break; }
+            bool validFft = fftSize >= 1024 && fftSize <= 262144 &&
+                (fftSize & (fftSize - 1)) == 0;
             if (!validFft) fftSize = 16384;
 
             windowType = Math.Max(0, Math.Min(5, windowType));
@@ -137,13 +135,11 @@ namespace Thetis
             highResRow = null;
             int pane = rx == 2 ? 1 : 0;
 
-            // High-res data path uses the Vortice colour-compute stage, so keep it
-            // tied to ComputeArmed. Legacy Thetis remains an immediate fallback.
-            if (!SQ4KOUHighResWaterfallEnabled || !ComputeArmed || width < 64)
+            // Independent source path: ChannelMaster owns its own D3D11 DirectCompute
+            // device. HLSL colour compute and WaterfallMesh are separate optional stages.
+            if (!SQ4KOUHighResWaterfallEnabled || width < 64)
             {
-                _sq4kouHighResPaneStatus[pane] = SQ4KOUHighResWaterfallEnabled
-                    ? "LEGACY (GPU COLOR COMPUTE UNAVAILABLE)"
-                    : "LEGACY (A/B)";
+                _sq4kouHighResPaneStatus[pane] = "LEGACY (GPU FFT OFF)";
                 return false;
             }
 

@@ -2,6 +2,8 @@ namespace Thetis;
 
 public enum GPUWaterfallResamplingMode
 {
-	Fast,
-	Quality
+    Linear = 0,
+    PowerAverage = 1,
+    Peak = 2,
+    Lanczos = 3
 }

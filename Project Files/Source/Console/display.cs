@@ -3708,6 +3708,15 @@ namespace Thetis
         {
             get { return _bDX2Setup; }
         }
+
+        public static string ActiveGPUName
+        {
+            get
+            {
+                try { return getGPUNameInUse(); }
+                catch { return "unknown"; }
+            }
+        }
         private static void initDX2D(DriverType driverType = DriverType.Hardware, AdaptorInfo adaptorInfo = null)
         {
             lock (_objDX2Lock)
@@ -9531,16 +9540,24 @@ namespace Thetis
                     // colour conversion to a GPU compute shader.  Falls back to the
                     // CPU colour switch above on any failure (GPU fallback rule 1).
                     bool bComputeFilledRow = false;
+                    float sq4kouLinCor = (cScheme == ColorScheme.LinLog) ? LinLogCor :
+                                         (cScheme == ColorScheme.LinRad || cScheme == ColorScheme.LinAuto) ? LinCor : 0f;
                     if (ComputeArmed && (!stopWaterfallOnTx || clearExistingBitmap))
                     {
-                        float linCor = (cScheme == ColorScheme.LinLog) ? LinLogCor :
-                                       (cScheme == ColorScheme.LinRad || cScheme == ColorScheme.LinAuto) ? LinCor : 0f;
                         float[] computeSource = sq4kouHighResActive ? sq4kouHighResRow : waterfall_data;
                         int computeWidth = sq4kouHighResActive ? W : nDecimatedWidth;
                         int computeDecimation = sq4kouHighResActive ? 1 : m_nDecimation;
                         bComputeFilledRow = TryDispatchWaterfallCompute(computeSource, row, W,
                             computeWidth, computeDecimation, cScheme, low_threshold, high_threshold,
-                            linCor, rx == 2, local_mox);
+                            sq4kouLinCor, rx == 2, local_mox);
+                    }
+
+                    if (sq4kouHighResActive && !bComputeFilledRow &&
+                        (!stopWaterfallOnTx || clearExistingBitmap))
+                    {
+                        FillWaterfallRowCpuFromLut(sq4kouHighResRow, row, W, W, 1,
+                            cScheme, low_threshold, high_threshold, sq4kouLinCor,
+                            rx == 2, local_mox);
                     }
 
                     int preservedBitmapHeight = (int)waterfallBitmap.Size.Height - (addRow ? 1 : 0);
