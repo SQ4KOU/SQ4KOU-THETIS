@@ -499,6 +499,80 @@ namespace Thetis
             }
         }
 
+        public static bool ProbeSQ4KOUHighResPipeline(out string status)
+        {
+            status = "not tested";
+            SharpDX.Direct3D11.Device testDevice = null;
+            GPUWaterfallPipeline testPipe = null;
+            try
+            {
+                const int fft = 4096;
+                const int width = 1024;
+                const int sampleRate = 192000;
+
+                testDevice = new SharpDX.Direct3D11.Device(DriverType.Hardware, DeviceCreationFlags.None);
+                testPipe = new GPUWaterfallPipeline(testDevice, fft, width, sampleRate);
+                if (!testPipe.IsInitialized)
+                {
+                    status = "FAIL: pipeline init";
+                    return false;
+                }
+
+                float[] i = new float[fft];
+                float[] q = new float[fft];
+                double phase = 0.0;
+                double step = 2.0 * Math.PI * 12000.0 / sampleRate;
+                for (int n = 0; n < fft; n++)
+                {
+                    i[n] = (float)Math.Cos(phase);
+                    q[n] = (float)Math.Sin(phase);
+                    phase += step;
+                }
+
+                testPipe.SetFrequencySpan(-96000f, 96000f);
+                float[] row = null;
+                for (int pass = 0; pass < 8 && row == null; pass++)
+                    row = testPipe.Process(i, q, fft);
+
+                if (row == null || row.Length < width)
+                {
+                    status = "FAIL: no FFT readback";
+                    return false;
+                }
+
+                float min = float.MaxValue;
+                float max = float.MinValue;
+                int finite = 0;
+                for (int x = 0; x < width; x++)
+                {
+                    float v = row[x];
+                    if (float.IsNaN(v) || float.IsInfinity(v)) continue;
+                    finite++;
+                    if (v < min) min = v;
+                    if (v > max) max = v;
+                }
+
+                if (finite < width * 9 / 10 || max - min < 6f)
+                {
+                    status = "FAIL: invalid FFT output";
+                    return false;
+                }
+
+                status = $"PASS: D3D11 compute + shaders + readback ({width}px, span {max - min:F1} dB)";
+                return true;
+            }
+            catch (Exception ex)
+            {
+                status = "FAIL: " + ex.GetType().Name + ": " + ex.Message;
+                return false;
+            }
+            finally
+            {
+                try { testPipe?.Dispose(); } catch { }
+                try { testDevice?.Dispose(); } catch { }
+            }
+        }
+
         private static void LogGPU(string message)
         {
             GPUWaterfallLogger.Log("GPU-DISP", message);
