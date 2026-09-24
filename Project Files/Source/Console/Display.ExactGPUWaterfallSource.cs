@@ -24,6 +24,7 @@ namespace Thetis
         private static readonly float[][] _exactFrameQ = new float[2][];
         private static readonly float[][] _exactRow = new float[2][];
         private static readonly float[][] _exactRowCopy = new float[2][];
+        private static readonly byte[][] _exactColorRow = new byte[2][];
         private static readonly float[][] _exactMedianScratch = new float[2][];
         private static readonly float[] _exactCalOffset = new float[2];
         private static readonly bool[] _exactCalInit = new bool[2];
@@ -51,15 +52,20 @@ namespace Thetis
             internal static extern int CM_GPUWaterfallExact_Process(
                 int channel, int sampleRate, float displayLowHz, float displayHighHz,
                 float[] iData, float[] qData, int count, [Out] float[] outputDb);
+
+            [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+            internal static extern int CM_GPUWaterfallExact_RenderRow(
+                int channel, float lowThreshold, float highThreshold,
+                [Out] byte[] outputBGRA, int outputBytes);
         }
 
         // 1 = exact GPU row ready; 0 = healthy source waiting for overlap hop; -1 = source unavailable.
         private static int TryGetExactGpuWaterfallRow(
             int rx, int width, float[] reference, int referenceCount,
-            out float[] data, out float[] dataCopy)
+            float lowThreshold, float highThreshold, float fOffset,
+            out byte[] colorRow)
         {
-            data = null;
-            dataCopy = null;
+            colorRow = null;
             if (_exactGpuUnavailable || console == null || !console.PowerOn || width <= 0 || width > 8192)
                 return -1;
 
@@ -102,6 +108,7 @@ namespace Thetis
                         _exactFrameQ[slot] = new float[ExactGpuFftSize];
                         _exactRow[slot] = new float[width];
                         _exactRowCopy[slot] = new float[width];
+                        _exactColorRow[slot] = new byte[width * 4];
                         _exactMedianScratch[slot] = new float[Math.Max(width, referenceCount)];
                         _exactRingHead[slot] = 0;
                         _exactRingCount[slot] = 0;
@@ -216,8 +223,20 @@ namespace Thetis
                         _exactRowCopy[slot][i] = v;
                     }
 
-                    data = _exactRow[slot];
-                    dataCopy = _exactRowCopy[slot];
+                    int colorResult = ExactGpuNative.CM_GPUWaterfallExact_RenderRow(
+                        slot,
+                        lowThreshold - offset - fOffset,
+                        highThreshold - offset - fOffset,
+                        _exactColorRow[slot],
+                        _exactColorRow[slot].Length);
+
+                    if (colorResult != 1)
+                    {
+                        _exactGpuUnavailable = true;
+                        return -1;
+                    }
+
+                    colorRow = _exactColorRow[slot];
                     return 1;
                 }
                 catch (Exception ex)

@@ -8478,15 +8478,16 @@ namespace Thetis
                 }
 
                 int exactGpuStatus = -1;
-                float[] exactGpuData = null;
-                float[] exactGpuDataCopy = null;
+                byte[] exactGpuColorRow = null;
 
                 if (bRXdraw && !local_mox)
                 {
                     float[] exactReference = rx == 1 ? current_waterfall_data_copy : current_waterfall_data_bottom_copy;
+                    float exactGpuFOffset = rx == 1 ? RX1Offset : RX2Offset;
                     exactGpuStatus = TryGetExactGpuWaterfallRow(
                         rx, W, exactReference, nDecimatedWidth,
-                        out exactGpuData, out exactGpuDataCopy);
+                        low_threshold, high_threshold, exactGpuFOffset,
+                        out exactGpuColorRow);
 
                     // Once the exact GPU source is healthy but waiting for the next
                     // 85%-overlapped FFT hop, hold the history. Never splice a WDSP row.
@@ -8511,20 +8512,13 @@ namespace Thetis
                     }
 
                     bool usingExactGpu = exactGpuStatus == 1;
-                    if (usingExactGpu)
-                    {
-                        data = exactGpuData;
-                        dataCopy = exactGpuDataCopy;
-                        waterfallDecimation = 1;
-                        nDecimatedWidth = W;
-                    }
 
                     float max;
                     float max_copy;
 
                     if (!local_mox)
                     {
-                        if (!usingExactGpu && bDoVisualNotch && m_bShowVisualNotch)
+                        if (bDoVisualNotch && m_bShowVisualNotch)
                         {
                             // modify the data for visual notches
                             modifyDataForNotches(ref data, rx, bottom, local_mox, displayduplex, W);
@@ -9543,6 +9537,12 @@ namespace Thetis
                         }
                     }
 
+                    bool exactGpuColourReady = usingExactGpu && exactGpuColorRow != null && exactGpuColorRow.Length >= W * 4;
+                    if (exactGpuColourReady)
+                    {
+                        Buffer.BlockCopy(exactGpuColorRow, 0, row, 0, W * 4);
+                    }
+
                     bool stopWaterfallOnTx = (rx == 1 && m_bStopRX1WaterfallOnTX && local_mox) ||
                                              (rx == 2 && m_bStopRX2WaterfallOnTX && local_mox);
 
@@ -9550,7 +9550,7 @@ namespace Thetis
                     // colour conversion to a GPU compute shader.  Falls back to the
                     // CPU colour switch above on any failure (GPU fallback rule 1).
                     bool bComputeFilledRow = false;
-                    if (ComputeArmed && (!stopWaterfallOnTx || clearExistingBitmap))
+                    if (!exactGpuColourReady && ComputeArmed && (!stopWaterfallOnTx || clearExistingBitmap))
                     {
                         float linCor = (cScheme == ColorScheme.LinLog) ? LinLogCor :
                                        (cScheme == ColorScheme.LinRad || cScheme == ColorScheme.LinAuto) ? LinCor : 0f;

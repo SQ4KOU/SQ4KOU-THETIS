@@ -39,6 +39,39 @@ struct FFTParamsExact
 #pragma pack(pop)
 static_assert(sizeof(FFTParamsExact) == 64, "FFTParamsExact layout must match ff62e7ad shader contract");
 
+struct Float4 { float x; float y; float z; float w; };
+
+#pragma pack(push, 4)
+struct WaterfallRowParamsExact
+{
+    int Width;
+    int Decimation;
+    int PaletteSize;
+    int RowYForDither;
+    int ToneMapMode;
+    int DitherEnabled;
+    int DitherLevels;
+    int Pad0;
+    int IsPaletteScheme;
+    int ApplyGammaToPercent;
+    int IsLinearOutput;
+    int Pad2;
+    float LowThreshold;
+    float HighThreshold;
+    float Dt;
+    float Tau;
+    float Gamma;
+    float InvGamma;
+    float MotionThreshold;
+    float QualityContrast;
+    float SaturationBoost;
+    float ContrastBoost;
+    float PaletteSharpness;
+    float PaletteContrast;
+};
+#pragma pack(pop)
+static_assert(sizeof(WaterfallRowParamsExact) == 96, "WaterfallRowParams exact shader contract must be 96 bytes");
+
 template <class T> static void SafeRelease(T*& p) { if (p) { p->Release(); p = 0; } }
 
 static unsigned Log2Pow2(unsigned n)
@@ -122,8 +155,20 @@ struct ExactState
     ID3D11UnorderedAccessView* fftBUAV = 0;
     ID3D11Buffer* mag = 0;
     ID3D11UnorderedAccessView* magUAV = 0;
+    ID3D11ShaderResourceView* magSRV = 0;
     ID3D11Buffer* magStaging = 0;
     ID3D11Buffer* constants = 0;
+
+    ID3D11ComputeShader* rowShader = 0;
+    ID3D11Buffer* palette = 0;
+    ID3D11ShaderResourceView* paletteSRV = 0;
+    ID3D11Buffer* prevPct = 0;
+    ID3D11UnorderedAccessView* prevPctUAV = 0;
+    ID3D11Texture2D* rowTexture = 0;
+    ID3D11UnorderedAccessView* rowUAV = 0;
+    ID3D11Texture2D* rowStaging = 0;
+    ID3D11Buffer* rowConstants = 0;
+    int ditherRow = 0;
 
     std::vector<Float2> iq;
     std::vector<float> win;
@@ -131,8 +176,18 @@ struct ExactState
     void Release()
     {
         ready = false;
+        SafeRelease(rowConstants);
+        SafeRelease(rowStaging);
+        SafeRelease(rowUAV);
+        SafeRelease(rowTexture);
+        SafeRelease(prevPctUAV);
+        SafeRelease(prevPct);
+        SafeRelease(paletteSRV);
+        SafeRelease(palette);
+        SafeRelease(rowShader);
         SafeRelease(constants);
         SafeRelease(magStaging);
+        SafeRelease(magSRV);
         SafeRelease(magUAV);
         SafeRelease(mag);
         SafeRelease(fftBUAV);
@@ -192,18 +247,45 @@ static HRESULT CreateBufferUAV(ID3D11Device* dev, ID3D11Buffer* buffer, UINT ele
 
 static bool LoadShaders(ExactState& s)
 {
-    std::vector<unsigned char> a,b,c,d;
+    std::vector<unsigned char> a,b,c,d,e;
     if (!ReadFileBytes(L"waterfall_fft_bitreverse_cs.bin", a) ||
         !ReadFileBytes(L"waterfall_fft_stage_ab_cs.bin", b) ||
         !ReadFileBytes(L"waterfall_fft_stage_ba_cs.bin", c) ||
-        !ReadFileBytes(L"waterfall_fft_magnitude_cs.bin", d))
+        !ReadFileBytes(L"waterfall_fft_magnitude_cs.bin", d) ||
+        !ReadFileBytes(L"waterfall_row_cs.bin", e))
         return false;
 
     if (FAILED(s.device->CreateComputeShader(a.data(), a.size(), 0, &s.bitReverse))) return false;
     if (FAILED(s.device->CreateComputeShader(b.data(), b.size(), 0, &s.stageAB))) return false;
     if (FAILED(s.device->CreateComputeShader(c.data(), c.size(), 0, &s.stageBA))) return false;
     if (FAILED(s.device->CreateComputeShader(d.data(), d.size(), 0, &s.magnitude))) return false;
+    if (FAILED(s.device->CreateComputeShader(e.data(), e.size(), 0, &s.rowShader))) return false;
     return true;
+}
+
+static void BuildConsolePalette(std::vector<Float4>& out)
+{
+    struct Stop { float p,r,g,b; };
+    static const Stop stops[] = {
+        {0.00f,0,0,0},{0.12f,0,0,90},{0.25f,0,20,200},{0.38f,0,120,230},
+        {0.48f,0,200,200},{0.55f,40,220,60},{0.65f,200,230,0},{0.72f,255,220,0},
+        {0.80f,255,150,0},{0.88f,245,50,20},{0.95f,255,140,180},{1.00f,255,255,255}
+    };
+    const int nStops = (int)(sizeof(stops)/sizeof(stops[0]));
+    out.resize(256);
+    for (int i=0;i<256;i++)
+    {
+        float p=(float)i/255.0f;
+        const Stop* a=&stops[0]; const Stop* b=&stops[nStops-1];
+        for(int j=0;j<nStops-1;j++) if(p>=stops[j].p && p<=stops[j+1].p){a=&stops[j];b=&stops[j+1];break;}
+        float t=(b->p>a->p)?(p-a->p)/(b->p-a->p):0.0f;
+        if(p<=stops[0].p){a=b=&stops[0];t=0;}
+        if(p>=stops[nStops-1].p){a=b=&stops[nStops-1];t=0;}
+        out[i].x=a->r+(b->r-a->r)*t;
+        out[i].y=a->g+(b->g-a->g)*t;
+        out[i].z=a->b+(b->b-a->b)*t;
+        out[i].w=1.0f;
+    }
 }
 
 static void BuildWindow(ExactState& s)
@@ -279,7 +361,8 @@ extern "C" __declspec(dllexport) int __cdecl CM_GPUWaterfallExact_Init(int chann
         FAILED(CreateStructuredBuffer(s.device, (UINT)fftSize * 8u, 8u, D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS, &s.fftB)) ||
         FAILED(CreateBufferUAV(s.device, s.fftB, (UINT)fftSize, &s.fftBUAV)) ||
         FAILED(CreateStructuredBuffer(s.device, (UINT)displayWidth * 4u, 4u, D3D11_BIND_SHADER_RESOURCE | D3D11_BIND_UNORDERED_ACCESS, &s.mag)) ||
-        FAILED(CreateBufferUAV(s.device, s.mag, (UINT)displayWidth, &s.magUAV)))
+        FAILED(CreateBufferUAV(s.device, s.mag, (UINT)displayWidth, &s.magUAV)) ||
+        FAILED(CreateBufferSRV(s.device, s.mag, (UINT)displayWidth, &s.magSRV)))
     {
         s.Release(); return 0;
     }
@@ -295,6 +378,49 @@ extern "C" __declspec(dllexport) int __cdecl CM_GPUWaterfallExact_Init(int chann
     cb.Usage = D3D11_USAGE_DEFAULT;
     cb.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
     if (FAILED(s.device->CreateBuffer(&cb, 0, &s.constants))) { s.Release(); return 0; }
+
+    // Exact ff62e7ad waterfall_row_cs.bin resources. Only one coloured row is
+    // produced here; history/scroll remains owned by the SDR-VST3 D2D path.
+    std::vector<Float4> paletteData;
+    BuildConsolePalette(paletteData);
+    if (FAILED(CreateStructuredBuffer(s.device, 256u * 16u, 16u, D3D11_BIND_SHADER_RESOURCE, &s.palette)) ||
+        FAILED(CreateBufferSRV(s.device, s.palette, 256u, &s.paletteSRV)) ||
+        FAILED(CreateStructuredBuffer(s.device, (UINT)displayWidth * 16u, 16u, D3D11_BIND_UNORDERED_ACCESS, &s.prevPct)) ||
+        FAILED(CreateBufferUAV(s.device, s.prevPct, (UINT)displayWidth, &s.prevPctUAV)))
+    {
+        s.Release(); return 0;
+    }
+    s.context->UpdateSubresource(s.palette, 0, 0, paletteData.data(), 0, 0);
+    const float zeros[4] = {0,0,0,0};
+    s.context->ClearUnorderedAccessViewFloat(s.prevPctUAV, zeros);
+
+    D3D11_TEXTURE2D_DESC td = {};
+    td.Width = (UINT)displayWidth;
+    td.Height = 1;
+    td.MipLevels = 1;
+    td.ArraySize = 1;
+    td.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+    td.SampleDesc.Count = 1;
+    td.Usage = D3D11_USAGE_DEFAULT;
+    td.BindFlags = D3D11_BIND_UNORDERED_ACCESS;
+    if (FAILED(s.device->CreateTexture2D(&td, 0, &s.rowTexture))) { s.Release(); return 0; }
+
+    D3D11_UNORDERED_ACCESS_VIEW_DESC ruv = {};
+    ruv.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+    ruv.ViewDimension = D3D11_UAV_DIMENSION_TEXTURE2D;
+    ruv.Texture2D.MipSlice = 0;
+    if (FAILED(s.device->CreateUnorderedAccessView(s.rowTexture, &ruv, &s.rowUAV))) { s.Release(); return 0; }
+
+    td.Usage = D3D11_USAGE_STAGING;
+    td.BindFlags = 0;
+    td.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+    if (FAILED(s.device->CreateTexture2D(&td, 0, &s.rowStaging))) { s.Release(); return 0; }
+
+    D3D11_BUFFER_DESC rcb = {};
+    rcb.ByteWidth = 96;
+    rcb.Usage = D3D11_USAGE_DEFAULT;
+    rcb.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    if (FAILED(s.device->CreateBuffer(&rcb, 0, &s.rowConstants))) { s.Release(); return 0; }
 
     s.iq.resize((size_t)fftSize);
     BuildWindow(s);
@@ -400,6 +526,64 @@ extern "C" __declspec(dllexport) int __cdecl CM_GPUWaterfallExact_Process(
     if (FAILED(hr) || !mapped.pData) return -3;
     memcpy(outputDb, mapped.pData, (size_t)s.displayWidth * sizeof(float));
     s.context->Unmap(s.magStaging, 0);
+    return 1;
+}
+
+extern "C" __declspec(dllexport) int __cdecl CM_GPUWaterfallExact_RenderRow(
+    int channel, float lowThreshold, float highThreshold, unsigned char* outputBGRA, int outputBytes)
+{
+    if (channel < 0 || channel >= EXACT_WF_MAX_CHANNELS || !outputBGRA) return -1;
+    ExactState& s = g_exact[channel];
+    if (!s.ready || !s.rowShader || !s.magSRV || !s.paletteSRV || !s.rowUAV ||
+        !s.prevPctUAV || !s.rowConstants || !s.rowStaging) return -2;
+    if (outputBytes < s.displayWidth * 4) return -3;
+
+    WaterfallRowParamsExact p = {};
+    p.Width = s.displayWidth;
+    p.Decimation = 1;
+    p.PaletteSize = 256;
+    p.RowYForDither = s.ditherRow & 7;
+    p.ToneMapMode = 0;
+    p.DitherEnabled = 0;
+    p.DitherLevels = 255;
+    p.IsPaletteScheme = 1;
+    p.ApplyGammaToPercent = 0; // ff62e7ad: false for Console 256
+    p.IsLinearOutput = 0;       // BGRA8 path
+    p.LowThreshold = lowThreshold;
+    p.HighThreshold = highThreshold;
+    p.Dt = 0.0f;
+    p.Tau = 0.0f;               // temporal disabled by ff62e7ad default
+    p.Gamma = 1.0f;
+    p.InvGamma = 1.0f;
+    p.MotionThreshold = 0.05f;
+    p.QualityContrast = 0.0f;
+    p.SaturationBoost = 0.0f;
+    p.ContrastBoost = 0.0f;
+    p.PaletteSharpness = 0.0f;
+    p.PaletteContrast = 0.0f;
+
+    s.context->UpdateSubresource(s.rowConstants, 0, 0, &p, 0, 0);
+    s.context->CSSetShader(s.rowShader, 0, 0);
+    ID3D11ShaderResourceView* srvs[2] = { s.magSRV, s.paletteSRV };
+    s.context->CSSetShaderResources(0, 2, srvs);
+    ID3D11UnorderedAccessView* uavs[2] = { s.rowUAV, s.prevPctUAV };
+    s.context->CSSetUnorderedAccessViews(0, 2, uavs, 0);
+    s.context->CSSetConstantBuffers(0, 1, &s.rowConstants);
+    s.context->Dispatch(((UINT)s.displayWidth + 255u) / 256u, 1, 1);
+
+    ID3D11UnorderedAccessView* clearU[2] = {0,0};
+    ID3D11ShaderResourceView* clearS[2] = {0,0};
+    s.context->CSSetUnorderedAccessViews(0, 2, clearU, 0);
+    s.context->CSSetShaderResources(0, 2, clearS);
+    s.context->CSSetShader(0,0,0);
+
+    s.context->CopyResource(s.rowStaging, s.rowTexture);
+    D3D11_MAPPED_SUBRESOURCE mapped = {};
+    HRESULT hr = s.context->Map(s.rowStaging, 0, D3D11_MAP_READ, 0, &mapped);
+    if (FAILED(hr) || !mapped.pData) return -4;
+    memcpy(outputBGRA, mapped.pData, (size_t)s.displayWidth * 4u);
+    s.context->Unmap(s.rowStaging, 0);
+    ++s.ditherRow;
     return 1;
 }
 
