@@ -92,7 +92,7 @@ namespace Thetis
 
         /// <summary>Master gate: experimental GPU mesh toggle, hardware path only.
         /// Force-CPU / WARP sessions never arm any mesh path.</summary>
-        private static bool _sq4kouWaterfallMeshEnabled = true;
+        private static bool _sq4kouWaterfallMeshEnabled = false;
 
         private static bool WfMeshArmed
         {
