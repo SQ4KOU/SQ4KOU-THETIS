@@ -64,6 +64,35 @@ jobs:
           Write-Host "MSI: $($msi.FullName)"
           "path=$($msi.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
+      - name: Validate MSI database
+        shell: pwsh
+        run: |
+          $msiPath = "${{ steps.msi.outputs.path }}"
+          if (-not (Test-Path -LiteralPath $msiPath)) { throw "MSI path does not exist: $msiPath" }
+
+          $installer = New-Object -ComObject WindowsInstaller.Installer
+          try {
+            $db = $installer.OpenDatabase($msiPath, 0)
+            if (-not $db) { throw "Windows Installer could not open MSI database" }
+            $view = $db.OpenView("SELECT \`Value\` FROM \`Property\` WHERE \`Property\`='ProductName'")
+            $view.Execute()
+            $record = $view.Fetch()
+            $productName = if ($record) { $record.StringData(1) } else { "<unknown>" }
+            $view.Close()
+
+            $hash = (Get-FileHash -Algorithm SHA256 -LiteralPath $msiPath).Hash
+            $size = (Get-Item -LiteralPath $msiPath).Length
+            Write-Host "PASS: Windows Installer opened MSI database"
+            Write-Host "ProductName: $productName"
+            Write-Host "Size: $size bytes"
+            Write-Host "SHA256: $hash"
+          }
+          finally {
+            if ($view) { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($view) }
+            if ($db) { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($db) }
+            if ($installer) { [void][Runtime.InteropServices.Marshal]::FinalReleaseComObject($installer) }
+          }
+
       - name: Upload test MSI
         uses: actions/upload-artifact@v4
         with:
