@@ -90,7 +90,7 @@ namespace Thetis
         /// <summary>Experimental GPU compute shader toggle (session only).
         /// When true and the render path is Hardware, the colour conversion
         /// and spectrum normalisation are offloaded to D3D11 compute shaders.</summary>
-        private static bool _gpuComputeEnabled = true;
+        private static bool _gpuComputeEnabled = false;
         private static string _gpuComputeProbeStatus = "not tested";
         private static string _gpuComputeWaterfallStatus = "CPU COLOR";
 
