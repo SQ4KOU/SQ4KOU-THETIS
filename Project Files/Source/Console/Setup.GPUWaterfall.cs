@@ -26,7 +26,7 @@ namespace Thetis
         private TrackBarTS tbPalSharp, tbPalContrast;
         private LabelTS lblPalSharpVal, lblPalContrastVal;
 
-        private CheckBoxTS chkGPUColorCompute, chkSQ4KOUWaterfallMesh, chkSQ4KOUDiagLog;
+        private CheckBoxTS chkGPUColorCompute;
         private LabelTS lblGPUInfo;
         private ButtonTS btnTestGPU;
 
