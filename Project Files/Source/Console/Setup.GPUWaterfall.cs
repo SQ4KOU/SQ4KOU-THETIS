@@ -29,7 +29,6 @@ namespace Thetis
         private LabelTS lblGPUWaterfallMagnitudeMode; private ComboBoxTS comboGPUWaterfallMagnitudeMode; private LabelTS lblGPUWaterfallOverlap; private NumericUpDownTS udGPUWaterfallOverlap;
         private CheckBoxTS chkGPUWaterfallAutoOverlap; private LabelTS lblGPUWaterfallEffectiveOverlap; private LabelTS lblGPUWaterfallLanczos; private ComboBoxTS comboGPUWaterfallLanczos;
         private ComboBoxTS comboGPUWaterfallResampling;
-        private CheckBoxTS chkSQ4KOUWaterfallMesh; private CheckBoxTS chkSQ4KOUDiagLog;
 
 
         // SQ4KOU test: exact Setup > Display > Waterfall window recovered from
