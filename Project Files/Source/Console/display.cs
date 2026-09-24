@@ -8335,7 +8335,8 @@ namespace Thetis
             float noiseFloorCompensationTarget = useNoiseFloorCompensation ? getWaterfallNoiseFloorCompensationTarget(rx) : WATERFALL_AGC_RESTART_FLOOR_DBM;
 
             bool bDoVisualNotch = false;
-            int nDecimatedWidth = W / m_nDecimation;
+            int waterfallDecimation = m_nDecimation;
+            int nDecimatedWidth = W / waterfallDecimation;
 
             if (console.PowerOn != _old_power)
             {
@@ -8492,12 +8493,24 @@ namespace Thetis
                         dataCopy = current_waterfall_data_bottom_copy;
                     }
 
+                    bool usingSharpWaterfall = false;
+                    if (!local_mox &&
+                        TryGetSharpWaterfallData(rx, W, dataCopy, nDecimatedWidth,
+                            out float[] sharpData, out float[] sharpDataCopy))
+                    {
+                        data = sharpData;
+                        dataCopy = sharpDataCopy;
+                        waterfallDecimation = 1;
+                        nDecimatedWidth = W;
+                        usingSharpWaterfall = true;
+                    }
+
                     float max;
                     float max_copy;
 
                     if (!local_mox)
                     {
-                        if (bDoVisualNotch && m_bShowVisualNotch)
+                        if (!usingSharpWaterfall && bDoVisualNotch && m_bShowVisualNotch)
                         {
                             // modify the data for visual notches
                             modifyDataForNotches(ref data, rx, bottom, local_mox, displayduplex, W);
@@ -8532,7 +8545,7 @@ namespace Thetis
                         if (max_copy > local_max_y)
                         {
                             local_max_y = max_copy; //[2.10.3.9]MW0LGE changed from max
-                            max_x = i * m_nDecimation;
+                            max_x = i * waterfallDecimation;
                         }
 
                         //below added by w3sz
@@ -8660,10 +8673,10 @@ namespace Thetis
                                         waterfall_minimum = dataCopy[i] + fOffset;
 
                                     // set pixel color
-                                    row[(i * m_nDecimation) * pixel_size + 0] = (byte)B;    // set color in memory
-                                    row[(i * m_nDecimation) * pixel_size + 1] = (byte)G;
-                                    row[(i * m_nDecimation) * pixel_size + 2] = (byte)R;
-                                    row[(i * m_nDecimation) * pixel_size + 3] = nbBitmapAlpaha;
+                                    row[(i * waterfallDecimation) * pixel_size + 0] = (byte)B;    // set color in memory
+                                    row[(i * waterfallDecimation) * pixel_size + 1] = (byte)G;
+                                    row[(i * waterfallDecimation) * pixel_size + 2] = (byte)R;
+                                    row[(i * waterfallDecimation) * pixel_size + 3] = nbBitmapAlpaha;
                                 }
                             }
                             break;
@@ -8752,10 +8765,10 @@ namespace Thetis
                                         waterfall_minimum = dataCopy[i] + fOffset;
 
                                     // set pixel color
-                                    row[(i * m_nDecimation) * pixel_size + 0] = (byte)B;    // set color in memory
-                                    row[(i * m_nDecimation) * pixel_size + 1] = (byte)G;
-                                    row[(i * m_nDecimation) * pixel_size + 2] = (byte)R;
-                                    row[(i * m_nDecimation) * pixel_size + 3] = nbBitmapAlpaha;
+                                    row[(i * waterfallDecimation) * pixel_size + 0] = (byte)B;    // set color in memory
+                                    row[(i * waterfallDecimation) * pixel_size + 1] = (byte)G;
+                                    row[(i * waterfallDecimation) * pixel_size + 2] = (byte)R;
+                                    row[(i * waterfallDecimation) * pixel_size + 3] = nbBitmapAlpaha;
                                 }
                             }
                             break;
@@ -8834,10 +8847,10 @@ namespace Thetis
                                         waterfall_minimum = dataCopy[i] + fOffset;
 
                                     // set pixel color
-                                    row[(i * m_nDecimation) * pixel_size + 0] = (byte)B;    // set color in memory
-                                    row[(i * m_nDecimation) * pixel_size + 1] = (byte)G;
-                                    row[(i * m_nDecimation) * pixel_size + 2] = (byte)R;
-                                    row[(i * m_nDecimation) * pixel_size + 3] = nbBitmapAlpaha;
+                                    row[(i * waterfallDecimation) * pixel_size + 0] = (byte)B;    // set color in memory
+                                    row[(i * waterfallDecimation) * pixel_size + 1] = (byte)G;
+                                    row[(i * waterfallDecimation) * pixel_size + 2] = (byte)R;
+                                    row[(i * waterfallDecimation) * pixel_size + 3] = nbBitmapAlpaha;
                                 }
                             }
                             break;
@@ -8873,10 +8886,10 @@ namespace Thetis
                                         waterfall_minimum = dataCopy[i] + fOffset;
 
                                     // set pixel color
-                                    row[(i * m_nDecimation) * pixel_size + 0] = (byte)B;    // set color in memory
-                                    row[(i * m_nDecimation) * pixel_size + 1] = (byte)G;
-                                    row[(i * m_nDecimation) * pixel_size + 2] = (byte)R;
-                                    row[(i * m_nDecimation) * pixel_size + 3] = nbBitmapAlpaha;
+                                    row[(i * waterfallDecimation) * pixel_size + 0] = (byte)B;    // set color in memory
+                                    row[(i * waterfallDecimation) * pixel_size + 1] = (byte)G;
+                                    row[(i * waterfallDecimation) * pixel_size + 2] = (byte)R;
+                                    row[(i * waterfallDecimation) * pixel_size + 3] = nbBitmapAlpaha;
                                 }
                             }
                             break;
@@ -9083,10 +9096,10 @@ namespace Thetis
 
                                     // set pixel color changed by w3sz
                                     //[2.10.3.5]MW0LGE note these are reverse RGB, we normally expect BGRA #289
-                                    row[(i * m_nDecimation) * pixel_size + 0] = (byte)R;    // set color in memory
-                                    row[(i * m_nDecimation) * pixel_size + 1] = (byte)G;
-                                    row[(i * m_nDecimation) * pixel_size + 2] = (byte)B;
-                                    row[(i * m_nDecimation) * pixel_size + 3] = nbBitmapAlpaha;
+                                    row[(i * waterfallDecimation) * pixel_size + 0] = (byte)R;    // set color in memory
+                                    row[(i * waterfallDecimation) * pixel_size + 1] = (byte)G;
+                                    row[(i * waterfallDecimation) * pixel_size + 2] = (byte)B;
+                                    row[(i * waterfallDecimation) * pixel_size + 3] = nbBitmapAlpaha;
                                 }
                             }
                             break;
@@ -9288,10 +9301,10 @@ namespace Thetis
                                         waterfall_minimum = dataCopy[i] + fOffset;
 
                                     //[2.10.3.5]MW0LGE note these are reverse RGB, we normally expect BGRA #289
-                                    row[(i * m_nDecimation) * pixel_size + 0] = (byte)R;    // set color in memory
-                                    row[(i * m_nDecimation) * pixel_size + 1] = (byte)G;
-                                    row[(i * m_nDecimation) * pixel_size + 2] = (byte)B;
-                                    row[(i * m_nDecimation) * pixel_size + 3] = nbBitmapAlpaha;
+                                    row[(i * waterfallDecimation) * pixel_size + 0] = (byte)R;    // set color in memory
+                                    row[(i * waterfallDecimation) * pixel_size + 1] = (byte)G;
+                                    row[(i * waterfallDecimation) * pixel_size + 2] = (byte)B;
+                                    row[(i * waterfallDecimation) * pixel_size + 3] = nbBitmapAlpaha;
                                 }
                             }
                             break;
@@ -9494,10 +9507,10 @@ namespace Thetis
 
                                     // set pixel color changed by w3sz
                                     //[2.10.3.5]MW0LGE note these are reverse RGB, we normally expect BGRA #289
-                                    row[(i * m_nDecimation) * pixel_size + 0] = (byte)R;    // set color in memory
-                                    row[(i * m_nDecimation) * pixel_size + 1] = (byte)G;
-                                    row[(i * m_nDecimation) * pixel_size + 2] = (byte)B;
-                                    row[(i * m_nDecimation) * pixel_size + 3] = nbBitmapAlpaha;
+                                    row[(i * waterfallDecimation) * pixel_size + 0] = (byte)R;    // set color in memory
+                                    row[(i * waterfallDecimation) * pixel_size + 1] = (byte)G;
+                                    row[(i * waterfallDecimation) * pixel_size + 2] = (byte)B;
+                                    row[(i * waterfallDecimation) * pixel_size + 3] = nbBitmapAlpaha;
                                 }
                             }
                             break;
@@ -9507,12 +9520,12 @@ namespace Thetis
                     // fill pixels into decimation spaces so we dont have gaps
                     for (int i = 0; i < nDecimatedWidth; i++)
                     {
-                        for (int j = 1; j < m_nDecimation; j++)
+                        for (int j = 1; j < waterfallDecimation; j++)
                         {
-                            row[((i * m_nDecimation) + j) * pixel_size + 0] = row[(i * m_nDecimation) * pixel_size + 0];
-                            row[((i * m_nDecimation) + j) * pixel_size + 1] = row[(i * m_nDecimation) * pixel_size + 1];
-                            row[((i * m_nDecimation) + j) * pixel_size + 2] = row[(i * m_nDecimation) * pixel_size + 2];
-                            row[((i * m_nDecimation) + j) * pixel_size + 3] = row[(i * m_nDecimation) * pixel_size + 3];
+                            row[((i * waterfallDecimation) + j) * pixel_size + 0] = row[(i * waterfallDecimation) * pixel_size + 0];
+                            row[((i * waterfallDecimation) + j) * pixel_size + 1] = row[(i * waterfallDecimation) * pixel_size + 1];
+                            row[((i * waterfallDecimation) + j) * pixel_size + 2] = row[(i * waterfallDecimation) * pixel_size + 2];
+                            row[((i * waterfallDecimation) + j) * pixel_size + 3] = row[(i * waterfallDecimation) * pixel_size + 3];
                         }
                     }
 
@@ -9528,7 +9541,7 @@ namespace Thetis
                         float linCor = (cScheme == ColorScheme.LinLog) ? LinLogCor :
                                        (cScheme == ColorScheme.LinRad || cScheme == ColorScheme.LinAuto) ? LinCor : 0f;
                         bComputeFilledRow = TryDispatchWaterfallCompute(waterfall_data, row, W,
-                            nDecimatedWidth, m_nDecimation, cScheme, low_threshold, high_threshold,
+                            nDecimatedWidth, waterfallDecimation, cScheme, low_threshold, high_threshold,
                             linCor, rx == 2, local_mox);
                     }
 
