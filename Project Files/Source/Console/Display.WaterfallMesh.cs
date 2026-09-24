@@ -96,7 +96,7 @@ namespace Thetis
 
         private static bool WfMeshArmed
         {
-            get { return _sq4kouWaterfallMeshEnabled && m_eRenderPath == DXRenderPath.Hardware && _device != null && _bDX2Setup; }
+            get { return _sq4kouWaterfallMeshEnabled && WaterfallEnhancer.Depth == WaterfallEnhancer.ColorDepth.Bit8 && m_eRenderPath == DXRenderPath.Hardware && _device != null && _bDX2Setup; }
         }
 
         /// <summary>True while the GPU ring owns presentation of this rx's pane (the
