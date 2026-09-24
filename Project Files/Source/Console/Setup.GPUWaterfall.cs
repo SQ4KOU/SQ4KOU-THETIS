@@ -629,8 +629,18 @@ namespace Thetis
 		// code did that indirectly through High render quality, which could let an
 		// unsupported/partially initialized compute surface cover the spectrum.
 		int effectiveTarget = requestedTarget;
-		if (effectiveTarget >= 2 && !hasCustomShaders)
-			effectiveTarget = hasBuiltInEffects ? 1 : 0;
+		string level2Probe = "";
+		if (effectiveTarget >= 2)
+		{
+			if (!hasCustomShaders)
+			{
+				effectiveTarget = hasBuiltInEffects ? 1 : 0;
+			}
+			else if (!Display.ProbeSQ4KOUHighResPipeline(out level2Probe))
+			{
+				effectiveTarget = hasBuiltInEffects ? 1 : 0;
+			}
+		}
 		if (effectiveTarget >= 1 && !hasBuiltInEffects)
 			effectiveTarget = 0;
 
@@ -661,7 +671,8 @@ namespace Thetis
 		{
 			if (requestedTarget >= 2 && effectiveTarget < 2)
 			{
-				MessageBox.Show("Custom HLSL shaders (Level 2) are not available.\nUsing Level 1 (Built-in Effects) instead.", "GPU Acceleration", MessageBoxButtons.OK, MessageBoxIcon.Asterisk, MessageBoxDefaultButton.Button1, (MessageBoxOptions)262144);
+				string why = string.IsNullOrEmpty(level2Probe) ? "Custom HLSL shaders (Level 2) are not available." : level2Probe;
+				MessageBox.Show(why + "\nUsing Level 1 (Built-in Effects) instead.", "GPU Acceleration", MessageBoxButtons.OK, MessageBoxIcon.Asterisk, MessageBoxDefaultButton.Button1, (MessageBoxOptions)262144);
 			}
 			else if (requestedTarget >= 1 && effectiveTarget == 0)
 			{
@@ -865,7 +876,9 @@ namespace Thetis
 	private void btnTestGPU_Click(object sender, EventArgs e)
 	{
 		UpdateGPUInfoLabel();
-		MessageBox.Show("GPU: " + (Display.GPUName ?? "unknown") + "\nDetected Level: " + Display.GPUDetectionLevel + "\nFeatures: " + (GPUDetector.FeaturesList ?? "(none)") + "\nHasDeviceContext: " + GPUDetector.HasDeviceContext + "\nHasBuiltInEffects: " + GPUDetector.HasBuiltInEffects + "\nHasCustomShaders: " + GPUDetector.HasCustomShaders + "\n\nDirect3D11 / DirectCompute detection result.", "GPU Test", MessageBoxButtons.OK, MessageBoxIcon.Asterisk, MessageBoxDefaultButton.Button1, (MessageBoxOptions)262144);
+		string level2Status;
+		bool level2Pass = Display.ProbeSQ4KOUHighResPipeline(out level2Status);
+		MessageBox.Show("GPU: " + (Display.GPUName ?? "unknown") + "\nDetected Level: " + Display.GPUDetectionLevel + "\nFeatures: " + (GPUDetector.FeaturesList ?? "(none)") + "\nHasDeviceContext: " + GPUDetector.HasDeviceContext + "\nHasBuiltInEffects: " + GPUDetector.HasBuiltInEffects + "\nHasCustomShaders: " + GPUDetector.HasCustomShaders + "\nLevel 2 self-test: " + (level2Pass ? "PASS" : "FAIL") + "\n" + level2Status, "GPU Test", MessageBoxButtons.OK, level2Pass ? MessageBoxIcon.Information : MessageBoxIcon.Warning, MessageBoxDefaultButton.Button1, (MessageBoxOptions)262144);
 	}
 
 
