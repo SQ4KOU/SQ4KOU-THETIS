@@ -120,8 +120,6 @@
     <ClInclude Include="bandwidth_monitor.h" />
     <ClInclude Include="cmasio.h" />
     <ClInclude Include="cmaster.h" />
-    <ClInclude Include="waterfall_iq.h" />
-    <ClInclude Include="gpu_waterfall.h" />
     <ClInclude Include="cmbuffs.h" />
     <ClInclude Include="cmcomm.h" />
     <ClInclude Include="cmsetup.h" />
@@ -158,11 +156,6 @@
     <ClCompile Include="bandwidth_monitor.c" />
     <ClCompile Include="cmasio.c" />
     <ClCompile Include="cmaster.c" />
-    <ClCompile Include="waterfall_iq.c" />
-    <ClCompile Include="gpu_waterfall.cpp">
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">CompileAsCpp</CompileAs>
-      <CompileAs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">CompileAsCpp</CompileAs>
-    </ClCompile>
     <ClCompile Include="cmbuffs.c" />
     <ClCompile Include="cmsetup.c" />
     <ClCompile Include="ilv.c" />
