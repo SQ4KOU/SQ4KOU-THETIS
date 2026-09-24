@@ -16760,6 +16760,13 @@ namespace Thetis
         private void tbDisplayFFTSize_Scroll(object sender, EventArgs e)
         {
             if (initializing) return;
+
+            // SQ4KOU waterfall HQ: use the analyzer's maximum FFT while a waterfall is visible.
+            // This increases frequency-domain detail at high zoom without changing waterfall geometry.
+            if ((Display.CurrentDisplayMode == DisplayMode.WATERFALL || Display.CurrentDisplayMode == DisplayMode.PANAFALL) &&
+                tbDisplayFFTSize.Value < tbDisplayFFTSize.Maximum)
+                tbDisplayFFTSize.Value = tbDisplayFFTSize.Maximum;
+
             if (console._spectrum_mutex != null) console._spectrum_mutex.WaitOne();
 
             int old_fft = console.specRX.GetSpecRX(0).FFTSize;
@@ -16786,6 +16793,12 @@ namespace Thetis
         private void tbRX2DisplayFFTSize_Scroll(object sender, EventArgs e)
         {
             if (initializing) return;
+
+            // SQ4KOU waterfall HQ: RX2 waterfall uses the maximum FFT as well.
+            if ((Display.CurrentDisplayModeBottom == DisplayMode.WATERFALL || Display.CurrentDisplayModeBottom == DisplayMode.PANAFALL) &&
+                tbRX2DisplayFFTSize.Value < tbRX2DisplayFFTSize.Maximum)
+                tbRX2DisplayFFTSize.Value = tbRX2DisplayFFTSize.Maximum;
+
             if (console._spectrum_mutex != null) console._spectrum_mutex.WaitOne();
 
             int old_fft = console.specRX.GetSpecRX(1).FFTSize;
@@ -18753,6 +18766,15 @@ namespace Thetis
 
         private void tbTXDisplayFFTSize_Scroll(object sender, EventArgs e)
         {
+            // SQ4KOU waterfall HQ: keep TX waterfall resolution aligned with RX.
+            bool waterfallVisible =
+                Display.CurrentDisplayMode == DisplayMode.WATERFALL ||
+                Display.CurrentDisplayMode == DisplayMode.PANAFALL ||
+                Display.CurrentDisplayModeBottom == DisplayMode.WATERFALL ||
+                Display.CurrentDisplayModeBottom == DisplayMode.PANAFALL;
+            if (waterfallVisible && tbTXDisplayFFTSize.Value < tbTXDisplayFFTSize.Maximum)
+                tbTXDisplayFFTSize.Value = tbTXDisplayFFTSize.Maximum;
+
             console.specRX.GetSpecRX(cmaster.inid(1, 0)).FFTSize = (int)(4096 * Math.Pow(2, Math.Floor((double)(tbTXDisplayFFTSize.Value))));
             console.UpdateTXSpectrumDisplayVars();
             double bin_width = (double)console.specRX.GetSpecRX(cmaster.inid(1, 0)).SampleRate / (double)console.specRX.GetSpecRX(cmaster.inid(1, 0)).FFTSize;
