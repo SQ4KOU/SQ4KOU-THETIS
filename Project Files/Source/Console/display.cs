@@ -3494,8 +3494,22 @@ namespace Thetis
             set
             {
                 if (m_bForceCPURendering == value) return;
-                if (value) CaptureForceCpuGPUState();
-                m_bForceCPURendering = value;
+
+                if (value)
+                {
+                    CaptureForceCpuGPUState();
+                    m_bForceCPURendering = true;
+                    try { SetNativeWaterfallIQEnabled(false); } catch { }
+                }
+                else
+                {
+                    m_bForceCPURendering = false;
+                    RestoreForceCpuGPUStateAfterRestart();
+                }
+
+                // Force CPU must not replace the shared HW D2D device with WARP.
+                // It only gates GPU waterfall/effects while the normal renderer stays alive.
+                m_bDXRestartPending = false;
             }
         }
 
