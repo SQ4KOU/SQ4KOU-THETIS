@@ -159,6 +159,7 @@
     <Compile Include="WaterfallPalette.cs" />
     <Compile Include="WaterfallPixelWriter.cs" />
     <Compile Include="WaterfallRowParams.cs" />
+    <Compile Include="ZoomAdaptive.cs" />
     <Compile Include="frmCFCConfig.cs">
       <SubType>Form</SubType>
     </Compile>
