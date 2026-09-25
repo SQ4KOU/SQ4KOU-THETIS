@@ -909,9 +909,12 @@ namespace Thetis
 		_paletteItemsUpdating = true;
 		try
 		{
-			UpdateOnePaletteCombo(comboColorPalette, gpuMode);
-			UpdateOnePaletteCombo(comboRX2ColorPalette, gpuMode);
-			UpdateOnePaletteCombo(comboColorPalette_tx, gpuMode);
+            // Keep palette selection independent from CPU/GPU execution mode.
+            // The exact native GPU path feeds magnitude data back into the normal
+            // palette renderer, so every palette remains valid and must persist.
+			UpdateOnePaletteCombo(comboColorPalette, false);
+			UpdateOnePaletteCombo(comboRX2ColorPalette, false);
+			UpdateOnePaletteCombo(comboColorPalette_tx, false);
 		}
 		finally
 		{
@@ -959,7 +962,7 @@ namespace Thetis
 		if (lblWaterfallRenderQualityHint != null && comboWaterfallRenderQuality != null)
 		{
 			bool flag = WaterfallEnhancer.Depth == WaterfallEnhancer.ColorDepth.Bit16;
-			bool gPUEffectsEnabled = Display.GPUEffectsEnabled;
+			bool gPUEffectsEnabled = Display.GPUEffectsEnabled && !Display.ForceCPURendering;
 			switch (comboWaterfallRenderQuality.SelectedItem as string)
 			{
 			case "Low":
@@ -1169,10 +1172,10 @@ namespace Thetis
     {
         if (initializing || comboWaterfallColorDepth == null || comboWaterfallColorDepth.SelectedIndex < 0) return;
 
-        WaterfallEnhancer.SetColorDepth(comboWaterfallColorDepth.SelectedIndex == 1
+        WaterfallEnhancer.ColorDepth depth = comboWaterfallColorDepth.SelectedIndex == 1
             ? WaterfallEnhancer.ColorDepth.Bit16
-            : WaterfallEnhancer.ColorDepth.Bit8);
-        WaterfallPixelWriter.UpdateFormat();
+            : WaterfallEnhancer.ColorDepth.Bit8;
+        Display.ApplyWaterfallColorDepth(depth);
         Display.NotifyGPUWaterfallColorDepthChanged();
         UpdateWaterfallRenderQualityHint();
         PersistWaterfallPaletteSettings();
