@@ -878,6 +878,7 @@ namespace Thetis
                 if (rx1_waterfall_agc && !m_bRX1_spectrum_thresholds)
                     lo = _RX1waterfallPreviousMinValue - m_fWaterfallAGCOffsetRX1;
             }
+            ApplyWaterfallProThresholds(rx, false, ref lo, ref hi);
             return hi - lo > 0;
         }
 
