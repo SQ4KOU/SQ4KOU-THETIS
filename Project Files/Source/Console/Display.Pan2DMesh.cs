@@ -159,7 +159,12 @@ namespace Thetis
 
         private static bool SpecMeshArmed
         {
-            get { return GpuMeshEnabled && m_eRenderPath == DXRenderPath.Hardware && _device != null && _bDX2Setup; }
+            get
+            {
+                return ExperimentalSharedBackbufferMeshesEnabled && GpuMeshEnabled &&
+                    !m_bForceCPURendering && m_eRenderPath == DXRenderPath.Hardware &&
+                    _device != null && _bDX2Setup;
+            }
         }
 
         /// <summary>Releases the D2D-side wrappers only - used on render-target
