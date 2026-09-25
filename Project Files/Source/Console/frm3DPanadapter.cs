@@ -72,7 +72,8 @@ namespace Thetis
 
         public void ApplyRenderPathLimits()
         {
-            bool bCap = Display.RenderPath == Display.DXRenderPath.WarpSoftware;
+            bool bCap = Display.ForceCPURendering ||
+                (Display.RenderPath == Display.DXRenderPath.WarpSoftware && !Display.DXRestartPending);
 
             _initializing = true;
 

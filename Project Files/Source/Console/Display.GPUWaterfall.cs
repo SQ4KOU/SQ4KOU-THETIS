@@ -106,6 +106,14 @@ namespace Thetis
         private static IntPtr _gpuSharpDevicePtr = IntPtr.Zero;
         private static IntPtr _gpuSharpD2DPtr = IntPtr.Zero;
         private static bool _gpuInteropResetPending = false;
+
+        // UI controls can change waterfall GPU modes while RenderDX2D owns _objDX2Lock.
+        // Never block the UI waiting for that render lock; queue state clears and apply
+        // them at the end of a completed frame.
+        private static readonly object _gpuStateResetRequestLock = new object();
+        private static readonly bool[] _gpuStateResetPending = new bool[2];
+        private static readonly bool[] _gpuStateResetCalibrationPending = new bool[2];
+
         private static SharpDX.Direct2D1.Factory1 _gpuSharpFactory;
         private static IntPtr _gpuSharpFactoryPtr = IntPtr.Zero;
 
@@ -135,8 +143,9 @@ namespace Thetis
                     catch
                     {
                     }
-                    ResetWaterfallBmp();
-                    ResetWaterfallBmp2();
+                    // Do not recreate D2D bitmaps from the Setup/UI thread.
+                    // CPU/GPU mode switching only gates the pipeline; the existing
+                    // waterfall bitmap remains valid on both paths.
                     ResetGPUWaterfallState(1);
                     ResetGPUWaterfallState(2);
                 }
@@ -415,12 +424,8 @@ namespace Thetis
             return _gpuSharpD2D;
         }
 
-        internal static void ProcessPendingGPUInteropResetAfterFrame()
+        private static void ReleaseManagedGPUInteropResourcesCore()
         {
-            if (!_gpuInteropResetPending) return;
-
-            // Called only after EndDraw + Present, while RenderDX2D still owns
-            // _objDX2Lock. No managed GPU resource is in use at this point.
             try { _waterfallGPU1?.Dispose(); } catch { }
             try { _waterfallGPU2?.Dispose(); } catch { }
             _waterfallGPU1 = null;
@@ -435,16 +440,35 @@ namespace Thetis
             _gpuSharpD2D = null;
             _gpuSharpD2DPtr = IntPtr.Zero;
 
+            try { _gpuSharpFactory?.Dispose(); } catch { }
+            _gpuSharpFactory = null;
+            _gpuSharpFactoryPtr = IntPtr.Zero;
+
             try { _gpuSharpDevice?.Dispose(); } catch { }
             _gpuSharpDevice = null;
             _gpuSharpDevicePtr = IntPtr.Zero;
 
             _gpuRendererHasData[0] = false;
             _gpuRendererHasData[1] = false;
-            ResetGPUWaterfallState(1, resetCalibration: false);
-            ResetGPUWaterfallState(2, resetCalibration: false);
-
             _gpuInteropResetPending = false;
+        }
+
+        internal static void ReleaseManagedGPUInteropForDXShutdown()
+        {
+            ReleaseManagedGPUInteropResourcesCore();
+            ResetGPUWaterfallStateCore(1, false);
+            ResetGPUWaterfallStateCore(2, false);
+            ResetTemporalWaterfallState();
+            WaterfallEffect.Reset();
+        }
+
+        internal static void ProcessPendingGPUInteropResetAfterFrame()
+        {
+            if (!_gpuInteropResetPending) return;
+
+            ReleaseManagedGPUInteropResourcesCore();
+            ResetGPUWaterfallStateCore(1, false);
+            ResetGPUWaterfallStateCore(2, false);
             LogGPU("Deferred SharpDX/Vortice interop reset completed after Present.");
         }
 
@@ -452,11 +476,15 @@ namespace Thetis
         {
             if (_d2dFactory == null || _d2dFactory.NativePointer == IntPtr.Zero) return null;
             IntPtr ptr = _d2dFactory.NativePointer;
-            if (_gpuSharpFactory == null || _gpuSharpFactoryPtr != ptr)
+
+            if (_gpuSharpFactory != null && _gpuSharpFactoryPtr != ptr)
             {
-                try { _gpuSharpFactory?.Dispose(); } catch { }
-                _gpuSharpFactory = null;
-                _gpuSharpFactoryPtr = IntPtr.Zero;
+                _gpuInteropResetPending = true;
+                return null;
+            }
+
+            if (_gpuSharpFactory == null)
+            {
                 Marshal.AddRef(ptr);
                 _gpuSharpFactory = new SharpDX.Direct2D1.Factory1(ptr);
                 _gpuSharpFactoryPtr = ptr;
@@ -550,38 +578,76 @@ namespace Thetis
 
         private static void ResetGPUWaterfallState(int rx, bool resetCalibration = true)
         {
-            lock (_objDX2Lock)
+            int num = rx - 1;
+            if (num < 0 || num > 1) return;
+
+            bool lockTaken = false;
+            try
             {
-                int num = rx - 1;
-                _gpuSampleCredit[num] = 0;
-                _gpuIQringHead[num] = 0;
-                _gpuIQringCount[num] = 0;
-                _gpuFirstFillDone[num] = false;
-                _gpuRendererHasData[num] = false;
-                if (_gpuIQringI[num] != null)
+                System.Threading.Monitor.TryEnter(_objDX2Lock, 0, ref lockTaken);
+                if (!lockTaken)
                 {
-                    Array.Clear(_gpuIQringI[num], 0, _gpuIQringI[num].Length);
-                }
-                if (_gpuIQringQ[num] != null)
-                {
-                    Array.Clear(_gpuIQringQ[num], 0, _gpuIQringQ[num].Length);
-                }
-                if (resetCalibration)
-                {
-                    if (rx == 1)
+                    lock (_gpuStateResetRequestLock)
                     {
-                        _gpuCalInitRX1 = false;
-                        _gpuCalStartupCountRX1 = 0;
-                        _gpuLastFFTSizeRX1 = 0;
+                        _gpuStateResetPending[num] = true;
+                        if (resetCalibration) _gpuStateResetCalibrationPending[num] = true;
                     }
-                    else
-                    {
-                        _gpuCalInitRX2 = false;
-                        _gpuCalStartupCountRX2 = 0;
-                        _gpuLastFFTSizeRX2 = 0;
-                    }
+                    return;
+                }
+
+                ResetGPUWaterfallStateCore(rx, resetCalibration);
+            }
+            finally
+            {
+                if (lockTaken) System.Threading.Monitor.Exit(_objDX2Lock);
+            }
+        }
+
+        private static void ResetGPUWaterfallStateCore(int rx, bool resetCalibration)
+        {
+            int num = rx - 1;
+            _gpuSampleCredit[num] = 0;
+            _gpuIQringHead[num] = 0;
+            _gpuIQringCount[num] = 0;
+            _gpuFirstFillDone[num] = false;
+            _gpuRendererHasData[num] = false;
+            if (_gpuIQringI[num] != null)
+                Array.Clear(_gpuIQringI[num], 0, _gpuIQringI[num].Length);
+            if (_gpuIQringQ[num] != null)
+                Array.Clear(_gpuIQringQ[num], 0, _gpuIQringQ[num].Length);
+
+            if (resetCalibration)
+            {
+                if (rx == 1)
+                {
+                    _gpuCalInitRX1 = false;
+                    _gpuCalStartupCountRX1 = 0;
+                    _gpuLastFFTSizeRX1 = 0;
+                }
+                else
+                {
+                    _gpuCalInitRX2 = false;
+                    _gpuCalStartupCountRX2 = 0;
+                    _gpuLastFFTSizeRX2 = 0;
                 }
             }
+        }
+
+        internal static void ProcessPendingGPUWaterfallStateResetsAfterFrame()
+        {
+            bool reset1, reset2, cal1, cal2;
+            lock (_gpuStateResetRequestLock)
+            {
+                reset1 = _gpuStateResetPending[0];
+                reset2 = _gpuStateResetPending[1];
+                cal1 = _gpuStateResetCalibrationPending[0];
+                cal2 = _gpuStateResetCalibrationPending[1];
+                _gpuStateResetPending[0] = _gpuStateResetPending[1] = false;
+                _gpuStateResetCalibrationPending[0] = _gpuStateResetCalibrationPending[1] = false;
+            }
+
+            if (reset1) ResetGPUWaterfallStateCore(1, cal1);
+            if (reset2) ResetGPUWaterfallStateCore(2, cal2);
         }
 
         private static float[] ProcessGPUWaterfall(int rx, int width)

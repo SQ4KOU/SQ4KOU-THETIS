@@ -3482,6 +3482,7 @@ namespace Thetis
         }
         private static DXRenderPath m_eRenderPath = DXRenderPath.Unknown;
         private static bool m_bForceCPURendering = false;
+        private static volatile bool m_bDXRestartPending = false;
         private static bool m_bWarpDowngradeAttempted = false;
         public static DXRenderPath RenderPath
         {
@@ -3491,6 +3492,26 @@ namespace Thetis
         {
             get { return m_bForceCPURendering; }
             set { m_bForceCPURendering = value; }
+        }
+
+        public static bool DXRestartPending => m_bDXRestartPending;
+
+        public static void RequestDXRestart()
+        {
+            if (!_bDX2Setup) return;
+            m_bDXRestartPending = true;
+            m_bWarpDowngradeAttempted = false;
+        }
+
+        private static bool ProcessPendingDXRestartAfterFrame()
+        {
+            if (!m_bDXRestartPending) return false;
+
+            m_bDXRestartPending = false;
+            Common.MeshDiagLog("Applying deferred DirectX render-path restart after Present.");
+            ShutdownDX2D();
+            initDX2D(DriverType.Hardware, _display_adaptor);
+            return true;
         }
         private static bool m_bSpectrumGlow = true;
         public static bool SpectrumGlow
@@ -3563,6 +3584,11 @@ namespace Thetis
                     if (_d2dDeviceContext != null) _d2dDeviceContext.Target = null;
 
                     releaseGlowLayer();
+
+                    // Managed SharpDX waterfall objects wrap this same COM device/context.
+                    // Retire them before releasing the Vortice side.
+                    ReleaseManagedGPUInteropForDXShutdown();
+
                     ReleaseGpuMeshDeviceObjects();
                     ReleaseWaterfallMeshObjects();
                     ReleaseSpectrumFillObjects();
@@ -4800,11 +4826,12 @@ namespace Thetis
 
                     _dx_fail_retry = 0;
 
-                    // Managed GPU waterfall interop resources may only be retired here:
-                    // EndDraw and Present have completed, so no D2D/D3D object from this
-                    // frame is still executing. This avoids both the run119 stale-wrapper
-                    // NullReferenceException and the run120 in-frame teardown freeze.
+                    // All mode/device transitions are applied only after EndDraw+Present.
+                    // Setup/UI handlers never wait on _objDX2Lock and never dispose a
+                    // resource still referenced by the active frame.
+                    if (ProcessPendingDXRestartAfterFrame()) return;
                     ProcessPendingGPUInteropResetAfterFrame();
+                    ProcessPendingGPUWaterfallStateResetsAfterFrame();
                 }
             }
             catch (Exception e)

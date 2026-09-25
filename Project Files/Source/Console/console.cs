@@ -13665,12 +13665,9 @@ namespace Thetis
         {
             if (!Display.IsDX2DSetup) return;
 
-            _pause_DisplayThread = true;
-
-            Display.ShutdownDX2D();
-            Display.Target = pnlDisplay;
-
-            _pause_DisplayThread = false;
+            // DirectX device switches are performed by the render thread after Present.
+            // A synchronous UI-thread shutdown can deadlock against _objDX2Lock.
+            Display.RequestDXRestart();
         }
 
         private bool diversity_rx_ref;

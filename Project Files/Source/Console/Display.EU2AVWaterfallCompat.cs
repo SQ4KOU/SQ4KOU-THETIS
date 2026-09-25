@@ -63,12 +63,12 @@ namespace Thetis
             {
                 if (_gpuEffectsEnabled == value) return;
                 _gpuEffectsEnabled = value;
-                if (!value)
-                {
-                    _gpuRendererHasData[0] = false;
-                    _gpuRendererHasData[1] = false;
-                    WaterfallEffect.Reset();
-                }
+
+                // Level 0 is a live execution gate, not a DirectX teardown operation.
+                // Never dispose effects or wait on the renderer lock from the UI thread.
+                _gpuRendererHasData[0] = false;
+                _gpuRendererHasData[1] = false;
+                ResetTemporalWaterfallState();
                 ResetGPUWaterfallState(1, false);
                 ResetGPUWaterfallState(2, false);
             }
