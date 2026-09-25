@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using SharpDX;
 
 namespace Thetis
@@ -96,6 +97,20 @@ namespace Thetis
         private static bool _gpuWaterfallLinearDraw = true;
 
         private static float[] _gpuPaletteUpload = new float[4096];
+
+        // Interop wrappers over the already-created SDR-VST3 Vortice device/context.
+        // AddRef gives SharpDX its own COM lifetime; wrappers are recreated only when
+        // the underlying DirectX objects change.
+        private static SharpDX.Direct3D11.Device _gpuSharpDevice;
+        private static SharpDX.Direct2D1.DeviceContext _gpuSharpD2D;
+        private static IntPtr _gpuSharpDevicePtr = IntPtr.Zero;
+        private static IntPtr _gpuSharpD2DPtr = IntPtr.Zero;
+
+        private static WaterfallPalette _paletteConsole;
+        private static WaterfallPalette _paletteThermal;
+        private static WaterfallPalette _paletteDeepBlue;
+        private static WaterfallPalette _paletteEnhanced256;
+        private static WaterfallPalette _paletteGrayscale256;
 
         public static event Action<int, double> GPUWaterfallEffectiveOverlapChanged;
 
@@ -353,6 +368,68 @@ namespace Thetis
         public static float GPUWaterfallCalibrationOffsetRX1 => _gpuCalOffsetRX1;
         public static float GPUWaterfallCalibrationOffsetRX2 => _gpuCalOffsetRX2;
 
+        private static SharpDX.Direct3D11.Device GetGPUSharpDevice()
+        {
+            if (_device == null || _device.NativePointer == IntPtr.Zero) return null;
+            IntPtr ptr = _device.NativePointer;
+            if (_gpuSharpDevice == null || _gpuSharpDevicePtr != ptr)
+            {
+                try { _gpuSharpDevice?.Dispose(); } catch { }
+                _gpuSharpDevice = null;
+                _gpuSharpDevicePtr = IntPtr.Zero;
+                Marshal.AddRef(ptr);
+                _gpuSharpDevice = new SharpDX.Direct3D11.Device(ptr);
+                _gpuSharpDevicePtr = ptr;
+            }
+            return _gpuSharpDevice;
+        }
+
+        private static SharpDX.Direct2D1.DeviceContext GetGPUSharpD2D()
+        {
+            if (_d2dDeviceContext == null || _d2dDeviceContext.NativePointer == IntPtr.Zero) return null;
+            IntPtr ptr = _d2dDeviceContext.NativePointer;
+            if (_gpuSharpD2D == null || _gpuSharpD2DPtr != ptr)
+            {
+                try { _gpuSharpD2D?.Dispose(); } catch { }
+                _gpuSharpD2D = null;
+                _gpuSharpD2DPtr = IntPtr.Zero;
+                Marshal.AddRef(ptr);
+                _gpuSharpD2D = new SharpDX.Direct2D1.DeviceContext(ptr);
+                _gpuSharpD2DPtr = ptr;
+            }
+            return _gpuSharpD2D;
+        }
+
+        private static WaterfallPalette GetPaletteConsole()
+        {
+            if (_paletteConsole == null) { _paletteConsole = new WaterfallPalette(); _paletteConsole.Build(WaterfallPalette.ConsoleStops); }
+            return _paletteConsole;
+        }
+
+        private static WaterfallPalette GetPaletteThermal()
+        {
+            if (_paletteThermal == null) { _paletteThermal = new WaterfallPalette(); _paletteThermal.Build(WaterfallPalette.ThermalStops); }
+            return _paletteThermal;
+        }
+
+        private static WaterfallPalette GetPaletteDeepBlue()
+        {
+            if (_paletteDeepBlue == null) { _paletteDeepBlue = new WaterfallPalette(); _paletteDeepBlue.Build(WaterfallPalette.DeepBlueStops); }
+            return _paletteDeepBlue;
+        }
+
+        internal static WaterfallPalette GetPaletteEnhanced256()
+        {
+            if (_paletteEnhanced256 == null) { _paletteEnhanced256 = new WaterfallPalette(); _paletteEnhanced256.Build(WaterfallPalette.EnhancedStops); }
+            return _paletteEnhanced256;
+        }
+
+        internal static WaterfallPalette GetPaletteGrayscale256()
+        {
+            if (_paletteGrayscale256 == null) { _paletteGrayscale256 = new WaterfallPalette(); _paletteGrayscale256.Build(WaterfallPalette.GrayscaleStops); }
+            return _paletteGrayscale256;
+        }
+
         private static void EnsureGPUWaterfallPipeline(int rx, int width, int height)
         {
             if (!_gpuWaterfallPipelineEnabled || !_gpuEffectsEnabled)
@@ -376,7 +453,9 @@ namespace Thetis
             bool num2 = gPUWaterfallPipeline == null;
             if (num2)
             {
-                gPUWaterfallPipeline = new GPUWaterfallPipeline(_device, _gpuWaterfallFFTSize, width, num);
+                SharpDX.Direct3D11.Device sharpDevice = GetGPUSharpDevice();
+                if (sharpDevice == null) return;
+                gPUWaterfallPipeline = new GPUWaterfallPipeline(sharpDevice, _gpuWaterfallFFTSize, width, num);
                 if (rx == 1)
                 {
                     _gpuFFT1 = gPUWaterfallPipeline;
@@ -798,13 +877,15 @@ namespace Thetis
         private static WaterfallGPURenderer EnsureGPUWaterfallRenderer(int rx, int width, int height)
         {
             if (!_gpuEffectsEnabled || width <= 0 || height <= 0) return null;
-            if (!(_d2dRenderTarget is SharpDX.Direct2D1.DeviceContext dc)) return null;
+            SharpDX.Direct3D11.Device sharpDevice = GetGPUSharpDevice();
+            SharpDX.Direct2D1.DeviceContext dc = GetGPUSharpD2D();
+            if (sharpDevice == null || dc == null) return null;
             SharpDX.DXGI.Format format = WaterfallPixelWriter.DxgiFormat;
             if (format != SharpDX.DXGI.Format.B8G8R8A8_UNorm && format != SharpDX.DXGI.Format.R16G16B16A16_Float) return null;
             WaterfallGPURenderer renderer = rx == 1 ? _waterfallGPU1 : _waterfallGPU2;
             if (renderer == null)
             {
-                renderer = new WaterfallGPURenderer(_device, dc, width, height, format);
+                renderer = new WaterfallGPURenderer(sharpDevice, dc, width, height, format);
                 if (rx == 1) _waterfallGPU1 = renderer; else _waterfallGPU2 = renderer;
             }
             else renderer.Resize(dc, width, height, format);
