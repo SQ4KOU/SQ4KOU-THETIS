@@ -3470,17 +3470,6 @@ namespace Thetis
         private static ID2D1Device _d2dDevice;
         private static ID2D1Bitmap _backBufferBitmap;
 
-        // Diagnostic readback of the FINAL composed swapchain buffer. Unlike the
-        // renderer-path logs, this tells us whether the frame that is about to be
-        // presented actually contains visible pixels.
-        private static ID3D11Texture2D _diagBackBufferStaging;
-        private static uint _diagBackBufferW;
-        private static uint _diagBackBufferH;
-        private static Format _diagBackBufferFormat;
-        private static long _diagBackBufferLastProbeTicks;
-        private static ulong _diagBackBufferLastHash;
-        private static int _diagBackBufferSameHashCount;
-
         private static ID2D1BitmapRenderTarget _glowRT;
         private static ID2D1Bitmap _glowTraceBitmap;
         private static ID2D1Effect _glowBlurEffect;
@@ -3611,213 +3600,6 @@ namespace Thetis
             _diagBackBufferSameHashCount = 0;
         }
 
-        private struct BackBufferProbeSummary
-        {
-            public ulong Hash;
-            public int Lit;
-            public int MaxRgb;
-            public double Avg;
-            public int Total;
-            public int TopLit;
-            public int TopTotal;
-            public int BottomLit;
-            public int BottomTotal;
-            public int SentinelR;
-            public int SentinelG;
-            public int SentinelB;
-            public int SentinelA;
-        }
-
-        private static BackBufferProbeSummary SampleBackBufferTexture(string label, ID3D11Texture2D source)
-        {
-            Texture2DDescription desc = source.Description;
-            BackBufferProbeSummary summary = new BackBufferProbeSummary();
-            if (desc.Width == 0 || desc.Height == 0) return summary;
-
-            if (_diagBackBufferStaging == null ||
-                _diagBackBufferW != desc.Width ||
-                _diagBackBufferH != desc.Height ||
-                _diagBackBufferFormat != desc.Format)
-            {
-                try { _diagBackBufferStaging?.Dispose(); } catch { }
-                _diagBackBufferStaging = _device.CreateTexture2D(new Texture2DDescription()
-                {
-                    Width = desc.Width,
-                    Height = desc.Height,
-                    MipLevels = 1,
-                    ArraySize = 1,
-                    Format = desc.Format,
-                    SampleDescription = new SampleDescription(1, 0),
-                    Usage = ResourceUsage.Staging,
-                    CPUAccessFlags = CpuAccessFlags.Read,
-                });
-                _diagBackBufferW = desc.Width;
-                _diagBackBufferH = desc.Height;
-                _diagBackBufferFormat = desc.Format;
-            }
-
-            ID3D11DeviceContext dc = _device.ImmediateContext;
-            dc.CopyResource(source, _diagBackBufferStaging);
-            MappedSubresource map = dc.Map(_diagBackBufferStaging, 0, MapMode.Read, Vortice.Direct3D11.MapFlags.None);
-
-            int sampleCols = 48;
-            int sampleRows = 24;
-            int total = 0, lit = 0, topLit = 0, bottomLit = 0, topTotal = 0, bottomTotal = 0;
-            long rgbSum = 0;
-            int maxRgb = 0;
-            ulong hash = 1469598103934665603UL;
-
-            unsafe
-            {
-                byte* basePtr = (byte*)map.DataPointer;
-                int rowPitch = (int)map.RowPitch;
-                int width = (int)desc.Width;
-                int height = (int)desc.Height;
-
-                // Self-validation pixel. RenderDX2D writes a tiny red sentinel at
-                // (1,1) immediately before EndDraw. If this pixel is not red-ish,
-                // the readback is not observing the D2D frame and the probe result
-                // must not be trusted as evidence of a black display.
-                int sentinelX = Math.Min(width - 1, 1);
-                int sentinelY = Math.Min(height - 1, 1);
-                byte* sentinel = basePtr + sentinelY * rowPitch + sentinelX * 4;
-                summary.SentinelB = sentinel[0];
-                summary.SentinelG = sentinel[1];
-                summary.SentinelR = sentinel[2];
-                summary.SentinelA = sentinel[3];
-
-                for (int sy = 0; sy < sampleRows; sy++)
-                {
-                    int y = Math.Min(height - 1, (sy * height + height / 2) / sampleRows);
-                    byte* row = basePtr + y * rowPitch;
-                    bool top = y < height / 2;
-
-                    for (int sx = 0; sx < sampleCols; sx++)
-                    {
-                        int x = Math.Min(width - 1, (sx * width + width / 2) / sampleCols);
-                        byte* px = row + x * 4;
-                        int b = px[0], g = px[1], rr = px[2], a = px[3];
-                        int rgb = rr + g + b;
-                        int peak = Math.Max(rr, Math.Max(g, b));
-
-                        total++;
-                        rgbSum += rgb;
-                        if (peak > maxRgb) maxRgb = peak;
-                        bool isLit = rgb > 24;
-                        if (isLit) lit++;
-
-                        if (top)
-                        {
-                            topTotal++;
-                            if (isLit) topLit++;
-                        }
-                        else
-                        {
-                            bottomTotal++;
-                            if (isLit) bottomLit++;
-                        }
-
-                        uint packed = (uint)(b | (g << 8) | (rr << 16) | (a << 24));
-                        hash ^= packed;
-                        hash *= 1099511628211UL;
-                    }
-                }
-            }
-
-            dc.Unmap((ID3D11Resource)_diagBackBufferStaging, 0);
-
-            summary.Hash = hash;
-            summary.Lit = lit;
-            summary.MaxRgb = maxRgb;
-            summary.Total = total;
-            summary.TopLit = topLit;
-            summary.TopTotal = topTotal;
-            summary.BottomLit = bottomLit;
-            summary.BottomTotal = bottomTotal;
-            summary.Avg = total > 0 ? rgbSum / (total * 3.0) : 0.0;
-
-            GPUWaterfallLogger.Log("BACKBUFFER-" + label,
-                "size=" + desc.Width + "x" + desc.Height +
-                " lit=" + lit + "/" + total +
-                " top=" + topLit + "/" + topTotal +
-                " bottom=" + bottomLit + "/" + bottomTotal +
-                " avg=" + summary.Avg.ToString("F1") +
-                " max=" + maxRgb +
-                " sentinel=" + summary.SentinelR + "," + summary.SentinelG + "," + summary.SentinelB + "," + summary.SentinelA +
-                " hash=0x" + hash.ToString("X16") +
-                " band3D=" + _b3DMeshDrewFrame +
-                " wfMesh=" + _bWfMeshDrewFrame +
-                " specMesh=" + SpecMeshWasUsedThisFrame +
-                " paused=" + _paused_display);
-
-            return summary;
-        }
-
-        private static void ProbeBackBufferBeforePresent()
-        {
-            try
-            {
-                if (!_bDX2Setup || _device == null || _swapChain1 == null || _surface == null) return;
-
-                long now = Stopwatch.GetTimestamp();
-                if (_diagBackBufferLastProbeTicks != 0 &&
-                    now - _diagBackBufferLastProbeTicks < Stopwatch.Frequency)
-                    return;
-                _diagBackBufferLastProbeTicks = now;
-
-                // EndDraw has completed D2D submission. Flush the shared D3D11
-                // immediate context before readback so the diagnostic observes the
-                // completed frame rather than an earlier command state.
-                ID3D11DeviceContext dc = _device.ImmediateContext;
-                dc.Flush();
-
-                // Read BOTH resources:
-                // 1) the exact DXGI surface cached when D2D target was created;
-                // 2) the swapchain's current buffer 0 immediately before Present.
-                // A mismatch proves a stale target / flip-chain ownership problem.
-                using ID3D11Texture2D d2dTargetSource = _surface.QueryInterface<ID3D11Texture2D>();
-                BackBufferProbeSummary target = SampleBackBufferTexture("TARGET", d2dTargetSource);
-
-                using ID3D11Texture2D currentSource = _swapChain1.GetBuffer<ID3D11Texture2D>(0);
-                BackBufferProbeSummary current = SampleBackBufferTexture("CURRENT", currentSource);
-
-                bool sameHash = target.Hash == current.Hash;
-                bool targetSentinelOk = target.SentinelR > 160 && target.SentinelG < 120 && target.SentinelB < 120;
-                bool currentSentinelOk = current.SentinelR > 160 && current.SentinelG < 120 && current.SentinelB < 120;
-                GPUWaterfallLogger.Log("BACKBUFFER-COMPARE",
-                    "same=" + sameHash +
-                    " targetHash=0x" + target.Hash.ToString("X16") +
-                    " currentHash=0x" + current.Hash.ToString("X16") +
-                    " targetLit=" + target.Lit + "/" + target.Total +
-                    " currentLit=" + current.Lit + "/" + current.Total +
-                    " targetMax=" + target.MaxRgb +
-                    " currentMax=" + current.MaxRgb +
-                    " targetSentinel=" + targetSentinelOk +
-                    " currentSentinel=" + currentSentinelOk);
-
-                if (!targetSentinelOk)
-                    GPUWaterfallLogger.Log("PROBE-INVALID",
-                        "D2D target readback did not contain the diagnostic sentinel.");
-                if (!currentSentinelOk)
-                    GPUWaterfallLogger.Log("PROBE-CURRENT-NO-SENTINEL",
-                        "Current swapchain buffer does not contain the D2D diagnostic sentinel.");
-
-                if (target.Lit <= 2 || target.MaxRgb <= 8)
-                    GPUWaterfallLogger.Log("BACKBUFFER-TARGET-ALERT",
-                        "D2D target appears black before Present.");
-                if (current.Lit <= 2 || current.MaxRgb <= 8)
-                    GPUWaterfallLogger.Log("BACKBUFFER-CURRENT-ALERT",
-                        "Swapchain current buffer appears black before Present.");
-                if (!sameHash)
-                    GPUWaterfallLogger.Log("BACKBUFFER-MISMATCH",
-                        "D2D target content differs from swapchain current buffer before Present.");
-            }
-            catch (Exception ex)
-            {
-                GPUWaterfallLogger.LogRateLimited("BACKBUFFER-EX", "probe", 1000, ex.ToString());
-            }
-        }
-
         public static void ShutdownDX2D()
         {
             GPUWaterfallLogger.Log("DX", "ShutdownDX2D requested setup=" + _bDX2Setup + " path=" + RenderPathString());
@@ -3866,7 +3648,6 @@ namespace Thetis
                     ReleaseSpectrumFillObjects();
                     ReleaseSpectrumOverlayObjects();
                     ReleaseComputeResources();
-                    ReleaseBackBufferDiagnosticProbe();
                     _backBufferBitmap?.Dispose();
                     _d2dRenderTarget = null;
                     _d2dDeviceContext?.Dispose();
@@ -4197,18 +3978,17 @@ namespace Thetis
             // if not, then we need to use old bitplit swapeffect
             SwapEffect swapEffect;
 
-            IDXGIFactory4 factory4 = _factory1.QueryInterfaceOrNull<IDXGIFactory4>();
+            // SQ4KOU stability path:
+            // The visible frame is composed by Direct2D (bandscope GPU output is
+            // blitted into D2D and the waterfall is also presented by D2D). Using
+            // FlipDiscard here adds flip-model backbuffer ownership/rebind semantics
+            // without giving this renderer a useful benefit, and it is the common
+            // point where both panes can disappear together. Use the proven blt
+            // model: one stable backbuffer identity owned by D2D.
+            _bUseLegacyBuffers = true;
             bool bFlipPresent = false;
-            if (factory4 != null)
-            {
-                if (!_bUseLegacyBuffers) bFlipPresent = true;
-                factory4?.Dispose();
-                factory4 = null;
-            }
-
-            //https://walbourn.github.io/care-and-feeding-of-modern-swapchains/
-            swapEffect = bFlipPresent ? SwapEffect.FlipDiscard : SwapEffect.Discard; //NOTE: FlipSequential should work, but is mostly used for storeapps
-            _nBufferCount = bFlipPresent ? 2 : 1;
+            swapEffect = SwapEffect.Discard;
+            _nBufferCount = 1;
 
             ModeDescription md = new ModeDescription((uint)displayTarget.Width, (uint)displayTarget.Height,
                                                        new Rational((uint)console.DisplayFPS, 1u), Format.B8G8R8A8_UNorm);
@@ -4296,7 +4076,6 @@ namespace Thetis
             ReleaseSpectrumFillObjects();
             ReleaseSpectrumOverlayObjects();
             ReleaseComputeResources();
-            ReleaseBackBufferDiagnosticProbe();
             _backBufferBitmap?.Dispose();
             _d2dRenderTarget = null;
             _d2dDeviceContext?.Dispose();
@@ -4739,9 +4518,7 @@ namespace Thetis
                     _d2dRenderTarget.Transform = t;
 
                     RectangleF rectDest = new RectangleF(0, 0, displayTargetWidth, displayTargetHeight);
-                    // The stable 3D path renders offscreen; it never owns or clears the
-                    // swapchain. D2D therefore always owns the frame background.
-                    if (!_bWfMeshDrewFrame)
+                    if (!_b3DMeshDrewFrame && !_bWfMeshDrewFrame)
                     {
                         //always clear without using alpha
                         _d2dRenderTarget.Clear(m_cDX2_display_background_clear_colour);
@@ -5073,18 +4850,6 @@ namespace Thetis
                     _d2dRenderTarget.Transform = Matrix3x2.Identity;
 
                 jump:
-                    // Diagnostic self-test: a 2x2 red marker in the extreme corner.
-                    // The readback probe explicitly checks pixel (1,1). This makes the
-                    // logger self-validating instead of assuming that GetBuffer(0) is
-                    // the same image the user is seeing.
-                    try
-                    {
-                        _d2dRenderTarget.FillRectangle(new RectangleF(0, 0, 2, 2), m_bDX2_Red);
-                    }
-                    catch
-                    {
-                    }
-
                     try
                     {
                         ulong endTag1, endTag2;
@@ -5139,11 +4904,6 @@ namespace Thetis
                         }
                         if (tryWarpDowngrade("RecreateTarget retries exhausted")) return;
                     }
-
-                    // Probe the final composed backbuffer after EndDraw and before
-                    // Present. This is the decisive diagnostic for "renderer says OK
-                    // but the display is visually black".
-                    ProbeBackBufferBeforePresent();
 
                     // render
                     // note: the only way to have Present non block when using vsync number of blanks 0 , is to use DoNotWait
