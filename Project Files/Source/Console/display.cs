@@ -4506,7 +4506,13 @@ namespace Thetis
                     _d2dRenderTarget.Transform = t;
 
                     RectangleF rectDest = new RectangleF(0, 0, displayTargetWidth, displayTargetHeight);
-                    if (!_b3DMeshDrewFrame && !_bWfMeshDrewFrame)
+                    // The bandscope GPU mesh renders into an OFFSCREEN texture and is
+                    // only blitted into D2D later in this frame. It therefore never owns
+                    // or clears the main D2D target. Skipping this clear when band3D=True
+                    // leaves stale cursor/overlay pixels behind ("mouse trails").
+                    // Only a waterfall mesh that truly owns the pane may suppress the
+                    // normal D2D background clear.
+                    if (!_bWfMeshDrewFrame)
                     {
                         //always clear without using alpha
                         _d2dRenderTarget.Clear(m_cDX2_display_background_clear_colour);
