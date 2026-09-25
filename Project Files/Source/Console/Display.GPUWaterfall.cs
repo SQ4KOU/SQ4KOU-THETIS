@@ -1014,6 +1014,19 @@ namespace Thetis
 
         private static GPUWaterfallPipeline GetGPUWaterfallPipeline(int rx) => rx == 1 ? _gpuFFT1 : _gpuFFT2;
         private static float GetGPUWaterfallCalibrationOffset(int rx) => rx == 1 ? _gpuCalOffsetRX1 : _gpuCalOffsetRX2;
+
+        internal static void NotifyGPUWaterfallColorDepthChanged()
+        {
+            // Do not dispose GPU objects from the Setup/UI thread. Mark both panes
+            // empty and reset only pipeline state; EnsureGPUWaterfallRenderer() will
+            // recreate its texture on the render thread when DxgiFormat changes.
+            _gpuRendererHasData[0] = false;
+            _gpuRendererHasData[1] = false;
+            ResetGPUWaterfallState(1, false);
+            ResetGPUWaterfallState(2, false);
+            ResetTemporalWaterfallState();
+            LogGPU("GPU waterfall color depth changed to " + WaterfallEnhancer.Depth + ".");
+        }
         private static bool ManagedGPUFFTRequested =>
             _gpuWaterfallPipelineEnabled &&
             _gpuEffectsEnabled &&
