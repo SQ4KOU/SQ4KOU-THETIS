@@ -370,18 +370,48 @@ namespace Thetis
         public static float GPUWaterfallCalibrationOffsetRX1 => _gpuCalOffsetRX1;
         public static float GPUWaterfallCalibrationOffsetRX2 => _gpuCalOffsetRX2;
 
+        private static void DisposeManagedGPUWaterfallRenderersForInteropReset()
+        {
+            try { _waterfallGPU1?.Dispose(); } catch { }
+            try { _waterfallGPU2?.Dispose(); } catch { }
+            _waterfallGPU1 = null;
+            _waterfallGPU2 = null;
+            _gpuRendererHasData[0] = false;
+            _gpuRendererHasData[1] = false;
+        }
+
+        private static void DisposeGPUWaterfallPipelinesForInteropReset()
+        {
+            try { _gpuFFT1?.Dispose(); } catch { }
+            try { _gpuFFT2?.Dispose(); } catch { }
+            _gpuFFT1 = null;
+            _gpuFFT2 = null;
+            ResetGPUWaterfallState(1, resetCalibration: false);
+            ResetGPUWaterfallState(2, resetCalibration: false);
+        }
+
         private static SharpDX.Direct3D11.Device GetGPUSharpDevice()
         {
             if (_device == null || _device.NativePointer == IntPtr.Zero) return null;
             IntPtr ptr = _device.NativePointer;
-            if (_gpuSharpDevice == null || _gpuSharpDevicePtr != ptr)
+            bool wrapperInvalid = _gpuSharpDevice != null && _gpuSharpDevice.NativePointer == IntPtr.Zero;
+            if (_gpuSharpDevice == null || _gpuSharpDevicePtr != ptr || wrapperInvalid)
             {
+                // The FFT pipelines and managed waterfall renderers retain this exact
+                // SharpDX wrapper. Dispose them BEFORE replacing the wrapper, otherwise
+                // they keep a disposed Device and later fail in ImmediateContext.
+                if (_gpuSharpDevice != null)
+                {
+                    DisposeManagedGPUWaterfallRenderersForInteropReset();
+                    DisposeGPUWaterfallPipelinesForInteropReset();
+                }
                 try { _gpuSharpDevice?.Dispose(); } catch { }
                 _gpuSharpDevice = null;
                 _gpuSharpDevicePtr = IntPtr.Zero;
                 Marshal.AddRef(ptr);
                 _gpuSharpDevice = new SharpDX.Direct3D11.Device(ptr);
                 _gpuSharpDevicePtr = ptr;
+                LogGPU("SharpDX D3D11 interop wrapper recreated; managed GPU waterfall resources invalidated.");
             }
             return _gpuSharpDevice;
         }
@@ -390,14 +420,21 @@ namespace Thetis
         {
             if (_d2dDeviceContext == null || _d2dDeviceContext.NativePointer == IntPtr.Zero) return null;
             IntPtr ptr = _d2dDeviceContext.NativePointer;
-            if (_gpuSharpD2D == null || _gpuSharpD2DPtr != ptr)
+            bool wrapperInvalid = _gpuSharpD2D != null && _gpuSharpD2D.NativePointer == IntPtr.Zero;
+            if (_gpuSharpD2D == null || _gpuSharpD2DPtr != ptr || wrapperInvalid)
             {
+                // Bitmap1 objects are bound to the D2D device context. Never let a
+                // renderer survive a context replacement even when dimensions match.
+                if (_gpuSharpD2D != null)
+                    DisposeManagedGPUWaterfallRenderersForInteropReset();
+
                 try { _gpuSharpD2D?.Dispose(); } catch { }
                 _gpuSharpD2D = null;
                 _gpuSharpD2DPtr = IntPtr.Zero;
                 Marshal.AddRef(ptr);
                 _gpuSharpD2D = new SharpDX.Direct2D1.DeviceContext(ptr);
                 _gpuSharpD2DPtr = ptr;
+                LogGPU("SharpDX D2D interop wrapper recreated; managed GPU waterfall renderer invalidated.");
             }
             return _gpuSharpD2D;
         }
@@ -468,6 +505,12 @@ namespace Thetis
                 num = ((rx == 1) ? SampleRateRX1 : SampleRateRX2);
             }
             GPUWaterfallPipeline gPUWaterfallPipeline = ((rx == 1) ? _gpuFFT1 : _gpuFFT2);
+            if (gPUWaterfallPipeline != null && !gPUWaterfallPipeline.IsDeviceReady)
+            {
+                try { gPUWaterfallPipeline.Dispose(); } catch { }
+                if (rx == 1) _gpuFFT1 = null; else _gpuFFT2 = null;
+                gPUWaterfallPipeline = null;
+            }
             bool num2 = gPUWaterfallPipeline == null;
             if (num2)
             {
@@ -764,8 +807,20 @@ namespace Thetis
             {
                 LogGPU($"ProcessGPUWaterfall RX{rx}: span set lowFreq={num26:F0}, highFreq={num27:F0}, width={width}, fftSize={fFTSize}");
             }
-            gPUWaterfallPipeline.SetFrequencySpan(num26, num27);
-            float[] array5 = gPUWaterfallPipeline.Process(_gpuIQbufI, _gpuIQbufQ, fFTSize);
+            float[] array5;
+            try
+            {
+                gPUWaterfallPipeline.SetFrequencySpan(num26, num27);
+                array5 = gPUWaterfallPipeline.Process(_gpuIQbufI, _gpuIQbufQ, fFTSize);
+            }
+            catch (Exception ex)
+            {
+                LogGPU($"ProcessGPUWaterfall RX{rx}: GPU device/context became invalid; rebuilding on next frame. {ex.GetType().Name}: {ex.Message}");
+                try { gPUWaterfallPipeline.Dispose(); } catch { }
+                if (rx == 1) _gpuFFT1 = null; else _gpuFFT2 = null;
+                ResetGPUWaterfallState(rx, resetCalibration: false);
+                return null;
+            }
             if (flag)
             {
                 LogGPU(string.Format("ProcessGPUWaterfall RX{0}: available={1}, got={2}, credit={3}, row={4}, width={5}", rx, num7, num3, _gpuSampleCredit[num2], (array5 != null) ? ("len=" + array5.Length) : "null", width));
@@ -972,37 +1027,48 @@ namespace Thetis
                 _gpuRendererHasData[index] = false;
                 return false;
             }
-            bool paletteReady = true;
-            if (scheme == ColorScheme.Custom)
+            try
             {
-                System.Drawing.Color[] colours = rx == 1 ? _rx1_waterfall_grad : _rx2_waterfall_grad;
-                bool ok = rx == 1 ? _rx1_waterfall_grad_ok : _rx2_waterfall_grad_ok;
-                if (!ok) paletteReady = false; else UploadCustomGradientToGPU(renderer, colours);
+                bool paletteReady = true;
+                if (scheme == ColorScheme.Custom)
+                {
+                    System.Drawing.Color[] colours = rx == 1 ? _rx1_waterfall_grad : _rx2_waterfall_grad;
+                    bool ok = rx == 1 ? _rx1_waterfall_grad_ok : _rx2_waterfall_grad_ok;
+                    if (!ok) paletteReady = false; else UploadCustomGradientToGPU(renderer, colours);
+                }
+                else
+                {
+                    WaterfallPalette palette = GetGPUWaterfallPalette(scheme);
+                    if (palette == null) paletteReady = false; else UploadPaletteToGPU(renderer, palette);
+                }
+                if (!paletteReady) { _gpuRendererHasData[index] = false; return false; }
+                bool inserted = addRow && gpuRowReady && pipeline.MagSpectrumView != null && !pipeline.MagSpectrumView.IsDisposed;
+                if (clearExisting || (inserted && !_gpuRendererHasData[index])) renderer.Clear();
+                if (inserted)
+                {
+                    float gamma = WaterfallEnhancer.Gamma;
+                    float invGamma = gamma != 0f ? 1f / gamma : 1f;
+                    GetEffectiveManagedGPUParams(rx, out int effectiveToneMap, out float effectiveTemporalAlpha);
+                    renderer.ProcessRow(pipeline.MagSpectrumView, width, 1,
+                        lowThreshold - gpuCalOffset - fOffset, highThreshold - gpuCalOffset - fOffset,
+                        gamma, invGamma, effectiveToneMap,
+                        WaterfallEnhancer.SaturationBoost, WaterfallEnhancer.ContrastBoost,
+                        WaterfallEnhancer.DitherEnabled, WaterfallEnhancer.Levels,
+                        0f, 0.05f, true, scheme == ColorScheme.Custom,
+                        WaterfallEnhancer.PaletteSharpness, WaterfallEnhancer.PaletteContrast);
+                }
+                renderer.AdvanceRow(horizontalShiftPixels, inserted);
+                if (inserted) { _gpuRendererHasData[index] = true; recordWaterfallAdvance(rx, height); }
+                return _gpuRendererHasData[index];
             }
-            else
+            catch (Exception ex)
             {
-                WaterfallPalette palette = GetGPUWaterfallPalette(scheme);
-                if (palette == null) paletteReady = false; else UploadPaletteToGPU(renderer, palette);
+                LogGPU($"UpdateManagedGPUWaterfallRenderer RX{rx}: stale GPU renderer/context; falling back and rebuilding. {ex.GetType().Name}: {ex.Message}");
+                try { renderer.Dispose(); } catch { }
+                if (rx == 1) _waterfallGPU1 = null; else _waterfallGPU2 = null;
+                _gpuRendererHasData[index] = false;
+                return false;
             }
-            if (!paletteReady) { _gpuRendererHasData[index] = false; return false; }
-            bool inserted = addRow && gpuRowReady && pipeline.MagSpectrumView != null && !pipeline.MagSpectrumView.IsDisposed;
-            if (clearExisting || (inserted && !_gpuRendererHasData[index])) renderer.Clear();
-            if (inserted)
-            {
-                float gamma = WaterfallEnhancer.Gamma;
-                float invGamma = gamma != 0f ? 1f / gamma : 1f;
-                GetEffectiveManagedGPUParams(rx, out int effectiveToneMap, out float effectiveTemporalAlpha);
-                renderer.ProcessRow(pipeline.MagSpectrumView, width, 1,
-                    lowThreshold - gpuCalOffset - fOffset, highThreshold - gpuCalOffset - fOffset,
-                    gamma, invGamma, effectiveToneMap,
-                    WaterfallEnhancer.SaturationBoost, WaterfallEnhancer.ContrastBoost,
-                    WaterfallEnhancer.DitherEnabled, WaterfallEnhancer.Levels,
-                    0f, 0.05f, true, scheme == ColorScheme.Custom,
-                    WaterfallEnhancer.PaletteSharpness, WaterfallEnhancer.PaletteContrast);
-            }
-            renderer.AdvanceRow(horizontalShiftPixels, inserted);
-            if (inserted) { _gpuRendererHasData[index] = true; recordWaterfallAdvance(rx, height); }
-            return _gpuRendererHasData[index];
         }
 
         private static bool CanDrawManagedGPUWaterfall(int rx, ColorScheme scheme, int width, int height)
