@@ -481,7 +481,8 @@ namespace Thetis
                     gPUWaterfallPipeline.LanczosWindow = _gpuWaterfallLanczosWindow;
                     gPUWaterfallPipeline.ResamplingMode = _gpuWaterfallResamplingMode;
                 }
-                ResetGPUWaterfallState(rx);
+                // Sample-rate rebinding must not invalidate the already rendered waterfall history.
+                // The source-transition block below resets the IQ accumulator without clearing the renderer.
             }
             if (gPUWaterfallPipeline == null || !gPUWaterfallPipeline.IsInitialized)
             {
@@ -516,7 +517,7 @@ namespace Thetis
                 _gpuIQringCount[num2] = 0;
                 _gpuSampleCredit[num2] = 0;
                 _gpuFirstFillDone[num2] = false;
-                _gpuRendererHasData[num2] = false;
+                // Preserve WaterfallGPURenderer history across RX<->TX. Only the IQ accumulator is restarted.
                 _gpuLastIQSource[num2] = gpuSourceStream;
                 if (rx == 1)
                 {
@@ -812,7 +813,8 @@ namespace Thetis
 
         private static bool IsGPUWaterfallPaletteScheme(ColorScheme scheme)
         {
-            return scheme == ColorScheme.Console || scheme == ColorScheme.Thermal || scheme == ColorScheme.DeepBlue || scheme == ColorScheme.Custom;
+            return scheme == ColorScheme.Console || scheme == ColorScheme.Thermal || scheme == ColorScheme.DeepBlue ||
+                   scheme == ColorScheme.Enhanced256 || scheme == ColorScheme.Grayscale256 || scheme == ColorScheme.Custom;
         }
 
         private static void UploadPaletteToGPU(WaterfallGPURenderer renderer, WaterfallPalette palette)
@@ -822,10 +824,13 @@ namespace Thetis
             {
                 palette.Sample((float)i / 255f, out float r, out float g, out float b);
                 int n = i * 4;
-                _gpuPaletteUpload[n] = r; _gpuPaletteUpload[n + 1] = g; _gpuPaletteUpload[n + 2] = b; _gpuPaletteUpload[n + 3] = 1f;
+                // SQ4KOU_GPU_PALETTE_NORMALIZED: D2D shader LUT is float4 in 0..1, while WaterfallPalette.Sample returns RGB in 0..255.
+                _gpuPaletteUpload[n] = r / 255f; _gpuPaletteUpload[n + 1] = g / 255f; _gpuPaletteUpload[n + 2] = b / 255f; _gpuPaletteUpload[n + 3] = 1f;
             }
             renderer.SetPalette(_gpuPaletteUpload, 256);
         }
+
+
 
         private static void UploadCustomGradientToGPU(WaterfallGPURenderer renderer, System.Drawing.Color[] colours)
         {
@@ -847,6 +852,8 @@ namespace Thetis
             if (scheme == ColorScheme.Console) return GetPaletteConsole();
             if (scheme == ColorScheme.Thermal) return GetPaletteThermal();
             if (scheme == ColorScheme.DeepBlue) return GetPaletteDeepBlue();
+            if (scheme == ColorScheme.Enhanced256) return GetPaletteEnhanced256();
+            if (scheme == ColorScheme.Grayscale256) return GetPaletteGrayscale256();
             return null;
         }
 
@@ -855,7 +862,7 @@ namespace Thetis
             GPUWaterfallPipeline pipeline, bool gpuRowReady, float gpuCalOffset)
         {
             int index = rx - 1;
-            if (index < 0 || index > 1 || localMox || !ManagedGPUFFTRequested || !IsGPUWaterfallPaletteScheme(scheme))
+            if (index < 0 || index > 1 || !ManagedGPUFFTRequested || !IsGPUWaterfallPaletteScheme(scheme))
             {
                 if (index >= 0 && index < 2) _gpuRendererHasData[index] = false;
                 return false;
@@ -879,18 +886,19 @@ namespace Thetis
                 if (palette == null) paletteReady = false; else UploadPaletteToGPU(renderer, palette);
             }
             if (!paletteReady) { _gpuRendererHasData[index] = false; return false; }
-            if (clearExisting) renderer.Clear();
             bool inserted = addRow && gpuRowReady && pipeline.MagSpectrumView != null && !pipeline.MagSpectrumView.IsDisposed;
+            if (clearExisting || (inserted && !_gpuRendererHasData[index])) renderer.Clear();
             if (inserted)
             {
                 float gamma = WaterfallEnhancer.Gamma;
                 float invGamma = gamma != 0f ? 1f / gamma : 1f;
+                GetEffectiveManagedGPUParams(rx, out int effectiveToneMap, out float effectiveTemporalAlpha);
                 renderer.ProcessRow(pipeline.MagSpectrumView, width, 1,
                     lowThreshold - gpuCalOffset - fOffset, highThreshold - gpuCalOffset - fOffset,
-                    gamma, invGamma, (int)WaterfallEnhancer.ToneMap,
+                    gamma, invGamma, effectiveToneMap,
                     WaterfallEnhancer.SaturationBoost, WaterfallEnhancer.ContrastBoost,
                     WaterfallEnhancer.DitherEnabled, WaterfallEnhancer.Levels,
-                    _temporalEnabled ? _temporalAlpha : 0f, 0.05f, true, scheme == ColorScheme.Custom,
+                    0f, 0.05f, true, scheme == ColorScheme.Custom,
                     WaterfallEnhancer.PaletteSharpness, WaterfallEnhancer.PaletteContrast);
             }
             renderer.AdvanceRow(horizontalShiftPixels, inserted);

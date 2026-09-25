@@ -455,19 +455,47 @@ public class WaterfallGPURenderer : IDisposable
 
 	private static byte[] LoadShaderBytecode()
 	{
+		const string filename = "waterfall_row_cs.bin";
+		const string resourceName = "Thetis.waterfall_row_cs.bin";
 		try
 		{
-			string text = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "waterfall_row_cs.bin");
-			if (!File.Exists(text))
+			Assembly assembly = Assembly.GetExecutingAssembly();
+			using (Stream stream = assembly.GetManifestResourceStream(resourceName))
 			{
-				LogGPU("Shader binary not found: " + text);
-				return null;
+				if (stream != null)
+				{
+					using (MemoryStream memoryStream = new MemoryStream())
+					{
+						stream.CopyTo(memoryStream);
+						byte[] bytes = memoryStream.ToArray();
+						if (bytes.Length > 0)
+						{
+							LogGPU("Loaded embedded shader: " + resourceName);
+							return bytes;
+						}
+					}
+				}
 			}
-			return File.ReadAllBytes(text);
 		}
 		catch (Exception ex)
 		{
-			LogGPU("LoadShaderBytecode failed: " + ex.Message);
+			LogGPU("Embedded shader load failed (" + resourceName + "): " + ex.Message);
+		}
+
+		try
+		{
+			string path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), filename);
+			if (!File.Exists(path))
+			{
+				LogGPU("Shader not found as embedded resource or loose file: " + resourceName + " | " + path);
+				return null;
+			}
+			LogGPU("Embedded shader missing; using loose-file fallback: " + path);
+			return File.ReadAllBytes(path);
+		}
+		catch (Exception ex)
+		{
+			LogGPU("LoadShaderBytecode fallback failed: " + ex.Message);
 			return null;
 		}
 	}

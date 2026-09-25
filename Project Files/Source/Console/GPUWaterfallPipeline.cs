@@ -967,19 +967,46 @@ public class GPUWaterfallPipeline : IDisposable
 
 	private static byte[] LoadBytecode(string filename)
 	{
+		string resourceName = "Thetis." + filename;
 		try
 		{
-			string text = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), filename);
-			if (!File.Exists(text))
+			Assembly assembly = Assembly.GetExecutingAssembly();
+			using (Stream stream = assembly.GetManifestResourceStream(resourceName))
 			{
-				LogGPU("Shader binary not found: " + text);
-				return null;
+				if (stream != null)
+				{
+					using (MemoryStream memoryStream = new MemoryStream())
+					{
+						stream.CopyTo(memoryStream);
+						byte[] bytes = memoryStream.ToArray();
+						if (bytes.Length > 0)
+						{
+							LogGPU("Loaded embedded shader: " + resourceName);
+							return bytes;
+						}
+					}
+				}
 			}
-			return File.ReadAllBytes(text);
 		}
 		catch (Exception ex)
 		{
-			LogGPU("LoadBytecode(" + filename + ") failed: " + ex.Message);
+			LogGPU("Embedded shader load failed (" + resourceName + "): " + ex.Message);
+		}
+
+		try
+		{
+			string path = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), filename);
+			if (!File.Exists(path))
+			{
+				LogGPU("Shader not found as embedded resource or loose file: " + resourceName + " | " + path);
+				return null;
+			}
+			LogGPU("Embedded shader missing; using loose-file fallback: " + path);
+			return File.ReadAllBytes(path);
+		}
+		catch (Exception ex)
+		{
+			LogGPU("LoadBytecode(" + filename + ") fallback failed: " + ex.Message);
 			return null;
 		}
 	}
