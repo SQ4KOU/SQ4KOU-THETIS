@@ -34,6 +34,10 @@ namespace Thetis
         private NumericUpDownTS udAutoThFine;
         private LabelTS lblAutoThFineHint;
         private LabelTS lblGPUWaterfallResampling;
+        private GroupBoxTS grpBandScope3D;
+        private ButtonTS btnBandScope3DSettings;
+        private LabelTS lblBandScope3DHint;
+        private frm3DPanadapter _bandScope3DSettingsForm;
 
 
         // SQ4KOU test: exact Setup > Display > Waterfall window recovered from
@@ -42,8 +46,56 @@ namespace Thetis
         {
             InitWaterfallTab();
             InitWaterfallRuntimeControls();
+            InitBandScope3DControls();
             if (_tpWaterfall != null && grpDisplayDriverEngine != null)
                 InitNoiseFloorProControls(grpDisplayDriverEngine, 0);
+        }
+
+
+        private void InitBandScope3DControls()
+        {
+            if (_tpWaterfall == null || btnBandScope3DSettings != null)
+                return;
+
+            grpBandScope3D = new GroupBoxTS();
+            grpBandScope3D.Name = "grpBandScope3D";
+            grpBandScope3D.Text = "Band Scope / 3D Colors";
+            grpBandScope3D.Location = new Point(8, 470);
+            grpBandScope3D.Size = new Size(700, 72);
+            _tpWaterfall.Controls.Add(grpBandScope3D);
+
+            btnBandScope3DSettings = new ButtonTS();
+            btnBandScope3DSettings.Name = "btnBandScope3DSettings";
+            btnBandScope3DSettings.Text = "Colors / 3D Settings...";
+            btnBandScope3DSettings.Location = new Point(12, 27);
+            btnBandScope3DSettings.Size = new Size(150, 26);
+            btnBandScope3DSettings.Click += btnBandScope3DSettings_Click;
+            grpBandScope3D.Controls.Add(btnBandScope3DSettings);
+
+            lblBandScope3DHint = new LabelTS();
+            lblBandScope3DHint.Text = "Waterfall Sync follows the active RX waterfall palette; disable Sync for Classic / Turbo / Viridis / Inferno.";
+            lblBandScope3DHint.Location = new Point(176, 32);
+            lblBandScope3DHint.Size = new Size(500, 18);
+            lblBandScope3DHint.ForeColor = Color.SlateGray;
+            grpBandScope3D.Controls.Add(lblBandScope3DHint);
+        }
+
+        private void btnBandScope3DSettings_Click(object sender, EventArgs e)
+        {
+            if (_bandScope3DSettingsForm == null || _bandScope3DSettingsForm.IsDisposed)
+            {
+                _bandScope3DSettingsForm = new frm3DPanadapter();
+                _bandScope3DSettingsForm.Show(this);
+            }
+            else if (!_bandScope3DSettingsForm.Visible)
+            {
+                _bandScope3DSettingsForm.Show();
+            }
+
+            _bandScope3DSettingsForm.ApplyRenderPathLimits();
+            _bandScope3DSettingsForm.WindowState = FormWindowState.Normal;
+            _bandScope3DSettingsForm.BringToFront();
+            _bandScope3DSettingsForm.Activate();
         }
 
 

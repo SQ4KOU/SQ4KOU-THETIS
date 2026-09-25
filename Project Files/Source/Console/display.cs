@@ -8215,6 +8215,45 @@ namespace Thetis
                 if (idx < 0) idx = 0; if (idx > last) idx = last;
                 R = gradArray[idx].R; G = gradArray[idx].G; B = gradArray[idx].B;
             }
+            else if (scheme == ColorScheme.Console ||
+                     scheme == ColorScheme.Thermal ||
+                     scheme == ColorScheme.DeepBlue ||
+                     scheme == ColorScheme.Enhanced256 ||
+                     scheme == ColorScheme.Grayscale256)
+            {
+                // The 3D Band Scope / Panadapter Waterfall Sync path uses this helper.
+                // Keep the modern 256-colour schemes identical to the active waterfall
+                // instead of falling through to the legacy grayscale default.
+                float pct;
+                if (highThreshold <= lowThreshold || dBm <= lowThreshold) pct = 0f;
+                else if (dBm >= highThreshold) pct = 1f;
+                else pct = (dBm - lowThreshold) / (highThreshold - lowThreshold);
+
+                WaterfallPalette palette;
+                switch (scheme)
+                {
+                    case ColorScheme.Console:
+                        palette = GetPaletteConsole();
+                        break;
+                    case ColorScheme.Thermal:
+                        palette = GetPaletteThermal();
+                        break;
+                    case ColorScheme.DeepBlue:
+                        palette = GetPaletteDeepBlue();
+                        break;
+                    case ColorScheme.Enhanced256:
+                        palette = GetPaletteEnhanced256();
+                        break;
+                    default:
+                        palette = GetPaletteGrayscale256();
+                        break;
+                }
+
+                palette.Sample(pct, out float pr, out float pg, out float pb);
+                R = Math.Max(0, Math.Min(255, (int)(pr + 0.5f)));
+                G = Math.Max(0, Math.Min(255, (int)(pg + 0.5f)));
+                B = Math.Max(0, Math.Min(255, (int)(pb + 0.5f)));
+            }
             else if (scheme == ColorScheme.enhanced)
             {
                 if (dBm <= lowThreshold)
