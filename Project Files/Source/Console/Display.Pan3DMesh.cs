@@ -52,6 +52,8 @@ namespace Thetis
         private static ID2D1Bitmap _meshSheetBitmap;
         private static int _meshSheetW = -1;
         private static int _meshSheetH = -1;
+        private static bool _meshHasLastGoodFrame;
+        private static int _meshLastGoodOwnerRX;
         private static ID3D11VertexShader _meshVS;
         private static ID3D11PixelShader _meshPS;
         private static ID3D11InputLayout _meshIL;
@@ -297,6 +299,8 @@ namespace Thetis
             _meshSheetBitmap?.Dispose(); _meshSheetBitmap = null;
             _meshSheetTex?.Dispose(); _meshSheetTex = null;
             _meshSheetW = -1; _meshSheetH = -1;
+            _meshHasLastGoodFrame = false;
+            _meshLastGoodOwnerRX = 0;
             _meshHeightSRV?.Dispose(); _meshHeightSRV = null;
             _meshHeightTex?.Dispose(); _meshHeightTex = null;
             _meshPaletteSRV?.Dispose(); _meshPaletteSRV = null;
@@ -340,6 +344,8 @@ namespace Thetis
             _meshSheetTex = null;
             _meshSheetW = -1;
             _meshSheetH = -1;
+            _meshHasLastGoodFrame = false;
+            _meshLastGoodOwnerRX = 0;
             _meshParams.Valid = false;
         }
 
@@ -604,19 +610,31 @@ namespace Thetis
             }
         }
 
-        private static void BlitGpuMesh3D()
+        private static bool BlitGpuMesh3D()
         {
             if (_meshSheetBitmap == null || _d2dRenderTarget == null)
             {
                 GPUWaterfallLogger.LogRateLimited("BANDSCOPE", "blit-missing", 1000,
                     "Blit skipped bitmap=" + (_meshSheetBitmap != null) + " d2d=" + (_d2dRenderTarget != null));
-                return;
+                return false;
             }
             GPUWaterfallLogger.LogRateLimited("BANDSCOPE", "gpu-blit", 1000,
                 "GPU BLIT " + _meshSheetW + "x" + _meshSheetH + " ownerRX=" + GpuMesh3DOwnerRX);
             _d2dRenderTarget.DrawBitmap(_meshSheetBitmap,
                 new Rect(0f, 0f, displayTargetWidth, displayTargetHeight),
                 1f, BitmapInterpolationMode.Linear, null);
+            return true;
+        }
+
+        private static bool BlitLastGoodGpuMesh3D(int rx)
+        {
+            if (!_meshHasLastGoodFrame || _meshLastGoodOwnerRX != rx ||
+                _meshSheetBitmap == null || _d2dRenderTarget == null)
+                return false;
+
+            GPUWaterfallLogger.LogRateLimited("BANDSCOPE-HOLD", "rx" + rx, 1000,
+                "RX" + rx + " reusing last good GPU frame");
+            return BlitGpuMesh3D();
         }
 
         private struct MeshConstants
@@ -917,6 +935,8 @@ namespace Thetis
                     Common.MeshDiagLog("GPU mesh surface active (" + rowCount + "x" + cols + ")");
                 }
                 GpuMesh3DOwnerRX = _meshParams.RX;   // this pane's D2D 3D fallback is skipped
+                _meshLastGoodOwnerRX = _meshParams.RX;
+                _meshHasLastGoodFrame = true;
                 return true;
             }
             catch (Exception e)

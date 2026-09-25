@@ -5932,17 +5932,24 @@ namespace Thetis
                     }
                     else
                     {
-                        // SQ4KOU DIAG: no silent GPU->D2D fallback. If the GPU Band
-                        // Scope misses a frame, leave the 3D surface absent so the
-                        // fault is visible and unambiguous.
-                        GPUWaterfallLogger.LogRateLimited("BANDSCOPE-MISS", "rx" + rx, 250,
-                            "RX" + rx + " GPU frame missing; fallback disabled" +
-                            " pan3D=" + _pan3DEnabled +
-                            " hist=" + (_3dHistoryBuffer != null) +
-                            " histCount=" + _3dHistoryCount +
-                            " meshValid=" + _meshParams.Valid +
-                            " paused=" + _paused_display +
-                            " mox=" + local_mox);
+                        // Never flash an empty bandscope because one GPU update was
+                        // late/busy. Keep presenting the last completed offscreen
+                        // surface until a newer GPU frame is ready.
+                        if (!BlitLastGoodGpuMesh3D(rx))
+                        {
+                            GPUWaterfallLogger.LogRateLimited("BANDSCOPE-MISS", "rx" + rx, 250,
+                                "RX" + rx + " GPU frame missing and no last-good frame" +
+                                " pan3D=" + _pan3DEnabled +
+                                " hist=" + (_3dHistoryBuffer != null) +
+                                " histCount=" + _3dHistoryCount +
+                                " meshValid=" + _meshParams.Valid +
+                                " paused=" + _paused_display +
+                                " mox=" + local_mox);
+
+                            // During initial fill there is no GPU snapshot yet. Use
+                            // the normal 2D panadapter rather than showing a blank pane.
+                            draw3DHistory = false;
+                        }
                     }
                 }
 
