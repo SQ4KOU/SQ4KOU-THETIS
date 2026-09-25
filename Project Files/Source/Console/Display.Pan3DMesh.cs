@@ -878,10 +878,6 @@ namespace Thetis
                 if (rx1_waterfall_agc && !m_bRX1_spectrum_thresholds)
                     lo = _RX1waterfallPreviousMinValue - m_fWaterfallAGCOffsetRX1;
             }
-            // Use the exact same Waterfall Pro threshold transformation as
-            // DrawWaterfallDX2D/GPU waterfall so Band Scope maps dBm into the
-            // same palette position (Auto Threshold / Auto High included).
-            ApplyWaterfallProThresholds(rx, false, ref lo, ref hi);
             return hi - lo > 0;
         }
 
