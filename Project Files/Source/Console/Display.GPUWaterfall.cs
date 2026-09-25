@@ -652,6 +652,7 @@ namespace Thetis
 
         private static float[] ProcessGPUWaterfall(int rx, int width)
         {
+            if (m_bForceCPURendering || m_eRenderPath != DXRenderPath.Hardware) return null;
             if (_gpuInteropResetPending) return null;
             if (!_gpuWaterfallPipelineEnabled)
             {
@@ -1013,11 +1014,17 @@ namespace Thetis
 
         private static GPUWaterfallPipeline GetGPUWaterfallPipeline(int rx) => rx == 1 ? _gpuFFT1 : _gpuFFT2;
         private static float GetGPUWaterfallCalibrationOffset(int rx) => rx == 1 ? _gpuCalOffsetRX1 : _gpuCalOffsetRX2;
-        private static bool ManagedGPUFFTRequested => _gpuWaterfallPipelineEnabled && _gpuEffectsEnabled && _waterfallRenderQuality == WaterfallRenderQuality.High;
+        private static bool ManagedGPUFFTRequested =>
+            _gpuWaterfallPipelineEnabled &&
+            _gpuEffectsEnabled &&
+            _waterfallRenderQuality == WaterfallRenderQuality.High &&
+            !m_bForceCPURendering &&
+            m_eRenderPath == DXRenderPath.Hardware;
 
         private static WaterfallGPURenderer EnsureGPUWaterfallRenderer(int rx, int width, int height)
         {
-            if (!_gpuEffectsEnabled || width <= 0 || height <= 0) return null;
+            if (!_gpuEffectsEnabled || m_bForceCPURendering || m_eRenderPath != DXRenderPath.Hardware ||
+                width <= 0 || height <= 0) return null;
             SharpDX.Direct3D11.Device sharpDevice = GetGPUSharpDevice();
             SharpDX.Direct2D1.DeviceContext dc = GetGPUSharpD2D();
             if (sharpDevice == null || dc == null) return null;
