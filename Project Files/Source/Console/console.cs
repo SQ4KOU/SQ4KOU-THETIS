@@ -5931,6 +5931,9 @@ namespace Thetis
         private bool m_bSetBandRunning = false; // so we know if any events raised are caused by SetBand
         public void SetBand(string mode, string filter, double freq, bool CTUN, int zoomFactor, double centerFreq)
         {
+            GPUWaterfallLogger.Log("UI-BAND", "SetBand core ENTER mode=" + mode + " filter=" + filter +
+                " freq=" + freq.ToString("F6") + " ctun=" + CTUN + " zoom=" + zoomFactor +
+                " center=" + centerFreq.ToString("F6"));
             //MW0LGE_21d
             Band oldBand = RX1Band;
             DSPMode oldMode = RX1DSPMode;
@@ -5948,15 +5951,20 @@ namespace Thetis
 
             // Set mode, filter, and frequency according to passed parameters
 
+            GPUWaterfallLogger.Log("UI-BAND", "SetBand RX1DSPMode BEGIN");
             RX1DSPMode = (DSPMode)Enum.Parse(typeof(DSPMode), mode, true);
+            GPUWaterfallLogger.Log("UI-BAND", "SetBand RX1DSPMode END");
 
             //[2.10.3.6]MW0LGE moved after mode
             if (_rx1_dsp_mode != DSPMode.DRM &&
                 _rx1_dsp_mode != DSPMode.SPEC)
             {
+                GPUWaterfallLogger.Log("UI-BAND", "SetBand RX1Filter BEGIN");
                 RX1Filter = (Filter)Enum.Parse(typeof(Filter), filter, true);
+                GPUWaterfallLogger.Log("UI-BAND", "SetBand RX1Filter END");
             }
 
+            GPUWaterfallLogger.Log("UI-BAND", "SetBand CTUN/Zoom/VFO BEGIN");
             ClickTuneDisplay = false;                               // Set CTUN off to restore center frequency - G3OQD
             chkFWCATU.Checked = ClickTuneDisplay;
 
@@ -5974,6 +5982,7 @@ namespace Thetis
             ClickTuneDisplay = CTUN;
             chkFWCATU.Checked = ClickTuneDisplay;
             VFOAFreq = freq;                                       // Restore actual receive frequency after CTUN status restored - G3OQD         
+            GPUWaterfallLogger.Log("UI-BAND", "SetBand CTUN/Zoom/VFO END actual=" + VFOAFreq.ToString("F6"));
 
             // Continuation of QSK-related band/mode-change management - see also QSKEnabled()
             qsk_band_changing = false;
@@ -6029,6 +6038,7 @@ namespace Thetis
             //
 
             m_bSetBandRunning = false;
+            GPUWaterfallLogger.Log("UI-BAND", "SetBand core before SetBandChangeHandlers old=" + oldBand + " new=" + RX1Band);
 
             //MW0LGE_21d
             if (oldBand != RX1Band ||
@@ -6036,6 +6046,7 @@ namespace Thetis
                 )
                 SetBandChangeHanders?.Invoke(1, oldBand, RX1Band, oldMode, RX1DSPMode, oldFilter, RX1Filter, oldFreq, VFOAFreq,
                     oldCentreFreq, CentreFrequency, oldCtun, ClickTuneDisplay, oldZoomSlider, ptbDisplayZoom.Value);
+            GPUWaterfallLogger.Log("UI-BAND", "SetBand core EXIT old=" + oldBand + " new=" + RX1Band);
         }
 
         // ke9ns add 3-arg SetBand convenience overload for the Scanner
@@ -30890,9 +30901,26 @@ namespace Thetis
         }
         private void repopulateForms()
         {
-            if (bandPopupForm != null) bandPopupForm.RepopulateForm();
-            if (modePopupForm != null) modePopupForm.RepopulateForm();
-            if (filterPopupForm != null) filterPopupForm.RepopulateForm();
+            GPUWaterfallLogger.Log("UI-BAND", "repopulateForms BEGIN");
+            if (bandPopupForm != null)
+            {
+                GPUWaterfallLogger.Log("UI-BAND", "repopulateForms bandPopup BEGIN");
+                bandPopupForm.RepopulateForm();
+                GPUWaterfallLogger.Log("UI-BAND", "repopulateForms bandPopup END");
+            }
+            if (modePopupForm != null)
+            {
+                GPUWaterfallLogger.Log("UI-BAND", "repopulateForms modePopup BEGIN");
+                modePopupForm.RepopulateForm();
+                GPUWaterfallLogger.Log("UI-BAND", "repopulateForms modePopup END");
+            }
+            if (filterPopupForm != null)
+            {
+                GPUWaterfallLogger.Log("UI-BAND", "repopulateForms filterPopup BEGIN");
+                filterPopupForm.RepopulateForm();
+                GPUWaterfallLogger.Log("UI-BAND", "repopulateForms filterPopup END");
+            }
+            GPUWaterfallLogger.Log("UI-BAND", "repopulateForms END");
         }
         public void BandPanelVisible(bool all_hidden = false)
         {
@@ -46827,6 +46855,8 @@ namespace Thetis
         }
         private void preBandSelect(int rx, Band band, int dir = 0)
         {
+            GPUWaterfallLogger.Log("UI-BAND", "preBandSelect BEGIN rx=" + rx + " target=" + band + " dir=" + dir +
+                " current=" + RX1Band + " mox=" + MOX + " setBandRunning=" + m_bSetBandRunning);
             //[2.10.3.6]MW0LGE no band change on TX fix
             if (MOX && rx == 1 && (VFOATX || (!rx2_enabled && VFOBTX))) return;
             if (MOX && rx == 2 && VFOBTX) return;
@@ -46862,7 +46892,9 @@ namespace Thetis
             //////double end_freq = XVTRForm.GetEnd(xvtr_index);
             #endregion
 
+            GPUWaterfallLogger.Log("UI-BAND", "preBandSelect GetFilter BEGIN target=" + band);
             BandStackFilter bsf = BandStackManager.GetFilter(band, false);  // get the non-user band stack filter
+            GPUWaterfallLogger.Log("UI-BAND", "preBandSelect GetFilter END found=" + (bsf != null));
             if (bsf != null)
             {
                 BandStackEntry bse;
@@ -46906,8 +46938,12 @@ namespace Thetis
                         bsfOld.GenerateFilteredList(true);
                     }
 
+                    GPUWaterfallLogger.Log("UI-BAND", "BandStack2 InitBandStackFilter BEGIN target=" + band);
                     BandStack2Form.InitBandStackFilter(bsf, false);
+                    GPUWaterfallLogger.Log("UI-BAND", "BandStack2 InitBandStackFilter END target=" + band);
+                    GPUWaterfallLogger.Log("UI-BAND", "BandStack SelectInitial BEGIN target=" + band);
                     bse = bsf.SelectInitial();
+                    GPUWaterfallLogger.Log("UI-BAND", "BandStack SelectInitial END target=" + band + " entry=" + (bse != null));
                 }
 
                 if (bse == null)
@@ -46933,15 +46969,23 @@ namespace Thetis
                     }
                 }
 
+                GPUWaterfallLogger.Log("UI-BAND", "BandStack UpdateSelected BEGIN");
                 BandStack2Form.UpdateSelected();
+                GPUWaterfallLogger.Log("UI-BAND", "BandStack UpdateSelected END");
 
+                GPUWaterfallLogger.Log("UI-BAND", "setRX1BandFromBandStackEntry BEGIN");
                 setRX1BandFromBandStackEntry(bse);
+                GPUWaterfallLogger.Log("UI-BAND", "setRX1BandFromBandStackEntry END");
             }
+            GPUWaterfallLogger.Log("UI-BAND", "updateStackNumberDisplay BEGIN");
             updateStackNumberDisplay(bsf);
+            GPUWaterfallLogger.Log("UI-BAND", "preBandSelect END");
         }
         private void OnBandBeforeChangeHandler(int rx, Band band)
         {
+            GPUWaterfallLogger.Log("UI-BAND", "OnBandBeforeChangeHandler BEGIN rx=" + rx + " band=" + band);
             preBandSelect(rx, band);
+            GPUWaterfallLogger.Log("UI-BAND", "OnBandBeforeChangeHandler END rx=" + rx + " band=" + band);
         }
         private void setRX1BandFromBandStackEntry(in BandStackEntry bse)
         {
@@ -46950,16 +46994,31 @@ namespace Thetis
 
             if (bse == null) return;
 
+            GPUWaterfallLogger.Log("UI-BAND", "SendHighPriority(0) BEGIN");
             NetworkIO.SendHighPriority(0);
+            GPUWaterfallLogger.Log("UI-BAND", "SendHighPriority(0) END");
+            GPUWaterfallLogger.Log("UI-BAND", "SetBand BEGIN mode=" + bse.Mode + " filter=" + bse.Filter +
+                " freq=" + bse.Frequency.ToString("F6") + " ctun=" + bse.CTUNEnabled +
+                " zoom=" + bse.ZoomSlider + " centre=" + bse.CentreFrequency.ToString("F6"));
             SetBand(bse.Mode.ToString(), bse.Filter.ToString(), bse.Frequency, bse.CTUNEnabled, bse.ZoomSlider, bse.CentreFrequency);
+            GPUWaterfallLogger.Log("UI-BAND", "SetBand END band=" + RX1Band + " freq=" + VFOAFreq.ToString("F6"));
+            GPUWaterfallLogger.Log("UI-BAND", "UpdateWaterfallLevelValues BEGIN");
             UpdateWaterfallLevelValues();
+            GPUWaterfallLogger.Log("UI-BAND", "UpdateWaterfallLevelValues END");
+            GPUWaterfallLogger.Log("UI-BAND", "updateDisplayGridLevelValues BEGIN");
             updateDisplayGridLevelValues();
+            GPUWaterfallLogger.Log("UI-BAND", "updateDisplayGridLevelValues END");
+            GPUWaterfallLogger.Log("UI-BAND", "UpdateDiversityValues BEGIN");
             UpdateDiversityValues();
-            NetworkIO.SendHighPriority(1);            
+            GPUWaterfallLogger.Log("UI-BAND", "UpdateDiversityValues END");
+            GPUWaterfallLogger.Log("UI-BAND", "SendHighPriority(1) BEGIN");
+            NetworkIO.SendHighPriority(1);
+            GPUWaterfallLogger.Log("UI-BAND", "SendHighPriority(1) END");            
         }
 
         private void OnBandChangeHandler(int rx, Band oldBand, Band newBand)
         {
+            GPUWaterfallLogger.Log("UI-BAND", "OnBandChangeHandler BEGIN rx=" + rx + " " + oldBand + "->" + newBand);
             if (rx == 1)
             {
                 // set the panel rx1 only
@@ -46998,6 +47057,7 @@ namespace Thetis
                 BandStack2Form.UpdateSelected();
                 updateStackNumberDisplay(bsf);
             }
+            GPUWaterfallLogger.Log("UI-BAND", "OnBandChangeHandler END rx=" + rx + " " + oldBand + "->" + newBand);
         }
         private void OnModeChangeHandler(int rx, DSPMode oldMode, DSPMode newMode, Band oldBand, Band newBand)
         {

@@ -606,7 +606,14 @@ namespace Thetis
 
         private static void BlitGpuMesh3D()
         {
-            if (_meshSheetBitmap == null || _d2dRenderTarget == null) return;
+            if (_meshSheetBitmap == null || _d2dRenderTarget == null)
+            {
+                GPUWaterfallLogger.LogRateLimited("BANDSCOPE", "blit-missing", 1000,
+                    "Blit skipped bitmap=" + (_meshSheetBitmap != null) + " d2d=" + (_d2dRenderTarget != null));
+                return;
+            }
+            GPUWaterfallLogger.LogRateLimited("BANDSCOPE", "gpu-blit", 1000,
+                "GPU BLIT " + _meshSheetW + "x" + _meshSheetH + " ownerRX=" + GpuMesh3DOwnerRX);
             _d2dRenderTarget.DrawBitmap(_meshSheetBitmap,
                 new Rect(0f, 0f, displayTargetWidth, displayTargetHeight),
                 1f, BitmapInterpolationMode.Linear, null);
@@ -631,10 +638,25 @@ namespace Thetis
         {
             if (!StableOffscreen3DMeshEnabled || !GpuMeshEnabled ||
                 m_bForceCPURendering || m_eRenderPath != DXRenderPath.Hardware || _device == null || !_bDX2Setup)
+            {
+                GPUWaterfallLogger.LogRateLimited("BANDSCOPE", "fallback-gate", 1000,
+                    "FALLBACK gate enabled=" + GpuMeshEnabled + " forceCPU=" + m_bForceCPURendering +
+                    " path=" + m_eRenderPath + " device=" + (_device != null) + " dx=" + _bDX2Setup);
                 return false;
+            }
             if (!_pan3DEnabled || _3dHistoryBuffer == null || _3dHistoryCount < 3 || !_meshParams.Valid)
+            {
+                GPUWaterfallLogger.LogRateLimited("BANDSCOPE", "fallback-data", 1000,
+                    "FALLBACK data pan3D=" + _pan3DEnabled + " hist=" + (_3dHistoryBuffer != null) +
+                    " count=" + _3dHistoryCount + " params=" + _meshParams.Valid);
                 return false;
-            if (_paused_display || localMox(1)) return false;
+            }
+            if (_paused_display || localMox(1))
+            {
+                GPUWaterfallLogger.LogRateLimited("BANDSCOPE", "fallback-pause-tx", 1000,
+                    "FALLBACK paused=" + _paused_display + " localMox=" + localMox(1));
+                return false;
+            }
 
             try
             {
@@ -830,7 +852,14 @@ namespace Thetis
                     dc.IASetPrimitiveTopology(Vortice.Direct3D.PrimitiveTopology.TriangleList);
                     dc.DrawIndexed(quadsPerRow, (uint)(r * quadsPerRow), 0);
                 }
+                // D2D samples _meshSheetBitmap immediately after this GPU pass.
+                // Explicitly unbind the offscreen RTV first so the texture is not
+                // simultaneously bound for D3D write and D2D read.
+                dc.OMSetRenderTargets(Array.Empty<ID3D11RenderTargetView>(), null);
                 dc.Flush();
+                GPUWaterfallLogger.LogRateLimited("BANDSCOPE", "gpu-render-ok", 1000,
+                    "GPU RENDER OK rows=" + rowCount + " cols=" + cols +
+                    " surface=" + _meshSheetW + "x" + _meshSheetH);
 
                 if (!_meshFailedLogged)
                 {
