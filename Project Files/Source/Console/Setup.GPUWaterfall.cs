@@ -41,72 +41,74 @@ namespace Thetis
         private void InitGPUWaterfallSetupUI()
         {
             InitWaterfallTab();
-            InitGeneralTabWaterfallControls();
+            InitWaterfallRuntimeControls();
             if (_tpWaterfall != null && grpDisplayDriverEngine != null)
                 InitNoiseFloorProControls(grpDisplayDriverEngine, 0);
         }
 
 
-	private void InitGeneralTabWaterfallControls()
+	private void InitWaterfallRuntimeControls()
 	{
-		if (tpDisplayGeneral != null && chkAutoThreshold == null)
+		// Keep all GPU-waterfall-only controls on the dedicated Waterfall tab.
+		// The previous location (Display > General at 392,148) covered the
+		// original 3D Panadapter/Bandscope group and caused the menu overlap.
+		if (_tpWaterfall != null && chkAutoThreshold == null)
 		{
 			GroupBoxTS groupBoxTS = new GroupBoxTS();
-			groupBoxTS.Name = "grpWaterfallGeneral";
-			groupBoxTS.Text = "Waterfall";
-			groupBoxTS.Location = new Point(392, 148);
-			groupBoxTS.Size = new Size(170, 112);
-			tpDisplayGeneral.Controls.Add(groupBoxTS);
-			groupBoxTS.BringToFront();
+			groupBoxTS.Name = "grpWaterfallRuntime";
+			groupBoxTS.Text = "Threshold / Resampling";
+			groupBoxTS.Location = new Point(8, 396);
+			groupBoxTS.Size = new Size(700, 66);
+			_tpWaterfall.Controls.Add(groupBoxTS);
+
 			chkAutoThreshold = new CheckBoxTS();
 			chkAutoThreshold.Name = "chkAutoThreshold";
 			chkAutoThreshold.Text = "Auto Threshold";
 			chkAutoThreshold.AutoSize = true;
-			chkAutoThreshold.Location = new Point(8, 19);
+			chkAutoThreshold.Location = new Point(12, 28);
 			chkAutoThreshold.Checked = false;
 			chkAutoThreshold.CheckedChanged += chkAutoThreshold_CheckedChanged;
 			groupBoxTS.Controls.Add(chkAutoThreshold);
-			chkAutoThreshold.BringToFront();
+
 			lblAutoThHint = new LabelTS();
 			lblAutoThHint.Text = "Fine:";
-			lblAutoThHint.Location = new Point(16, 47);
+			lblAutoThHint.Location = new Point(138, 31);
 			lblAutoThHint.Size = new Size(30, 16);
 			groupBoxTS.Controls.Add(lblAutoThHint);
-			lblAutoThHint.BringToFront();
+
 			udAutoThFine = new NumericUpDownTS();
 			udAutoThFine.Name = "udAutoThFine";
 			udAutoThFine.Minimum = -20m;
 			udAutoThFine.Maximum = 20m;
 			udAutoThFine.DecimalPlaces = 0;
 			udAutoThFine.Value = -3m;
-			udAutoThFine.Location = new Point(48, 44);
+			udAutoThFine.Location = new Point(170, 27);
 			udAutoThFine.Size = new Size(42, 21);
 			udAutoThFine.ValueChanged += udAutoThFine_ValueChanged;
 			groupBoxTS.Controls.Add(udAutoThFine);
-			udAutoThFine.BringToFront();
+
 			lblAutoThFineHint = new LabelTS();
 			lblAutoThFineHint.Text = "dB";
-			lblAutoThFineHint.Location = new Point(94, 47);
+			lblAutoThFineHint.Location = new Point(216, 31);
 			lblAutoThFineHint.Size = new Size(20, 16);
 			lblAutoThFineHint.ForeColor = Color.SlateGray;
 			groupBoxTS.Controls.Add(lblAutoThFineHint);
-			lblAutoThFineHint.BringToFront();
+
 			lblGPUWaterfallResampling = new LabelTS();
 			lblGPUWaterfallResampling.Text = "Resampling:";
-			lblGPUWaterfallResampling.Location = new Point(8, 75);
+			lblGPUWaterfallResampling.Location = new Point(292, 31);
 			lblGPUWaterfallResampling.Size = new Size(70, 16);
 			groupBoxTS.Controls.Add(lblGPUWaterfallResampling);
-			lblGPUWaterfallResampling.BringToFront();
+
 			comboGPUWaterfallResampling = new ComboBoxTS();
 			comboGPUWaterfallResampling.Name = "comboGPUWaterfallResampling";
 			comboGPUWaterfallResampling.DropDownStyle = ComboBoxStyle.DropDownList;
 			comboGPUWaterfallResampling.Items.AddRange(new object[2] { "Fast", "Quality" });
-			comboGPUWaterfallResampling.Location = new Point(80, 72);
-			comboGPUWaterfallResampling.Size = new Size(82, 21);
+			comboGPUWaterfallResampling.Location = new Point(366, 27);
+			comboGPUWaterfallResampling.Size = new Size(96, 21);
 			comboGPUWaterfallResampling.SelectedIndex = 1;
 			comboGPUWaterfallResampling.SelectedIndexChanged += comboGPUWaterfallResampling_SelectedIndexChanged;
 			groupBoxTS.Controls.Add(comboGPUWaterfallResampling);
-			comboGPUWaterfallResampling.BringToFront();
 		}
 	}
 
@@ -121,7 +123,7 @@ namespace Thetis
 			_tpWaterfall.Padding = new Padding(3);
 			_tpWaterfall.Size = new Size(721, 403);
 			_tpWaterfall.Text = "Waterfall";
-			_tpWaterfall.AutoScroll = false;
+			_tpWaterfall.AutoScroll = true;
 			_tpWaterfall.UseVisualStyleBackColor = true;
 			tcDisplay.Controls.Add(_tpWaterfall);
 			tcDisplay.Controls.SetChildIndex(_tpWaterfall, 1);
