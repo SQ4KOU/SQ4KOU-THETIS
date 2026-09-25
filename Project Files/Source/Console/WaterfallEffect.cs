@@ -97,6 +97,27 @@ public static class WaterfallEffect
         }
     }
 
+    internal static void DetachForDeviceSwitch(System.Collections.Generic.List<IDisposable> retired, object sync)
+    {
+        if (retired != null)
+        {
+            lock (sync)
+            {
+                if (_customEffect != null) retired.Add(_customEffect);
+                if (_gammaEffect != null) retired.Add(_gammaEffect);
+                if (_satEffect != null) retired.Add(_satEffect);
+            }
+        }
+
+        _customEffect = null;
+        _gammaEffect = null;
+        _satEffect = null;
+        _cachedDC = null;
+        _initialised = false;
+        _failed = false;
+        _l2Disabled = false;
+    }
+
     public static void Cleanup()
     {
         if (_customEffect != null) { _customEffect.Dispose(); _customEffect = null; }
