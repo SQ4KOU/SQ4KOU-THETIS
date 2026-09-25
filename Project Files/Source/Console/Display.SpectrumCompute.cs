@@ -95,7 +95,15 @@ namespace Thetis
         /// <summary>True when all conditions for compute dispatch are met.</summary>
         private static bool ComputeArmed
         {
-            get { return GpuComputeEnabled && m_eRenderPath == DXRenderPath.Hardware && _device != null && _bDX2Setup; }
+            get
+            {
+                // Stability gate: the current live compute implementation performs
+                // synchronous GPU event waits/readback on the render thread.  A delayed
+                // driver response therefore stalls Band Scope and Waterfall together.
+                // Keep the option/state for compatibility, but do not arm this blocking
+                // path.  Native GPU FFT remains available on its dedicated D3D11 device.
+                return false;
+            }
         }
 
         #endregion
