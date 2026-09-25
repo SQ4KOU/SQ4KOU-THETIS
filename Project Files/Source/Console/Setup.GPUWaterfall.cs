@@ -24,6 +24,7 @@ namespace Thetis
         private LabelTS lblPalSharpVal; private LabelTS lblPalContrast; private TrackBarTS tbPalContrast; private LabelTS lblPalContrastVal;
         private ComboBoxTS comboGPU; private LabelTS lblGPU; private LabelTS lblGPUInfo; private ButtonTS btnTestGPU; private System.Windows.Forms.Timer _gpuStatusTimer;
         private LabelTS lblWaterfallRenderQuality; private ComboBoxTS comboWaterfallRenderQuality; private LabelTS lblWaterfallRenderQualityHint;
+        private LabelTS lblWaterfallColorDepth; private ComboBoxTS comboWaterfallColorDepth;
         private CheckBoxTS chkGPUWaterfallFFT; private LabelTS lblGPUWaterfallFFTSize; private ComboBoxTS comboGPUWaterfallFFTSize;
         private LabelTS lblGPUWaterfallWindow; private ComboBoxTS comboGPUWaterfallWindow; private LabelTS lblGPUWaterfallKaiserBeta; private NumericUpDownTS udGPUWaterfallKaiserBeta;
         private LabelTS lblGPUWaterfallMagnitudeMode; private ComboBoxTS comboGPUWaterfallMagnitudeMode; private LabelTS lblGPUWaterfallOverlap; private NumericUpDownTS udGPUWaterfallOverlap;
@@ -481,6 +482,24 @@ namespace Thetis
 		wfProGroup.Controls.Add(lblWaterfallRenderQualityHint);
 		lblWaterfallRenderQualityHint.BringToFront();
 		num3 += 24;
+
+        lblWaterfallColorDepth = new LabelTS();
+        lblWaterfallColorDepth.Text = "Depth:";
+        lblWaterfallColorDepth.Location = new Point(340, num3 + 3);
+        lblWaterfallColorDepth.Size = new Size(44, 16);
+        wfProGroup.Controls.Add(lblWaterfallColorDepth);
+
+        comboWaterfallColorDepth = new ComboBoxTS();
+        comboWaterfallColorDepth.Name = "comboWaterfallColorDepth";
+        comboWaterfallColorDepth.DropDownStyle = ComboBoxStyle.DropDownList;
+        comboWaterfallColorDepth.Items.AddRange(new object[2] { "8-bit", "16-bit" });
+        comboWaterfallColorDepth.Location = new Point(388, num3);
+        comboWaterfallColorDepth.Size = new Size(90, 21);
+        comboWaterfallColorDepth.SelectedIndex = 0;
+        comboWaterfallColorDepth.SelectedIndexChanged += comboWaterfallColorDepth_SelectedIndexChanged;
+        wfProGroup.Controls.Add(comboWaterfallColorDepth);
+        num3 += 24;
+
 		lblToneMapSep = new LabelTS();
 		lblToneMapSep.Text = "── Enhancement ──";
 		lblToneMapSep.Location = new Point(340, num3);
@@ -1146,6 +1165,20 @@ namespace Thetis
 	}
 
 
+    private void comboWaterfallColorDepth_SelectedIndexChanged(object sender, EventArgs e)
+    {
+        if (initializing || comboWaterfallColorDepth == null || comboWaterfallColorDepth.SelectedIndex < 0) return;
+
+        WaterfallEnhancer.SetColorDepth(comboWaterfallColorDepth.SelectedIndex == 1
+            ? WaterfallEnhancer.ColorDepth.Bit16
+            : WaterfallEnhancer.ColorDepth.Bit8);
+        WaterfallPixelWriter.UpdateFormat();
+        Display.NotifyGPUWaterfallColorDepthChanged();
+        UpdateWaterfallRenderQualityHint();
+        PersistWaterfallPaletteSettings();
+    }
+
+
 	private void comboWaterfallRenderQuality_SelectedIndexChanged(object sender, EventArgs e)
 	{
 		if (!initializing && !_renderQualityItemsUpdating && comboWaterfallRenderQuality != null && comboWaterfallRenderQuality.SelectedIndex >= 0)
@@ -1307,6 +1340,7 @@ namespace Thetis
             comboTemporal_SelectedIndexChanged(this, e);
             tbPalSharp_Scroll(this, e);
             tbPalContrast_Scroll(this, e);
+            comboWaterfallColorDepth_SelectedIndexChanged(this, e);
             comboWaterfallRenderQuality_SelectedIndexChanged(this, e);
             comboGPUWaterfallFFTSize_SelectedIndexChanged(this, e);
             comboGPUWaterfallWindow_SelectedIndexChanged(this, e);
@@ -1323,6 +1357,13 @@ namespace Thetis
             // FFT path. It is deliberately last so all restored FFT settings are
             // already in Display when the pipeline is created.
             ApplyGPUSelection(comboGPU != null ? comboGPU.SelectedIndex : 0);
+
+            // getOptions() restores ComboBox.Text while 'initializing' suppresses the
+            // normal palette handlers. Apply them after the GPU list has been rebuilt,
+            // otherwise the persisted palette can be visually selected but not active.
+            comboColorPalette_SelectedIndexChanged(this, e);
+            comboRX2ColorPalette_SelectedIndexChanged(this, e);
+            comboColorPalette_tx_SelectedIndexChanged(this, e);
         }
 
     }
