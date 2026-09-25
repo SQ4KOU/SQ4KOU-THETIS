@@ -63,6 +63,12 @@
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="SkiaSharp" Version="3.119.2" />
     <PackageReference Include="Vortice.Direct2D1" Version="3.8.3" />
+    <Reference Include="SharpDX"><HintPath>..\..\lib\SharpDX\SharpDX.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="SharpDX.Desktop"><HintPath>..\..\lib\SharpDX\SharpDX.Desktop.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="SharpDX.Direct2D1"><HintPath>..\..\lib\SharpDX\SharpDX.Direct2D1.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="SharpDX.Direct3D11"><HintPath>..\..\lib\SharpDX\SharpDX.Direct3D11.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="SharpDX.DXGI"><HintPath>..\..\lib\SharpDX\SharpDX.DXGI.dll</HintPath><Private>true</Private></Reference>
+    <Reference Include="SharpDX.Mathematics"><HintPath>..\..\lib\SharpDX\SharpDX.Mathematics.dll</HintPath><Private>true</Private></Reference>
     <PackageReference Include="Vortice.Direct3D11" Version="3.8.3" />
     <PackageReference Include="Vortice.D3DCompiler" Version="3.8.3" />
     <PackageReference Include="WinForms.DataVisualization" Version="1.10.2" />
@@ -130,6 +136,26 @@
     <Compile Include="clsMeterScriptEngine.cs" />
     <Compile Include="clsSpectrumProcessor.cs" />
     <Compile Include="Display.ExactGPUWaterfallSource.cs" />
+    <Compile Include="Display.EU2AVWaterfallCompat.cs" />
+    <Compile Include="Display.GPUWaterfall.cs" />
+    <Compile Include="Display.GPUWaterfallStatus.cs" />
+    <Compile Include="FFTParams.cs" />
+    <Compile Include="GPUDetector.cs" />
+    <Compile Include="GPUDetectorNative.cs" />
+    <Compile Include="GPUWaterfallLogger.cs" />
+    <Compile Include="GPUWaterfallMagnitudeMode.cs" />
+    <Compile Include="GPUWaterfallNative.cs" />
+    <Compile Include="GPUWaterfallPipeline.cs" />
+    <Compile Include="GPUWaterfallResamplingMode.cs" />
+    <Compile Include="GPUWaterfallWindowType.cs" />
+    <Compile Include="NoiseFloorPro.cs" />
+    <Compile Include="Setup.GPUWaterfall.cs" />
+    <Compile Include="SharedWaterfallState.cs" />
+    <Compile Include="WaterfallEnhancer.cs" />
+    <Compile Include="WaterfallGPURenderer.cs" />
+    <Compile Include="WaterfallPalette.cs" />
+    <Compile Include="WaterfallPixelWriter.cs" />
+    <Compile Include="WaterfallRowParams.cs" />
     <Compile Include="frmCFCConfig.cs">
       <SubType>Form</SubType>
     </Compile>
