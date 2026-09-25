@@ -537,6 +537,10 @@ namespace Thetis
 
             initStreamOutTab(); //prior to getOptions setup streaming output options
 
+            // Build the original GPU Waterfall controls before getOptions so their
+            // values are restored by the normal control-name keyed database layer.
+            InitGPUWaterfallSetupUI();
+
             // Yurij_eu2av: hardware-specific defaults for PureSignal advanced settings.
             // Done before getOptions() so a saved user override takes precedence.
             PSTargetFeedbackLevel = HardwareSpecific.PSTargetFeedbackLevel;
@@ -662,6 +666,8 @@ namespace Thetis
 
             //-----------------------------
             initializing = false;
+
+            ApplyLoadedGPUWaterfallSettings();
 
             // push 3D panadapter enable state to Display (skipped during init due to 'initializing' guard)
             // remaining 3D settings are pushed by the 3D Panadapter Settings window
@@ -12479,6 +12485,31 @@ namespace Thetis
                 console.RX1ColourScheme = ColorScheme.Custom;
                 clrbtnWaterfallLow.Visible = false;
             }
+            else if (comboColorPalette.Text == "Console 256")
+            {
+                console.RX1ColourScheme = ColorScheme.Console;
+                clrbtnWaterfallLow.Visible = false;
+            }
+            else if (comboColorPalette.Text == "Thermal 256")
+            {
+                console.RX1ColourScheme = ColorScheme.Thermal;
+                clrbtnWaterfallLow.Visible = false;
+            }
+            else if (comboColorPalette.Text == "DeepBlue 256")
+            {
+                console.RX1ColourScheme = ColorScheme.DeepBlue;
+                clrbtnWaterfallLow.Visible = false;
+            }
+            else if (comboColorPalette.Text == "Enhanced 256")
+            {
+                console.RX1ColourScheme = ColorScheme.Enhanced256;
+                clrbtnWaterfallLow.Visible = false;
+            }
+            else if (comboColorPalette.Text == "BlackWhite 256")
+            {
+                console.RX1ColourScheme = ColorScheme.Grayscale256;
+                clrbtnWaterfallLow.Visible = false;
+            }
         }
         private void showHideWaterfallControls(int rx, bool show)
         {
@@ -12544,6 +12575,31 @@ namespace Thetis
             else if (comboRX2ColorPalette.Text == "Custom")
             {
                 console.RX2ColourScheme = ColorScheme.Custom;
+                clrbtnRX2WaterfallLow.Visible = false;
+            }
+            else if (comboRX2ColorPalette.Text == "Console 256")
+            {
+                console.RX2ColourScheme = ColorScheme.Console;
+                clrbtnRX2WaterfallLow.Visible = false;
+            }
+            else if (comboRX2ColorPalette.Text == "Thermal 256")
+            {
+                console.RX2ColourScheme = ColorScheme.Thermal;
+                clrbtnRX2WaterfallLow.Visible = false;
+            }
+            else if (comboRX2ColorPalette.Text == "DeepBlue 256")
+            {
+                console.RX2ColourScheme = ColorScheme.DeepBlue;
+                clrbtnRX2WaterfallLow.Visible = false;
+            }
+            else if (comboRX2ColorPalette.Text == "Enhanced 256")
+            {
+                console.RX2ColourScheme = ColorScheme.Enhanced256;
+                clrbtnRX2WaterfallLow.Visible = false;
+            }
+            else if (comboRX2ColorPalette.Text == "BlackWhite 256")
+            {
+                console.RX2ColourScheme = ColorScheme.Grayscale256;
                 clrbtnRX2WaterfallLow.Visible = false;
             }
         }
@@ -35617,6 +35673,31 @@ namespace Thetis
             else if (comboColorPalette_tx.Text == "Custom")
             {
                 console.TXColourScheme = ColorScheme.Custom;
+                clrbtnWaterfallLow_tx.Visible = false;
+            }
+            else if (comboColorPalette_tx.Text == "Console 256")
+            {
+                console.TXColourScheme = ColorScheme.Console;
+                clrbtnWaterfallLow_tx.Visible = false;
+            }
+            else if (comboColorPalette_tx.Text == "Thermal 256")
+            {
+                console.TXColourScheme = ColorScheme.Thermal;
+                clrbtnWaterfallLow_tx.Visible = false;
+            }
+            else if (comboColorPalette_tx.Text == "DeepBlue 256")
+            {
+                console.TXColourScheme = ColorScheme.DeepBlue;
+                clrbtnWaterfallLow_tx.Visible = false;
+            }
+            else if (comboColorPalette_tx.Text == "Enhanced 256")
+            {
+                console.TXColourScheme = ColorScheme.Enhanced256;
+                clrbtnWaterfallLow_tx.Visible = false;
+            }
+            else if (comboColorPalette_tx.Text == "BlackWhite 256")
+            {
+                console.TXColourScheme = ColorScheme.Grayscale256;
                 clrbtnWaterfallLow_tx.Visible = false;
             }
         }
