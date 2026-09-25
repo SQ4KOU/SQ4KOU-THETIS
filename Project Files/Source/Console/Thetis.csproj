@@ -138,6 +138,10 @@
     <Compile Include="Display.ExactGPUWaterfallSource.cs" />
     <Compile Include="Display.EU2AVWaterfallCompat.cs" />
     <Compile Include="Display.GPUWaterfall.cs" />
+    <Compile Include="Display.GPUPostProcessing.cs" />
+    <Compile Include="WaterfallEffect.cs" />
+    <Compile Include="WaterfallEffectImpl.cs" />
+    <Compile Include="WaterfallEffectParams.cs" />
     <Compile Include="FFTParams.cs" />
     <Compile Include="GPUDetector.cs" />
     <Compile Include="GPUDetectorNative.cs" />
