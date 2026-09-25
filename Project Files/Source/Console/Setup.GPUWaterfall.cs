@@ -1253,9 +1253,13 @@ namespace Thetis
 
 	private void chkGPUWaterfallAutoOverlap_CheckedChanged(object sender, EventArgs e)
 	{
+		bool auto = chkGPUWaterfallAutoOverlap != null && chkGPUWaterfallAutoOverlap.Checked;
+		if (udGPUWaterfallOverlap != null) udGPUWaterfallOverlap.Enabled = !auto;
+		if (lblGPUWaterfallEffectiveOverlap != null)
+			lblGPUWaterfallEffectiveOverlap.Text = auto ? "Eff: --%" : "";
 		if (!initializing)
 		{
-			Display.GPUWaterfallAutoOverlap = chkGPUWaterfallAutoOverlap.Checked;
+			Display.GPUWaterfallAutoOverlap = auto;
 		}
 	}
 
