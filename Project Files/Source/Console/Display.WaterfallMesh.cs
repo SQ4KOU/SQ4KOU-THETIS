@@ -98,7 +98,7 @@ namespace Thetis
             {
                 // The mesh ring is explicitly B8G8R8A8_UNorm (4 bytes/pixel).
                 // Never feed it the 8-byte R16G16B16A16_Float waterfall rows.
-                return GpuMeshEnabled &&
+                return ExperimentalSharedBackbufferMeshesEnabled && GpuMeshEnabled &&
                     WaterfallEnhancer.Depth == WaterfallEnhancer.ColorDepth.Bit8 &&
                     !m_bForceCPURendering &&
                     m_eRenderPath == DXRenderPath.Hardware && _device != null && _bDX2Setup;
