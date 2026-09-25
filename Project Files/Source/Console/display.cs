@@ -3513,6 +3513,22 @@ namespace Thetis
                 if (m_bForceCPURendering == value) return;
                 GPUWaterfallLogger.Log("STATE", "ForceCPURendering " + m_bForceCPURendering + " -> " + value);
                 m_bForceCPURendering = value;
+
+                // Keep the visible Vortice/D2D compositor alive, but reset the
+                // dedicated exact-GPU FFT source at every CPU<->GPU boundary.
+                // This prevents stale IQ credit/ring state from making the waterfall
+                // disappear after returning from Force CPU.
+                try
+                {
+                    ResetExactGPUWaterfallSourceForModeChange(!value && _gpuWaterfallPipelineEnabled);
+                }
+                catch (Exception ex)
+                {
+                    GPUWaterfallLogger.Log("WF-SOURCE", "mode-change reset failed: " + ex.Message);
+                }
+
+                ResetGPUWaterfallState(1, resetCalibration: false);
+                ResetGPUWaterfallState(2, resetCalibration: false);
             }
         }
 
@@ -4835,12 +4851,35 @@ namespace Thetis
                                 " tags=0x" + endTag1.ToString("X") + "/0x" + endTag2.ToString("X") +
                                 " specMesh=" + SpecMeshWasUsedThisFrame +
                                 " band3D=" + _b3DMeshDrewFrame);
-                        }
-                        if (_endRes.Failure && !_specEndDrawFailLogged && SpecMeshWasUsedThisFrame)
-                        {
-                            _specEndDrawFailLogged = true;
-                            Common.MeshDiagLog("GPU 2D panafill diag: EndDraw FAILED code=" + _endRes.Code +
-                                " tags=0x" + endTag1.ToString("X") + "/0x" + endTag2.ToString("X"));
+
+                            if (!_specEndDrawFailLogged && SpecMeshWasUsedThisFrame)
+                            {
+                                _specEndDrawFailLogged = true;
+                                Common.MeshDiagLog("GPU 2D panafill diag: EndDraw FAILED code=" + _endRes.Code +
+                                    " tags=0x" + endTag1.ToString("X") + "/0x" + endTag2.ToString("X"));
+                            }
+
+                            // Never Present a frame after a failed EndDraw. In particular
+                            // D2DERR_WRONG_STATE (0x88990001) leaves the target unusable
+                            // until its backbuffer resources are rebound. Recreate the
+                            // target immediately and let the next render tick start from
+                            // a clean BeginDraw/EndDraw pair.
+                            _dx_fail_retry++;
+                            string recoverError = "";
+                            if (_dx_fail_retry <= 3 && resizeDX2D(out recoverError))
+                            {
+                                GPUWaterfallLogger.Log("D2D-RECOVER",
+                                    "EndDraw failure " + _endRes.Code + " -> target recreated, retry=" + _dx_fail_retry);
+                                GPUWaterfallLogger.FrameEnd("D2D_END_RECOVER");
+                                return;
+                            }
+
+                            if (tryWarpDowngrade("EndDraw failure " + _endRes.Code))
+                                return;
+
+                            throw new InvalidOperationException(
+                                "Direct2D EndDraw failed: " + _endRes.Code +
+                                (string.IsNullOrEmpty(recoverError) ? "" : " / " + recoverError));
                         }
                     }
                     catch (SharpGenException ex) when (ex.ResultCode == Vortice.Direct2D1.ResultCode.RecreateTarget)
@@ -5875,12 +5914,14 @@ namespace Thetis
                     }
                     else if (m_bForceCPURendering || !GpuMeshEnabled || m_eRenderPath != DXRenderPath.Hardware)
                     {
-                        // Explicit CPU/software mode is not a fallback: the operator
-                        // requested it, so the D2D renderer is allowed here.
+                        // The legacy D2D 3D-history renderer costs hundreds of ms per
+                        // frame at wide displays (the diagnostics showed ~3 FPS).
+                        // CPU/WARP therefore falls back to the normal 2D panadapter;
+                        // the 3D history remains intact and resumes when GPU mesh is
+                        // enabled again.
                         GPUWaterfallLogger.LogRateLimited("BANDSCOPE", "cpu-mode-rx" + rx, 1000,
-                            "RX" + rx + " explicit CPU/software 3D path");
-                        DrawPanadapter3DHistoryDX2D(nVerticalShift, W, H, rx, bottom,
-                            null, 0, grid_max, nDecimatedWidth, m_nDecimation);
+                            "RX" + rx + " CPU/software mode -> lightweight 2D fallback");
+                        draw3DHistory = false;
                     }
                     else
                     {

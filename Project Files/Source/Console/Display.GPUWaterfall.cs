@@ -139,14 +139,16 @@ namespace Thetis
                     _gpuWaterfallPipelineEnabled = value;
                     try
                     {
-                        SetNativeWaterfallIQEnabled(value);
+                        SetNativeWaterfallIQEnabled(value && !m_bForceCPURendering);
                     }
                     catch
                     {
                     }
                     // Do not recreate D2D bitmaps from the Setup/UI thread.
                     // CPU/GPU mode switching only gates the pipeline; the existing
-                    // waterfall bitmap remains valid on both paths.
+                    // waterfall bitmap remains valid on both paths. The exact native
+                    // FFT source does need a clean IQ accumulator boundary.
+                    ResetExactGPUWaterfallSourceForModeChange(value && !m_bForceCPURendering);
                     ResetGPUWaterfallState(1);
                     ResetGPUWaterfallState(2);
                 }
@@ -177,6 +179,7 @@ namespace Thetis
                     _gpuWaterfallFFTSize = num;
                     if (_gpuWaterfallPipelineEnabled)
                     {
+                        ResetExactGPUWaterfallSourceForModeChange(!m_bForceCPURendering);
                         ResetGPUWaterfallState(1);
                         ResetGPUWaterfallState(2);
                     }
@@ -295,6 +298,7 @@ namespace Thetis
                 {
                     GPUWaterfallLogger.Log("STATE", "GPUWaterfallOverlapPercent " + _gpuWaterfallOverlapPercent + " -> " + num);
                     _gpuWaterfallOverlapPercent = num;
+                    ResetExactGPUWaterfallSourceForModeChange(_gpuWaterfallPipelineEnabled && !m_bForceCPURendering);
                     ResetGPUWaterfallState(1, resetCalibration: false);
                     ResetGPUWaterfallState(2, resetCalibration: false);
                 }
@@ -313,6 +317,7 @@ namespace Thetis
                 {
                     GPUWaterfallLogger.Log("STATE", "GPUWaterfallAutoOverlap " + _gpuWaterfallAutoOverlap + " -> " + value);
                     _gpuWaterfallAutoOverlap = value;
+                    ResetExactGPUWaterfallSourceForModeChange(_gpuWaterfallPipelineEnabled && !m_bForceCPURendering);
                     ResetGPUWaterfallState(1, resetCalibration: false);
                     ResetGPUWaterfallState(2, resetCalibration: false);
                 }

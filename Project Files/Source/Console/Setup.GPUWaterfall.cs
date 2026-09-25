@@ -375,7 +375,9 @@ namespace Thetis
 		chkGPUWaterfallAutoOverlap.AutoSize = true;
 		chkGPUWaterfallAutoOverlap.Location = new Point(267, num2 + 2);
 		chkGPUWaterfallAutoOverlap.Checked = false;
-		chkGPUWaterfallAutoOverlap.CheckedChanged += chkGPUWaterfallAutoOverlap_CheckedChanged;
+		// Use Click rather than CheckedChanged so DB/UI synchronisation cannot
+		// accidentally overwrite the runtime Auto state.
+		chkGPUWaterfallAutoOverlap.Click += chkGPUWaterfallAutoOverlap_CheckedChanged;
 		wfProGroup.Controls.Add(chkGPUWaterfallAutoOverlap);
 		chkGPUWaterfallAutoOverlap.BringToFront();
 		lblGPUWaterfallEffectiveOverlap = new LabelTS();
@@ -676,6 +678,12 @@ namespace Thetis
 		if (chkGPUWaterfallAutoOverlap != null)
 		{
 			chkGPUWaterfallAutoOverlap.Checked = Display.GPUWaterfallAutoOverlap;
+			if (udGPUWaterfallOverlap != null)
+				udGPUWaterfallOverlap.Enabled = !chkGPUWaterfallAutoOverlap.Checked;
+			if (lblGPUWaterfallEffectiveOverlap != null)
+				lblGPUWaterfallEffectiveOverlap.Text = chkGPUWaterfallAutoOverlap.Checked
+					? "Eff: --%"
+					: "";
 		}
 		if (comboGPUWaterfallLanczos != null)
 		{
@@ -925,7 +933,22 @@ namespace Thetis
 
 	private void SyncGPUWaterfallPipelineEnabled(int target)
 	{
-		Display.GPUWaterfallPipelineEnabled = target >= 1 && Display.WaterfallQuality == Display.WaterfallRenderQuality.High;
+		bool highQuality = Display.WaterfallQuality == Display.WaterfallRenderQuality.High;
+		bool fftRequested = chkGPUWaterfallFFT == null || chkGPUWaterfallFFT.Checked;
+		bool gpuSelectionRequestsAcceleration = comboGPU == null || comboGPU.SelectedIndex != 1;
+		bool detectionPending = gpuSelectionRequestsAcceleration &&
+			(_renderFilterPending || !GPUDetector.HasDeviceContext);
+
+		// While GPU detection is waiting for the D2D device, keep the user's
+		// persisted FFT request alive. The exact native FFT owns its own D3D11 device
+		// and does not need to be torn down during this detection window.
+		if (detectionPending)
+		{
+			Display.GPUWaterfallPipelineEnabled = fftRequested && highQuality;
+			return;
+		}
+
+		Display.GPUWaterfallPipelineEnabled = fftRequested && target >= 1 && highQuality;
 	}
 
 
@@ -1255,7 +1278,12 @@ namespace Thetis
 	{
 		if (!initializing)
 		{
-			Display.GPUWaterfallAutoOverlap = chkGPUWaterfallAutoOverlap.Checked;
+			bool enabled = chkGPUWaterfallAutoOverlap.Checked;
+			Display.GPUWaterfallAutoOverlap = enabled;
+			if (udGPUWaterfallOverlap != null)
+				udGPUWaterfallOverlap.Enabled = !enabled;
+			if (lblGPUWaterfallEffectiveOverlap != null)
+				lblGPUWaterfallEffectiveOverlap.Text = enabled ? "Eff: --%" : "";
 		}
 	}
 
@@ -1318,7 +1346,9 @@ namespace Thetis
 		}
 		try
 		{
-			lblGPUWaterfallEffectiveOverlap.Text = $"Eff: {overlap * 100.0:F0}%";
+			lblGPUWaterfallEffectiveOverlap.Text = Display.GPUWaterfallAutoOverlap
+				? $"Eff: {overlap * 100.0:F0}%"
+				: "";
 		}
 		catch
 		{

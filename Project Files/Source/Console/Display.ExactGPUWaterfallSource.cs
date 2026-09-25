@@ -39,7 +39,7 @@ namespace Thetis
         // while the visible waterfall history remains on the normal Vortice/D2D bitmap.
         // This deliberately avoids wrapping the live Vortice device/context in SharpDX.
         private static bool ExactNativeGPURequested =>
-            _gpuWaterfallPipelineEnabled && _gpuEffectsEnabled &&
+            _gpuWaterfallPipelineEnabled &&
             _waterfallRenderQuality == WaterfallRenderQuality.High &&
             !m_bForceCPURendering && m_eRenderPath == DXRenderPath.Hardware;
 
@@ -70,6 +70,81 @@ namespace Thetis
             internal static extern int CM_GPUWaterfallExact_RenderRow(
                 int channel, float lowThreshold, float highThreshold,
                 [Out] byte[] outputBGRA, int outputBytes);
+        }
+
+        private static void ResetExactGPUWaterfallSourceForModeChange(bool enableIQ)
+        {
+            lock (_exactGpuLock)
+            {
+                // A transient init failure must not poison the whole session. A mode,
+                // FFT or overlap transition is an explicit retry boundary.
+                _exactGpuUnavailable = false;
+
+                for (int slot = 0; slot < 2; slot++)
+                {
+                    _exactRingHead[slot] = 0;
+                    _exactRingCount[slot] = 0;
+                    _exactSampleCredit[slot] = 0;
+                    _exactFirstFill[slot] = false;
+                    _exactCalInit[slot] = false;
+                    _exactCalOffset[slot] = 0f;
+                    _gpuLastEffectiveOverlap[slot] = -1.0;
+
+                    if (_exactGpuIqInit[slot])
+                    {
+                        try
+                        {
+                            ExactGpuNative.CM_WaterfallIQ_SetEnabled(slot, enableIQ ? 1 : 0);
+                        }
+                        catch
+                        {
+                        }
+                    }
+                }
+            }
+
+            GPUWaterfallLogger.Log("WF-SOURCE",
+                "exact source reset enableIQ=" + enableIQ +
+                " forceCPU=" + m_bForceCPURendering +
+                " pipeline=" + _gpuWaterfallPipelineEnabled);
+        }
+
+        private static int CalculateExactGPUWaterfallHop(int rx, int fftSize, int sampleRate, out double effectiveOverlap)
+        {
+            int overlap = _gpuWaterfallOverlapPercent;
+            if (overlap < 0) overlap = 0;
+            if (overlap > 95) overlap = 95;
+
+            int hop = Math.Max(1, Math.Min(fftSize,
+                (int)Math.Round(fftSize * (1.0 - overlap / 100.0))));
+
+            if (_gpuWaterfallAutoOverlap)
+            {
+                double fps = Math.Max(1.0, m_nFps);
+                int updatePeriod = Math.Max(1, rx == 1 ? waterfall_update_period : rx2_waterfall_update_period);
+                double rowsPerSecond = Math.Min(fps / updatePeriod, 30.0);
+
+                // Preserve the original GPU-waterfall 95% maximum-overlap rule.
+                double maxRowsAt95Percent = sampleRate / (0.05 * fftSize);
+                if (rowsPerSecond > maxRowsAt95Percent)
+                    rowsPerSecond = maxRowsAt95Percent;
+                if (rowsPerSecond < 1.0)
+                    rowsPerSecond = 1.0;
+
+                hop = Math.Max(1, Math.Min(fftSize,
+                    (int)Math.Round(sampleRate / rowsPerSecond)));
+            }
+
+            effectiveOverlap = 1.0 - (double)hop / fftSize;
+            int slot = rx - 1;
+            if (slot >= 0 && slot < 2 &&
+                Math.Abs(effectiveOverlap - _gpuLastEffectiveOverlap[slot]) > 0.005)
+            {
+                _gpuLastEffectiveOverlap[slot] = effectiveOverlap;
+                GPUWaterfallEffectiveOverlapChanged?.Invoke(rx, effectiveOverlap);
+            }
+
+            return hop;
         }
 
         // 1 = exact GPU FFT row ready; 0 = healthy source waiting for overlap hop;
@@ -192,11 +267,12 @@ namespace Thetis
                         return 0;
                     }
 
-                    int overlap = _gpuWaterfallOverlapPercent;
-                    if (overlap < 0) overlap = 0;
-                    if (overlap > 95) overlap = 95;
-                    int hop = Math.Max(1, Math.Min(fftSize,
-                        (int)Math.Round(fftSize * (1.0 - overlap / 100.0))));
+                    int sampleRate = cmaster.GetInputRate(0, slot);
+                    if (sampleRate <= 0) sampleRate = rx == 1 ? SampleRateRX1 : SampleRateRX2;
+                    if (sampleRate <= 0) sampleRate = 192000;
+
+                    int hop = CalculateExactGPUWaterfallHop(rx, fftSize, sampleRate, out double effectiveOverlap);
+                    int effectiveOverlapPercent = (int)Math.Round(effectiveOverlap * 100.0);
 
                     if (!_exactFirstFill[slot])
                     {
@@ -209,7 +285,8 @@ namespace Thetis
                         {
                             GPUWaterfallLogger.LogRateLimited("WF-SOURCE", "hop-rx" + rx, 1000,
                                 "RX" + rx + " waiting hop credit=" + _exactSampleCredit[slot] +
-                                " hop=" + hop + " overlap=" + overlap + "%");
+                                " hop=" + hop + " overlap=" + effectiveOverlapPercent + "%" +
+                                " auto=" + _gpuWaterfallAutoOverlap);
                             return 0;
                         }
                         _exactSampleCredit[slot] -= hop;
@@ -225,9 +302,6 @@ namespace Thetis
                         _exactFrameQ[slot][i] = _exactRingQ[slot][src];
                     }
 
-                    int sampleRate = cmaster.GetInputRate(0, slot);
-                    if (sampleRate <= 0) sampleRate = rx == 1 ? SampleRateRX1 : SampleRateRX2;
-                    if (sampleRate <= 0) sampleRate = 192000;
                     float lowHz = rx == 1 ? RXDisplayLow : RX2DisplayLow;
                     float highHz = rx == 1 ? RXDisplayHigh : RX2DisplayHigh;
 
@@ -243,7 +317,8 @@ namespace Thetis
                     }
                     GPUWaterfallLogger.LogRateLimited("WF-SOURCE", "ready-rx" + rx, 1000,
                         "RX" + rx + " READY sr=" + sampleRate + " fft=" + fftSize +
-                        " width=" + width + " hop=" + hop + " overlap=" + overlap + "%");
+                        " width=" + width + " hop=" + hop + " overlap=" + effectiveOverlapPercent + "%" +
+                        " auto=" + _gpuWaterfallAutoOverlap);
 
                     int refCount = Math.Min(referenceCount, reference == null ? 0 : reference.Length);
                     if (refCount > 8)
