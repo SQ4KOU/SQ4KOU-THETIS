@@ -12443,6 +12443,7 @@ namespace Thetis
 
         private void comboColorPalette_SelectedIndexChanged(object sender, EventArgs e)
         {
+            if (initializing || _paletteItemsUpdating) return;
             showHideWaterfallControls(1, true);
 
             if (comboColorPalette.Text == "original")
@@ -12537,6 +12538,7 @@ namespace Thetis
 
         private void comboRX2ColorPalette_SelectedIndexChanged(object sender, EventArgs e)
         {
+            if (initializing || _paletteItemsUpdating) return;
             showHideWaterfallControls(2, true);
 
             if (comboRX2ColorPalette.Text == "original")
@@ -20175,6 +20177,8 @@ namespace Thetis
                 options["comboColorPalette"] = comboColorPalette.Text;
                 options["comboRX2ColorPalette"] = comboRX2ColorPalette.Text;
                 options["comboColorPalette_tx"] = comboColorPalette_tx.Text;
+                if (comboWaterfallColorDepth != null)
+                    options["comboWaterfallColorDepth"] = comboWaterfallColorDepth.Text;
                 DB.SaveVarsDictionary("Options", ref options, true);
                 DB.WriteDB();
             }
@@ -35658,6 +35662,7 @@ namespace Thetis
 
         private void comboColorPalette_tx_SelectedIndexChanged(object sender, EventArgs e)
         {
+            if (initializing || _paletteItemsUpdating) return;
             if (comboColorPalette_tx.Text == "original")
             {
                 console.TXColourScheme = ColorScheme.original;
