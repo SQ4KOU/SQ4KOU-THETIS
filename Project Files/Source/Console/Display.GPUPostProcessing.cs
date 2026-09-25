@@ -15,9 +15,10 @@ namespace Thetis
         {
             try
             {
-                SharpDX.Direct2D1.DeviceContext dc = _d2dRenderTarget as SharpDX.Direct2D1.DeviceContext;
-                if (dc == null || dc.IsDisposed || _d2dFactory == null) return;
-                GPUDetector.Detect(dc, _d2dFactory);
+                SharpDX.Direct2D1.DeviceContext dc = GetGPUSharpD2D();
+                SharpDX.Direct2D1.Factory1 factory = GetGPUSharpFactory();
+                if (dc == null || dc.IsDisposed || factory == null || factory.IsDisposed) return;
+                GPUDetector.Detect(dc, factory);
                 if (_autoEnableGPU && !_gpuEffectsEnabled && GPUDetector.HasBuiltInEffects)
                 {
                     _gpuEffectsEnabled = true;
@@ -188,7 +189,7 @@ namespace Thetis
 
         private static void DrawWaterfallToTarget(SharpDX.Direct2D1.Bitmap bmp, int nVerticalShift, int topMargin, float opacity)
         {
-            SharpDX.Direct2D1.DeviceContext dc = _d2dRenderTarget as SharpDX.Direct2D1.DeviceContext;
+            SharpDX.Direct2D1.DeviceContext dc = GetGPUSharpD2D();
             if (_gpuEffectsEnabled && dc != null && GPUDetector.HasBuiltInEffects && WaterfallEnhancer.Depth == WaterfallEnhancer.ColorDepth.Bit8)
             {
                 int rx = object.ReferenceEquals(bmp, _waterfall_bmp2_dx2d) ? 2 : 1;
