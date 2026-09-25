@@ -48,6 +48,10 @@ namespace Thetis
         private static bool _meshShadersBuilt;
         private static bool _meshFailedLogged;
         private static ID3D11RenderTargetView _meshRTV;
+        private static ID3D11Texture2D _meshSheetTex;
+        private static ID2D1Bitmap _meshSheetBitmap;
+        private static int _meshSheetW = -1;
+        private static int _meshSheetH = -1;
         private static ID3D11VertexShader _meshVS;
         private static ID3D11PixelShader _meshPS;
         private static ID3D11InputLayout _meshIL;
@@ -104,9 +108,10 @@ namespace Thetis
         // D2D/Vortice remains the sole presenter while native GPU FFT may still run
         // on its dedicated device.
         private const bool ExperimentalSharedBackbufferMeshesEnabled = false;
+        private const bool StableOffscreen3DMeshEnabled = true;
 
-        /// <summary>Experimental Tier 3 GPU mesh 3D surface toggle (kept for UI compatibility).</summary>
-        public static bool GpuMeshEnabled { get; set; } = false;
+        /// <summary>GPU 3D surface toggle. The stable path renders to an offscreen shared texture.</summary>
+        public static bool GpuMeshEnabled { get; set; } = true;
 
         private static void CaptureMeshFrameParams(int nVerticalShift, int W, int H, int rx, int nDecimatedWidth, int local_Decimation, int grid_min, int grid_max)
         {
@@ -279,6 +284,9 @@ namespace Thetis
         private static void ReleaseGpuMeshDeviceObjects()
         {
             _meshRTV?.Dispose(); _meshRTV = null;
+            _meshSheetBitmap?.Dispose(); _meshSheetBitmap = null;
+            _meshSheetTex?.Dispose(); _meshSheetTex = null;
+            _meshSheetW = -1; _meshSheetH = -1;
             _meshHeightSRV?.Dispose(); _meshHeightSRV = null;
             _meshHeightTex?.Dispose(); _meshHeightTex = null;
             _meshPaletteSRV?.Dispose(); _meshPaletteSRV = null;
@@ -316,6 +324,12 @@ namespace Thetis
         {
             _meshRTV?.Dispose();
             _meshRTV = null;
+            _meshSheetBitmap?.Dispose();
+            _meshSheetBitmap = null;
+            _meshSheetTex?.Dispose();
+            _meshSheetTex = null;
+            _meshSheetW = -1;
+            _meshSheetH = -1;
             _meshParams.Valid = false;
         }
 
@@ -535,18 +549,56 @@ namespace Thetis
 
         private static bool EnsureMeshRTV(ID3D11Device device)
         {
-            if (_meshRTV != null) return true;
+            int w = Math.Max(1, displayTargetWidth);
+            int h = Math.Max(1, displayTargetHeight);
+            if (_meshRTV != null && _meshSheetTex != null && _meshSheetBitmap != null &&
+                _meshSheetW == w && _meshSheetH == h)
+                return true;
+
             try
             {
-                using (ID3D11Texture2D bb = _swapChain1.GetBuffer<ID3D11Texture2D>(0))
-                    _meshRTV = device.CreateRenderTargetView(bb);
+                _meshRTV?.Dispose(); _meshRTV = null;
+                _meshSheetBitmap?.Dispose(); _meshSheetBitmap = null;
+                _meshSheetTex?.Dispose(); _meshSheetTex = null;
+
+                _meshSheetTex = device.CreateTexture2D(new Texture2DDescription()
+                {
+                    Width = (uint)w,
+                    Height = (uint)h,
+                    MipLevels = 1,
+                    ArraySize = 1,
+                    Format = Format.B8G8R8A8_UNorm,
+                    SampleDescription = new SampleDescription(1, 0),
+                    Usage = ResourceUsage.Default,
+                    BindFlags = BindFlags.RenderTarget | BindFlags.ShaderResource,
+                });
+                _meshRTV = device.CreateRenderTargetView(_meshSheetTex);
+
+                using IDXGISurface surf = _meshSheetTex.QueryInterface<IDXGISurface>();
+                _meshSheetBitmap = _d2dRenderTarget.CreateSharedBitmap(surf, new BitmapProperties(
+                    new Vortice.DCommon.PixelFormat(Format.B8G8R8A8_UNorm, Vortice.DCommon.AlphaMode.Premultiplied)));
+
+                _meshSheetW = w;
+                _meshSheetH = h;
                 return true;
             }
             catch (Exception e)
             {
-                Common.MeshDiagLog("GPU mesh: RTV creation failed - " + e.Message);
+                Common.MeshDiagLog("GPU 3D offscreen surface creation failed - " + e.Message);
+                _meshRTV?.Dispose(); _meshRTV = null;
+                _meshSheetBitmap?.Dispose(); _meshSheetBitmap = null;
+                _meshSheetTex?.Dispose(); _meshSheetTex = null;
+                _meshSheetW = -1; _meshSheetH = -1;
                 return false;
             }
+        }
+
+        private static void BlitGpuMesh3D()
+        {
+            if (_meshSheetBitmap == null || _d2dRenderTarget == null) return;
+            _d2dRenderTarget.DrawBitmap(_meshSheetBitmap,
+                new Rect(0f, 0f, displayTargetWidth, displayTargetHeight),
+                1f, BitmapInterpolationMode.Linear, null);
         }
 
         private struct MeshConstants
@@ -566,7 +618,7 @@ namespace Thetis
         /// </summary>
         private static bool RenderGpuMesh3D()
         {
-            if (!ExperimentalSharedBackbufferMeshesEnabled || !GpuMeshEnabled ||
+            if (!StableOffscreen3DMeshEnabled || !GpuMeshEnabled ||
                 m_bForceCPURendering || m_eRenderPath != DXRenderPath.Hardware || _device == null || !_bDX2Setup)
                 return false;
             if (!_pan3DEnabled || _3dHistoryBuffer == null || _3dHistoryCount < 3 || !_meshParams.Valid)
@@ -694,38 +746,10 @@ namespace Thetis
                 // without this every fragment is discarded (clear works regardless)
                 dc.OMSetRenderTargets(new[] { _meshRTV }, null);
 
-                if (_bitmapBackground != null)
-                {
-                    // skin image drawn by the shared backdrop step (once per frame
-                    // across all mesh passes); repaint ONLY the plot strip with a
-                    // scissored opaque quad so the 3D scene sits on flat background
-                    EnsureGpuBackdrop(dc);
-
-                    dc.RSSetState(_meshRSScissor);
-                    dc.RSSetScissorRects(new[] { new Vortice.RawRect(0, (int)_meshParams.Shift,
-                        (int)displayTargetWidth, (int)_meshParams.Shift + (int)_meshParams.PlotH) });
-                    dc.OMSetBlendState(_meshBlendOpaque);
-                    dc.VSSetShader(_meshClearVS);
-                    dc.PSSetShader(_meshClearPS);
-                    dc.VSSetConstantBuffer(0, _meshCB);   // ps_clear reads CB_Background
-                    dc.IASetVertexBuffer(0, _meshClearVB, 8, 0);
-                    dc.IASetIndexBuffer(_meshClearIB, Format.R32_UInt, 0);
-                    dc.DrawIndexed(6, 0, 0);
-
-                    // restore surface state
-                    dc.VSSetShader(_meshVS);
-                    dc.PSSetShader(_meshPS);
-                    dc.OMSetBlendState(_meshBlend);
-                    dc.RSSetState(_meshRS);
-                    dc.RSSetScissorRects(new[] { new Vortice.RawRect(0, 0,
-                        (int)displayTargetWidth, (int)displayTargetHeight) });
-                }
-                else
-                {
-                    // no skin image: the shared backdrop step full-clears to the
-                    // configured background colour (once per frame)
-                    EnsureGpuBackdrop(dc);
-                }
+                // Stable path: render only the 3D geometry into a transparent
+                // offscreen texture. D2D/Vortice remains the sole owner of the live
+                // swapchain and composites this texture later in normal draw order.
+                dc.ClearRenderTargetView(_meshRTV, new Color4(0f, 0f, 0f, 0f));
 
                 // ---- flat pass: perspective grid floor + rails, then side walls.
                 // Drawn BEFORE the surface so rows occlude them (D2D draw order). ----
