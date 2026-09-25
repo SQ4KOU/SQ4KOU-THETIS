@@ -70,9 +70,6 @@ public class WaterfallGPURenderer : IDisposable
 	private static byte[] _shaderBytecode;
 
 	public bool IsInitialized => _initialized;
-	public bool IsDrawable => _initialized &&
-		_waterfallBitmap != null && !_waterfallBitmap.IsDisposed &&
-		_d2dDC != null && !_d2dDC.IsDisposed;
 
 	public int Width => _width;
 
@@ -355,6 +352,7 @@ public class WaterfallGPURenderer : IDisposable
 		immediateContext.Dispatch(threadGroupCountX, 1, 1);
 		immediateContext.ComputeShader.SetUnorderedAccessView(0, null);
 		immediateContext.ComputeShader.SetUnorderedAccessView(1, null);
+		immediateContext.Flush();
 		_ditherRowY++;
 	}
 
