@@ -1125,6 +1125,16 @@ namespace Thetis
             !m_bForceCPURendering &&
             m_eRenderPath == DXRenderPath.Hardware;
 
+        internal static void NotifyGPUWaterfallColorDepthChanged()
+        {
+            _gpuRendererHasData[0] = false;
+            _gpuRendererHasData[1] = false;
+            ResetGPUWaterfallState(1, false);
+            ResetGPUWaterfallState(2, false);
+            ResetTemporalWaterfallState();
+            LogGPU("GPU waterfall color depth changed to " + WaterfallEnhancer.Depth + "; renderer will recreate on render thread.");
+        }
+
         private static WaterfallGPURenderer EnsureGPUWaterfallRenderer(int rx, int width, int height)
         {
             if (!_gpuEffectsEnabled || m_bForceCPURendering || m_eRenderPath != DXRenderPath.Hardware ||
