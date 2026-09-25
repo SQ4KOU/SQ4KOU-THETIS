@@ -3611,11 +3611,136 @@ namespace Thetis
             _diagBackBufferSameHashCount = 0;
         }
 
+        private struct BackBufferProbeSummary
+        {
+            public ulong Hash;
+            public int Lit;
+            public int MaxRgb;
+            public double Avg;
+            public int Total;
+            public int TopLit;
+            public int TopTotal;
+            public int BottomLit;
+            public int BottomTotal;
+        }
+
+        private static BackBufferProbeSummary SampleBackBufferTexture(string label, ID3D11Texture2D source)
+        {
+            Texture2DDescription desc = source.Description;
+            BackBufferProbeSummary summary = new BackBufferProbeSummary();
+            if (desc.Width == 0 || desc.Height == 0) return summary;
+
+            if (_diagBackBufferStaging == null ||
+                _diagBackBufferW != desc.Width ||
+                _diagBackBufferH != desc.Height ||
+                _diagBackBufferFormat != desc.Format)
+            {
+                try { _diagBackBufferStaging?.Dispose(); } catch { }
+                _diagBackBufferStaging = _device.CreateTexture2D(new Texture2DDescription()
+                {
+                    Width = desc.Width,
+                    Height = desc.Height,
+                    MipLevels = 1,
+                    ArraySize = 1,
+                    Format = desc.Format,
+                    SampleDescription = new SampleDescription(1, 0),
+                    Usage = ResourceUsage.Staging,
+                    CPUAccessFlags = CpuAccessFlags.Read,
+                });
+                _diagBackBufferW = desc.Width;
+                _diagBackBufferH = desc.Height;
+                _diagBackBufferFormat = desc.Format;
+            }
+
+            ID3D11DeviceContext dc = _device.ImmediateContext;
+            dc.CopyResource(source, _diagBackBufferStaging);
+            MappedSubresource map = dc.Map(_diagBackBufferStaging, 0, MapMode.Read, Vortice.Direct3D11.MapFlags.None);
+
+            int sampleCols = 48;
+            int sampleRows = 24;
+            int total = 0, lit = 0, topLit = 0, bottomLit = 0, topTotal = 0, bottomTotal = 0;
+            long rgbSum = 0;
+            int maxRgb = 0;
+            ulong hash = 1469598103934665603UL;
+
+            unsafe
+            {
+                byte* basePtr = (byte*)map.DataPointer;
+                int rowPitch = (int)map.RowPitch;
+                int width = (int)desc.Width;
+                int height = (int)desc.Height;
+
+                for (int sy = 0; sy < sampleRows; sy++)
+                {
+                    int y = Math.Min(height - 1, (sy * height + height / 2) / sampleRows);
+                    byte* row = basePtr + y * rowPitch;
+                    bool top = y < height / 2;
+
+                    for (int sx = 0; sx < sampleCols; sx++)
+                    {
+                        int x = Math.Min(width - 1, (sx * width + width / 2) / sampleCols);
+                        byte* px = row + x * 4;
+                        int b = px[0], g = px[1], rr = px[2], a = px[3];
+                        int rgb = rr + g + b;
+                        int peak = Math.Max(rr, Math.Max(g, b));
+
+                        total++;
+                        rgbSum += rgb;
+                        if (peak > maxRgb) maxRgb = peak;
+                        bool isLit = rgb > 24;
+                        if (isLit) lit++;
+
+                        if (top)
+                        {
+                            topTotal++;
+                            if (isLit) topLit++;
+                        }
+                        else
+                        {
+                            bottomTotal++;
+                            if (isLit) bottomLit++;
+                        }
+
+                        uint packed = (uint)(b | (g << 8) | (rr << 16) | (a << 24));
+                        hash ^= packed;
+                        hash *= 1099511628211UL;
+                    }
+                }
+            }
+
+            dc.Unmap((ID3D11Resource)_diagBackBufferStaging, 0);
+
+            summary.Hash = hash;
+            summary.Lit = lit;
+            summary.MaxRgb = maxRgb;
+            summary.Total = total;
+            summary.TopLit = topLit;
+            summary.TopTotal = topTotal;
+            summary.BottomLit = bottomLit;
+            summary.BottomTotal = bottomTotal;
+            summary.Avg = total > 0 ? rgbSum / (total * 3.0) : 0.0;
+
+            GPUWaterfallLogger.Log("BACKBUFFER-" + label,
+                "size=" + desc.Width + "x" + desc.Height +
+                " lit=" + lit + "/" + total +
+                " top=" + topLit + "/" + topTotal +
+                " bottom=" + bottomLit + "/" + bottomTotal +
+                " avg=" + summary.Avg.ToString("F1") +
+                " max=" + maxRgb +
+                " hash=0x" + hash.ToString("X16") +
+                " band3D=" + _b3DMeshDrewFrame +
+                " wfMesh=" + _bWfMeshDrewFrame +
+                " specMesh=" + SpecMeshWasUsedThisFrame +
+                " paused=" + _paused_display);
+
+            return summary;
+        }
+
         private static void ProbeBackBufferBeforePresent()
         {
             try
             {
-                if (!_bDX2Setup || _device == null || _swapChain1 == null) return;
+                if (!_bDX2Setup || _device == null || _swapChain1 == null || _surface == null) return;
 
                 long now = Stopwatch.GetTimestamp();
                 if (_diagBackBufferLastProbeTicks != 0 &&
@@ -3623,114 +3748,41 @@ namespace Thetis
                     return;
                 _diagBackBufferLastProbeTicks = now;
 
-                using ID3D11Texture2D source = _swapChain1.GetBuffer<ID3D11Texture2D>(0);
-                Texture2DDescription desc = source.Description;
-                if (desc.Width == 0 || desc.Height == 0) return;
-
-                if (_diagBackBufferStaging == null ||
-                    _diagBackBufferW != desc.Width ||
-                    _diagBackBufferH != desc.Height ||
-                    _diagBackBufferFormat != desc.Format)
-                {
-                    ReleaseBackBufferDiagnosticProbe();
-                    _diagBackBufferStaging = _device.CreateTexture2D(new Texture2DDescription()
-                    {
-                        Width = desc.Width,
-                        Height = desc.Height,
-                        MipLevels = 1,
-                        ArraySize = 1,
-                        Format = desc.Format,
-                        SampleDescription = new SampleDescription(1, 0),
-                        Usage = ResourceUsage.Staging,
-                        CPUAccessFlags = CpuAccessFlags.Read,
-                    });
-                    _diagBackBufferW = desc.Width;
-                    _diagBackBufferH = desc.Height;
-                    _diagBackBufferFormat = desc.Format;
-                    _diagBackBufferLastProbeTicks = now;
-                }
-
+                // EndDraw has completed D2D submission. Flush the shared D3D11
+                // immediate context before readback so the diagnostic observes the
+                // completed frame rather than an earlier command state.
                 ID3D11DeviceContext dc = _device.ImmediateContext;
-                dc.CopyResource(source, _diagBackBufferStaging);
-                MappedSubresource map = dc.Map(_diagBackBufferStaging, 0, MapMode.Read, Vortice.Direct3D11.MapFlags.None);
+                dc.Flush();
 
-                int sampleCols = 48;
-                int sampleRows = 24;
-                int total = 0, lit = 0, topLit = 0, bottomLit = 0, topTotal = 0, bottomTotal = 0;
-                long rgbSum = 0;
-                int maxRgb = 0;
-                ulong hash = 1469598103934665603UL;
+                // Read BOTH resources:
+                // 1) the exact DXGI surface cached when D2D target was created;
+                // 2) the swapchain's current buffer 0 immediately before Present.
+                // A mismatch proves a stale target / flip-chain ownership problem.
+                using ID3D11Texture2D d2dTargetSource = _surface.QueryInterface<ID3D11Texture2D>();
+                BackBufferProbeSummary target = SampleBackBufferTexture("TARGET", d2dTargetSource);
 
-                unsafe
-                {
-                    byte* basePtr = (byte*)map.DataPointer;
-                    int rowPitch = (int)map.RowPitch;
-                    int width = (int)desc.Width;
-                    int height = (int)desc.Height;
+                using ID3D11Texture2D currentSource = _swapChain1.GetBuffer<ID3D11Texture2D>(0);
+                BackBufferProbeSummary current = SampleBackBufferTexture("CURRENT", currentSource);
 
-                    for (int sy = 0; sy < sampleRows; sy++)
-                    {
-                        int y = Math.Min(height - 1, (sy * height + height / 2) / sampleRows);
-                        byte* row = basePtr + y * rowPitch;
-                        bool top = y < height / 2;
+                bool sameHash = target.Hash == current.Hash;
+                GPUWaterfallLogger.Log("BACKBUFFER-COMPARE",
+                    "same=" + sameHash +
+                    " targetHash=0x" + target.Hash.ToString("X16") +
+                    " currentHash=0x" + current.Hash.ToString("X16") +
+                    " targetLit=" + target.Lit + "/" + target.Total +
+                    " currentLit=" + current.Lit + "/" + current.Total +
+                    " targetMax=" + target.MaxRgb +
+                    " currentMax=" + current.MaxRgb);
 
-                        for (int sx = 0; sx < sampleCols; sx++)
-                        {
-                            int x = Math.Min(width - 1, (sx * width + width / 2) / sampleCols);
-                            byte* px = row + x * 4;
-                            int b = px[0], g = px[1], rr = px[2], a = px[3];
-                            int rgb = rr + g + b;
-                            int peak = Math.Max(rr, Math.Max(g, b));
-
-                            total++;
-                            rgbSum += rgb;
-                            if (peak > maxRgb) maxRgb = peak;
-                            bool isLit = rgb > 24;
-                            if (isLit) lit++;
-
-                            if (top)
-                            {
-                                topTotal++;
-                                if (isLit) topLit++;
-                            }
-                            else
-                            {
-                                bottomTotal++;
-                                if (isLit) bottomLit++;
-                            }
-
-                            uint packed = (uint)(b | (g << 8) | (rr << 16) | (a << 24));
-                            hash ^= packed;
-                            hash *= 1099511628211UL;
-                        }
-                    }
-                }
-
-                dc.Unmap((ID3D11Resource)_diagBackBufferStaging, 0);
-
-                if (hash == _diagBackBufferLastHash) _diagBackBufferSameHashCount++;
-                else _diagBackBufferSameHashCount = 0;
-                _diagBackBufferLastHash = hash;
-
-                double avg = total > 0 ? rgbSum / (total * 3.0) : 0.0;
-                string state =
-                    "size=" + desc.Width + "x" + desc.Height +
-                    " lit=" + lit + "/" + total +
-                    " top=" + topLit + "/" + topTotal +
-                    " bottom=" + bottomLit + "/" + bottomTotal +
-                    " avg=" + avg.ToString("F1") +
-                    " max=" + maxRgb +
-                    " hash=0x" + hash.ToString("X16") +
-                    " same=" + _diagBackBufferSameHashCount +
-                    " band3D=" + _b3DMeshDrewFrame +
-                    " wfMesh=" + _bWfMeshDrewFrame +
-                    " specMesh=" + SpecMeshWasUsedThisFrame +
-                    " paused=" + _paused_display;
-
-                GPUWaterfallLogger.Log("BACKBUFFER", state);
-
-                if (lit <= 2 || maxRgb <= 8 || _diagBackBufferSameHashCount >= 5)
-                    GPUWaterfallLogger.Log("BACKBUFFER-ALERT", state);
+                if (target.Lit <= 2 || target.MaxRgb <= 8)
+                    GPUWaterfallLogger.Log("BACKBUFFER-TARGET-ALERT",
+                        "D2D target appears black before Present.");
+                if (current.Lit <= 2 || current.MaxRgb <= 8)
+                    GPUWaterfallLogger.Log("BACKBUFFER-CURRENT-ALERT",
+                        "Swapchain current buffer appears black before Present.");
+                if (!sameHash)
+                    GPUWaterfallLogger.Log("BACKBUFFER-MISMATCH",
+                        "D2D target content differs from swapchain current buffer before Present.");
             }
             catch (Exception ex)
             {
