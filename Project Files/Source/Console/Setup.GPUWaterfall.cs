@@ -1289,6 +1289,25 @@ namespace Thetis
 		}
 	}
 
+
+        private void PersistGPUWaterfallPresentationSettings()
+        {
+            if (initializing || _gettingOptions || _savingOptions) return;
+            try
+            {
+                Dictionary<string, string> options = DB.GetVarsDictionary("Options");
+                if (comboColorPalette != null) options["comboColorPalette"] = comboColorPalette.Text;
+                if (comboRX2ColorPalette != null) options["comboRX2ColorPalette"] = comboRX2ColorPalette.Text;
+                if (comboColorPalette_tx != null) options["comboColorPalette_tx"] = comboColorPalette_tx.Text;
+                DB.SaveVarsDictionary("Options", ref options, true);
+                DB.WriteDB();
+            }
+            catch (Exception ex)
+            {
+                LogTool.AddLogEntry("Persist GPU waterfall palette failed: " + ex.Message, "SETUP");
+            }
+        }
+
         // Apply values restored by getOptions(). During database restore the regular
         // event handlers are suppressed by 'initializing', so the GPU pipeline must
         // be synchronized explicitly once initialization is released.
