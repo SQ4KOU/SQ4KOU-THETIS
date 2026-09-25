@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using System.Drawing;
 using System.Windows.Forms;
 
@@ -25,7 +24,6 @@ namespace Thetis
         private LabelTS lblPalSharpVal; private LabelTS lblPalContrast; private TrackBarTS tbPalContrast; private LabelTS lblPalContrastVal;
         private ComboBoxTS comboGPU; private LabelTS lblGPU; private LabelTS lblGPUInfo; private ButtonTS btnTestGPU; private System.Windows.Forms.Timer _gpuStatusTimer;
         private LabelTS lblWaterfallRenderQuality; private ComboBoxTS comboWaterfallRenderQuality; private LabelTS lblWaterfallRenderQualityHint;
-        private LabelTS lblWaterfallColorDepth; private ComboBoxTS comboWaterfallColorDepth;
         private CheckBoxTS chkGPUWaterfallFFT; private LabelTS lblGPUWaterfallFFTSize; private ComboBoxTS comboGPUWaterfallFFTSize;
         private LabelTS lblGPUWaterfallWindow; private ComboBoxTS comboGPUWaterfallWindow; private LabelTS lblGPUWaterfallKaiserBeta; private NumericUpDownTS udGPUWaterfallKaiserBeta;
         private LabelTS lblGPUWaterfallMagnitudeMode; private ComboBoxTS comboGPUWaterfallMagnitudeMode; private LabelTS lblGPUWaterfallOverlap; private NumericUpDownTS udGPUWaterfallOverlap;
@@ -483,21 +481,6 @@ namespace Thetis
 		wfProGroup.Controls.Add(lblWaterfallRenderQualityHint);
 		lblWaterfallRenderQualityHint.BringToFront();
 		num3 += 24;
-        lblWaterfallColorDepth = new LabelTS();
-        lblWaterfallColorDepth.Text = "Depth:";
-        lblWaterfallColorDepth.Location = new Point(340, num3 + 3);
-        lblWaterfallColorDepth.Size = new Size(44, 16);
-        wfProGroup.Controls.Add(lblWaterfallColorDepth);
-        comboWaterfallColorDepth = new ComboBoxTS();
-        comboWaterfallColorDepth.Name = "comboWaterfallColorDepth";
-        comboWaterfallColorDepth.DropDownStyle = ComboBoxStyle.DropDownList;
-        comboWaterfallColorDepth.Items.AddRange(new object[2] { "8-bit", "16-bit" });
-        comboWaterfallColorDepth.Location = new Point(388, num3);
-        comboWaterfallColorDepth.Size = new Size(90, 21);
-        comboWaterfallColorDepth.SelectedIndex = 0;
-        comboWaterfallColorDepth.SelectedIndexChanged += comboWaterfallColorDepth_SelectedIndexChanged;
-        wfProGroup.Controls.Add(comboWaterfallColorDepth);
-        num3 += 24;
 		lblToneMapSep = new LabelTS();
 		lblToneMapSep.Text = "── Enhancement ──";
 		lblToneMapSep.Location = new Point(340, num3);
@@ -1163,19 +1146,6 @@ namespace Thetis
 	}
 
 
-    private void comboWaterfallColorDepth_SelectedIndexChanged(object sender, EventArgs e)
-    {
-        if (initializing || comboWaterfallColorDepth == null || comboWaterfallColorDepth.SelectedIndex < 0) return;
-
-        WaterfallEnhancer.SetColorDepth(comboWaterfallColorDepth.SelectedIndex == 1
-            ? WaterfallEnhancer.ColorDepth.Bit16
-            : WaterfallEnhancer.ColorDepth.Bit8);
-        WaterfallPixelWriter.UpdateFormat();
-        Display.NotifyGPUWaterfallColorDepthChanged();
-        UpdateWaterfallRenderQualityHint();
-        PersistGPUWaterfallPresentationSettings();
-    }
-
 	private void comboWaterfallRenderQuality_SelectedIndexChanged(object sender, EventArgs e)
 	{
 		if (!initializing && !_renderQualityItemsUpdating && comboWaterfallRenderQuality != null && comboWaterfallRenderQuality.SelectedIndex >= 0)
@@ -1319,26 +1289,6 @@ namespace Thetis
 		}
 	}
 
-
-        private void PersistGPUWaterfallPresentationSettings()
-        {
-            if (initializing || _gettingOptions || _savingOptions) return;
-            try
-            {
-                Dictionary<string, string> options = DB.GetVarsDictionary("Options");
-                if (comboColorPalette != null) options["comboColorPalette"] = comboColorPalette.Text;
-                if (comboRX2ColorPalette != null) options["comboRX2ColorPalette"] = comboRX2ColorPalette.Text;
-                if (comboColorPalette_tx != null) options["comboColorPalette_tx"] = comboColorPalette_tx.Text;
-                if (comboWaterfallColorDepth != null) options["comboWaterfallColorDepth"] = comboWaterfallColorDepth.Text;
-                DB.SaveVarsDictionary("Options", ref options, true);
-                DB.WriteDB();
-            }
-            catch (Exception ex)
-            {
-                LogTool.AddLogEntry("Persist GPU waterfall palette failed: " + ex.Message, "SETUP");
-            }
-        }
-
         // Apply values restored by getOptions(). During database restore the regular
         // event handlers are suppressed by 'initializing', so the GPU pipeline must
         // be synchronized explicitly once initialization is released.
@@ -1357,7 +1307,6 @@ namespace Thetis
             comboTemporal_SelectedIndexChanged(this, e);
             tbPalSharp_Scroll(this, e);
             tbPalContrast_Scroll(this, e);
-            comboWaterfallColorDepth_SelectedIndexChanged(this, e);
             comboWaterfallRenderQuality_SelectedIndexChanged(this, e);
             comboGPUWaterfallFFTSize_SelectedIndexChanged(this, e);
             comboGPUWaterfallWindow_SelectedIndexChanged(this, e);
