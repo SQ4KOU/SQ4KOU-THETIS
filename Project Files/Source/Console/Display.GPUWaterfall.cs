@@ -135,6 +135,7 @@ namespace Thetis
             {
                 if (_gpuWaterfallPipelineEnabled != value)
                 {
+                    GPUWaterfallLogger.Log("STATE", "GPUWaterfallPipelineEnabled " + _gpuWaterfallPipelineEnabled + " -> " + value);
                     _gpuWaterfallPipelineEnabled = value;
                     try
                     {
@@ -292,6 +293,7 @@ namespace Thetis
                 }
                 if (_gpuWaterfallOverlapPercent != num)
                 {
+                    GPUWaterfallLogger.Log("STATE", "GPUWaterfallOverlapPercent " + _gpuWaterfallOverlapPercent + " -> " + num);
                     _gpuWaterfallOverlapPercent = num;
                     ResetGPUWaterfallState(1, resetCalibration: false);
                     ResetGPUWaterfallState(2, resetCalibration: false);
@@ -309,6 +311,7 @@ namespace Thetis
             {
                 if (_gpuWaterfallAutoOverlap != value)
                 {
+                    GPUWaterfallLogger.Log("STATE", "GPUWaterfallAutoOverlap " + _gpuWaterfallAutoOverlap + " -> " + value);
                     _gpuWaterfallAutoOverlap = value;
                     ResetGPUWaterfallState(1, resetCalibration: false);
                     ResetGPUWaterfallState(2, resetCalibration: false);
