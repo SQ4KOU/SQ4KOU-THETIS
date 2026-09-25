@@ -3508,13 +3508,19 @@ namespace Thetis
         public static bool ForceCPURendering
         {
             get { return m_bForceCPURendering; }
-            set { m_bForceCPURendering = value; }
+            set
+            {
+                if (m_bForceCPURendering == value) return;
+                GPUWaterfallLogger.Log("STATE", "ForceCPURendering " + m_bForceCPURendering + " -> " + value);
+                m_bForceCPURendering = value;
+            }
         }
 
         public static bool DXRestartPending => m_bDXRestartPending;
 
         public static void RequestDXRestart()
         {
+            GPUWaterfallLogger.Log("STATE", "RequestDXRestart setup=" + _bDX2Setup + " path=" + RenderPathString());
             if (!_bDX2Setup) return;
             m_bDXRestartPending = true;
             m_bWarpDowngradeAttempted = false;
@@ -4411,14 +4417,35 @@ namespace Thetis
         private static int _dx_fail_retry = 0;
         public static void RenderDX2D()
         {
+            GPUWaterfallLogger.FrameEnter("WAIT_DX_LOCK");
             try
             {
                 lock (_objDX2Lock)
                 {
-                    if (!_bDX2Setup) return; // moved inside the lock so that a change in state by shutdown becomes thread safe
+                    GPUWaterfallLogger.FrameStage("DX_LOCK_ACQUIRED");
+                    if (!_bDX2Setup)
+                    {
+                        GPUWaterfallLogger.FrameEnd("DX_NOT_SETUP");
+                        return;
+                    }
 
                     m_dElapsedFrameStart = _high_perf_timer.ElapsedMsec;
                     calcFps();
+                    GPUWaterfallLogger.FrameStats(
+                        "fps=" + m_nFps +
+                        " path=" + RenderPathString() +
+                        " forceCPU=" + m_bForceCPURendering +
+                        " gpuEffects=" + _gpuEffectsEnabled +
+                        " gpuPipeline=" + _gpuWaterfallPipelineEnabled +
+                        " exactGPU=" + ExactNativeGPURequested +
+                        " compute=" + GpuComputeEnabled +
+                        " pan3D=" + _pan3DEnabled +
+                        " mesh3D=" + GpuMeshEnabled +
+                        " fft=" + _gpuWaterfallFFTSize +
+                        " overlap=" + _gpuWaterfallOverlapPercent +
+                        " autoOverlap=" + _gpuWaterfallAutoOverlap +
+                        " depth=" + WaterfallEnhancer.Depth +
+                        " vblanks=" + m_nVBlanks);
 
                     _bNoiseFloorAlreadyCalculatedRX1 = false; // keeps track of noise floor processing, only want to do it once, even if pana + water shown
                     _bNoiseFloorAlreadyCalculatedRX2 = false;
@@ -4430,10 +4457,13 @@ namespace Thetis
                     // still come from D2D on top.
                     _bGpuBackdropDone = false;
                     GpuMesh3DOwnerRX = 0;
+                    GPUWaterfallLogger.FrameStage("GPU_3D");
                     _b3DMeshDrewFrame = RenderGpuMesh3D();
+                    GPUWaterfallLogger.FrameStage("GPU_WATERFALL_MESH");
                     _bWfMeshDrewFrame = RenderGpuWaterfall();
                     ClearWaterfallPaneCaptures();
 
+                    GPUWaterfallLogger.FrameStage("D2D_BEGIN");
                     _d2dRenderTarget.BeginDraw();
 
                     if (_paused_display && _pause_bitmap != null)
@@ -4786,7 +4816,16 @@ namespace Thetis
                     try
                     {
                         ulong endTag1, endTag2;
+                        GPUWaterfallLogger.FrameStage("D2D_END");
                         Result _endRes = _d2dRenderTarget.EndDraw(out endTag1, out endTag2);
+                        if (_endRes.Failure)
+                        {
+                            GPUWaterfallLogger.Log("D2D-END-FAIL",
+                                "code=" + _endRes.Code +
+                                " tags=0x" + endTag1.ToString("X") + "/0x" + endTag2.ToString("X") +
+                                " specMesh=" + SpecMeshWasUsedThisFrame +
+                                " band3D=" + _b3DMeshDrewFrame);
+                        }
                         if (_endRes.Failure && !_specEndDrawFailLogged && SpecMeshWasUsedThisFrame)
                         {
                             _specEndDrawFailLogged = true;
@@ -4811,7 +4850,12 @@ namespace Thetis
                     // however the gpu will error if it is busy doing something and the data can not be queued
                     // It will error and just ignore everything, we try present and ignore the 0x887A000A (was still drawing) error
                     PresentFlags pf = m_nVBlanks == 0 ? _NoVSYNCpresentFlag : PresentFlags.None;
+                    GPUWaterfallLogger.FrameStage("PRESENT");
                     Result r = _swapChain1.Present((uint)m_nVBlanks, pf);
+                    if (r.Failure)
+                        GPUWaterfallLogger.LogRateLimited("PRESENT", r.Code.ToString(), 1000,
+                            "result=" + r + " code=" + r.Code + " retry=" + _dx_fail_retry +
+                            " path=" + RenderPathString());
 
                     if (r.Failure && !(
                         r == Vortice.DXGI.ResultCode.WasStillDrawing/*0x887A000A*/ ||
@@ -4848,13 +4892,20 @@ namespace Thetis
                     // All mode/device transitions are applied only after EndDraw+Present.
                     // Setup/UI handlers never wait on _objDX2Lock and never dispose a
                     // resource still referenced by the active frame.
-                    if (ProcessPendingDXRestartAfterFrame()) return;
+                    if (ProcessPendingDXRestartAfterFrame())
+                    {
+                        GPUWaterfallLogger.FrameEnd("DX_RESTART");
+                        return;
+                    }
                     ProcessPendingGPUInteropResetAfterFrame();
                     ProcessPendingGPUWaterfallStateResetsAfterFrame();
+                    GPUWaterfallLogger.FrameEnd("PRESENT_OK");
                 }
             }
             catch (Exception e)
             {
+                GPUWaterfallLogger.Log("RENDER-EX", e.ToString());
+                GPUWaterfallLogger.FrameEnd("EXCEPTION");
                 if (!tryWarpDowngrade(e.Message))
                 {
                     ShutdownDX2D();
