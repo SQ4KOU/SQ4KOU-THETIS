@@ -29,6 +29,7 @@
 //     flat colour = front-row edge surface colour x0.32 blended toward bg by mid fog
 // All premultiplied-alpha outputs so the shared AlphaBlend state composites as SourceOver.
 using System;
+using SharpGen.Runtime;
 // Third-party: GPU interop via Vortice.Windows (MIT License, Copyright (c) Amer Koleci and Contributors).
 // Full license text ships with the app (Licenses folder) and lives in the repo under Project Files\lib\licenses\.
 using Vortice.Direct3D11;
