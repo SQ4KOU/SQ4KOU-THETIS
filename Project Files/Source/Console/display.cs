@@ -3573,6 +3573,7 @@ namespace Thetis
 
         public static void ShutdownDX2D()
         {
+            GPUWaterfallLogger.Log("DX", "ShutdownDX2D requested setup=" + _bDX2Setup + " path=" + RenderPathString());
             lock (_objDX2Lock)
             {
                 if (!_bDX2Setup) return;
@@ -3759,6 +3760,9 @@ namespace Thetis
         }
         private static void initDX2D(DriverType driverType = DriverType.Hardware, AdaptorInfo adaptorInfo = null)
         {
+            GPUWaterfallLogger.Log("DX", "initDX2D requested driver=" + driverType +
+                " adaptor=" + (adaptorInfo == null ? "<default>" : adaptorInfo.Description) +
+                " setup=" + _bDX2Setup + " target=" + (displayTarget != null));
             lock (_objDX2Lock)
             {
                 if (_bDX2Setup || displayTarget == null) return;
@@ -3886,9 +3890,14 @@ namespace Thetis
                     _3dMedianCount = 0;
 
                     Common.MeshDiagLog("DirectX initialised : render path=" + RenderPathString() + ", adapter='" + _gpu + "', feature level=" + featureLevelString() + (m_bForceCPURendering ? " (forced CPU)" : ""));
+                    GPUWaterfallLogger.Log("DX", "initialised path=" + RenderPathString() +
+                        " adapter='" + _gpu + "' feature=" + featureLevelString() +
+                        " forceCPU=" + m_bForceCPURendering +
+                        " size=" + displayTargetWidth + "x" + displayTargetHeight);
                 }
                 catch (Exception e)
                 {
+                    GPUWaterfallLogger.Log("DX-INIT-EX", e.ToString());
                     // issue setting up dx
                     ShutdownDX2D();
                     Common.ReportError("SDR-VST3 DirectX", "Problem initialising DirectX !" + System.Environment.NewLine + System.Environment.NewLine + "[" + e.ToString() + "]", e);
@@ -4130,6 +4139,7 @@ namespace Thetis
             if (m_bForceCPURendering || m_bWarpDowngradeAttempted || m_eRenderPath != DXRenderPath.Hardware || displayTarget == null) return false;
 
             m_bWarpDowngradeAttempted = true;
+            GPUWaterfallLogger.Log("DX", "tryWarpDowngrade reason=" + reason);
             Common.MeshDiagLog("DirectX hardware rendering failed (" + reason + ") - switching to WARP software rendering");
 
             ShutdownDX2D();
