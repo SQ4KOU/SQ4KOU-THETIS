@@ -819,11 +819,6 @@ namespace Thetis
                     dc.IASetPrimitiveTopology(Vortice.Direct3D.PrimitiveTopology.TriangleList);
                     dc.DrawIndexed(quadsPerRow, (uint)(r * quadsPerRow), 0);
                 }
-                // D2D composites _meshSheetBitmap immediately after this pass.
-                // The same texture must not remain bound as a D3D11 render target while
-                // D2D samples it, otherwise the shared-device hazard can discard/flicker
-                // whole frames.
-                dc.OMSetRenderTargets(Array.Empty<ID3D11RenderTargetView>(), null);
                 dc.Flush();
 
                 if (!_meshFailedLogged)
