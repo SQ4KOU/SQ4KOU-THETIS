@@ -12510,6 +12510,8 @@ namespace Thetis
                 console.RX1ColourScheme = ColorScheme.Grayscale256;
                 clrbtnWaterfallLow.Visible = false;
             }
+
+            PersistWaterfallPaletteSettings();
         }
         private void showHideWaterfallControls(int rx, bool show)
         {
@@ -12602,6 +12604,8 @@ namespace Thetis
                 console.RX2ColourScheme = ColorScheme.Grayscale256;
                 clrbtnRX2WaterfallLow.Visible = false;
             }
+
+            PersistWaterfallPaletteSettings();
         }
 
         private void setWaterFallCalculatedDelayText()
@@ -20162,6 +20166,24 @@ namespace Thetis
             }
         }
 
+        private void PersistWaterfallPaletteSettings()
+        {
+            if (initializing || _gettingOptions || _savingOptions) return;
+            try
+            {
+                Dictionary<string, string> options = DB.GetVarsDictionary("Options");
+                options["comboColorPalette"] = comboColorPalette.Text;
+                options["comboRX2ColorPalette"] = comboRX2ColorPalette.Text;
+                options["comboColorPalette_tx"] = comboColorPalette_tx.Text;
+                DB.SaveVarsDictionary("Options", ref options, true);
+                DB.WriteDB();
+            }
+            catch (Exception ex)
+            {
+                LogTool.AddLogEntry("PersistWaterfallPaletteSettings failed: " + ex.Message, "SETUP");
+            }
+        }
+
         private void chkForceCPURendering_CheckedChanged(object sender, EventArgs e)
         {
             if (initializing) return;
@@ -20181,7 +20203,8 @@ namespace Thetis
 
             PersistDirectXDisplaySettings();
 
-            console.RestartDisplayDX();
+            // Force CPU is a live waterfall/effects gate only. Restarting the shared
+            // DirectX device here stalls Band Scope + Waterfall and can deadlock the UI.
             if (_frm3DPanadapter != null && !_frm3DPanadapter.IsDisposed)
                 _frm3DPanadapter.ApplyRenderPathLimits();
         }
@@ -35700,6 +35723,8 @@ namespace Thetis
                 console.TXColourScheme = ColorScheme.Grayscale256;
                 clrbtnWaterfallLow_tx.Visible = false;
             }
+
+            PersistWaterfallPaletteSettings();
         }
 
         private void clrbtnWaterfallLow_tx_Changed(object sender, EventArgs e)
