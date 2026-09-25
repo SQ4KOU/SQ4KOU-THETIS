@@ -1183,7 +1183,20 @@ namespace Thetis
         private static void DrawManagedGPUWaterfall(int rx, int nVerticalShift, float opacity)
         {
             WaterfallGPURenderer renderer = rx == 1 ? _waterfallGPU1 : _waterfallGPU2;
-            if (renderer != null && renderer.IsInitialized) renderer.Draw(0, nVerticalShift + 20, opacity, null, _gpuWaterfallLinearDraw);
+            if (renderer != null && renderer.IsInitialized)
+            {
+                GPUWaterfallLogger.LogRateLimited("WF-DRAW", "rx" + rx, 1000,
+                    "RX" + rx + " renderer=" + renderer.Width + "x" + renderer.Height +
+                    " opacity=" + opacity.ToString("F2") +
+                    " linear=" + _gpuWaterfallLinearDraw);
+                renderer.Draw(0, nVerticalShift + 20, opacity, null, _gpuWaterfallLinearDraw);
+            }
+            else
+            {
+                GPUWaterfallLogger.LogRateLimited("WF-DRAW-MISS", "rx" + rx, 1000,
+                    "RX" + rx + " rendererMissing=" + (renderer == null) +
+                    " initialized=" + (renderer != null && renderer.IsInitialized));
+            }
         }
     }
 }

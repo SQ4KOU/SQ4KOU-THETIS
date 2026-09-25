@@ -3622,6 +3622,10 @@ namespace Thetis
             public int TopTotal;
             public int BottomLit;
             public int BottomTotal;
+            public int SentinelR;
+            public int SentinelG;
+            public int SentinelB;
+            public int SentinelA;
         }
 
         private static BackBufferProbeSummary SampleBackBufferTexture(string label, ID3D11Texture2D source)
@@ -3669,6 +3673,18 @@ namespace Thetis
                 int rowPitch = (int)map.RowPitch;
                 int width = (int)desc.Width;
                 int height = (int)desc.Height;
+
+                // Self-validation pixel. RenderDX2D writes a tiny red sentinel at
+                // (1,1) immediately before EndDraw. If this pixel is not red-ish,
+                // the readback is not observing the D2D frame and the probe result
+                // must not be trusted as evidence of a black display.
+                int sentinelX = Math.Min(width - 1, 1);
+                int sentinelY = Math.Min(height - 1, 1);
+                byte* sentinel = basePtr + sentinelY * rowPitch + sentinelX * 4;
+                summary.SentinelB = sentinel[0];
+                summary.SentinelG = sentinel[1];
+                summary.SentinelR = sentinel[2];
+                summary.SentinelA = sentinel[3];
 
                 for (int sy = 0; sy < sampleRows; sy++)
                 {
@@ -3727,6 +3743,7 @@ namespace Thetis
                 " bottom=" + bottomLit + "/" + bottomTotal +
                 " avg=" + summary.Avg.ToString("F1") +
                 " max=" + maxRgb +
+                " sentinel=" + summary.SentinelR + "," + summary.SentinelG + "," + summary.SentinelB + "," + summary.SentinelA +
                 " hash=0x" + hash.ToString("X16") +
                 " band3D=" + _b3DMeshDrewFrame +
                 " wfMesh=" + _bWfMeshDrewFrame +
@@ -3765,6 +3782,8 @@ namespace Thetis
                 BackBufferProbeSummary current = SampleBackBufferTexture("CURRENT", currentSource);
 
                 bool sameHash = target.Hash == current.Hash;
+                bool targetSentinelOk = target.SentinelR > 160 && target.SentinelG < 120 && target.SentinelB < 120;
+                bool currentSentinelOk = current.SentinelR > 160 && current.SentinelG < 120 && current.SentinelB < 120;
                 GPUWaterfallLogger.Log("BACKBUFFER-COMPARE",
                     "same=" + sameHash +
                     " targetHash=0x" + target.Hash.ToString("X16") +
@@ -3772,7 +3791,16 @@ namespace Thetis
                     " targetLit=" + target.Lit + "/" + target.Total +
                     " currentLit=" + current.Lit + "/" + current.Total +
                     " targetMax=" + target.MaxRgb +
-                    " currentMax=" + current.MaxRgb);
+                    " currentMax=" + current.MaxRgb +
+                    " targetSentinel=" + targetSentinelOk +
+                    " currentSentinel=" + currentSentinelOk);
+
+                if (!targetSentinelOk)
+                    GPUWaterfallLogger.Log("PROBE-INVALID",
+                        "D2D target readback did not contain the diagnostic sentinel.");
+                if (!currentSentinelOk)
+                    GPUWaterfallLogger.Log("PROBE-CURRENT-NO-SENTINEL",
+                        "Current swapchain buffer does not contain the D2D diagnostic sentinel.");
 
                 if (target.Lit <= 2 || target.MaxRgb <= 8)
                     GPUWaterfallLogger.Log("BACKBUFFER-TARGET-ALERT",
@@ -5045,6 +5073,18 @@ namespace Thetis
                     _d2dRenderTarget.Transform = Matrix3x2.Identity;
 
                 jump:
+                    // Diagnostic self-test: a 2x2 red marker in the extreme corner.
+                    // The readback probe explicitly checks pixel (1,1). This makes the
+                    // logger self-validating instead of assuming that GetBuffer(0) is
+                    // the same image the user is seeing.
+                    try
+                    {
+                        _d2dRenderTarget.FillRectangle(new RectangleF(0, 0, 2, 2), m_bDX2_Red);
+                    }
+                    catch
+                    {
+                    }
+
                     try
                     {
                         ulong endTag1, endTag2;
@@ -10180,11 +10220,17 @@ namespace Thetis
                 // histories from being composited on top of each other.
                 if (CanDrawManagedGPUWaterfall(rx, cScheme, W, H - 20))
                 {
+                    GPUWaterfallLogger.LogRateLimited("WF-PRESENT", "managed-rx" + rx, 1000,
+                        "RX" + rx + " path=managedGPU shift=" + nVerticalShift +
+                        " size=" + W + "x" + (H - 20));
                     DrawManagedGPUWaterfall(rx, nVerticalShift,
                         rx == 1 ? m_fRX1WaterfallOpacity : m_fRX2WaterfallOpacity);
                 }
                 else if (!(WfMeshArmed && WfMeshOwnsPane(rx)))
                 {
+                    GPUWaterfallLogger.LogRateLimited("WF-PRESENT", "classic-rx" + rx, 1000,
+                        "RX" + rx + " path=classicD2D shift=" + nVerticalShift +
+                        " size=" + W + "x" + (H - 20));
                     if (rx == 1)
                     {
                         _d2dRenderTarget.DrawBitmap(_waterfall_bmp_dx2d, new RectangleF(0, nVerticalShift + 20, _waterfall_bmp_dx2d.Size.Width, _waterfall_bmp_dx2d.Size.Height), m_fRX1WaterfallOpacity, BitmapInterpolationMode.NearestNeighbor, null);
