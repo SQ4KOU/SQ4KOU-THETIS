@@ -3819,17 +3819,16 @@ namespace Thetis
                     }
 
                     List<Tuple<DriverType, AdaptorInfo>> attempts = new List<Tuple<DriverType, AdaptorInfo>>();
-                    if (m_bForceCPURendering)
-                    {
-                        attempts.Add(Tuple.Create(DriverType.Warp, (AdaptorInfo)null));
-                    }
-                    else
-                    {
-                        if (adaptorInfo != null)
-                            attempts.Add(Tuple.Create(DriverType.Unknown, adaptorInfo));
-                        attempts.Add(Tuple.Create(DriverType.Hardware, (AdaptorInfo)null));
-                        attempts.Add(Tuple.Create(DriverType.Warp, (AdaptorInfo)null));
-                    }
+                    // Force CPU Rendering is a processing-mode switch, not a request to
+                    // destroy the live D3D11 compositor and recreate it on WARP.  Keeping
+                    // the hardware D2D/Vortice compositor alive makes CPU<->GPU switching
+                    // lossless; all GPU FFT/mesh/compute gates already honour
+                    // m_bForceCPURendering and fall back to their CPU data paths.
+                    if (adaptorInfo != null)
+                        attempts.Add(Tuple.Create(DriverType.Unknown, adaptorInfo));
+                    attempts.Add(Tuple.Create(DriverType.Hardware, (AdaptorInfo)null));
+                    // WARP remains an emergency device-creation fallback only.
+                    attempts.Add(Tuple.Create(DriverType.Warp, (AdaptorInfo)null));
 
                     bool bCreated = false;
                     Exception lastError = null;
