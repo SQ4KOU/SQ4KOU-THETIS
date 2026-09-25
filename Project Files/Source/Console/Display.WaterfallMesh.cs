@@ -94,7 +94,15 @@ namespace Thetis
         /// Force-CPU / WARP sessions never arm any mesh path.</summary>
         private static bool WfMeshArmed
         {
-            get { return GpuMeshEnabled && m_eRenderPath == DXRenderPath.Hardware && _device != null && _bDX2Setup; }
+            get
+            {
+                // The mesh ring is explicitly B8G8R8A8_UNorm (4 bytes/pixel).
+                // Never feed it the 8-byte R16G16B16A16_Float waterfall rows.
+                return GpuMeshEnabled &&
+                    WaterfallEnhancer.Depth == WaterfallEnhancer.ColorDepth.Bit8 &&
+                    !m_bForceCPURendering &&
+                    m_eRenderPath == DXRenderPath.Hardware && _device != null && _bDX2Setup;
+            }
         }
 
         /// <summary>True while the GPU ring owns presentation of this rx's pane (the
