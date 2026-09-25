@@ -1027,12 +1027,11 @@ namespace Thetis
             ResetTemporalWaterfallState();
             LogGPU("GPU waterfall color depth changed to " + WaterfallEnhancer.Depth + ".");
         }
-        private static bool ManagedGPUFFTRequested =>
-            _gpuWaterfallPipelineEnabled &&
-            _gpuEffectsEnabled &&
-            _waterfallRenderQuality == WaterfallRenderQuality.High &&
-            !m_bForceCPURendering &&
-            m_eRenderPath == DXRenderPath.Hardware;
+        // SDR-VST3 uses Vortice for the visible renderer. The old full managed GPU
+        // path wraps that live Vortice device in SharpDX and is the common point behind
+        // long-run Band Scope/Waterfall stalls. Keep it disabled here; the GPU FFT source
+        // is provided by Display.ExactGPUWaterfallSource on its own native D3D11 device.
+        private static bool ManagedGPUFFTRequested => false;
 
         private static WaterfallGPURenderer EnsureGPUWaterfallRenderer(int rx, int width, int height)
         {
