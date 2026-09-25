@@ -105,6 +105,8 @@ namespace Thetis
         private static SharpDX.Direct2D1.DeviceContext _gpuSharpD2D;
         private static IntPtr _gpuSharpDevicePtr = IntPtr.Zero;
         private static IntPtr _gpuSharpD2DPtr = IntPtr.Zero;
+        private static SharpDX.Direct2D1.Factory1 _gpuSharpFactory;
+        private static IntPtr _gpuSharpFactoryPtr = IntPtr.Zero;
 
         private static WaterfallPalette _paletteConsole;
         private static WaterfallPalette _paletteThermal;
@@ -398,6 +400,22 @@ namespace Thetis
                 _gpuSharpD2DPtr = ptr;
             }
             return _gpuSharpD2D;
+        }
+
+        private static SharpDX.Direct2D1.Factory1 GetGPUSharpFactory()
+        {
+            if (_d2dFactory == null || _d2dFactory.NativePointer == IntPtr.Zero) return null;
+            IntPtr ptr = _d2dFactory.NativePointer;
+            if (_gpuSharpFactory == null || _gpuSharpFactoryPtr != ptr)
+            {
+                try { _gpuSharpFactory?.Dispose(); } catch { }
+                _gpuSharpFactory = null;
+                _gpuSharpFactoryPtr = IntPtr.Zero;
+                Marshal.AddRef(ptr);
+                _gpuSharpFactory = new SharpDX.Direct2D1.Factory1(ptr);
+                _gpuSharpFactoryPtr = ptr;
+            }
+            return _gpuSharpFactory;
         }
 
         private static WaterfallPalette GetPaletteConsole()
