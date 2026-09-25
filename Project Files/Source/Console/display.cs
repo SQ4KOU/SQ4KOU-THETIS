@@ -4449,7 +4449,9 @@ namespace Thetis
                     _d2dRenderTarget.Transform = t;
 
                     RectangleF rectDest = new RectangleF(0, 0, displayTargetWidth, displayTargetHeight);
-                    if (!_b3DMeshDrewFrame && !_bWfMeshDrewFrame)
+                    // The stable 3D path renders offscreen; it never owns or clears the
+                    // swapchain. D2D therefore always owns the frame background.
+                    if (!_bWfMeshDrewFrame)
                     {
                         //always clear without using alpha
                         _d2dRenderTarget.Clear(m_cDX2_display_background_clear_colour);
@@ -5804,9 +5806,15 @@ namespace Thetis
                 {
                     // snapshot params for the GPU mesh path (consumed pre-BeginDraw next frame)
                     CaptureMeshFrameParams(nVerticalShift, W, H, rx, nDecimatedWidth, m_nDecimation, grid_min, grid_max);
-                    if (!_b3DMeshDrewFrame || GpuMesh3DOwnerRX != rx)   // only skip for the pane the GPU surface actually served
+                    if (_b3DMeshDrewFrame && GpuMesh3DOwnerRX == rx)
+                    {
+                        BlitGpuMesh3D();
+                    }
+                    else
+                    {
                         DrawPanadapter3DHistoryDX2D(nVerticalShift, W, H, rx, bottom,
                             null, 0, grid_max, nDecimatedWidth, m_nDecimation);
+                    }
                 }
 
             //if (grid_control) //[2.10.3.9]MW0LGE raw grid control option now just turns off the grid, all other elements are shown
@@ -7024,7 +7032,9 @@ namespace Thetis
             if (!_pan3DEnabled || histBuf == null || histCount < 2) return;
             if (_d2dRenderTarget == null) return;
 
-            int nLineLimit = m_eRenderPath == DXRenderPath.WarpSoftware ? Math.Min(_pan3DLineCount, Max3DLinesSoftwareRender) : _pan3DLineCount;
+            int nLineLimit = (m_bForceCPURendering || m_eRenderPath == DXRenderPath.WarpSoftware)
+                ? Math.Min(_pan3DLineCount, Max3DLinesSoftwareRender)
+                : _pan3DLineCount;
             int linesToDraw = Math.Min(histCount, nLineLimit);
             if (linesToDraw < 2) return;
 
