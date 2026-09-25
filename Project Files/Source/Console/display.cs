@@ -5869,12 +5869,32 @@ namespace Thetis
                     CaptureMeshFrameParams(nVerticalShift, W, H, rx, nDecimatedWidth, m_nDecimation, grid_min, grid_max);
                     if (_b3DMeshDrewFrame && GpuMesh3DOwnerRX == rx)
                     {
+                        GPUWaterfallLogger.LogRateLimited("BANDSCOPE", "gpu-ok-rx" + rx, 1000,
+                            "RX" + rx + " GPU frame blit");
                         BlitGpuMesh3D();
+                    }
+                    else if (m_bForceCPURendering || !GpuMeshEnabled || m_eRenderPath != DXRenderPath.Hardware)
+                    {
+                        // Explicit CPU/software mode is not a fallback: the operator
+                        // requested it, so the D2D renderer is allowed here.
+                        GPUWaterfallLogger.LogRateLimited("BANDSCOPE", "cpu-mode-rx" + rx, 1000,
+                            "RX" + rx + " explicit CPU/software 3D path");
+                        DrawPanadapter3DHistoryDX2D(nVerticalShift, W, H, rx, bottom,
+                            null, 0, grid_max, nDecimatedWidth, m_nDecimation);
                     }
                     else
                     {
-                        DrawPanadapter3DHistoryDX2D(nVerticalShift, W, H, rx, bottom,
-                            null, 0, grid_max, nDecimatedWidth, m_nDecimation);
+                        // SQ4KOU DIAG: no silent GPU->D2D fallback. If the GPU Band
+                        // Scope misses a frame, leave the 3D surface absent so the
+                        // fault is visible and unambiguous.
+                        GPUWaterfallLogger.LogRateLimited("BANDSCOPE-MISS", "rx" + rx, 250,
+                            "RX" + rx + " GPU frame missing; fallback disabled" +
+                            " pan3D=" + _pan3DEnabled +
+                            " hist=" + (_3dHistoryBuffer != null) +
+                            " histCount=" + _3dHistoryCount +
+                            " meshValid=" + _meshParams.Valid +
+                            " paused=" + _paused_display +
+                            " mox=" + local_mox);
                     }
                 }
 
