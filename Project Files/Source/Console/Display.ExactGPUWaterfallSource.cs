@@ -29,6 +29,19 @@ namespace Thetis
         private static readonly float[] _exactCalOffset = new float[2];
         private static readonly bool[] _exactCalInit = new bool[2];
         private static bool _exactGpuUnavailable;
+        private static readonly int[] _exactConfiguredWindow = new int[2] { -1, -1 };
+        private static readonly float[] _exactConfiguredKaiser = new float[2] { float.NaN, float.NaN };
+        private static readonly int[] _exactConfiguredMagnitude = new int[2] { -1, -1 };
+        private static readonly int[] _exactConfiguredLanczos = new int[2] { -1, -1 };
+        private static readonly int[] _exactConfiguredResampling = new int[2] { -1, -1 };
+
+        // SDR-VST3 stability path: GPU FFT runs on the native dedicated D3D11 device,
+        // while the visible waterfall history remains on the normal Vortice/D2D bitmap.
+        // This deliberately avoids wrapping the live Vortice device/context in SharpDX.
+        private static bool ExactNativeGPURequested =>
+            _gpuWaterfallPipelineEnabled && _gpuEffectsEnabled &&
+            _waterfallRenderQuality == WaterfallRenderQuality.High &&
+            !m_bForceCPURendering && m_eRenderPath == DXRenderPath.Hardware;
 
         private static class ExactGpuNative
         {
@@ -59,18 +72,23 @@ namespace Thetis
                 [Out] byte[] outputBGRA, int outputBytes);
         }
 
-        // 1 = exact GPU row ready; 0 = healthy source waiting for overlap hop; -1 = source unavailable.
-        private static int TryGetExactGpuWaterfallRow(
+        // 1 = exact GPU FFT row ready; 0 = healthy source waiting for overlap hop;
+        // -1 = unavailable (caller keeps the classic CPU waterfall row).
+        private static int TryGetExactGpuWaterfallDataRow(
             int rx, int width, float[] reference, int referenceCount,
-            float lowThreshold, float highThreshold, float fOffset,
-            out byte[] colorRow)
+            out float[] dataRow)
         {
-            colorRow = null;
-            if (_exactGpuUnavailable || console == null || !console.PowerOn || width <= 0 || width > 8192)
+            dataRow = null;
+            if (!ExactNativeGPURequested || _exactGpuUnavailable || console == null || !console.PowerOn ||
+                width <= 0 || width > 8192)
                 return -1;
 
             int slot = rx - 1;
             if (slot < 0 || slot > 1) return -1;
+
+            int fftSize = _gpuWaterfallFFTSize;
+            if (fftSize < 1024) fftSize = ExactGpuFftSize;
+            if (fftSize > 262144) fftSize = 262144;
 
             lock (_exactGpuLock)
             {
@@ -84,31 +102,27 @@ namespace Thetis
                         _exactGpuIqInit[slot] = true;
                     }
 
-                    if (!_exactGpuInit[slot] || _exactRow[slot] == null || _exactRow[slot].Length != width)
-                    {
-                        if (ExactGpuNative.CM_GPUWaterfallExact_Init(slot, ExactGpuFftSize, width) == 0)
-                        {
-                            _exactGpuUnavailable = true;
-                            return -1;
-                        }
+                    bool sizeChanged = !_exactGpuInit[slot] ||
+                        _exactRow[slot] == null || _exactRow[slot].Length != width ||
+                        _exactFrameI[slot] == null || _exactFrameI[slot].Length != fftSize;
 
-                        // ff62e7ad defaults: Nuttall, beta 6, PeakHoldPower, Lanczos 3, Quality.
-                        if (ExactGpuNative.CM_GPUWaterfallExact_Configure(slot, 4, 6.0f, 2, 3, 1) == 0)
+                    if (sizeChanged)
+                    {
+                        if (ExactGpuNative.CM_GPUWaterfallExact_Init(slot, fftSize, width) == 0)
                         {
                             _exactGpuUnavailable = true;
                             return -1;
                         }
 
                         _exactGpuInit[slot] = true;
-                        _exactRingI[slot] = new float[ExactGpuFftSize];
-                        _exactRingQ[slot] = new float[ExactGpuFftSize];
-                        _exactReadI[slot] = new float[ExactGpuFftSize * 2];
-                        _exactReadQ[slot] = new float[ExactGpuFftSize * 2];
-                        _exactFrameI[slot] = new float[ExactGpuFftSize];
-                        _exactFrameQ[slot] = new float[ExactGpuFftSize];
+                        _exactRingI[slot] = new float[fftSize];
+                        _exactRingQ[slot] = new float[fftSize];
+                        _exactReadI[slot] = new float[fftSize * 2];
+                        _exactReadQ[slot] = new float[fftSize * 2];
+                        _exactFrameI[slot] = new float[fftSize];
+                        _exactFrameQ[slot] = new float[fftSize];
                         _exactRow[slot] = new float[width];
                         _exactRowCopy[slot] = new float[width];
-                        _exactColorRow[slot] = new byte[width * 4];
                         _exactMedianScratch[slot] = new float[Math.Max(width, referenceCount)];
                         _exactRingHead[slot] = 0;
                         _exactRingCount[slot] = 0;
@@ -116,37 +130,59 @@ namespace Thetis
                         _exactFirstFill[slot] = false;
                         _exactCalInit[slot] = false;
                         _exactCalOffset[slot] = 0f;
+                        _exactConfiguredWindow[slot] = -1;
+                    }
+
+                    int window = (int)_gpuWaterfallWindowType;
+                    float kaiser = (float)_gpuWaterfallKaiserBeta;
+                    int magnitude = (int)_gpuWaterfallMagnitudeMode;
+                    int lanczos = _gpuWaterfallLanczosWindow;
+                    int resampling = (int)_gpuWaterfallResamplingMode;
+                    if (_exactConfiguredWindow[slot] != window ||
+                        _exactConfiguredKaiser[slot] != kaiser ||
+                        _exactConfiguredMagnitude[slot] != magnitude ||
+                        _exactConfiguredLanczos[slot] != lanczos ||
+                        _exactConfiguredResampling[slot] != resampling)
+                    {
+                        if (ExactGpuNative.CM_GPUWaterfallExact_Configure(slot, window, kaiser, magnitude, lanczos, resampling) == 0)
+                            return -1;
+                        _exactConfiguredWindow[slot] = window;
+                        _exactConfiguredKaiser[slot] = kaiser;
+                        _exactConfiguredMagnitude[slot] = magnitude;
+                        _exactConfiguredLanczos[slot] = lanczos;
+                        _exactConfiguredResampling[slot] = resampling;
                     }
 
                     int available = ExactGpuNative.CM_WaterfallIQ_Available(slot);
                     if (available > 0)
                     {
-                        int request = Math.Min(available, ExactGpuFftSize * 2);
+                        int request = Math.Min(available, fftSize * 2);
                         int got = ExactGpuNative.CM_WaterfallIQ_Get(slot, request, _exactReadI[slot], _exactReadQ[slot]);
                         if (got > 0)
                         {
                             int head = _exactRingHead[slot];
                             int count = _exactRingCount[slot];
-
-                            // Exact ff62e7ad ReadWaterfallIQ convention: swap I and Q before FFT.
                             for (int i = 0; i < got; i++)
                             {
+                                // ff62e7ad convention: swap I/Q before FFT.
                                 _exactRingI[slot][head] = _exactReadQ[slot][i];
                                 _exactRingQ[slot][head] = _exactReadI[slot][i];
-                                head = (head + 1) % ExactGpuFftSize;
+                                head = (head + 1) % fftSize;
                             }
-                            count = Math.Min(count + got, ExactGpuFftSize);
+                            count = Math.Min(count + got, fftSize);
                             _exactRingHead[slot] = head;
                             _exactRingCount[slot] = count;
                             _exactSampleCredit[slot] += got;
                         }
                     }
 
-                    if (_exactRingCount[slot] < ExactGpuFftSize)
-                        return 0;
+                    if (_exactRingCount[slot] < fftSize) return 0;
 
-                    int hop = Math.Max(1, Math.Min(ExactGpuFftSize,
-                        (int)Math.Round(ExactGpuFftSize * (1.0 - ExactGpuOverlapPercent / 100.0))));
+                    int overlap = _gpuWaterfallOverlapPercent;
+                    if (overlap < 0) overlap = 0;
+                    if (overlap > 95) overlap = 95;
+                    int hop = Math.Max(1, Math.Min(fftSize,
+                        (int)Math.Round(fftSize * (1.0 - overlap / 100.0))));
 
                     if (!_exactFirstFill[slot])
                     {
@@ -155,42 +191,31 @@ namespace Thetis
                     }
                     else
                     {
-                        if (_exactSampleCredit[slot] < hop)
-                            return 0;
+                        if (_exactSampleCredit[slot] < hop) return 0;
                         _exactSampleCredit[slot] -= hop;
                     }
-
                     int maxCredit = hop * 2;
-                    if (_exactSampleCredit[slot] > maxCredit)
-                        _exactSampleCredit[slot] = maxCredit;
+                    if (_exactSampleCredit[slot] > maxCredit) _exactSampleCredit[slot] = maxCredit;
 
                     int ringHead = _exactRingHead[slot];
-                    for (int i = 0; i < ExactGpuFftSize; i++)
+                    for (int i = 0; i < fftSize; i++)
                     {
-                        int src = (ringHead + i) % ExactGpuFftSize;
+                        int src = (ringHead + i) % fftSize;
                         _exactFrameI[slot][i] = _exactRingI[slot][src];
                         _exactFrameQ[slot][i] = _exactRingQ[slot][src];
                     }
 
                     int sampleRate = cmaster.GetInputRate(0, slot);
-                    if (sampleRate <= 0)
-                        sampleRate = rx == 1 ? SampleRateRX1 : SampleRateRX2;
+                    if (sampleRate <= 0) sampleRate = rx == 1 ? SampleRateRX1 : SampleRateRX2;
                     if (sampleRate <= 0) sampleRate = 192000;
-
                     float lowHz = rx == 1 ? RXDisplayLow : RX2DisplayLow;
                     float highHz = rx == 1 ? RXDisplayHigh : RX2DisplayHigh;
 
                     int result = ExactGpuNative.CM_GPUWaterfallExact_Process(
                         slot, sampleRate, lowHz, highHz,
-                        _exactFrameI[slot], _exactFrameQ[slot], ExactGpuFftSize, _exactRow[slot]);
+                        _exactFrameI[slot], _exactFrameQ[slot], fftSize, _exactRow[slot]);
+                    if (result != 1) return -1;
 
-                    if (result != 1)
-                    {
-                        _exactGpuUnavailable = true;
-                        return -1;
-                    }
-
-                    // Same calibration concept as ff62e7ad: only a constant dB offset.
                     int refCount = Math.Min(referenceCount, reference == null ? 0 : reference.Length);
                     if (refCount > 8)
                     {
@@ -217,32 +242,14 @@ namespace Thetis
 
                     float offset = _exactCalOffset[slot];
                     for (int i = 0; i < width; i++)
-                    {
-                        float v = _exactRow[slot][i] + offset;
-                        _exactRow[slot][i] = v;
-                        _exactRowCopy[slot][i] = v;
-                    }
+                        _exactRowCopy[slot][i] = _exactRow[slot][i] + offset;
 
-                    int colorResult = ExactGpuNative.CM_GPUWaterfallExact_RenderRow(
-                        slot,
-                        lowThreshold - offset - fOffset,
-                        highThreshold - offset - fOffset,
-                        _exactColorRow[slot],
-                        _exactColorRow[slot].Length);
-
-                    if (colorResult != 1)
-                    {
-                        _exactGpuUnavailable = true;
-                        return -1;
-                    }
-
-                    colorRow = _exactColorRow[slot];
+                    dataRow = _exactRowCopy[slot];
                     return 1;
                 }
                 catch (Exception ex)
                 {
-                    Common.LogString("Exact GPU waterfall disabled: " + ex.Message);
-                    _exactGpuUnavailable = true;
+                    Common.LogString("Exact native GPU waterfall fallback: " + ex.Message);
                     return -1;
                 }
             }
