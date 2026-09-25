@@ -449,7 +449,9 @@ namespace Thetis
             _forceCpuSavedAutoEnableGPU = _autoEnableGPU;
             _forceCpuStateCaptured = true;
 
-            try { SetNativeWaterfallIQEnabled(false); } catch { }
+            // Keep the native IQ tap alive. Force CPU is a render-path gate only;
+            // shutting the source down here can starve the classic fallback and
+            // forces a costly source re-prime on every CPU/GPU transition.
             _gpuRendererHasData[0] = false;
             _gpuRendererHasData[1] = false;
             ResetTemporalWaterfallState();
