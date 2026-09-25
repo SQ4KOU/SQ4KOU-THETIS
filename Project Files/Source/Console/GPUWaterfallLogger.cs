@@ -40,6 +40,7 @@ internal static class GPUWaterfallLogger
     private static long _lastWatchdogFrameSeq = -1;
     private static long _lastNoFrameReportTicks;
     private static long _lastStatsTicks;
+    private static volatile bool _watchdogArmed;
 
     public static string FilePath => LogPath;
 
@@ -93,6 +94,7 @@ internal static class GPUWaterfallLogger
         {
             EnsureStarted();
             long seq = Interlocked.Increment(ref _frameSeq);
+            _watchdogArmed = true;
             _frameThreadId = Environment.CurrentManagedThreadId;
             _frameStage = stage ?? "enter";
             Interlocked.Exchange(ref _frameStartTicks, Stopwatch.GetTimestamp());
@@ -200,10 +202,26 @@ internal static class GPUWaterfallLogger
         }
     }
 
+    public static void RendererStopped()
+    {
+        try
+        {
+            _watchdogArmed = false;
+            _frameStage = "stopped";
+            Volatile.Write(ref _frameInProgress, 0);
+            Interlocked.Exchange(ref _lastNoFrameReportTicks, 0);
+        }
+        catch
+        {
+        }
+    }
+
     private static void CheckWatchdog()
     {
         try
         {
+            if (!_watchdogArmed) return;
+
             long now = Stopwatch.GetTimestamp();
             long seq = Interlocked.Read(ref _frameSeq);
 

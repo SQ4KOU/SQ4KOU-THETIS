@@ -3590,6 +3590,7 @@ namespace Thetis
         public static void ShutdownDX2D()
         {
             GPUWaterfallLogger.Log("DX", "ShutdownDX2D requested setup=" + _bDX2Setup + " path=" + RenderPathString());
+            GPUWaterfallLogger.RendererStopped();
             lock (_objDX2Lock)
             {
                 if (!_bDX2Setup) return;
@@ -10027,7 +10028,6 @@ namespace Thetis
                     }
                 }
 
-                _d2dRenderTarget.PopAxisAlignedClip();
             }
                     }
                     catch { }
