@@ -3922,9 +3922,34 @@ namespace Thetis
 
             _factory1.MakeWindowAssociation(displayTarget.Handle, WindowAssociationFlags.IgnoreAll);
 
-            using (IDXGIFactory2 factory2 = _factory1.QueryInterface<IDXGIFactory2>())
+            // SQ4KOU_DXGI_EACCESSDENIED_FALLBACK
+            // Preserve the normal flip-model path. Some Windows/driver combinations reject
+            // DXGI CreateSwapChain with E_ACCESSDENIED (0x80070005). In that exact case,
+            // retry once with the already-supported legacy bitblt Discard swap effect.
+            // This restores the proven SQ4KOU DirectX startup fallback without hiding
+            // unrelated DirectX failures.
+            try
             {
-                _swapChain = factory2.CreateSwapChain(_device, desc);
+                using (IDXGIFactory2 factory2 = _factory1.QueryInterface<IDXGIFactory2>())
+                {
+                    _swapChain = factory2.CreateSwapChain(_device, desc);
+                }
+            }
+            catch (Exception ex) when (ex.HResult == unchecked((int)0x80070005) && desc.SwapEffect != SwapEffect.Discard)
+            {
+                Common.MeshDiagLog("DXGI CreateSwapChain returned E_ACCESSDENIED; retrying legacy Discard swap chain.");
+                _bUseLegacyBuffers = true;
+                bFlipPresent = false;
+                swapEffect = SwapEffect.Discard;
+                _nBufferCount = 1;
+                desc.SwapEffect = SwapEffect.Discard;
+                desc.BufferCount = 1;
+                desc.Flags = SwapChainFlags.None;
+
+                using (IDXGIFactory2 factory2 = _factory1.QueryInterface<IDXGIFactory2>())
+                {
+                    _swapChain = factory2.CreateSwapChain(_device, desc);
+                }
             }
             _swapChain1 = _swapChain.QueryInterface<IDXGISwapChain1>();
 
