@@ -417,7 +417,7 @@ namespace Thetis
                         };
                 _meshIL = device.CreateInputLayout(layout, vsBytes);
 
-                _meshCB = device.CreateBuffer(new BufferDescription(64, BindFlags.ConstantBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write));
+                _meshCB = device.CreateBuffer(new BufferDescription(64, BindFlags.ConstantBuffer, ResourceUsage.Default));
                 _meshBlend = device.CreateBlendState(Vortice.Direct3D11.BlendDescription.AlphaBlend);
                 // winding ends up CCW in NDC (y-flip in the VS) - disable culling entirely
                 _meshRS = device.CreateRasterizerState(new Vortice.Direct3D11.RasterizerDescription(CullMode.None, Vortice.Direct3D11.FillMode.Solid));
@@ -517,7 +517,7 @@ namespace Thetis
                 // dynamic aux vertices (grid floor + rails lines, then wall triangles),
                 // stride float2 pos + float4 premultiplied colour
                 uint auxVerts = AuxVertexBudget(rows);
-                _meshAuxVB = device.CreateBuffer(new BufferDescription(auxVerts * 32, BindFlags.VertexBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write));
+                _meshAuxVB = device.CreateBuffer(new BufferDescription(auxVerts * 32, BindFlags.VertexBuffer, ResourceUsage.Default));
 
                 _meshHeightTex = device.CreateTexture2D(new Texture2DDescription()
                 {
@@ -527,9 +527,8 @@ namespace Thetis
                     ArraySize = 1,
                     Format = Format.R32_Float,
                     SampleDescription = new SampleDescription(1, 0),
-                    Usage = ResourceUsage.Dynamic,
+                    Usage = ResourceUsage.Default,
                     BindFlags = BindFlags.ShaderResource,
-                    CPUAccessFlags = CpuAccessFlags.Write,
                 });
                 _meshHeightSRV = device.CreateShaderResourceView(_meshHeightTex);
 
@@ -543,9 +542,8 @@ namespace Thetis
                         ArraySize = 1,
                         Format = Format.B8G8R8A8_UNorm,
                         SampleDescription = new SampleDescription(1, 0),
-                        Usage = ResourceUsage.Dynamic,
+                        Usage = ResourceUsage.Default,
                         BindFlags = BindFlags.ShaderResource,
-                        CPUAccessFlags = CpuAccessFlags.Write,
                     });
                     _meshPaletteSRV = device.CreateShaderResourceView(_meshPaletteTex);
                 }
@@ -770,28 +768,8 @@ namespace Thetis
                     " max=" + diagMax.ToString("F3") +
                     " grid=" + _meshParams.GridMin + ".." + _meshParams.GridMax);
 
-                MappedSubresource mapped;
-                try
-                {
-                    mapped = dc.Map(_meshHeightTex, 0, MapMode.WriteDiscard, Vortice.Direct3D11.MapFlags.DoNotWait);
-                }
-                catch (SharpGenException ex) when (ex.ResultCode == Vortice.DXGI.ResultCode.WasStillDrawing)
-                {
-                    GPUWaterfallLogger.LogRateLimited("BANDSCOPE-BUSY", "height", 1000,
-                        "height texture busy; skipping GPU 3D frame");
-                    return false;
-                }
-                unsafe
-                {
-                    fixed (float* src = scratch)
-                    {
-                        int copyBytes = cols * sizeof(float);
-                        byte* dst = (byte*)mapped.DataPointer;
-                        for (int r = 0; r < rowCount; r++)
-                            Buffer.MemoryCopy(src + r * cols, dst + r * mapped.RowPitch, copyBytes, copyBytes);
-                    }
-                }
-                dc.Unmap((ID3D11Resource)_meshHeightTex, 0);
+                dc.UpdateSubresource(scratch, _meshHeightTex, 0,
+                    (uint)(cols * sizeof(float)), 0);
 
                 // ---- palette texture (same colour selection rules as SelectSurfaceColour) ----
                 uint[] palette = ComputePaletteArray(yRange);
@@ -818,19 +796,7 @@ namespace Thetis
                     TexelX = 1f / cols,
                     TexelY = 1f / rowCount,
                 };
-                MappedSubresource cbMap;
-                try
-                {
-                    cbMap = dc.Map((ID3D11Resource)_meshCB, 0, MapMode.WriteDiscard, Vortice.Direct3D11.MapFlags.DoNotWait);
-                }
-                catch (SharpGenException ex) when (ex.ResultCode == Vortice.DXGI.ResultCode.WasStillDrawing)
-                {
-                    GPUWaterfallLogger.LogRateLimited("BANDSCOPE-BUSY", "constants", 1000,
-                        "constant buffer busy; skipping GPU 3D frame");
-                    return false;
-                }
-                unsafe { System.Runtime.CompilerServices.Unsafe.Write((void*)cbMap.DataPointer, cb); }
-                dc.Unmap((ID3D11Resource)_meshCB, 0);
+                dc.UpdateSubresource(cb, _meshCB);
 
                 dc.IASetInputLayout(_meshIL);
                 dc.IASetPrimitiveTopology(Vortice.Direct3D.PrimitiveTopology.TriangleList);
@@ -848,26 +814,7 @@ namespace Thetis
                 int auxCount = FillAuxVertices(rowCount, cols, palette);
                 if (auxCount > 0 && _meshAuxVB != null && _meshAuxScratch != null)
                 {
-                    MappedSubresource auxMap;
-                    try
-                    {
-                        auxMap = dc.Map((ID3D11Resource)_meshAuxVB, 0, MapMode.WriteDiscard, Vortice.Direct3D11.MapFlags.DoNotWait);
-                    }
-                    catch (SharpGenException ex) when (ex.ResultCode == Vortice.DXGI.ResultCode.WasStillDrawing)
-                    {
-                        GPUWaterfallLogger.LogRateLimited("BANDSCOPE-BUSY", "aux", 1000,
-                            "aux vertex buffer busy; skipping GPU 3D frame");
-                        return false;
-                    }
-                    unsafe
-                    {
-                        fixed (float* src = _meshAuxScratch)
-                        {
-                            uint copyBytes = (uint)auxCount * 32;
-                            Buffer.MemoryCopy(src, (void*)auxMap.DataPointer, copyBytes, copyBytes);
-                        }
-                    }
-                    dc.Unmap((ID3D11Resource)_meshAuxVB, 0);
+                    dc.UpdateSubresource(_meshAuxScratch, _meshAuxVB);
 
                     dc.IASetInputLayout(_meshFlatIL);
                     dc.IASetVertexBuffer(0, _meshAuxVB, 32, 0);
@@ -942,10 +889,11 @@ namespace Thetis
             }
             catch (Exception e)
             {
-                GPUWaterfallLogger.Log("BANDSCOPE-EX", e.ToString());
-                Common.MeshDiagLog("GPU mesh render failed - falling back to D2D lines : " + e.Message);
-                ReleaseGpuMeshDeviceObjects();
-                ReleaseGpuMeshFrameState();
+                GPUWaterfallLogger.LogRateLimited("BANDSCOPE-EX", e.GetType().FullName + ":" + e.HResult, 1000, e.ToString());
+                Common.MeshDiagLog("GPU mesh frame failed - preserving last good frame : " + e.Message);
+                // Do not destroy the offscreen surface here. A transient GPU/upload
+                // failure must not erase the last valid bandscope image; the D2D
+                // compositor will keep presenting it until a fresh GPU frame succeeds.
                 return false;
             }
         }
@@ -1102,26 +1050,8 @@ namespace Thetis
 
         private static bool UploadPalette(ID3D11DeviceContext dc, uint[] palette)
         {
-            MappedSubresource map;
-            try
-            {
-                map = dc.Map(_meshPaletteTex, 0, MapMode.WriteDiscard, Vortice.Direct3D11.MapFlags.DoNotWait);
-            }
-            catch (SharpGenException ex) when (ex.ResultCode == Vortice.DXGI.ResultCode.WasStillDrawing)
-            {
-                GPUWaterfallLogger.LogRateLimited("BANDSCOPE-BUSY", "palette", 1000,
-                    "palette texture busy; skipping GPU 3D frame");
-                return false;
-            }
-            unsafe
-            {
-                fixed (uint* src = palette)
-                {
-                    uint copyBytes = MeshPaletteSize * sizeof(uint);
-                    Buffer.MemoryCopy(src, (void*)map.DataPointer, copyBytes, copyBytes);
-                }
-            }
-            dc.Unmap((ID3D11Resource)_meshPaletteTex, 0);
+            dc.UpdateSubresource(palette, _meshPaletteTex, 0,
+                (uint)(MeshPaletteSize * sizeof(uint)), 0);
             return true;
         }
 
