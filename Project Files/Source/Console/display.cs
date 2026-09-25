@@ -8477,24 +8477,6 @@ namespace Thetis
                     }
                 }
 
-                int exactGpuStatus = -1;
-                byte[] exactGpuColorRow = null;
-
-                if (bRXdraw && !local_mox)
-                {
-                    float[] exactReference = rx == 1 ? current_waterfall_data_copy : current_waterfall_data_bottom_copy;
-                    float exactGpuFOffset = rx == 1 ? RX1Offset : RX2Offset;
-                    exactGpuStatus = TryGetExactGpuWaterfallRow(
-                        rx, W, exactReference, nDecimatedWidth,
-                        low_threshold, high_threshold, exactGpuFOffset,
-                        out exactGpuColorRow);
-
-                    // Once the exact GPU source is healthy but waiting for the next
-                    // 85%-overlapped FFT hop, hold the history. Never splice a WDSP row.
-                    if (exactGpuStatus == 0)
-                        bRXdraw = false;
-                }
-
                 if (bRXdraw)
                 {
                     float[] data;
@@ -8511,7 +8493,25 @@ namespace Thetis
                         dataCopy = current_waterfall_data_bottom_copy;
                     }
 
-                    bool usingExactGpu = exactGpuStatus == 1;
+                    ApplyWaterfallProThresholds(rx, local_mox, ref low_threshold, ref high_threshold);
+
+                    GPUWaterfallPipeline managedGpuPipeline = null;
+                    bool managedGpuRowReady = false;
+                    float managedGpuCalOffset = 0f;
+
+                    // Full GPU Waterfall: raw IQ -> GPU FFT -> magnitude SRV.
+                    // The SRV is consumed directly by WaterfallGPURenderer; no
+                    // staging/readback result is used for the displayed GPU path.
+                    if (ManagedGPUFFTRequested)
+                    {
+                        CaptureGPUCalibrationReference(rx, dataCopy, nDecimatedWidth, W);
+                        managedGpuPipeline = GetGPUWaterfallPipeline(rx);
+                        float[] managedGpuRow = ProcessGPUWaterfall(rx, W);
+                        managedGpuPipeline = GetGPUWaterfallPipeline(rx);
+                        managedGpuRowReady = managedGpuRow != null;
+                        managedGpuCalOffset = GetGPUWaterfallCalibrationOffset(rx);
+                    }
+
 
                     float max;
                     float max_copy;
@@ -8617,6 +8617,25 @@ namespace Thetis
                         waterfallBitmap = _waterfall_bmp2_dx2d;
                     }
 
+                    bool managedGpuOwnsPane = UpdateManagedGPUWaterfallRenderer(
+                        rx,
+                        W,
+                        H - 20,
+                        horizontalShiftPixels,
+                        addRow,
+                        clearExistingBitmap,
+                        cScheme,
+                        local_mox,
+                        low_threshold,
+                        high_threshold,
+                        fOffset,
+                        managedGpuPipeline,
+                        managedGpuRowReady,
+                        managedGpuCalOffset);
+
+                    // The old WaterfallMesh remains a fallback/independent feature.
+                    // It must never receive or present rows while the full managed
+                    // GPU Waterfall owns this pane.
                     // Tier 3 GPU mesh waterfall: when armed, hand the freshly coloured
                     // row to the GPU ring instead of the D2D bitmap scroll. Decided
                     // AFTER the colour switch below fills 'row'; the temp-bitmap work
@@ -9537,12 +9556,6 @@ namespace Thetis
                         }
                     }
 
-                    bool exactGpuColourReady = usingExactGpu && exactGpuColorRow != null && exactGpuColorRow.Length >= W * 4;
-                    if (exactGpuColourReady)
-                    {
-                        Buffer.BlockCopy(exactGpuColorRow, 0, row, 0, W * 4);
-                    }
-
                     bool stopWaterfallOnTx = (rx == 1 && m_bStopRX1WaterfallOnTX && local_mox) ||
                                              (rx == 2 && m_bStopRX2WaterfallOnTX && local_mox);
 
@@ -9550,7 +9563,7 @@ namespace Thetis
                     // colour conversion to a GPU compute shader.  Falls back to the
                     // CPU colour switch above on any failure (GPU fallback rule 1).
                     bool bComputeFilledRow = false;
-                    if (!exactGpuColourReady && ComputeArmed && (!stopWaterfallOnTx || clearExistingBitmap))
+                    if (!managedGpuOwnsPane && ComputeArmed && (!stopWaterfallOnTx || clearExistingBitmap))
                     {
                         float linCor = (cScheme == ColorScheme.LinLog) ? LinLogCor :
                                        (cScheme == ColorScheme.LinRad || cScheme == ColorScheme.LinAuto) ? LinCor : 0f;
@@ -9566,7 +9579,7 @@ namespace Thetis
                     // width-change clear is honoured even during TX-stop, matching
                     // the D2D order). Fall through to the legacy bitmap work when it
                     // declines or is disarmed.
-                    if (WfMeshArmed && (!stopWaterfallOnTx || clearExistingBitmap))
+                    if (!managedGpuOwnsPane && WfMeshArmed && (!stopWaterfallOnTx || clearExistingBitmap))
                     {
                         bMeshCommit = WaterfallMeshCommitLine(rx, row, H - 20, addRow, horizontalShiftPixels, clearExistingBitmap);
                     }
@@ -9672,11 +9685,15 @@ namespace Thetis
                     }
                 }
 
-                // Tier 3 GPU mesh waterfall: when the mesh path owns this pane the
-                // pre-BeginDraw pass already presented it - skip the D2D present.
-                // Ownership is set true on a successful commit and false on any
-                // failure, so it fully reflects this line's commit outcome.
-                if (!(WfMeshArmed && WfMeshOwnsPane(rx)))
+                // Presentation priority is strict: full GPU Waterfall -> optional
+                // legacy mesh -> classic D2D fallback. This prevents two waterfall
+                // histories from being composited on top of each other.
+                if (CanDrawManagedGPUWaterfall(rx, cScheme, W, H - 20))
+                {
+                    DrawManagedGPUWaterfall(rx, nVerticalShift,
+                        rx == 1 ? m_fRX1WaterfallOpacity : m_fRX2WaterfallOpacity);
+                }
+                else if (!(WfMeshArmed && WfMeshOwnsPane(rx)))
                 {
                     if (rx == 1)
                     {
