@@ -69,10 +69,7 @@ public class WaterfallGPURenderer : IDisposable
 
 	private static byte[] _shaderBytecode;
 
-	public bool IsDeviceReady => _device != null && _device.NativePointer != IntPtr.Zero &&
-		_d2dDC != null && _d2dDC.NativePointer != IntPtr.Zero;
-
-	public bool IsInitialized => _initialized && IsDeviceReady;
+	public bool IsInitialized => _initialized;
 
 	public int Width => _width;
 
@@ -253,7 +250,7 @@ public class WaterfallGPURenderer : IDisposable
 
 	public void SetPalette(float[] rgba, int count)
 	{
-		if (!IsInitialized || rgba == null || count <= 0)
+		if (!_initialized || rgba == null || count <= 0)
 		{
 			return;
 		}
@@ -276,7 +273,7 @@ public class WaterfallGPURenderer : IDisposable
 
 	public void ProcessRow(float[] spectrum, int spectrumLength, int decimation, float lowThreshold, float highThreshold, float gamma, float invGamma, int toneMapMode, float saturationBoost, float contrastBoost, bool ditherEnabled, int ditherLevels, float temporalAlphaRef, float motionThreshold, bool isPaletteScheme, bool applyGammaToPercent, float paletteSharpness, float paletteContrast)
 	{
-		if (IsInitialized)
+		if (_initialized)
 		{
 			int count = Math.Min(spectrumLength, _width);
 			_device.ImmediateContext.MapSubresource(_spectrumBuffer, MapMode.WriteDiscard, SharpDX.Direct3D11.MapFlags.None, out var stream);
@@ -291,7 +288,7 @@ public class WaterfallGPURenderer : IDisposable
 
 	public void ProcessRow(ShaderResourceView spectrumSrv, int spectrumLength, int decimation, float lowThreshold, float highThreshold, float gamma, float invGamma, int toneMapMode, float saturationBoost, float contrastBoost, bool ditherEnabled, int ditherLevels, float temporalAlphaRef, float motionThreshold, bool isPaletteScheme, bool applyGammaToPercent, float paletteSharpness, float paletteContrast)
 	{
-		if (IsInitialized && spectrumSrv != null && !spectrumSrv.IsDisposed)
+		if (_initialized && spectrumSrv != null && !spectrumSrv.IsDisposed)
 		{
 			ProcessRowCore(spectrumSrv, spectrumLength, decimation, lowThreshold, highThreshold, gamma, invGamma, toneMapMode, saturationBoost, contrastBoost, ditherEnabled, ditherLevels, temporalAlphaRef, motionThreshold, isPaletteScheme, applyGammaToPercent, paletteSharpness, paletteContrast);
 		}
@@ -361,7 +358,7 @@ public class WaterfallGPURenderer : IDisposable
 
 	public void AdvanceRow(int horizontalShiftPixels, bool insertedNewRow)
 	{
-		if (IsInitialized)
+		if (_initialized)
 		{
 			SharpDX.Direct3D11.DeviceContext immediateContext = _device.ImmediateContext;
 			immediateContext.CopySubresourceRegion(_waterfallTexture, 0, null, _scrollTempTexture, 0);
@@ -405,7 +402,7 @@ public class WaterfallGPURenderer : IDisposable
 
 	public void Draw(int xOffset, int yOffset, float opacity, Brush clearBrush, bool linearInterpolation = false)
 	{
-		if (IsInitialized && _waterfallBitmap != null && !_waterfallBitmap.IsDisposed && _d2dDC != null && !_d2dDC.IsDisposed)
+		if (_initialized && _waterfallBitmap != null && !_waterfallBitmap.IsDisposed && _d2dDC != null && !_d2dDC.IsDisposed)
 		{
 			_d2dDC.DrawBitmap(_waterfallBitmap, new RectangleF(xOffset, yOffset, _width, _height), opacity, linearInterpolation ? BitmapInterpolationMode.Linear : BitmapInterpolationMode.NearestNeighbor);
 		}
@@ -413,7 +410,7 @@ public class WaterfallGPURenderer : IDisposable
 
 	public void DrawScaled(int xOffset, int yOffset, int destWidth, int destHeight, float opacity, bool linearInterpolation)
 	{
-		if (IsInitialized && _waterfallBitmap != null && !_waterfallBitmap.IsDisposed && _d2dDC != null && !_d2dDC.IsDisposed && destWidth > 0 && destHeight > 0)
+		if (_initialized && _waterfallBitmap != null && !_waterfallBitmap.IsDisposed && _d2dDC != null && !_d2dDC.IsDisposed && destWidth > 0 && destHeight > 0)
 		{
 			_d2dDC.DrawBitmap(_waterfallBitmap, new RectangleF(xOffset, yOffset, destWidth, destHeight), opacity, linearInterpolation ? BitmapInterpolationMode.Linear : BitmapInterpolationMode.NearestNeighbor);
 		}
@@ -421,7 +418,7 @@ public class WaterfallGPURenderer : IDisposable
 
 	public void Clear()
 	{
-		if (IsInitialized)
+		if (_initialized)
 		{
 			_device.ImmediateContext.ClearUnorderedAccessView(_waterfallUAV, new RawVector4(0f, 0f, 0f, 1f));
 			_device.ImmediateContext.ClearUnorderedAccessView(_prevPctUAV, new RawVector4(0f, 0f, 0f, 0f));

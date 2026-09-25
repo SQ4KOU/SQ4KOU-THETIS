@@ -123,10 +123,7 @@ public class GPUWaterfallPipeline : IDisposable
 
 	private int _readbackErrorSkip;
 
-	public bool IsDeviceReady => _device != null && _device.NativePointer != IntPtr.Zero &&
-		_context != null && _context.NativePointer != IntPtr.Zero;
-
-	public bool IsInitialized => _initialized && IsDeviceReady;
+	public bool IsInitialized => _initialized;
 
 	public int FFTSize => _fftSize;
 
@@ -262,9 +259,8 @@ public class GPUWaterfallPipeline : IDisposable
 
 	public bool Resize(int fftSize, int displayWidth, float sampleRate)
 	{
-		if (!IsDeviceReady)
+		if (_device == null)
 		{
-			_initialized = false;
 			return false;
 		}
 		_pendingReadback = false;
@@ -323,7 +319,7 @@ public class GPUWaterfallPipeline : IDisposable
 
 	public float[] Process(float[] i, float[] q, int count)
 	{
-		if (!IsInitialized || i == null || q == null || count <= 0)
+		if (!_initialized || i == null || q == null || count <= 0)
 		{
 			return null;
 		}

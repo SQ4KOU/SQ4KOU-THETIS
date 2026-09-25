@@ -105,6 +105,7 @@ namespace Thetis
         private static SharpDX.Direct2D1.DeviceContext _gpuSharpD2D;
         private static IntPtr _gpuSharpDevicePtr = IntPtr.Zero;
         private static IntPtr _gpuSharpD2DPtr = IntPtr.Zero;
+        private static bool _gpuInteropResetPending = false;
         private static SharpDX.Direct2D1.Factory1 _gpuSharpFactory;
         private static IntPtr _gpuSharpFactoryPtr = IntPtr.Zero;
 
@@ -370,48 +371,26 @@ namespace Thetis
         public static float GPUWaterfallCalibrationOffsetRX1 => _gpuCalOffsetRX1;
         public static float GPUWaterfallCalibrationOffsetRX2 => _gpuCalOffsetRX2;
 
-        private static void DisposeManagedGPUWaterfallRenderersForInteropReset()
-        {
-            try { _waterfallGPU1?.Dispose(); } catch { }
-            try { _waterfallGPU2?.Dispose(); } catch { }
-            _waterfallGPU1 = null;
-            _waterfallGPU2 = null;
-            _gpuRendererHasData[0] = false;
-            _gpuRendererHasData[1] = false;
-        }
-
-        private static void DisposeGPUWaterfallPipelinesForInteropReset()
-        {
-            try { _gpuFFT1?.Dispose(); } catch { }
-            try { _gpuFFT2?.Dispose(); } catch { }
-            _gpuFFT1 = null;
-            _gpuFFT2 = null;
-            ResetGPUWaterfallState(1, resetCalibration: false);
-            ResetGPUWaterfallState(2, resetCalibration: false);
-        }
-
         private static SharpDX.Direct3D11.Device GetGPUSharpDevice()
         {
             if (_device == null || _device.NativePointer == IntPtr.Zero) return null;
             IntPtr ptr = _device.NativePointer;
-            bool wrapperInvalid = _gpuSharpDevice != null && _gpuSharpDevice.NativePointer == IntPtr.Zero;
-            if (_gpuSharpDevice == null || _gpuSharpDevicePtr != ptr || wrapperInvalid)
+
+            if (_gpuSharpDevice != null && _gpuSharpDevicePtr != ptr)
             {
-                // The FFT pipelines and managed waterfall renderers retain this exact
-                // SharpDX wrapper. Dispose them BEFORE replacing the wrapper, otherwise
-                // they keep a disposed Device and later fail in ImmediateContext.
-                if (_gpuSharpDevice != null)
-                {
-                    DisposeManagedGPUWaterfallRenderersForInteropReset();
-                    DisposeGPUWaterfallPipelinesForInteropReset();
-                }
-                try { _gpuSharpDevice?.Dispose(); } catch { }
-                _gpuSharpDevice = null;
-                _gpuSharpDevicePtr = IntPtr.Zero;
+                // Never dispose/replace SharpDX wrappers while RenderDX2D owns the
+                // active frame. Pipelines still reference this wrapper; disposing it
+                // here is exactly what produced the ImmediateContext null crash, and
+                // disposing all dependent resources here caused the run120 freeze.
+                _gpuInteropResetPending = true;
+                return null;
+            }
+
+            if (_gpuSharpDevice == null)
+            {
                 Marshal.AddRef(ptr);
                 _gpuSharpDevice = new SharpDX.Direct3D11.Device(ptr);
                 _gpuSharpDevicePtr = ptr;
-                LogGPU("SharpDX D3D11 interop wrapper recreated; managed GPU waterfall resources invalidated.");
             }
             return _gpuSharpDevice;
         }
@@ -420,23 +399,53 @@ namespace Thetis
         {
             if (_d2dDeviceContext == null || _d2dDeviceContext.NativePointer == IntPtr.Zero) return null;
             IntPtr ptr = _d2dDeviceContext.NativePointer;
-            bool wrapperInvalid = _gpuSharpD2D != null && _gpuSharpD2D.NativePointer == IntPtr.Zero;
-            if (_gpuSharpD2D == null || _gpuSharpD2DPtr != ptr || wrapperInvalid)
-            {
-                // Bitmap1 objects are bound to the D2D device context. Never let a
-                // renderer survive a context replacement even when dimensions match.
-                if (_gpuSharpD2D != null)
-                    DisposeManagedGPUWaterfallRenderersForInteropReset();
 
-                try { _gpuSharpD2D?.Dispose(); } catch { }
-                _gpuSharpD2D = null;
-                _gpuSharpD2DPtr = IntPtr.Zero;
+            if (_gpuSharpD2D != null && _gpuSharpD2DPtr != ptr)
+            {
+                _gpuInteropResetPending = true;
+                return null;
+            }
+
+            if (_gpuSharpD2D == null)
+            {
                 Marshal.AddRef(ptr);
                 _gpuSharpD2D = new SharpDX.Direct2D1.DeviceContext(ptr);
                 _gpuSharpD2DPtr = ptr;
-                LogGPU("SharpDX D2D interop wrapper recreated; managed GPU waterfall renderer invalidated.");
             }
             return _gpuSharpD2D;
+        }
+
+        internal static void ProcessPendingGPUInteropResetAfterFrame()
+        {
+            if (!_gpuInteropResetPending) return;
+
+            // Called only after EndDraw + Present, while RenderDX2D still owns
+            // _objDX2Lock. No managed GPU resource is in use at this point.
+            try { _waterfallGPU1?.Dispose(); } catch { }
+            try { _waterfallGPU2?.Dispose(); } catch { }
+            _waterfallGPU1 = null;
+            _waterfallGPU2 = null;
+
+            try { _gpuFFT1?.Dispose(); } catch { }
+            try { _gpuFFT2?.Dispose(); } catch { }
+            _gpuFFT1 = null;
+            _gpuFFT2 = null;
+
+            try { _gpuSharpD2D?.Dispose(); } catch { }
+            _gpuSharpD2D = null;
+            _gpuSharpD2DPtr = IntPtr.Zero;
+
+            try { _gpuSharpDevice?.Dispose(); } catch { }
+            _gpuSharpDevice = null;
+            _gpuSharpDevicePtr = IntPtr.Zero;
+
+            _gpuRendererHasData[0] = false;
+            _gpuRendererHasData[1] = false;
+            ResetGPUWaterfallState(1, resetCalibration: false);
+            ResetGPUWaterfallState(2, resetCalibration: false);
+
+            _gpuInteropResetPending = false;
+            LogGPU("Deferred SharpDX/Vortice interop reset completed after Present.");
         }
 
         private static SharpDX.Direct2D1.Factory1 GetGPUSharpFactory()
@@ -505,12 +514,6 @@ namespace Thetis
                 num = ((rx == 1) ? SampleRateRX1 : SampleRateRX2);
             }
             GPUWaterfallPipeline gPUWaterfallPipeline = ((rx == 1) ? _gpuFFT1 : _gpuFFT2);
-            if (gPUWaterfallPipeline != null && !gPUWaterfallPipeline.IsDeviceReady)
-            {
-                try { gPUWaterfallPipeline.Dispose(); } catch { }
-                if (rx == 1) _gpuFFT1 = null; else _gpuFFT2 = null;
-                gPUWaterfallPipeline = null;
-            }
             bool num2 = gPUWaterfallPipeline == null;
             if (num2)
             {
@@ -583,6 +586,7 @@ namespace Thetis
 
         private static float[] ProcessGPUWaterfall(int rx, int width)
         {
+            if (_gpuInteropResetPending) return null;
             if (!_gpuWaterfallPipelineEnabled)
             {
                 return null;
@@ -815,10 +819,8 @@ namespace Thetis
             }
             catch (Exception ex)
             {
-                LogGPU($"ProcessGPUWaterfall RX{rx}: GPU device/context became invalid; rebuilding on next frame. {ex.GetType().Name}: {ex.Message}");
-                try { gPUWaterfallPipeline.Dispose(); } catch { }
-                if (rx == 1) _gpuFFT1 = null; else _gpuFFT2 = null;
-                ResetGPUWaterfallState(rx, resetCalibration: false);
+                _gpuInteropResetPending = true;
+                LogGPU($"ProcessGPUWaterfall RX{rx}: interop context invalid; deferring reset until after Present. {ex.GetType().Name}: {ex.Message}");
                 return null;
             }
             if (flag)
@@ -1027,6 +1029,12 @@ namespace Thetis
                 _gpuRendererHasData[index] = false;
                 return false;
             }
+            if (_gpuInteropResetPending)
+            {
+                _gpuRendererHasData[index] = false;
+                return false;
+            }
+
             try
             {
                 bool paletteReady = true;
@@ -1042,6 +1050,7 @@ namespace Thetis
                     if (palette == null) paletteReady = false; else UploadPaletteToGPU(renderer, palette);
                 }
                 if (!paletteReady) { _gpuRendererHasData[index] = false; return false; }
+
                 bool inserted = addRow && gpuRowReady && pipeline.MagSpectrumView != null && !pipeline.MagSpectrumView.IsDisposed;
                 if (clearExisting || (inserted && !_gpuRendererHasData[index])) renderer.Clear();
                 if (inserted)
@@ -1063,10 +1072,9 @@ namespace Thetis
             }
             catch (Exception ex)
             {
-                LogGPU($"UpdateManagedGPUWaterfallRenderer RX{rx}: stale GPU renderer/context; falling back and rebuilding. {ex.GetType().Name}: {ex.Message}");
-                try { renderer.Dispose(); } catch { }
-                if (rx == 1) _waterfallGPU1 = null; else _waterfallGPU2 = null;
+                _gpuInteropResetPending = true;
                 _gpuRendererHasData[index] = false;
+                LogGPU($"UpdateManagedGPUWaterfallRenderer RX{rx}: interop context invalid; deferring reset until after Present. {ex.GetType().Name}: {ex.Message}");
                 return false;
             }
         }

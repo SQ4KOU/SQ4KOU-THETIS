@@ -4799,6 +4799,12 @@ namespace Thetis
                     }
 
                     _dx_fail_retry = 0;
+
+                    // Managed GPU waterfall interop resources may only be retired here:
+                    // EndDraw and Present have completed, so no D2D/D3D object from this
+                    // frame is still executing. This avoids both the run119 stale-wrapper
+                    // NullReferenceException and the run120 in-frame teardown freeze.
+                    ProcessPendingGPUInteropResetAfterFrame();
                 }
             }
             catch (Exception e)
