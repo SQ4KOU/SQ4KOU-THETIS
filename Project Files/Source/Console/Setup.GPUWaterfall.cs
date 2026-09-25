@@ -1234,5 +1234,42 @@ namespace Thetis
 		{
 		}
 	}
+
+        // Apply values restored by getOptions(). During database restore the regular
+        // event handlers are suppressed by 'initializing', so the GPU pipeline must
+        // be synchronized explicitly once initialization is released.
+        private void ApplyLoadedGPUWaterfallSettings()
+        {
+            EventArgs e = EventArgs.Empty;
+            comboNFMode_SelectedIndexChanged(this, e);
+            udNFLowPct_ValueChanged(this, e);
+            udNFHighPct_ValueChanged(this, e);
+            chkAutoHigh_CheckedChanged(this, e);
+            udAutoHighMargin_ValueChanged(this, e);
+            comboAGCSmooth_SelectedIndexChanged(this, e);
+            comboWFDetector_SelectedIndexChanged(this, e);
+            chkZoomAdaptive_CheckedChanged(this, e);
+            comboToneMap_SelectedIndexChanged(this, e);
+            comboTemporal_SelectedIndexChanged(this, e);
+            tbPalSharp_Scroll(this, e);
+            tbPalContrast_Scroll(this, e);
+            comboWaterfallRenderQuality_SelectedIndexChanged(this, e);
+            comboGPUWaterfallFFTSize_SelectedIndexChanged(this, e);
+            comboGPUWaterfallWindow_SelectedIndexChanged(this, e);
+            udGPUWaterfallKaiserBeta_ValueChanged(this, e);
+            comboGPUWaterfallMagnitudeMode_SelectedIndexChanged(this, e);
+            udGPUWaterfallOverlap_ValueChanged(this, e);
+            chkGPUWaterfallAutoOverlap_CheckedChanged(this, e);
+            comboGPUWaterfallLanczos_SelectedIndexChanged(this, e);
+            comboGPUWaterfallResampling_SelectedIndexChanged(this, e);
+            chkAutoThreshold_CheckedChanged(this, e);
+            udAutoThFine_ValueChanged(this, e);
+
+            // GPU selection performs capability detection and then arms/disarms the
+            // FFT path. It is deliberately last so all restored FFT settings are
+            // already in Display when the pipeline is created.
+            ApplyGPUSelection(comboGPU != null ? comboGPU.SelectedIndex : 0);
+        }
+
     }
 }
