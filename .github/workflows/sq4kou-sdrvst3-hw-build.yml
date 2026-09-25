@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/sdr-vst3-sq4kou-hw
+      - feature/sdr-vst3-full-gpu-waterfall-ff62
   workflow_dispatch:
 
 permissions:
