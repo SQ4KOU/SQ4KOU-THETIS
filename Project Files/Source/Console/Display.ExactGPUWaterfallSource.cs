@@ -178,37 +178,11 @@ namespace Thetis
 
                     if (_exactRingCount[slot] < fftSize) return 0;
 
-                    int sampleRate = cmaster.GetInputRate(0, slot);
-                    if (sampleRate <= 0) sampleRate = rx == 1 ? SampleRateRX1 : SampleRateRX2;
-                    if (sampleRate <= 0) sampleRate = 192000;
-
                     int overlap = _gpuWaterfallOverlapPercent;
                     if (overlap < 0) overlap = 0;
                     if (overlap > 95) overlap = 95;
                     int hop = Math.Max(1, Math.Min(fftSize,
                         (int)Math.Round(fftSize * (1.0 - overlap / 100.0))));
-
-                    // Exact native path must preserve ff62 Auto Overlap semantics.
-                    // Derive the hop from the actual display cadence instead of the
-                    // manual percentage, capped at 30 waterfall rows/s.
-                    if (_gpuWaterfallAutoOverlap)
-                    {
-                        double fps = Math.Max(1.0, m_nFps);
-                        int updatePeriod = Math.Max(1, rx == 1 ? waterfall_update_period : rx2_waterfall_update_period);
-                        double targetRowsPerSecond = Math.Min(fps / updatePeriod, 30.0);
-                        double maxRowsForFft = sampleRate / (0.05 * fftSize);
-                        if (targetRowsPerSecond > maxRowsForFft) targetRowsPerSecond = maxRowsForFft;
-                        if (targetRowsPerSecond < 1.0) targetRowsPerSecond = 1.0;
-                        hop = Math.Max(1, Math.Min(fftSize,
-                            (int)Math.Round(sampleRate / targetRowsPerSecond)));
-                    }
-
-                    double effectiveOverlap = 1.0 - (double)hop / fftSize;
-                    if (Math.Abs(effectiveOverlap - _gpuLastEffectiveOverlap[slot]) > 0.005)
-                    {
-                        _gpuLastEffectiveOverlap[slot] = effectiveOverlap;
-                        GPUWaterfallEffectiveOverlapChanged?.Invoke(rx, effectiveOverlap);
-                    }
 
                     if (!_exactFirstFill[slot])
                     {
@@ -231,6 +205,9 @@ namespace Thetis
                         _exactFrameQ[slot][i] = _exactRingQ[slot][src];
                     }
 
+                    int sampleRate = cmaster.GetInputRate(0, slot);
+                    if (sampleRate <= 0) sampleRate = rx == 1 ? SampleRateRX1 : SampleRateRX2;
+                    if (sampleRate <= 0) sampleRate = 192000;
                     float lowHz = rx == 1 ? RXDisplayLow : RX2DisplayLow;
                     float highHz = rx == 1 ? RXDisplayHigh : RX2DisplayHigh;
 
