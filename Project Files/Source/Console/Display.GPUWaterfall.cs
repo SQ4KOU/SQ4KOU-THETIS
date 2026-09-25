@@ -107,21 +107,6 @@ namespace Thetis
         private static IntPtr _gpuSharpD2DPtr = IntPtr.Zero;
         private static bool _gpuInteropResetPending = false;
 
-        // Force-CPU is a device-path switch. Keep the user's GPU waterfall selection
-        // independent from the temporary WARP runtime state so GPU -> CPU -> GPU is reversible.
-        private static bool _forceCpuStateCaptured = false;
-        private static bool _forceCpuSavedEffectsEnabled = false;
-        private static bool _forceCpuSavedPipelineEnabled = false;
-        private static bool _forceCpuSavedAutoEnableGPU = false;
-
-        // Old SharpDX wrappers/resources keep COM references to the outgoing Vortice
-        // device. During a live HW<->WARP transition do not Dispose them while the old
-        // device/swapchain is being torn down. Retire them and release them after the
-        // first successful Present on the replacement device.
-        private static readonly object _gpuRetiredInteropLock = new object();
-        private static readonly System.Collections.Generic.List<IDisposable> _gpuRetiredInterop =
-            new System.Collections.Generic.List<IDisposable>();
-
         // UI controls can change waterfall GPU modes while RenderDX2D owns _objDX2Lock.
         // Never block the UI waiting for that render lock; queue state clears and apply
         // them at the end of a completed frame.
@@ -151,11 +136,9 @@ namespace Thetis
                 if (_gpuWaterfallPipelineEnabled != value)
                 {
                     _gpuWaterfallPipelineEnabled = value;
-                    if (m_bForceCPURendering && _forceCpuStateCaptured)
-                        _forceCpuSavedPipelineEnabled = value;
                     try
                     {
-                        SetNativeWaterfallIQEnabled(m_bForceCPURendering ? false : value);
+                        SetNativeWaterfallIQEnabled(value);
                     }
                     catch
                     {
@@ -441,97 +424,6 @@ namespace Thetis
             return _gpuSharpD2D;
         }
 
-        internal static void CaptureForceCpuGPUState()
-        {
-            if (_forceCpuStateCaptured) return;
-            _forceCpuSavedEffectsEnabled = _gpuEffectsEnabled;
-            _forceCpuSavedPipelineEnabled = _gpuWaterfallPipelineEnabled;
-            _forceCpuSavedAutoEnableGPU = _autoEnableGPU;
-            _forceCpuStateCaptured = true;
-
-            // Keep the native IQ tap alive. Force CPU is a render-path gate only;
-            // shutting the source down here can starve the classic fallback and
-            // forces a costly source re-prime on every CPU/GPU transition.
-            _gpuRendererHasData[0] = false;
-            _gpuRendererHasData[1] = false;
-            ResetTemporalWaterfallState();
-        }
-
-        internal static void RestoreForceCpuGPUStateAfterRestart()
-        {
-            if (!_forceCpuStateCaptured) return;
-
-            _gpuEffectsEnabled = _forceCpuSavedEffectsEnabled;
-            _gpuWaterfallPipelineEnabled = _forceCpuSavedPipelineEnabled;
-            _autoEnableGPU = _forceCpuSavedAutoEnableGPU;
-            _gpuRendererHasData[0] = false;
-            _gpuRendererHasData[1] = false;
-            _gpuInteropResetPending = false;
-
-            try { SetNativeWaterfallIQEnabled(_gpuWaterfallPipelineEnabled); } catch { }
-            ResetGPUWaterfallStateCore(1, true);
-            ResetGPUWaterfallStateCore(2, true);
-            ResetTemporalWaterfallState();
-
-            _forceCpuStateCaptured = false;
-            LogGPU("Force CPU -> GPU: restored requested GPU waterfall state.");
-        }
-
-        private static void RetireGPUInteropObject(IDisposable obj)
-        {
-            if (obj == null) return;
-            lock (_gpuRetiredInteropLock) _gpuRetiredInterop.Add(obj);
-        }
-
-        internal static void DetachManagedGPUInteropForDXRestart()
-        {
-            // Called after EndDraw+Present on the render thread.
-            // Detach without Dispose so the outgoing device can be replaced without
-            // waiting on SharpDX resources that still reference it.
-            RetireGPUInteropObject(_waterfallGPU1);
-            RetireGPUInteropObject(_waterfallGPU2);
-            RetireGPUInteropObject(_gpuFFT1);
-            RetireGPUInteropObject(_gpuFFT2);
-            RetireGPUInteropObject(_gpuSharpD2D);
-            RetireGPUInteropObject(_gpuSharpFactory);
-            RetireGPUInteropObject(_gpuSharpDevice);
-            WaterfallEffect.DetachForDeviceSwitch(_gpuRetiredInterop, _gpuRetiredInteropLock);
-
-            _waterfallGPU1 = null;
-            _waterfallGPU2 = null;
-            _gpuFFT1 = null;
-            _gpuFFT2 = null;
-            _gpuSharpD2D = null;
-            _gpuSharpD2DPtr = IntPtr.Zero;
-            _gpuSharpFactory = null;
-            _gpuSharpFactoryPtr = IntPtr.Zero;
-            _gpuSharpDevice = null;
-            _gpuSharpDevicePtr = IntPtr.Zero;
-            _gpuRendererHasData[0] = false;
-            _gpuRendererHasData[1] = false;
-            _gpuInteropResetPending = false;
-            ResetGPUWaterfallStateCore(1, false);
-            ResetGPUWaterfallStateCore(2, false);
-            ResetTemporalWaterfallState();
-        }
-
-        internal static void DisposeRetiredGPUInteropAfterFrame()
-        {
-            IDisposable[] retired = null;
-            lock (_gpuRetiredInteropLock)
-            {
-                if (_gpuRetiredInterop.Count == 0) return;
-                retired = _gpuRetiredInterop.ToArray();
-                _gpuRetiredInterop.Clear();
-            }
-
-            for (int i = 0; i < retired.Length; i++)
-            {
-                try { retired[i]?.Dispose(); } catch { }
-            }
-            LogGPU("Retired GPU interop resources released after replacement-device Present.");
-        }
-
         private static void ReleaseManagedGPUInteropResourcesCore()
         {
             try { _waterfallGPU1?.Dispose(); } catch { }
@@ -632,12 +524,16 @@ namespace Thetis
 
         private static void EnsureGPUWaterfallPipeline(int rx, int width, int height)
         {
-            // LEVEL 0 and Force CPU are execution gates only. Never dispose a live
-            // GPU pipeline from inside RenderDX2D: doing so can invalidate the
-            // ImmediateContext while the current frame still owns it.
-            if (!_gpuWaterfallPipelineEnabled || !_gpuEffectsEnabled ||
-                m_bForceCPURendering || m_eRenderPath != DXRenderPath.Hardware)
+            if (!_gpuWaterfallPipelineEnabled || !_gpuEffectsEnabled)
             {
+                if (rx == 1)
+                {
+                    Utilities.Dispose(ref _gpuFFT1);
+                }
+                else
+                {
+                    Utilities.Dispose(ref _gpuFFT2);
+                }
                 return;
             }
             int num = cmaster.GetInputRate(0, rx - 1);
@@ -757,7 +653,6 @@ namespace Thetis
         private static float[] ProcessGPUWaterfall(int rx, int width)
         {
             if (_gpuInteropResetPending) return null;
-            if (m_bForceCPURendering || m_eRenderPath != DXRenderPath.Hardware) return null;
             if (!_gpuWaterfallPipelineEnabled)
             {
                 return null;
@@ -1118,27 +1013,11 @@ namespace Thetis
 
         private static GPUWaterfallPipeline GetGPUWaterfallPipeline(int rx) => rx == 1 ? _gpuFFT1 : _gpuFFT2;
         private static float GetGPUWaterfallCalibrationOffset(int rx) => rx == 1 ? _gpuCalOffsetRX1 : _gpuCalOffsetRX2;
-        private static bool ManagedGPUFFTRequested =>
-            _gpuWaterfallPipelineEnabled &&
-            _gpuEffectsEnabled &&
-            _waterfallRenderQuality == WaterfallRenderQuality.High &&
-            !m_bForceCPURendering &&
-            m_eRenderPath == DXRenderPath.Hardware;
-
-        internal static void NotifyGPUWaterfallColorDepthChanged()
-        {
-            _gpuRendererHasData[0] = false;
-            _gpuRendererHasData[1] = false;
-            ResetGPUWaterfallState(1, false);
-            ResetGPUWaterfallState(2, false);
-            ResetTemporalWaterfallState();
-            LogGPU("GPU waterfall color depth changed to " + WaterfallEnhancer.Depth + "; renderer will recreate on render thread.");
-        }
+        private static bool ManagedGPUFFTRequested => _gpuWaterfallPipelineEnabled && _gpuEffectsEnabled && _waterfallRenderQuality == WaterfallRenderQuality.High;
 
         private static WaterfallGPURenderer EnsureGPUWaterfallRenderer(int rx, int width, int height)
         {
-            if (!_gpuEffectsEnabled || m_bForceCPURendering || m_eRenderPath != DXRenderPath.Hardware ||
-                width <= 0 || height <= 0) return null;
+            if (!_gpuEffectsEnabled || width <= 0 || height <= 0) return null;
             SharpDX.Direct3D11.Device sharpDevice = GetGPUSharpDevice();
             SharpDX.Direct2D1.DeviceContext dc = GetGPUSharpD2D();
             if (sharpDevice == null || dc == null) return null;
@@ -1271,25 +1150,13 @@ namespace Thetis
             int index = rx - 1;
             if (index < 0 || index > 1 || !_gpuRendererHasData[index] || !ManagedGPUFFTRequested || !IsGPUWaterfallPaletteScheme(scheme)) return false;
             WaterfallGPURenderer renderer = rx == 1 ? _waterfallGPU1 : _waterfallGPU2;
-            return renderer != null && renderer.IsDrawable && renderer.Width == width && renderer.Height == height;
+            return renderer != null && renderer.IsInitialized && renderer.Width == width && renderer.Height == height;
         }
 
-        private static bool DrawManagedGPUWaterfall(int rx, int nVerticalShift, float opacity)
+        private static void DrawManagedGPUWaterfall(int rx, int nVerticalShift, float opacity)
         {
             WaterfallGPURenderer renderer = rx == 1 ? _waterfallGPU1 : _waterfallGPU2;
-            if (renderer == null || !renderer.IsDrawable) return false;
-            try
-            {
-                renderer.Draw(0, nVerticalShift + 20, opacity, null, _gpuWaterfallLinearDraw);
-                return true;
-            }
-            catch (Exception ex)
-            {
-                _gpuRendererHasData[rx - 1] = false;
-                _gpuInteropResetPending = true;
-                LogGPU($"DrawManagedGPUWaterfall RX{rx}: draw failed; classic D2D fallback kept active. {ex.GetType().Name}: {ex.Message}");
-                return false;
-            }
+            if (renderer != null && renderer.IsInitialized) renderer.Draw(0, nVerticalShift + 20, opacity, null, _gpuWaterfallLinearDraw);
         }
     }
 }
