@@ -3588,18 +3588,6 @@ namespace Thetis
             }
         }
 
-        private static void ReleaseBackBufferDiagnosticProbe()
-        {
-            try { _diagBackBufferStaging?.Dispose(); } catch { }
-            _diagBackBufferStaging = null;
-            _diagBackBufferW = 0;
-            _diagBackBufferH = 0;
-            _diagBackBufferFormat = Format.Unknown;
-            _diagBackBufferLastProbeTicks = 0;
-            _diagBackBufferLastHash = 0;
-            _diagBackBufferSameHashCount = 0;
-        }
-
         public static void ShutdownDX2D()
         {
             GPUWaterfallLogger.Log("DX", "ShutdownDX2D requested setup=" + _bDX2Setup + " path=" + RenderPathString());
