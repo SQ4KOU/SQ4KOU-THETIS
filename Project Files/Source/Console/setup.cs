@@ -20181,7 +20181,9 @@ namespace Thetis
 
             PersistDirectXDisplaySettings();
 
-            console.RestartDisplayDX();
+            // Force CPU is a live execution gate. Do not restart the shared D2D device:
+            // Band Scope and Waterfall use the same render context, so a device restart
+            // here can stall both panes and can rebuild palette-dependent resources.
             if (_frm3DPanadapter != null && !_frm3DPanadapter.IsDisposed)
                 _frm3DPanadapter.ApplyRenderPathLimits();
         }
