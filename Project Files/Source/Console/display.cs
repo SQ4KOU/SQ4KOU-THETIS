@@ -3491,25 +3491,7 @@ namespace Thetis
         public static bool ForceCPURendering
         {
             get { return m_bForceCPURendering; }
-            set
-            {
-                if (m_bForceCPURendering == value) return;
-
-                if (value)
-                {
-                    CaptureForceCpuGPUState();
-                    m_bForceCPURendering = true;
-                }
-                else
-                {
-                    m_bForceCPURendering = false;
-                    RestoreForceCpuGPUStateAfterRestart();
-                }
-
-                // Force CPU must not replace the shared HW D2D device with WARP.
-                // It only gates GPU waterfall/effects while the normal renderer stays alive.
-                m_bDXRestartPending = false;
-            }
+            set { m_bForceCPURendering = value; }
         }
 
         public static bool DXRestartPending => m_bDXRestartPending;
@@ -3527,26 +3509,8 @@ namespace Thetis
 
             m_bDXRestartPending = false;
             Common.MeshDiagLog("Applying deferred DirectX render-path restart after Present.");
-
-            // Do not synchronously Dispose the SharpDX waterfall graph while replacing
-            // the Vortice device. Detach it, replace HW<->WARP, then retire the old COM
-            // wrappers only after the replacement device has presented a frame.
-            DetachManagedGPUInteropForDXRestart();
             ShutdownDX2D();
             initDX2D(DriverType.Hardware, _display_adaptor);
-
-            if (_bDX2Setup && !m_bForceCPURendering && m_eRenderPath == DXRenderPath.Hardware)
-            {
-                // The detector/effects belong to the new DeviceContext, not the old WARP
-                // context. Re-detect before restoring the user's GPU selection.
-                DetectGPUCapabilitiesFromD2D();
-                RestoreForceCpuGPUStateAfterRestart();
-            }
-            else if (_bDX2Setup && m_bForceCPURendering)
-            {
-                try { SetNativeWaterfallIQEnabled(false); } catch { }
-            }
-
             return true;
         }
         private static bool m_bSpectrumGlow = true;
@@ -4868,7 +4832,6 @@ namespace Thetis
                     if (ProcessPendingDXRestartAfterFrame()) return;
                     ProcessPendingGPUInteropResetAfterFrame();
                     ProcessPendingGPUWaterfallStateResetsAfterFrame();
-                    DisposeRetiredGPUInteropAfterFrame();
                 }
             }
             catch (Exception e)
@@ -9822,14 +9785,12 @@ namespace Thetis
                 // Presentation priority is strict: full GPU Waterfall -> optional
                 // legacy mesh -> classic D2D fallback. This prevents two waterfall
                 // histories from being composited on top of each other.
-                bool managedWaterfallDrawn = false;
                 if (CanDrawManagedGPUWaterfall(rx, cScheme, W, H - 20))
                 {
-                    managedWaterfallDrawn = DrawManagedGPUWaterfall(rx, nVerticalShift,
+                    DrawManagedGPUWaterfall(rx, nVerticalShift,
                         rx == 1 ? m_fRX1WaterfallOpacity : m_fRX2WaterfallOpacity);
                 }
-
-                if (!managedWaterfallDrawn && !(WfMeshArmed && WfMeshOwnsPane(rx)))
+                else if (!(WfMeshArmed && WfMeshOwnsPane(rx)))
                 {
                     if (rx == 1)
                     {
