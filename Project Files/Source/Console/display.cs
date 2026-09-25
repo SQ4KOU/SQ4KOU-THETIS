@@ -3499,7 +3499,6 @@ namespace Thetis
                 {
                     CaptureForceCpuGPUState();
                     m_bForceCPURendering = true;
-                    try { SetNativeWaterfallIQEnabled(false); } catch { }
                 }
                 else
                 {
