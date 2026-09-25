@@ -3322,6 +3322,21 @@ namespace Thetis
 
         private static float _RX1waterfallPreviousMinValue = WATERFALL_AGC_RESTART_FLOOR_DBM;
         private static float _RX2waterfallPreviousMinValue = WATERFALL_AGC_RESTART_FLOOR_DBM;
+
+        private static Format WaterfallSurfaceFormat =>
+            WaterfallEnhancer.Depth == WaterfallEnhancer.ColorDepth.Bit16
+                ? Format.R16G16B16A16_Float
+                : Format.B8G8R8A8_UNorm;
+
+        public static void ApplyWaterfallColorDepth(WaterfallEnhancer.ColorDepth depth)
+        {
+            WaterfallEnhancer.SetColorDepth(depth);
+            WaterfallPixelWriter.UpdateFormat();
+            ResetWaterfallBmp();
+            ResetWaterfallBmp2();
+            ResetTemporalWaterfallState();
+        }
+
         private static void ResetWaterfallBmp()
         {
             int H = displayTargetHeight;
@@ -3340,14 +3355,15 @@ namespace Thetis
 
                     if (_waterfall_bmp_dx2d != null)
                     {
-                        if (displayTargetWidth == _waterfall_bmp_dx2d.Size.Width)
+                        if (displayTargetWidth == _waterfall_bmp_dx2d.Size.Width &&
+                            _waterfall_bmp_dx2d.PixelFormat.Format == WaterfallSurfaceFormat)
                         {
                             // make copy only if widths equal
                             int h = Math.Min(H - 20, (int)_waterfall_bmp_dx2d.Size.Height);
                             preservedRows = h;
 
                             tmp = _d2dRenderTarget.CreateBitmap(new Vortice.Mathematics.SizeI((int)_waterfall_bmp_dx2d.Size.Width, h),
-                                    IntPtr.Zero, 0, new BitmapProperties(new SDXPixelFormat(Format.B8G8R8A8_UNorm, ALPHA_MODE)));
+                                    IntPtr.Zero, 0, new BitmapProperties(new SDXPixelFormat(WaterfallSurfaceFormat, ALPHA_MODE)));
 
                             tmp.CopyFromBitmap(new System.Drawing.Point(0, 0), _waterfall_bmp_dx2d, new System.Drawing.Rectangle(0, 0, (int)tmp.Size.Width, (int)tmp.Size.Height));
                             //
@@ -3359,7 +3375,7 @@ namespace Thetis
                         _waterfall_bmp_dx2d?.Dispose();
                         _waterfall_bmp_dx2d = null;
                     }
-                    _waterfall_bmp_dx2d = _d2dRenderTarget.CreateBitmap(new Vortice.Mathematics.SizeI(displayTargetWidth, H - 20), IntPtr.Zero, 0, new BitmapProperties(new SDXPixelFormat(_swapChain.Description.BufferDescription.Format, ALPHA_MODE)));
+                    _waterfall_bmp_dx2d = _d2dRenderTarget.CreateBitmap(new Vortice.Mathematics.SizeI(displayTargetWidth, H - 20), IntPtr.Zero, 0, new BitmapProperties(new SDXPixelFormat(WaterfallSurfaceFormat, ALPHA_MODE)));
                     clearWaterfallBitmapRegion(_waterfall_bmp_dx2d, 0, 0, displayTargetWidth, H - 20);
 
                     if (tmp != null)
@@ -3395,14 +3411,15 @@ namespace Thetis
 
                     if (_waterfall_bmp2_dx2d != null)
                     {
-                        if (displayTargetWidth == _waterfall_bmp2_dx2d.Size.Width)
+                        if (displayTargetWidth == _waterfall_bmp2_dx2d.Size.Width &&
+                            _waterfall_bmp2_dx2d.PixelFormat.Format == WaterfallSurfaceFormat)
                         {
                             // make copy only if widths equal
                             int h = Math.Min(H - 20, (int)_waterfall_bmp2_dx2d.Size.Height);
                             preservedRows = h;
 
                             tmp = _d2dRenderTarget.CreateBitmap(new Vortice.Mathematics.SizeI((int)_waterfall_bmp2_dx2d.Size.Width, h),
-                                    IntPtr.Zero, 0, new BitmapProperties(new SDXPixelFormat(Format.B8G8R8A8_UNorm, ALPHA_MODE)));
+                                    IntPtr.Zero, 0, new BitmapProperties(new SDXPixelFormat(WaterfallSurfaceFormat, ALPHA_MODE)));
 
                             tmp.CopyFromBitmap(new System.Drawing.Point(0, 0), _waterfall_bmp2_dx2d, new System.Drawing.Rectangle(0, 0, (int)tmp.Size.Width, (int)tmp.Size.Height));
                             //
@@ -3414,7 +3431,7 @@ namespace Thetis
                         _waterfall_bmp2_dx2d?.Dispose();
                         _waterfall_bmp2_dx2d = null;
                     }
-                    _waterfall_bmp2_dx2d = _d2dRenderTarget.CreateBitmap(new Vortice.Mathematics.SizeI(displayTargetWidth, H - 20), IntPtr.Zero, 0, new BitmapProperties(new SDXPixelFormat(_swapChain.Description.BufferDescription.Format, ALPHA_MODE)));
+                    _waterfall_bmp2_dx2d = _d2dRenderTarget.CreateBitmap(new Vortice.Mathematics.SizeI(displayTargetWidth, H - 20), IntPtr.Zero, 0, new BitmapProperties(new SDXPixelFormat(WaterfallSurfaceFormat, ALPHA_MODE)));
                     clearWaterfallBitmapRegion(_waterfall_bmp2_dx2d, 0, 0, displayTargetWidth, H - 20);
 
                     if (tmp != null)
@@ -3837,6 +3854,7 @@ namespace Thetis
 
                     setupAliasing();
 
+                    WaterfallPixelWriter.UpdateFormat();
                     ResetWaterfallBmp();
                     ResetWaterfallBmp2();
 
@@ -8145,17 +8163,14 @@ namespace Thetis
         {
             if (bitmap == null || width <= 0 || height <= 0) return;
 
-            const int pixelSize = 4;
+            int pixelSize = WaterfallPixelWriter.PixelSize;
             int stride = width * pixelSize;
             int bytesNeeded = stride * height;
             byte[] clearBuffer = ArrayPool<byte>.Shared.Rent(bytesNeeded);
 
             try
             {
-                Array.Clear(clearBuffer, 0, bytesNeeded);
-                for (int j = 3; j < bytesNeeded; j += pixelSize)
-                    clearBuffer[j] = 255;
-
+                WaterfallPixelWriter.FillClearBuffer(clearBuffer, bytesNeeded);
                 bitmap.CopyFromMemory(new System.Drawing.Rectangle(x, y, width, height), clearBuffer, (uint)stride);
             }
             finally
@@ -8420,7 +8435,7 @@ namespace Thetis
             float display_min_w3sz = float.MaxValue;
             float display_max_w3sz = float.MinValue;
             float min_y_w3sz = float.MaxValue;
-            int R = 0, G = 0, B = 0;
+            float R = 0f, G = 0f, B = 0f;
             bool displayduplex = isRxDuplex(rx);
             float low_threshold = 0.0f;
             float high_threshold = 0.0f;
@@ -8590,6 +8605,20 @@ namespace Thetis
                         dataCopy = current_waterfall_data_bottom_copy;
                     }
 
+                    // Stable SDR-VST3 GPU path: native D3D11 computes only the FFT/magnitude
+                    // row on its own device. The normal Vortice waterfall colour/history path
+                    // remains the sole owner of the visible D2D bitmap. CPU mode naturally
+                    // falls through to the original data without any renderer/device switch.
+                    if (ExactNativeGPURequested)
+                    {
+                        int exactState = TryGetExactGpuWaterfallDataRow(rx, nDecimatedWidth, dataCopy, nDecimatedWidth, out float[] exactRow);
+                        if (exactState == 1 && exactRow != null && exactRow.Length >= nDecimatedWidth)
+                        {
+                            Array.Copy(exactRow, data, nDecimatedWidth);
+                            Array.Copy(exactRow, dataCopy, nDecimatedWidth);
+                        }
+                    }
+
                     ApplyWaterfallProThresholds(rx, local_mox, ref low_threshold, ref high_threshold);
 
                     GPUWaterfallPipeline managedGpuPipeline = null;
@@ -8690,8 +8719,9 @@ namespace Thetis
                     max_y = local_max_y;
                     min_y_w3sz = local_min_y_w3sz;
 
-                    byte nbBitmapAlpaha = 255;
-                    int pixel_size = 4;
+                    float alphaF = 255f;
+                    int pixel_size = WaterfallPixelWriter.PixelSize;
+                    float[] rowF = new float[W * 4];
                     byte[] row = new byte[W * pixel_size];
 
                     ID2D1Bitmap waterfallBitmap;
@@ -8797,10 +8827,11 @@ namespace Thetis
                                         waterfall_minimum = dataCopy[i] + fOffset;
 
                                     // set pixel color
-                                    row[(i * waterfallDecimation) * pixel_size + 0] = (byte)B;    // set color in memory
-                                    row[(i * waterfallDecimation) * pixel_size + 1] = (byte)G;
-                                    row[(i * waterfallDecimation) * pixel_size + 2] = (byte)R;
-                                    row[(i * waterfallDecimation) * pixel_size + 3] = nbBitmapAlpaha;
+                                    int fidx = (i * waterfallDecimation) * 4;
+                                    rowF[fidx + 0] = R;
+                                    rowF[fidx + 1] = G;
+                                    rowF[fidx + 2] = B;
+                                    rowF[fidx + 3] = alphaF;
                                 }
                             }
                             break;
@@ -8889,10 +8920,11 @@ namespace Thetis
                                         waterfall_minimum = dataCopy[i] + fOffset;
 
                                     // set pixel color
-                                    row[(i * waterfallDecimation) * pixel_size + 0] = (byte)B;    // set color in memory
-                                    row[(i * waterfallDecimation) * pixel_size + 1] = (byte)G;
-                                    row[(i * waterfallDecimation) * pixel_size + 2] = (byte)R;
-                                    row[(i * waterfallDecimation) * pixel_size + 3] = nbBitmapAlpaha;
+                                    int fidx = (i * waterfallDecimation) * 4;
+                                    rowF[fidx + 0] = R;
+                                    rowF[fidx + 1] = G;
+                                    rowF[fidx + 2] = B;
+                                    rowF[fidx + 3] = alphaF;
                                 }
                             }
                             break;
@@ -8971,10 +9003,11 @@ namespace Thetis
                                         waterfall_minimum = dataCopy[i] + fOffset;
 
                                     // set pixel color
-                                    row[(i * waterfallDecimation) * pixel_size + 0] = (byte)B;    // set color in memory
-                                    row[(i * waterfallDecimation) * pixel_size + 1] = (byte)G;
-                                    row[(i * waterfallDecimation) * pixel_size + 2] = (byte)R;
-                                    row[(i * waterfallDecimation) * pixel_size + 3] = nbBitmapAlpaha;
+                                    int fidx = (i * waterfallDecimation) * 4;
+                                    rowF[fidx + 0] = R;
+                                    rowF[fidx + 1] = G;
+                                    rowF[fidx + 2] = B;
+                                    rowF[fidx + 3] = alphaF;
                                 }
                             }
                             break;
@@ -9010,10 +9043,11 @@ namespace Thetis
                                         waterfall_minimum = dataCopy[i] + fOffset;
 
                                     // set pixel color
-                                    row[(i * waterfallDecimation) * pixel_size + 0] = (byte)B;    // set color in memory
-                                    row[(i * waterfallDecimation) * pixel_size + 1] = (byte)G;
-                                    row[(i * waterfallDecimation) * pixel_size + 2] = (byte)R;
-                                    row[(i * waterfallDecimation) * pixel_size + 3] = nbBitmapAlpaha;
+                                    int fidx = (i * waterfallDecimation) * 4;
+                                    rowF[fidx + 0] = R;
+                                    rowF[fidx + 1] = G;
+                                    rowF[fidx + 2] = B;
+                                    rowF[fidx + 3] = alphaF;
                                 }
                             }
                             break;
@@ -9220,10 +9254,11 @@ namespace Thetis
 
                                     // set pixel color changed by w3sz
                                     //[2.10.3.5]MW0LGE note these are reverse RGB, we normally expect BGRA #289
-                                    row[(i * waterfallDecimation) * pixel_size + 0] = (byte)R;    // set color in memory
-                                    row[(i * waterfallDecimation) * pixel_size + 1] = (byte)G;
-                                    row[(i * waterfallDecimation) * pixel_size + 2] = (byte)B;
-                                    row[(i * waterfallDecimation) * pixel_size + 3] = nbBitmapAlpaha;
+                                    int fidx = (i * waterfallDecimation) * 4;
+                                    rowF[fidx + 0] = R;
+                                    rowF[fidx + 1] = G;
+                                    rowF[fidx + 2] = B;
+                                    rowF[fidx + 3] = alphaF;
                                 }
                             }
                             break;
@@ -9425,10 +9460,11 @@ namespace Thetis
                                         waterfall_minimum = dataCopy[i] + fOffset;
 
                                     //[2.10.3.5]MW0LGE note these are reverse RGB, we normally expect BGRA #289
-                                    row[(i * waterfallDecimation) * pixel_size + 0] = (byte)R;    // set color in memory
-                                    row[(i * waterfallDecimation) * pixel_size + 1] = (byte)G;
-                                    row[(i * waterfallDecimation) * pixel_size + 2] = (byte)B;
-                                    row[(i * waterfallDecimation) * pixel_size + 3] = nbBitmapAlpaha;
+                                    int fidx = (i * waterfallDecimation) * 4;
+                                    rowF[fidx + 0] = R;
+                                    rowF[fidx + 1] = G;
+                                    rowF[fidx + 2] = B;
+                                    rowF[fidx + 3] = alphaF;
                                 }
                             }
                             break;
@@ -9631,27 +9667,34 @@ namespace Thetis
 
                                     // set pixel color changed by w3sz
                                     //[2.10.3.5]MW0LGE note these are reverse RGB, we normally expect BGRA #289
-                                    row[(i * waterfallDecimation) * pixel_size + 0] = (byte)R;    // set color in memory
-                                    row[(i * waterfallDecimation) * pixel_size + 1] = (byte)G;
-                                    row[(i * waterfallDecimation) * pixel_size + 2] = (byte)B;
-                                    row[(i * waterfallDecimation) * pixel_size + 3] = nbBitmapAlpaha;
+                                    int fidx = (i * waterfallDecimation) * 4;
+                                    rowF[fidx + 0] = R;
+                                    rowF[fidx + 1] = G;
+                                    rowF[fidx + 2] = B;
+                                    rowF[fidx + 3] = alphaF;
                                 }
                             }
                             break;
                     }
                     #endregion
 
-                    // fill pixels into decimation spaces so we dont have gaps
+                    // fill pixels into decimation spaces in float RGBA, then quantise once.
                     for (int i = 0; i < nDecimatedWidth; i++)
                     {
+                        int src = (i * waterfallDecimation) * 4;
                         for (int j = 1; j < waterfallDecimation; j++)
                         {
-                            row[((i * waterfallDecimation) + j) * pixel_size + 0] = row[(i * waterfallDecimation) * pixel_size + 0];
-                            row[((i * waterfallDecimation) + j) * pixel_size + 1] = row[(i * waterfallDecimation) * pixel_size + 1];
-                            row[((i * waterfallDecimation) + j) * pixel_size + 2] = row[(i * waterfallDecimation) * pixel_size + 2];
-                            row[((i * waterfallDecimation) + j) * pixel_size + 3] = row[(i * waterfallDecimation) * pixel_size + 3];
+                            int dst = ((i * waterfallDecimation) + j) * 4;
+                            rowF[dst + 0] = rowF[src + 0];
+                            rowF[dst + 1] = rowF[src + 1];
+                            rowF[dst + 2] = rowF[src + 2];
+                            rowF[dst + 3] = rowF[src + 3];
                         }
                     }
+
+                    ApplyWaterfallProPostProcessing(rowF, W, rx);
+                    WaterfallPixelWriter.EncodeRow(rowF, row, W);
+                    _ditherFrameY++;
 
                     bool stopWaterfallOnTx = (rx == 1 && m_bStopRX1WaterfallOnTX && local_mox) ||
                                              (rx == 2 && m_bStopRX2WaterfallOnTX && local_mox);
