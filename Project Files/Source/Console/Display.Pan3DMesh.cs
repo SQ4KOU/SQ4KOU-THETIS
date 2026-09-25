@@ -111,7 +111,17 @@ namespace Thetis
         private const bool StableOffscreen3DMeshEnabled = true;
 
         /// <summary>GPU 3D surface toggle. The stable path renders to an offscreen shared texture.</summary>
-        public static bool GpuMeshEnabled { get; set; } = true;
+        private static bool _gpuMeshEnabled = true;
+        public static bool GpuMeshEnabled
+        {
+            get { return _gpuMeshEnabled; }
+            set
+            {
+                if (_gpuMeshEnabled == value) return;
+                GPUWaterfallLogger.Log("STATE", "GpuMeshEnabled " + _gpuMeshEnabled + " -> " + value);
+                _gpuMeshEnabled = value;
+            }
+        }
 
         private static void CaptureMeshFrameParams(int nVerticalShift, int W, int H, int rx, int nDecimatedWidth, int local_Decimation, int grid_min, int grid_max)
         {
@@ -580,6 +590,7 @@ namespace Thetis
 
                 _meshSheetW = w;
                 _meshSheetH = h;
+                GPUWaterfallLogger.Log("BANDSCOPE", "offscreen surface created " + w + "x" + h);
                 return true;
             }
             catch (Exception e)
@@ -831,6 +842,7 @@ namespace Thetis
             }
             catch (Exception e)
             {
+                GPUWaterfallLogger.Log("BANDSCOPE-EX", e.ToString());
                 Common.MeshDiagLog("GPU mesh render failed - falling back to D2D lines : " + e.Message);
                 ReleaseGpuMeshDeviceObjects();
                 ReleaseGpuMeshFrameState();
