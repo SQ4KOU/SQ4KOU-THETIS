@@ -62,6 +62,7 @@ namespace Thetis
             set
             {
                 if (_gpuEffectsEnabled == value) return;
+                GPUWaterfallLogger.Log("STATE", "GPUEffectsEnabled " + _gpuEffectsEnabled + " -> " + value);
                 _gpuEffectsEnabled = value;
 
                 // Level 0 is a live execution gate, not a DirectX teardown operation.
