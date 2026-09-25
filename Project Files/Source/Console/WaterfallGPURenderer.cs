@@ -355,7 +355,6 @@ public class WaterfallGPURenderer : IDisposable
 		immediateContext.Dispatch(threadGroupCountX, 1, 1);
 		immediateContext.ComputeShader.SetUnorderedAccessView(0, null);
 		immediateContext.ComputeShader.SetUnorderedAccessView(1, null);
-		immediateContext.Flush();
 		_ditherRowY++;
 	}
 
