@@ -12510,6 +12510,8 @@ namespace Thetis
                 console.RX1ColourScheme = ColorScheme.Grayscale256;
                 clrbtnWaterfallLow.Visible = false;
             }
+
+            if (!initializing) PersistGPUWaterfallPresentationSettings();
         }
         private void showHideWaterfallControls(int rx, bool show)
         {
@@ -12602,6 +12604,8 @@ namespace Thetis
                 console.RX2ColourScheme = ColorScheme.Grayscale256;
                 clrbtnRX2WaterfallLow.Visible = false;
             }
+
+            if (!initializing) PersistGPUWaterfallPresentationSettings();
         }
 
         private void setWaterFallCalculatedDelayText()
@@ -35702,6 +35706,8 @@ namespace Thetis
                 console.TXColourScheme = ColorScheme.Grayscale256;
                 clrbtnWaterfallLow_tx.Visible = false;
             }
+
+            if (!initializing) PersistGPUWaterfallPresentationSettings();
         }
 
         private void clrbtnWaterfallLow_tx_Changed(object sender, EventArgs e)
