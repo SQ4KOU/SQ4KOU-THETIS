@@ -8626,14 +8626,6 @@ namespace Thetis
                             Array.Copy(exactRow, data, nDecimatedWidth);
                             Array.Copy(exactRow, dataCopy, nDecimatedWidth);
                         }
-                        else if (exactState == 0)
-                        {
-                            // Healthy GPU source, but the configured overlap hop is not
-                            // ready yet. Hold the existing waterfall history. Never insert
-                            // a CPU row here: alternating CPU/GPU rows creates the visible
-                            // checkerboard/vertical tearing pattern.
-                            addRow = false;
-                        }
                     }
 
                     ApplyWaterfallProThresholds(rx, local_mox, ref low_threshold, ref high_threshold);
