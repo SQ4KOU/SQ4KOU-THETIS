@@ -10,6 +10,7 @@ namespace Thetis
         private static float _autoHighRX2 = -40f;
         private static readonly float[][] _temporalPrevRows = new float[2][];
         private static readonly bool[] _temporalPrevValidRows = new bool[2];
+        private static int _ditherFrameY;
 
         internal static void DetectGPUCapabilitiesFromD2D()
         {
@@ -198,7 +199,9 @@ namespace Thetis
                 _gpuEffectsEnabled = false;
                 LogTool.AddLogEntry("GPU draw failed, switched to CPU", "D2D");
             }
-            _d2dRenderTarget.DrawBitmap(bmp, new SharpDX.RectangleF(0f, nVerticalShift + topMargin, bmp.Size.Width, bmp.Size.Height), opacity, _gpuWaterfallLinearDraw ? BitmapInterpolationMode.Linear : BitmapInterpolationMode.NearestNeighbor);
+            if (dc != null && !dc.IsDisposed)
+                dc.DrawBitmap(bmp, new SharpDX.RectangleF(0f, nVerticalShift + topMargin, bmp.Size.Width, bmp.Size.Height), opacity,
+                    _gpuWaterfallLinearDraw ? BitmapInterpolationMode.Linear : BitmapInterpolationMode.NearestNeighbor);
         }
         private static void OnD2DDeviceContextRecreated(SharpDX.Direct2D1.DeviceContext dc)
         {
