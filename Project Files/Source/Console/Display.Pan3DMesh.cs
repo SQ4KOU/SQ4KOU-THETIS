@@ -751,7 +751,17 @@ namespace Thetis
                     " max=" + diagMax.ToString("F3") +
                     " grid=" + _meshParams.GridMin + ".." + _meshParams.GridMax);
 
-                MappedSubresource mapped = dc.Map(_meshHeightTex, 0, MapMode.WriteDiscard, Vortice.Direct3D11.MapFlags.None);
+                MappedSubresource mapped;
+                try
+                {
+                    mapped = dc.Map(_meshHeightTex, 0, MapMode.WriteDiscard, Vortice.Direct3D11.MapFlags.DoNotWait);
+                }
+                catch (SharpGenException ex) when (ex.ResultCode == Vortice.DXGI.ResultCode.WasStillDrawing)
+                {
+                    GPUWaterfallLogger.LogRateLimited("BANDSCOPE-BUSY", "height", 1000,
+                        "height texture busy; skipping GPU 3D frame");
+                    return false;
+                }
                 unsafe
                 {
                     fixed (float* src = scratch)
@@ -766,7 +776,7 @@ namespace Thetis
 
                 // ---- palette texture (same colour selection rules as SelectSurfaceColour) ----
                 uint[] palette = ComputePaletteArray(yRange);
-                UploadPalette(dc, palette);
+                if (!UploadPalette(dc, palette)) return false;
 
                 // ---- constants (hoisted so the CPU-side aux geometry mirrors vs_main) ----
                 float bottomY = _meshParams.Shift + _meshParams.PlotH;
@@ -789,7 +799,17 @@ namespace Thetis
                     TexelX = 1f / cols,
                     TexelY = 1f / rowCount,
                 };
-                MappedSubresource cbMap = dc.Map((ID3D11Resource)_meshCB, 0, MapMode.WriteDiscard, Vortice.Direct3D11.MapFlags.None);
+                MappedSubresource cbMap;
+                try
+                {
+                    cbMap = dc.Map((ID3D11Resource)_meshCB, 0, MapMode.WriteDiscard, Vortice.Direct3D11.MapFlags.DoNotWait);
+                }
+                catch (SharpGenException ex) when (ex.ResultCode == Vortice.DXGI.ResultCode.WasStillDrawing)
+                {
+                    GPUWaterfallLogger.LogRateLimited("BANDSCOPE-BUSY", "constants", 1000,
+                        "constant buffer busy; skipping GPU 3D frame");
+                    return false;
+                }
                 unsafe { System.Runtime.CompilerServices.Unsafe.Write((void*)cbMap.DataPointer, cb); }
                 dc.Unmap((ID3D11Resource)_meshCB, 0);
 
@@ -809,7 +829,17 @@ namespace Thetis
                 int auxCount = FillAuxVertices(rowCount, cols, palette);
                 if (auxCount > 0 && _meshAuxVB != null && _meshAuxScratch != null)
                 {
-                    MappedSubresource auxMap = dc.Map((ID3D11Resource)_meshAuxVB, 0, MapMode.WriteDiscard, Vortice.Direct3D11.MapFlags.None);
+                    MappedSubresource auxMap;
+                    try
+                    {
+                        auxMap = dc.Map((ID3D11Resource)_meshAuxVB, 0, MapMode.WriteDiscard, Vortice.Direct3D11.MapFlags.DoNotWait);
+                    }
+                    catch (SharpGenException ex) when (ex.ResultCode == Vortice.DXGI.ResultCode.WasStillDrawing)
+                    {
+                        GPUWaterfallLogger.LogRateLimited("BANDSCOPE-BUSY", "aux", 1000,
+                            "aux vertex buffer busy; skipping GPU 3D frame");
+                        return false;
+                    }
                     unsafe
                     {
                         fixed (float* src = _meshAuxScratch)
@@ -1049,9 +1079,19 @@ namespace Thetis
             return palette;
         }
 
-        private static void UploadPalette(ID3D11DeviceContext dc, uint[] palette)
+        private static bool UploadPalette(ID3D11DeviceContext dc, uint[] palette)
         {
-            MappedSubresource map = dc.Map(_meshPaletteTex, 0, MapMode.WriteDiscard, Vortice.Direct3D11.MapFlags.None);
+            MappedSubresource map;
+            try
+            {
+                map = dc.Map(_meshPaletteTex, 0, MapMode.WriteDiscard, Vortice.Direct3D11.MapFlags.DoNotWait);
+            }
+            catch (SharpGenException ex) when (ex.ResultCode == Vortice.DXGI.ResultCode.WasStillDrawing)
+            {
+                GPUWaterfallLogger.LogRateLimited("BANDSCOPE-BUSY", "palette", 1000,
+                    "palette texture busy; skipping GPU 3D frame");
+                return false;
+            }
             unsafe
             {
                 fixed (uint* src = palette)
@@ -1061,6 +1101,7 @@ namespace Thetis
                 }
             }
             dc.Unmap((ID3D11Resource)_meshPaletteTex, 0);
+            return true;
         }
 
         /// <summary>Vertex capacity of _meshAuxVB: grid floor + rails lines then wall triangles.</summary>
