@@ -99,8 +99,14 @@ namespace Thetis
 
         #region GPU mesh public control
 
-        /// <summary>Experimental Tier 3 GPU mesh 3D surface toggle (session only).</summary>
-        public static bool GpuMeshEnabled { get; set; } = true;
+        // SQ4KOU stability: shared-backbuffer Tier-3 mesh passes are disabled.
+        // The proven ff62 renderer has no Pan3DMesh/WaterfallMesh ownership layer;
+        // D2D/Vortice remains the sole presenter while native GPU FFT may still run
+        // on its dedicated device.
+        private const bool ExperimentalSharedBackbufferMeshesEnabled = false;
+
+        /// <summary>Experimental Tier 3 GPU mesh 3D surface toggle (kept for UI compatibility).</summary>
+        public static bool GpuMeshEnabled { get; set; } = false;
 
         private static void CaptureMeshFrameParams(int nVerticalShift, int W, int H, int rx, int nDecimatedWidth, int local_Decimation, int grid_min, int grid_max)
         {
@@ -560,7 +566,8 @@ namespace Thetis
         /// </summary>
         private static bool RenderGpuMesh3D()
         {
-            if (!GpuMeshEnabled || m_eRenderPath != DXRenderPath.Hardware || _device == null || !_bDX2Setup)
+            if (!ExperimentalSharedBackbufferMeshesEnabled || !GpuMeshEnabled ||
+                m_bForceCPURendering || m_eRenderPath != DXRenderPath.Hardware || _device == null || !_bDX2Setup)
                 return false;
             if (!_pan3DEnabled || _3dHistoryBuffer == null || _3dHistoryCount < 3 || !_meshParams.Valid)
                 return false;
