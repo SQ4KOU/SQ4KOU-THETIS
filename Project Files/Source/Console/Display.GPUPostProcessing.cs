@@ -191,7 +191,8 @@ namespace Thetis
         private static void DrawWaterfallToTarget(SharpDX.Direct2D1.Bitmap bmp, int nVerticalShift, int topMargin, float opacity)
         {
             SharpDX.Direct2D1.DeviceContext dc = GetGPUSharpD2D();
-            if (_gpuEffectsEnabled && dc != null && GPUDetector.HasBuiltInEffects && WaterfallEnhancer.Depth == WaterfallEnhancer.ColorDepth.Bit8)
+            if (_gpuEffectsEnabled && !m_bForceCPURendering && m_eRenderPath == DXRenderPath.Hardware &&
+                dc != null && GPUDetector.HasBuiltInEffects && WaterfallEnhancer.Depth == WaterfallEnhancer.ColorDepth.Bit8)
             {
                 int rx = object.ReferenceEquals(bmp, _waterfall_bmp2_dx2d) ? 2 : 1;
                 GetEffectiveWaterfallProParams(rx, out int toneMapMode, out float temporalAlphaUnused);
