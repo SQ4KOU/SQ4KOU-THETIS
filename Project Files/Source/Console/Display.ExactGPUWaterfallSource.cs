@@ -110,9 +110,11 @@ namespace Thetis
                     {
                         if (ExactGpuNative.CM_GPUWaterfallExact_Init(slot, fftSize, width) == 0)
                         {
+                            GPUWaterfallLogger.Log("WF-SOURCE", "RX" + rx + " exact init FAILED fft=" + fftSize + " width=" + width);
                             _exactGpuUnavailable = true;
                             return -1;
                         }
+                        GPUWaterfallLogger.Log("WF-SOURCE", "RX" + rx + " exact init fft=" + fftSize + " width=" + width);
 
                         _exactGpuInit[slot] = true;
                         _exactRingI[slot] = new float[fftSize];
@@ -145,7 +147,13 @@ namespace Thetis
                         _exactConfiguredResampling[slot] != resampling)
                     {
                         if (ExactGpuNative.CM_GPUWaterfallExact_Configure(slot, window, kaiser, magnitude, lanczos, resampling) == 0)
+                        {
+                            GPUWaterfallLogger.Log("WF-SOURCE", "RX" + rx + " configure FAILED window=" + window +
+                                " mag=" + magnitude + " lanczos=" + lanczos + " resampling=" + resampling);
                             return -1;
+                        }
+                        GPUWaterfallLogger.Log("WF-SOURCE", "RX" + rx + " configure window=" + window +
+                            " mag=" + magnitude + " lanczos=" + lanczos + " resampling=" + resampling);
                         _exactConfiguredWindow[slot] = window;
                         _exactConfiguredKaiser[slot] = kaiser;
                         _exactConfiguredMagnitude[slot] = magnitude;
@@ -176,7 +184,13 @@ namespace Thetis
                         }
                     }
 
-                    if (_exactRingCount[slot] < fftSize) return 0;
+                    if (_exactRingCount[slot] < fftSize)
+                    {
+                        GPUWaterfallLogger.LogRateLimited("WF-SOURCE", "fill-rx" + rx, 1000,
+                            "RX" + rx + " filling ring count=" + _exactRingCount[slot] + "/" + fftSize +
+                            " credit=" + _exactSampleCredit[slot]);
+                        return 0;
+                    }
 
                     int overlap = _gpuWaterfallOverlapPercent;
                     if (overlap < 0) overlap = 0;
@@ -191,7 +205,13 @@ namespace Thetis
                     }
                     else
                     {
-                        if (_exactSampleCredit[slot] < hop) return 0;
+                        if (_exactSampleCredit[slot] < hop)
+                        {
+                            GPUWaterfallLogger.LogRateLimited("WF-SOURCE", "hop-rx" + rx, 1000,
+                                "RX" + rx + " waiting hop credit=" + _exactSampleCredit[slot] +
+                                " hop=" + hop + " overlap=" + overlap + "%");
+                            return 0;
+                        }
                         _exactSampleCredit[slot] -= hop;
                     }
                     int maxCredit = hop * 2;
@@ -214,7 +234,16 @@ namespace Thetis
                     int result = ExactGpuNative.CM_GPUWaterfallExact_Process(
                         slot, sampleRate, lowHz, highHz,
                         _exactFrameI[slot], _exactFrameQ[slot], fftSize, _exactRow[slot]);
-                    if (result != 1) return -1;
+                    if (result != 1)
+                    {
+                        GPUWaterfallLogger.LogRateLimited("WF-SOURCE", "process-fail-rx" + rx, 1000,
+                            "RX" + rx + " process result=" + result + " sr=" + sampleRate +
+                            " fft=" + fftSize + " width=" + width);
+                        return -1;
+                    }
+                    GPUWaterfallLogger.LogRateLimited("WF-SOURCE", "ready-rx" + rx, 1000,
+                        "RX" + rx + " READY sr=" + sampleRate + " fft=" + fftSize +
+                        " width=" + width + " hop=" + hop + " overlap=" + overlap + "%");
 
                     int refCount = Math.Min(referenceCount, reference == null ? 0 : reference.Length);
                     if (refCount > 8)
@@ -249,6 +278,7 @@ namespace Thetis
                 }
                 catch (Exception ex)
                 {
+                    GPUWaterfallLogger.Log("WF-SOURCE-EX", ex.ToString());
                     Common.LogString("Exact native GPU waterfall fallback: " + ex.Message);
                     return -1;
                 }
