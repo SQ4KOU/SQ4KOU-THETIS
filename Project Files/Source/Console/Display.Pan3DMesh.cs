@@ -731,6 +731,26 @@ namespace Thetis
                     }
                 }
 
+                int diagTotal = rowCount * cols;
+                int diagStride = Math.Max(1, diagTotal / 2048);
+                float diagMin = 1f, diagMax = 0f;
+                int diagNonZero = 0, diagSamples = 0;
+                for (int i = 0; i < diagTotal; i += diagStride)
+                {
+                    float v = scratch[i];
+                    if (v < diagMin) diagMin = v;
+                    if (v > diagMax) diagMax = v;
+                    if (v > 0.002f) diagNonZero++;
+                    diagSamples++;
+                }
+                GPUWaterfallLogger.LogRateLimited("BANDSCOPE-DATA", "mesh", 1000,
+                    "rows=" + rowCount + " cols=" + cols +
+                    " samples=" + diagSamples +
+                    " nonzero=" + diagNonZero +
+                    " min=" + diagMin.ToString("F3") +
+                    " max=" + diagMax.ToString("F3") +
+                    " grid=" + _meshParams.GridMin + ".." + _meshParams.GridMax);
+
                 MappedSubresource mapped = dc.Map(_meshHeightTex, 0, MapMode.WriteDiscard, Vortice.Direct3D11.MapFlags.None);
                 unsafe
                 {

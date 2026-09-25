@@ -3469,6 +3469,18 @@ namespace Thetis
         private static ID2D1DeviceContext _d2dDeviceContext;
         private static ID2D1Device _d2dDevice;
         private static ID2D1Bitmap _backBufferBitmap;
+
+        // Diagnostic readback of the FINAL composed swapchain buffer. Unlike the
+        // renderer-path logs, this tells us whether the frame that is about to be
+        // presented actually contains visible pixels.
+        private static ID3D11Texture2D _diagBackBufferStaging;
+        private static uint _diagBackBufferW;
+        private static uint _diagBackBufferH;
+        private static Format _diagBackBufferFormat;
+        private static long _diagBackBufferLastProbeTicks;
+        private static ulong _diagBackBufferLastHash;
+        private static int _diagBackBufferSameHashCount;
+
         private static ID2D1BitmapRenderTarget _glowRT;
         private static ID2D1Bitmap _glowTraceBitmap;
         private static ID2D1Effect _glowBlurEffect;
@@ -3587,6 +3599,145 @@ namespace Thetis
             }
         }
 
+        private static void ReleaseBackBufferDiagnosticProbe()
+        {
+            try { _diagBackBufferStaging?.Dispose(); } catch { }
+            _diagBackBufferStaging = null;
+            _diagBackBufferW = 0;
+            _diagBackBufferH = 0;
+            _diagBackBufferFormat = Format.Unknown;
+            _diagBackBufferLastProbeTicks = 0;
+            _diagBackBufferLastHash = 0;
+            _diagBackBufferSameHashCount = 0;
+        }
+
+        private static void ProbeBackBufferBeforePresent()
+        {
+            try
+            {
+                if (!_bDX2Setup || _device == null || _swapChain1 == null) return;
+
+                long now = Stopwatch.GetTimestamp();
+                if (_diagBackBufferLastProbeTicks != 0 &&
+                    now - _diagBackBufferLastProbeTicks < Stopwatch.Frequency)
+                    return;
+                _diagBackBufferLastProbeTicks = now;
+
+                using ID3D11Texture2D source = _swapChain1.GetBuffer<ID3D11Texture2D>(0);
+                Texture2DDescription desc = source.Description;
+                if (desc.Width == 0 || desc.Height == 0) return;
+
+                if (_diagBackBufferStaging == null ||
+                    _diagBackBufferW != desc.Width ||
+                    _diagBackBufferH != desc.Height ||
+                    _diagBackBufferFormat != desc.Format)
+                {
+                    ReleaseBackBufferDiagnosticProbe();
+                    _diagBackBufferStaging = _device.CreateTexture2D(new Texture2DDescription()
+                    {
+                        Width = desc.Width,
+                        Height = desc.Height,
+                        MipLevels = 1,
+                        ArraySize = 1,
+                        Format = desc.Format,
+                        SampleDescription = new SampleDescription(1, 0),
+                        Usage = ResourceUsage.Staging,
+                        CPUAccessFlags = CpuAccessFlags.Read,
+                    });
+                    _diagBackBufferW = desc.Width;
+                    _diagBackBufferH = desc.Height;
+                    _diagBackBufferFormat = desc.Format;
+                    _diagBackBufferLastProbeTicks = now;
+                }
+
+                ID3D11DeviceContext dc = _device.ImmediateContext;
+                dc.CopyResource(source, _diagBackBufferStaging);
+                MappedSubresource map = dc.Map(_diagBackBufferStaging, 0, MapMode.Read, Vortice.Direct3D11.MapFlags.None);
+
+                int sampleCols = 48;
+                int sampleRows = 24;
+                int total = 0, lit = 0, topLit = 0, bottomLit = 0, topTotal = 0, bottomTotal = 0;
+                long rgbSum = 0;
+                int maxRgb = 0;
+                ulong hash = 1469598103934665603UL;
+
+                unsafe
+                {
+                    byte* basePtr = (byte*)map.DataPointer;
+                    int rowPitch = (int)map.RowPitch;
+                    int width = (int)desc.Width;
+                    int height = (int)desc.Height;
+
+                    for (int sy = 0; sy < sampleRows; sy++)
+                    {
+                        int y = Math.Min(height - 1, (sy * height + height / 2) / sampleRows);
+                        byte* row = basePtr + y * rowPitch;
+                        bool top = y < height / 2;
+
+                        for (int sx = 0; sx < sampleCols; sx++)
+                        {
+                            int x = Math.Min(width - 1, (sx * width + width / 2) / sampleCols);
+                            byte* px = row + x * 4;
+                            int b = px[0], g = px[1], rr = px[2], a = px[3];
+                            int rgb = rr + g + b;
+                            int peak = Math.Max(rr, Math.Max(g, b));
+
+                            total++;
+                            rgbSum += rgb;
+                            if (peak > maxRgb) maxRgb = peak;
+                            bool isLit = rgb > 24;
+                            if (isLit) lit++;
+
+                            if (top)
+                            {
+                                topTotal++;
+                                if (isLit) topLit++;
+                            }
+                            else
+                            {
+                                bottomTotal++;
+                                if (isLit) bottomLit++;
+                            }
+
+                            uint packed = (uint)(b | (g << 8) | (rr << 16) | (a << 24));
+                            hash ^= packed;
+                            hash *= 1099511628211UL;
+                        }
+                    }
+                }
+
+                dc.Unmap((ID3D11Resource)_diagBackBufferStaging, 0);
+
+                if (hash == _diagBackBufferLastHash) _diagBackBufferSameHashCount++;
+                else _diagBackBufferSameHashCount = 0;
+                _diagBackBufferLastHash = hash;
+
+                double avg = total > 0 ? rgbSum / (total * 3.0) : 0.0;
+                string state =
+                    "size=" + desc.Width + "x" + desc.Height +
+                    " lit=" + lit + "/" + total +
+                    " top=" + topLit + "/" + topTotal +
+                    " bottom=" + bottomLit + "/" + bottomTotal +
+                    " avg=" + avg.ToString("F1") +
+                    " max=" + maxRgb +
+                    " hash=0x" + hash.ToString("X16") +
+                    " same=" + _diagBackBufferSameHashCount +
+                    " band3D=" + _b3DMeshDrewFrame +
+                    " wfMesh=" + _bWfMeshDrewFrame +
+                    " specMesh=" + SpecMeshWasUsedThisFrame +
+                    " paused=" + _paused_display;
+
+                GPUWaterfallLogger.Log("BACKBUFFER", state);
+
+                if (lit <= 2 || maxRgb <= 8 || _diagBackBufferSameHashCount >= 5)
+                    GPUWaterfallLogger.Log("BACKBUFFER-ALERT", state);
+            }
+            catch (Exception ex)
+            {
+                GPUWaterfallLogger.LogRateLimited("BACKBUFFER-EX", "probe", 1000, ex.ToString());
+            }
+        }
+
         public static void ShutdownDX2D()
         {
             GPUWaterfallLogger.Log("DX", "ShutdownDX2D requested setup=" + _bDX2Setup + " path=" + RenderPathString());
@@ -3635,6 +3786,7 @@ namespace Thetis
                     ReleaseSpectrumFillObjects();
                     ReleaseSpectrumOverlayObjects();
                     ReleaseComputeResources();
+                    ReleaseBackBufferDiagnosticProbe();
                     _backBufferBitmap?.Dispose();
                     _d2dRenderTarget = null;
                     _d2dDeviceContext?.Dispose();
@@ -4064,6 +4216,7 @@ namespace Thetis
             ReleaseSpectrumFillObjects();
             ReleaseSpectrumOverlayObjects();
             ReleaseComputeResources();
+            ReleaseBackBufferDiagnosticProbe();
             _backBufferBitmap?.Dispose();
             _d2dRenderTarget = null;
             _d2dDeviceContext?.Dispose();
@@ -4895,6 +5048,11 @@ namespace Thetis
                         if (tryWarpDowngrade("RecreateTarget retries exhausted")) return;
                     }
 
+                    // Probe the final composed backbuffer after EndDraw and before
+                    // Present. This is the decisive diagnostic for "renderer says OK
+                    // but the display is visually black".
+                    ProbeBackBufferBeforePresent();
+
                     // render
                     // note: the only way to have Present non block when using vsync number of blanks 0 , is to use DoNotWait
                     // however the gpu will error if it is busy doing something and the data can not be queued
@@ -4906,6 +5064,14 @@ namespace Thetis
                         GPUWaterfallLogger.LogRateLimited("PRESENT", r.Code.ToString(), 1000,
                             "result=" + r + " code=" + r.Code + " retry=" + _dx_fail_retry +
                             " path=" + RenderPathString());
+                    else
+                        GPUWaterfallLogger.LogRateLimited("PRESENT-OK", "ok", 1000,
+                            "code=" + r.Code +
+                            " path=" + RenderPathString() +
+                            " size=" + displayTargetWidth + "x" + displayTargetHeight +
+                            " band3D=" + _b3DMeshDrewFrame +
+                            " wfMesh=" + _bWfMeshDrewFrame +
+                            " specMesh=" + SpecMeshWasUsedThisFrame);
 
                     if (r.Failure && !(
                         r == Vortice.DXGI.ResultCode.WasStillDrawing/*0x887A000A*/ ||

@@ -345,8 +345,28 @@ namespace Thetis
                     }
 
                     float offset = _exactCalOffset[slot];
+                    float rowMin = float.PositiveInfinity;
+                    float rowMax = float.NegativeInfinity;
+                    int finiteCount = 0;
                     for (int i = 0; i < width; i++)
-                        _exactRowCopy[slot][i] = _exactRow[slot][i] + offset;
+                    {
+                        float v = _exactRow[slot][i] + offset;
+                        _exactRowCopy[slot][i] = v;
+                        if (!float.IsNaN(v) && !float.IsInfinity(v))
+                        {
+                            finiteCount++;
+                            if (v < rowMin) rowMin = v;
+                            if (v > rowMax) rowMax = v;
+                        }
+                    }
+
+                    GPUWaterfallLogger.LogRateLimited("WF-DATA", "rx" + rx, 1000,
+                        "RX" + rx +
+                        " finite=" + finiteCount + "/" + width +
+                        " min=" + (finiteCount > 0 ? rowMin.ToString("F1") : "NaN") +
+                        " max=" + (finiteCount > 0 ? rowMax.ToString("F1") : "NaN") +
+                        " span=" + (finiteCount > 0 ? (rowMax - rowMin).ToString("F1") : "NaN") +
+                        " cal=" + offset.ToString("F2"));
 
                     dataRow = _exactRowCopy[slot];
                     return 1;
