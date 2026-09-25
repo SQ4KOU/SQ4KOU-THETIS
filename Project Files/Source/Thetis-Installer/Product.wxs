@@ -588,6 +588,16 @@
               />
       </Component>
 
+      <!-- Full GPU Waterfall uses the original verified SharpDX compute/renderer
+           classes over the SDR-VST3 DirectX COM device. These assemblies are
+           copied by Thetis.csproj and must ship with the standalone MSI. -->
+      <Component Guid="*"><File Id="SharpDXCoreDLL" Source="$(var.FilesPath)SharpDX.dll" KeyPath="yes" /></Component>
+      <Component Guid="*"><File Id="SharpDXDesktopDLL" Source="$(var.FilesPath)SharpDX.Desktop.dll" KeyPath="yes" /></Component>
+      <Component Guid="*"><File Id="SharpDXD2D1DLL" Source="$(var.FilesPath)SharpDX.Direct2D1.dll" KeyPath="yes" /></Component>
+      <Component Guid="*"><File Id="SharpDXD3D11DLL" Source="$(var.FilesPath)SharpDX.Direct3D11.dll" KeyPath="yes" /></Component>
+      <Component Guid="*"><File Id="SharpDXDXGIDLL" Source="$(var.FilesPath)SharpDX.DXGI.dll" KeyPath="yes" /></Component>
+      <Component Guid="*"><File Id="SharpDXMathDLL" Source="$(var.FilesPath)SharpDX.Mathematics.dll" KeyPath="yes" /></Component>
+
       <!-- SQ4KOU: exact GPU waterfall shaders are runtime-loaded from the Thetis.exe directory.
            They MUST be packaged with the MSI; otherwise CM_GPUWaterfallExact_Init fails and
            the display silently falls back to the legacy waterfall. -->
