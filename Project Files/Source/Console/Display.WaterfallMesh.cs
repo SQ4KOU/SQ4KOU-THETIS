@@ -47,7 +47,12 @@ namespace Thetis
     {
         #region GPU waterfall mesh fields
 
-        private const int WfSlotCount = 2;   // index 0 = rx1, index 1 = rx2
+        private const int WfSlotCount = 2;
+
+        // Shared-backbuffer spectrum/waterfall/overlay meshes remain disabled.
+        // The stable SDR-VST3 bandscope and the dedicated GPU waterfall pipeline
+        // are intentionally kept independent.
+        private const bool ExperimentalSharedBackbufferMeshesEnabled = false;   // index 0 = rx1, index 1 = rx2
 
         private static bool _wfShadersBuilt;
         private static ID3D11VertexShader _wfVS;
