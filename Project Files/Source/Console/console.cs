@@ -5972,8 +5972,10 @@ namespace Thetis
             GPUWaterfallLogger.Log("UI-BAND-STEP", "ClickTuneDisplay=false dt=" + (Environment.TickCount64 - __bandCtzStep) + "ms");
             __bandCtzStep = Environment.TickCount64;
 
-            chkFWCATU.Checked = ClickTuneDisplay;
-            GPUWaterfallLogger.Log("UI-BAND-STEP", "chkFWCATU=false dt=" + (Environment.TickCount64 - __bandCtzStep) + "ms");
+            // Do not drive the UI checkbox through the temporary CTUN=OFF state.
+            // That fires the linked RX2 CTUN/VFO path even when the final band-stack entry
+            // restores CTUN=ON.  Synchronise chkFWCATU once, at the final CTUN state below.
+            GPUWaterfallLogger.Log("UI-BAND-STEP", "chkFWCATU intermediate sync skipped dt=" + (Environment.TickCount64 - __bandCtzStep) + "ms");
             __bandCtzStep = Environment.TickCount64;
 
             Zoom = zoomFactor;
@@ -46749,6 +46751,12 @@ namespace Thetis
         private void OnSetBandChangeHander(int rx, Band oldBand, Band newBand, DSPMode oldMode, DSPMode newMode, Filter oldFilter, Filter newFilter, double oldFreq, double newFreq, double oldCentreF, double newCentreF, bool oldCTUN, bool newCTUN, int oldZoomSlider, int newZoomSlider)
         {
             if (rx != 1) return;
+
+            // One final refresh replaces the intermediate CentreFrequency/CTUN refreshes
+            // suppressed while m_bSetBandRunning was true.
+            updateBandstackOverlay(1);
+            if (_display_max_bin_enabled[0]) setupDisplayMaxBinDetect(1, false, true);
+
             handleBSFChange(oldBand, newBand, oldMode, newMode, oldFilter, newFilter, oldFreq, newFreq, oldCentreF, newCentreF, oldCTUN, newCTUN, oldZoomSlider, newZoomSlider);
         }
         private void OnEntryAdd(BandStackFilter bsf)
@@ -46813,6 +46821,11 @@ namespace Thetis
             //if (rx == 1) Display.CentreFreqRX1 = newFreq;
             //else if (rx == 2) Display.CentreFreqRX2 = newFreq;
 
+            // During SetBand the centre frequency is deliberately moved through intermediate
+            // values.  Do not run display-side/max-bin refreshes for those transient values;
+            // the final state is refreshed once by OnSetBandChangeHander after SetBand completes.
+            if (m_bSetBandRunning) return;
+
             //MW0LGE_21h
             if (rx == 1) updateBandstackOverlay(rx);
 
@@ -46820,7 +46833,6 @@ namespace Thetis
             if (_display_max_bin_enabled[rx - 1]) setupDisplayMaxBinDetect(rx, false, true);
 
             //bandstack
-            if (m_bSetBandRunning) return;
             if (rx != 1) return;
             if (!BandStackManager.Ready) return;
             BandStackFilter bsf = BandStackManager.GetFilter(band, false);
@@ -46828,11 +46840,14 @@ namespace Thetis
         }
         private void OnCTUNChanged(int rx, bool oldCTUN, bool newCTUN, Band band)
         {
+            // SetBand toggles CTUN internally while restoring a band-stack entry.
+            // Suppress expensive max-bin refreshes for those intermediate transitions.
+            if (m_bSetBandRunning) return;
+
             //max bin detect
             if (_display_max_bin_enabled[rx-1]) setupDisplayMaxBinDetect(rx, false, true);
 
             //bandstack
-            if (m_bSetBandRunning) return;
             if (rx != 1) return;
             if (!BandStackManager.Ready) return;
             BandStackFilter bsf = BandStackManager.GetFilter(band, false);
