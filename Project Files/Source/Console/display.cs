@@ -4506,13 +4506,7 @@ namespace Thetis
                     _d2dRenderTarget.Transform = t;
 
                     RectangleF rectDest = new RectangleF(0, 0, displayTargetWidth, displayTargetHeight);
-                    // The bandscope GPU mesh renders into an OFFSCREEN texture and is
-                    // only blitted into D2D later in this frame. It therefore never owns
-                    // or clears the main D2D target. Skipping this clear when band3D=True
-                    // leaves stale cursor/overlay pixels behind ("mouse trails").
-                    // Only a waterfall mesh that truly owns the pane may suppress the
-                    // normal D2D background clear.
-                    if (!_bWfMeshDrewFrame)
+                    if (!_b3DMeshDrewFrame && !_bWfMeshDrewFrame)
                     {
                         //always clear without using alpha
                         _d2dRenderTarget.Clear(m_cDX2_display_background_clear_colour);
@@ -5919,44 +5913,9 @@ namespace Thetis
                 {
                     // snapshot params for the GPU mesh path (consumed pre-BeginDraw next frame)
                     CaptureMeshFrameParams(nVerticalShift, W, H, rx, nDecimatedWidth, m_nDecimation, grid_min, grid_max);
-                    if (_b3DMeshDrewFrame && GpuMesh3DOwnerRX == rx)
-                    {
-                        GPUWaterfallLogger.LogRateLimited("BANDSCOPE", "gpu-ok-rx" + rx, 1000,
-                            "RX" + rx + " GPU frame blit");
-                        BlitGpuMesh3D();
-                    }
-                    else if (m_bForceCPURendering || !GpuMeshEnabled || m_eRenderPath != DXRenderPath.Hardware)
-                    {
-                        // The legacy D2D 3D-history renderer costs hundreds of ms per
-                        // frame at wide displays (the diagnostics showed ~3 FPS).
-                        // CPU/WARP therefore falls back to the normal 2D panadapter;
-                        // the 3D history remains intact and resumes when GPU mesh is
-                        // enabled again.
-                        GPUWaterfallLogger.LogRateLimited("BANDSCOPE", "cpu-mode-rx" + rx, 1000,
-                            "RX" + rx + " CPU/software mode -> lightweight 2D fallback");
-                        draw3DHistory = false;
-                    }
-                    else
-                    {
-                        // Never flash an empty bandscope because one GPU update was
-                        // late/busy. Keep presenting the last completed offscreen
-                        // surface until a newer GPU frame is ready.
-                        if (!BlitLastGoodGpuMesh3D(rx))
-                        {
-                            GPUWaterfallLogger.LogRateLimited("BANDSCOPE-MISS", "rx" + rx, 250,
-                                "RX" + rx + " GPU frame missing and no last-good frame" +
-                                " pan3D=" + _pan3DEnabled +
-                                " hist=" + (_3dHistoryBuffer != null) +
-                                " histCount=" + _3dHistoryCount +
-                                " meshValid=" + _meshParams.Valid +
-                                " paused=" + _paused_display +
-                                " mox=" + local_mox);
-
-                            // During initial fill there is no GPU snapshot yet. Use
-                            // the normal 2D panadapter rather than showing a blank pane.
-                            draw3DHistory = false;
-                        }
-                    }
+                    if (!_b3DMeshDrewFrame || GpuMesh3DOwnerRX != rx)   // only skip for the pane the GPU surface actually served
+                        DrawPanadapter3DHistoryDX2D(nVerticalShift, W, H, rx, bottom,
+                            null, 0, grid_max, nDecimatedWidth, m_nDecimation);
                 }
 
             //if (grid_control) //[2.10.3.9]MW0LGE raw grid control option now just turns off the grid, all other elements are shown
