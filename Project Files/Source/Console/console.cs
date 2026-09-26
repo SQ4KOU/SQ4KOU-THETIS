@@ -54880,10 +54880,43 @@ namespace Thetis
             _prevent_vsync_updates = false;
         }
         private bool _prevent_vsync_updates = false; // to prevent recursive updates
+        private bool m_bDeferredVfoSyncPending = false;
+        private int m_iDeferredVfoSyncRx = 1;
+        private bool m_bDeferredVfoSyncBToA = false;
+
         private void handleVfoSyncFrequency(int rx, bool b_to_a)
         {
             if (!VFOSync) return;
             if (!_vfo_sync_frequency || _prevent_vsync_updates) return;
+
+            // A band recall drives VFOA through several intermediate values while SetBand is
+            // still on the UI stack.  Running the VFO sync path synchronously from those
+            // intermediate events can nest the full VFOB/RX2 retune inside SetBand and stall
+            // the UI until a lower-level call times out.  Coalesce those intermediate events
+            // and perform one sync after the band transaction has returned to the message loop.
+            if (m_bSetBandRunning)
+            {
+                m_iDeferredVfoSyncRx = rx;
+                m_bDeferredVfoSyncBToA = b_to_a;
+
+                if (!m_bDeferredVfoSyncPending)
+                {
+                    m_bDeferredVfoSyncPending = true;
+                    BeginInvoke((MethodInvoker)delegate
+                    {
+                        int deferredRx = m_iDeferredVfoSyncRx;
+                        bool deferredBToA = m_bDeferredVfoSyncBToA;
+                        m_bDeferredVfoSyncPending = false;
+
+                        // Re-evaluate the current sync state and use the current VFO value.
+                        // handleVfoSyncFrequency retains the existing _prevent_vsync_updates
+                        // recursion guard for the deferred update.
+                        handleVfoSyncFrequency(deferredRx, deferredBToA);
+                    });
+                }
+                return;
+            }
+
             _prevent_vsync_updates = true;
 
             switch (rx)
