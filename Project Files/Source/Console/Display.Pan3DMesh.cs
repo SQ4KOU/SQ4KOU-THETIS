@@ -51,6 +51,10 @@ namespace Thetis
         private static ID3D11RenderTargetView _meshRTV;
         private static ID3D11Texture2D _meshSheetTex;
         private static ID2D1Bitmap _meshSheetBitmap;
+        private static ID3D11RenderTargetView _meshRTV2;
+        private static ID3D11Texture2D _meshSheetTex2;
+        private static ID2D1Bitmap _meshSheetBitmap2;
+        private static int _meshPresentSlot;
         private static int _meshSheetW = -1;
         private static int _meshSheetH = -1;
         private static bool _meshHasLastGoodFrame;
@@ -299,6 +303,10 @@ namespace Thetis
             _meshRTV?.Dispose(); _meshRTV = null;
             _meshSheetBitmap?.Dispose(); _meshSheetBitmap = null;
             _meshSheetTex?.Dispose(); _meshSheetTex = null;
+            _meshRTV2?.Dispose(); _meshRTV2 = null;
+            _meshSheetBitmap2?.Dispose(); _meshSheetBitmap2 = null;
+            _meshSheetTex2?.Dispose(); _meshSheetTex2 = null;
+            _meshPresentSlot = 0;
             _meshSheetW = -1; _meshSheetH = -1;
             _meshHasLastGoodFrame = false;
             _meshLastGoodOwnerRX = 0;
@@ -343,6 +351,13 @@ namespace Thetis
             _meshSheetBitmap = null;
             _meshSheetTex?.Dispose();
             _meshSheetTex = null;
+            _meshRTV2?.Dispose();
+            _meshRTV2 = null;
+            _meshSheetBitmap2?.Dispose();
+            _meshSheetBitmap2 = null;
+            _meshSheetTex2?.Dispose();
+            _meshSheetTex2 = null;
+            _meshPresentSlot = 0;
             _meshSheetW = -1;
             _meshSheetH = -1;
             _meshHasLastGoodFrame = false;
@@ -567,6 +582,7 @@ namespace Thetis
             int w = Math.Max(1, displayTargetWidth);
             int h = Math.Max(1, displayTargetHeight);
             if (_meshRTV != null && _meshSheetTex != null && _meshSheetBitmap != null &&
+                _meshRTV2 != null && _meshSheetTex2 != null && _meshSheetBitmap2 != null &&
                 _meshSheetW == w && _meshSheetH == h)
                 return true;
 
@@ -575,8 +591,11 @@ namespace Thetis
                 _meshRTV?.Dispose(); _meshRTV = null;
                 _meshSheetBitmap?.Dispose(); _meshSheetBitmap = null;
                 _meshSheetTex?.Dispose(); _meshSheetTex = null;
+                _meshRTV2?.Dispose(); _meshRTV2 = null;
+                _meshSheetBitmap2?.Dispose(); _meshSheetBitmap2 = null;
+                _meshSheetTex2?.Dispose(); _meshSheetTex2 = null;
 
-                _meshSheetTex = device.CreateTexture2D(new Texture2DDescription()
+                Texture2DDescription td = new Texture2DDescription()
                 {
                     Width = (uint)w,
                     Height = (uint)h,
@@ -586,40 +605,60 @@ namespace Thetis
                     SampleDescription = new SampleDescription(1, 0),
                     Usage = ResourceUsage.Default,
                     BindFlags = BindFlags.RenderTarget | BindFlags.ShaderResource,
-                });
+                };
+
+                _meshSheetTex = device.CreateTexture2D(td);
                 _meshRTV = device.CreateRenderTargetView(_meshSheetTex);
+                using (IDXGISurface surf = _meshSheetTex.QueryInterface<IDXGISurface>())
+                {
+                    _meshSheetBitmap = _d2dRenderTarget.CreateSharedBitmap(surf, new BitmapProperties(
+                        new Vortice.DCommon.PixelFormat(Format.B8G8R8A8_UNorm, Vortice.DCommon.AlphaMode.Premultiplied)));
+                }
 
-                using IDXGISurface surf = _meshSheetTex.QueryInterface<IDXGISurface>();
-                _meshSheetBitmap = _d2dRenderTarget.CreateSharedBitmap(surf, new BitmapProperties(
-                    new Vortice.DCommon.PixelFormat(Format.B8G8R8A8_UNorm, Vortice.DCommon.AlphaMode.Premultiplied)));
+                _meshSheetTex2 = device.CreateTexture2D(td);
+                _meshRTV2 = device.CreateRenderTargetView(_meshSheetTex2);
+                using (IDXGISurface surf2 = _meshSheetTex2.QueryInterface<IDXGISurface>())
+                {
+                    _meshSheetBitmap2 = _d2dRenderTarget.CreateSharedBitmap(surf2, new BitmapProperties(
+                        new Vortice.DCommon.PixelFormat(Format.B8G8R8A8_UNorm, Vortice.DCommon.AlphaMode.Premultiplied)));
+                }
 
+                _meshPresentSlot = 0;
                 _meshSheetW = w;
                 _meshSheetH = h;
-                GPUWaterfallLogger.Log("BANDSCOPE", "offscreen surface created " + w + "x" + h);
+                _meshHasLastGoodFrame = false;
+                GPUWaterfallLogger.Log("BANDSCOPE", "double-buffer offscreen surfaces created " + w + "x" + h);
                 return true;
             }
             catch (Exception e)
             {
-                Common.MeshDiagLog("GPU 3D offscreen surface creation failed - " + e.Message);
+                Common.MeshDiagLog("GPU 3D double-buffer surface creation failed - " + e.Message);
                 _meshRTV?.Dispose(); _meshRTV = null;
                 _meshSheetBitmap?.Dispose(); _meshSheetBitmap = null;
                 _meshSheetTex?.Dispose(); _meshSheetTex = null;
+                _meshRTV2?.Dispose(); _meshRTV2 = null;
+                _meshSheetBitmap2?.Dispose(); _meshSheetBitmap2 = null;
+                _meshSheetTex2?.Dispose(); _meshSheetTex2 = null;
                 _meshSheetW = -1; _meshSheetH = -1;
+                _meshHasLastGoodFrame = false;
                 return false;
             }
         }
 
         private static bool BlitGpuMesh3D()
         {
-            if (_meshSheetBitmap == null || _d2dRenderTarget == null)
+            ID2D1Bitmap presentBitmap = _meshPresentSlot == 0 ? _meshSheetBitmap : _meshSheetBitmap2;
+            if (presentBitmap == null || _d2dRenderTarget == null)
             {
                 GPUWaterfallLogger.LogRateLimited("BANDSCOPE", "blit-missing", 1000,
-                    "Blit skipped bitmap=" + (_meshSheetBitmap != null) + " d2d=" + (_d2dRenderTarget != null));
+                    "Blit skipped slot=" + _meshPresentSlot + " bitmap=" + (presentBitmap != null) +
+                    " d2d=" + (_d2dRenderTarget != null));
                 return false;
             }
             GPUWaterfallLogger.LogRateLimited("BANDSCOPE", "gpu-blit", 1000,
-                "GPU BLIT " + _meshSheetW + "x" + _meshSheetH + " ownerRX=" + GpuMesh3DOwnerRX);
-            _d2dRenderTarget.DrawBitmap(_meshSheetBitmap,
+                "GPU BLIT " + _meshSheetW + "x" + _meshSheetH +
+                " slot=" + _meshPresentSlot + " ownerRX=" + GpuMesh3DOwnerRX);
+            _d2dRenderTarget.DrawBitmap(presentBitmap,
                 new Rect(0f, 0f, displayTargetWidth, displayTargetHeight),
                 1f, BitmapInterpolationMode.Linear, null);
             return true;
@@ -628,7 +667,8 @@ namespace Thetis
         private static bool BlitLastGoodGpuMesh3D(int rx)
         {
             if (!_meshHasLastGoodFrame || _meshLastGoodOwnerRX != rx ||
-                _meshSheetBitmap == null || _d2dRenderTarget == null)
+                (_meshPresentSlot == 0 ? _meshSheetBitmap : _meshSheetBitmap2) == null ||
+                _d2dRenderTarget == null)
                 return false;
 
             GPUWaterfallLogger.LogRateLimited("BANDSCOPE-HOLD", "rx" + rx, 1000,
@@ -800,14 +840,16 @@ namespace Thetis
 
                 dc.IASetInputLayout(_meshIL);
                 dc.IASetPrimitiveTopology(Vortice.Direct3D.PrimitiveTopology.TriangleList);
-                // CRITICAL: bind the render target to the output-merger stage -
-                // without this every fragment is discarded (clear works regardless)
-                dc.OMSetRenderTargets(new[] { _meshRTV }, null);
 
-                // Stable path: render only the 3D geometry into a transparent
-                // offscreen texture. D2D/Vortice remains the sole owner of the live
-                // swapchain and composites this texture later in normal draw order.
-                dc.ClearRenderTargetView(_meshRTV, new Color4(0f, 0f, 0f, 0f));
+                // Ping-pong the offscreen target: never write the texture that D2D
+                // presented in the previous frame. This removes D3D11-write /
+                // D2D-read overlap on the same shared DXGI surface.
+                int renderSlot = _meshPresentSlot == 0 ? 1 : 0;
+                ID3D11RenderTargetView renderRTV = renderSlot == 0 ? _meshRTV : _meshRTV2;
+                if (renderRTV == null) return false;
+
+                dc.OMSetRenderTargets(new[] { renderRTV }, null);
+                dc.ClearRenderTargetView(renderRTV, new Color4(0f, 0f, 0f, 0f));
 
                 // ---- flat pass: perspective grid floor + rails, then side walls.
                 // Drawn BEFORE the surface so rows occlude them (D2D draw order). ----
@@ -868,14 +910,20 @@ namespace Thetis
                     dc.IASetPrimitiveTopology(Vortice.Direct3D.PrimitiveTopology.TriangleList);
                     dc.DrawIndexed(quadsPerRow, (uint)(r * quadsPerRow), 0);
                 }
-                // D2D samples _meshSheetBitmap immediately after this GPU pass.
-                // Explicitly unbind the offscreen RTV first so the texture is not
-                // simultaneously bound for D3D write and D2D read.
+                // Fully release shader reads and render-target writes before D2D
+                // consumes the completed slot.
+                dc.VSSetShaderResource(0, null);
+                dc.PSSetShaderResource(0, null);
+                dc.PSSetShaderResource(1, null);
                 dc.OMSetRenderTargets(Array.Empty<ID3D11RenderTargetView>(), null);
                 dc.Flush();
+
+                _meshPresentSlot = renderSlot;
+
                 GPUWaterfallLogger.LogRateLimited("BANDSCOPE", "gpu-render-ok", 1000,
                     "GPU RENDER OK rows=" + rowCount + " cols=" + cols +
-                    " surface=" + _meshSheetW + "x" + _meshSheetH);
+                    " surface=" + _meshSheetW + "x" + _meshSheetH +
+                    " slot=" + _meshPresentSlot);
 
                 if (!_meshFailedLogged)
                 {
