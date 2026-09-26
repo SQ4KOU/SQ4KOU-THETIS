@@ -4485,7 +4485,17 @@ namespace Thetis
                     _bGpuBackdropDone = false;
                     GpuMesh3DOwnerRX = 0;
                     GPUWaterfallLogger.FrameStage("GPU_3D");
-                    _b3DMeshDrewFrame = RenderGpuMesh3D();
+                    // Keep the native SDR-VST3 bandscope renderer isolated from the
+                    // GPU waterfall experiment. The 3D mesh writes directly into the
+                    // shared swapchain and suppresses the normal D2D clear; when the
+                    // exact GPU waterfall is active this can leave stale cursor/grid
+                    // pixels and hide the classic D2D waterfall after long runs.
+                    // In GPU-waterfall mode, force the proven D2D 3D-history fallback.
+                    bool isolateBandScopeFromGpuWaterfall = ExactNativeGPURequested || _gpuWaterfallPipelineEnabled;
+                    _b3DMeshDrewFrame = isolateBandScopeFromGpuWaterfall ? false : RenderGpuMesh3D();
+                    if (isolateBandScopeFromGpuWaterfall)
+                        GPUWaterfallLogger.LogRateLimited("BANDSCOPE", "isolated-d2d", 1000,
+                            "GPU waterfall active -> classic D2D bandscope; GPU mesh suppressed");
                     GPUWaterfallLogger.FrameStage("GPU_WATERFALL_MESH");
                     _bWfMeshDrewFrame = RenderGpuWaterfall();
                     ClearWaterfallPaneCaptures();
