@@ -4506,7 +4506,10 @@ namespace Thetis
                     _d2dRenderTarget.Transform = t;
 
                     RectangleF rectDest = new RectangleF(0, 0, displayTargetWidth, displayTargetHeight);
-                    if (!_b3DMeshDrewFrame && !_bWfMeshDrewFrame)
+                    // GPU bandscope is rendered to an offscreen texture and composited
+                    // later by D2D. It must not suppress the normal D2D background clear.
+                    // Only a waterfall mesh that truly owns the pane may suppress it.
+                    if (!_bWfMeshDrewFrame)
                     {
                         //always clear without using alpha
                         _d2dRenderTarget.Clear(m_cDX2_display_background_clear_colour);
