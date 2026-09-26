@@ -5964,11 +5964,21 @@ namespace Thetis
                 GPUWaterfallLogger.Log("UI-BAND", "SetBand RX1Filter END");
             }
 
+            long __bandCtzStart = Environment.TickCount64;
+            long __bandCtzStep = __bandCtzStart;
             GPUWaterfallLogger.Log("UI-BAND", "SetBand CTUN/Zoom/VFO BEGIN");
+
             ClickTuneDisplay = false;                               // Set CTUN off to restore center frequency - G3OQD
+            GPUWaterfallLogger.Log("UI-BAND-STEP", "ClickTuneDisplay=false dt=" + (Environment.TickCount64 - __bandCtzStep) + "ms");
+            __bandCtzStep = Environment.TickCount64;
+
             chkFWCATU.Checked = ClickTuneDisplay;
+            GPUWaterfallLogger.Log("UI-BAND-STEP", "chkFWCATU=false dt=" + (Environment.TickCount64 - __bandCtzStep) + "ms");
+            __bandCtzStep = Environment.TickCount64;
 
             Zoom = zoomFactor;
+            GPUWaterfallLogger.Log("UI-BAND-STEP", "Zoom=" + zoomFactor + " dt=" + (Environment.TickCount64 - __bandCtzStep) + "ms");
+            __bandCtzStep = Environment.TickCount64;
 
             //MW0LGE_21c
             //it repositions everything at centre frequency by setting the CF and then setting VFOA to that CF
@@ -5976,13 +5986,26 @@ namespace Thetis
             if (CTUN)
             {
                 CentreFrequency = centerFreq;                      // Restore centre frequency if CTUN enabled - G3OQD
+                GPUWaterfallLogger.Log("UI-BAND-STEP", "CentreFrequency=" + centerFreq.ToString("F6") + " dt=" + (Environment.TickCount64 - __bandCtzStep) + "ms");
+                __bandCtzStep = Environment.TickCount64;
+
                 VFOAFreq = CentreFrequency;
+                GPUWaterfallLogger.Log("UI-BAND-STEP", "VFOAFreq=CentreFrequency dt=" + (Environment.TickCount64 - __bandCtzStep) + "ms");
+                __bandCtzStep = Environment.TickCount64;
             }
 
             ClickTuneDisplay = CTUN;
+            GPUWaterfallLogger.Log("UI-BAND-STEP", "ClickTuneDisplay=" + CTUN + " dt=" + (Environment.TickCount64 - __bandCtzStep) + "ms");
+            __bandCtzStep = Environment.TickCount64;
+
             chkFWCATU.Checked = ClickTuneDisplay;
-            VFOAFreq = freq;                                       // Restore actual receive frequency after CTUN status restored - G3OQD         
-            GPUWaterfallLogger.Log("UI-BAND", "SetBand CTUN/Zoom/VFO END actual=" + VFOAFreq.ToString("F6"));
+            GPUWaterfallLogger.Log("UI-BAND-STEP", "chkFWCATU=" + ClickTuneDisplay + " dt=" + (Environment.TickCount64 - __bandCtzStep) + "ms");
+            __bandCtzStep = Environment.TickCount64;
+
+            VFOAFreq = freq;                                       // Restore actual receive frequency after CTUN status restored - G3OQD
+            GPUWaterfallLogger.Log("UI-BAND-STEP", "VFOAFreq=target " + freq.ToString("F6") + " dt=" + (Environment.TickCount64 - __bandCtzStep) + "ms");
+            GPUWaterfallLogger.Log("UI-BAND", "SetBand CTUN/Zoom/VFO END actual=" + VFOAFreq.ToString("F6") +
+                " total=" + (Environment.TickCount64 - __bandCtzStart) + "ms");
 
             // Continuation of QSK-related band/mode-change management - see also QSKEnabled()
             qsk_band_changing = false;
@@ -18449,10 +18472,20 @@ namespace Thetis
         private delegate void VFOUpdateDel(double freq);
         private void VFOAUpdate(double freq)
         {
+            long __bandVfoStart = Environment.TickCount64;
+            if (m_bSetBandRunning)
+                GPUWaterfallLogger.Log("UI-BAND-VFO", "VFOAUpdate ENTER freq=" + freq.ToString("F6"));
+
             m_dVFOAFreq = Math.Round(freq, 6); // MW0LGE_21d rounded to 6
             txtVFOAFreq.Text = freq.ToString("f6");
+
+            if (m_bSetBandRunning)
+                GPUWaterfallLogger.Log("UI-BAND-VFO", "txtVFOAFreq_LostFocus BEGIN");
             txtVFOAFreq_LostFocus(this, EventArgs.Empty);
+            if (m_bSetBandRunning)
+                GPUWaterfallLogger.Log("UI-BAND-VFO", "txtVFOAFreq_LostFocus END elapsed=" + (Environment.TickCount64 - __bandVfoStart) + "ms");
         }
+
         private void VFOBUpdate(double freq)
         {
             m_dVFOBFreq = Math.Round(freq, 6); // MW0LGE_21d rounded to 6
@@ -31931,6 +31964,11 @@ namespace Thetis
         {
             if (initializing) return;
 
+            long __bandFocusStart = Environment.TickCount64;
+            long __bandFocusStep = __bandFocusStart;
+            if (m_bSetBandRunning)
+                GPUWaterfallLogger.Log("UI-BAND-FOCUS", "ENTER vfo=" + m_dVFOAFreq.ToString("F6") + " ctun=" + _click_tune_display);
+
             double dOldFreq = Math.Round(saved_vfoa_freq, 6);
             Band oldBand = RX1Band;
             DSPMode oldMode = RX1DSPMode;
@@ -31967,6 +32005,9 @@ namespace Thetis
                  HardwareSpecific.Model == HPSDRModel.ANVELINAPRO3 ||
                  HardwareSpecific.Model == HPSDRModel.REDPITAYA) //DH1KLM
                 UpdateDDCs(rx2_enabled);// UpdateRXADCCtrl();
+            if (m_bSetBandRunning)
+                GPUWaterfallLogger.Log("UI-BAND-FOCUS", "after UpdateDDCs dt=" + (Environment.TickCount64 - __bandFocusStep) + "ms");
+            __bandFocusStep = Environment.TickCount64;
 
             double freq = m_dVFOAFreq;
 
@@ -31998,6 +32039,9 @@ namespace Thetis
                 // used by CAT
                 CentreFrequency = freq;
                 _update_centerfreq = false;
+            if (m_bSetBandRunning)
+                GPUWaterfallLogger.Log("UI-BAND-FOCUS", "after CentreFrequency dt=" + (Environment.TickCount64 - __bandFocusStep) + "ms");
+            __bandFocusStep = Environment.TickCount64;
             }
 
             double passbandWidth = (Convert.ToDouble(Display.RX1FilterHigh) - Convert.ToDouble(Display.RX1FilterLow));
@@ -32144,6 +32188,9 @@ namespace Thetis
 
             //MW0LGE_21k8
             if (bUpdateVFOA) UpdateVFOAFreq(freq.ToString("f6"));
+            if (m_bSetBandRunning)
+                GPUWaterfallLogger.Log("UI-BAND-FOCUS", "after UpdateVFOAFreq dt=" + (Environment.TickCount64 - __bandFocusStep) + "ms");
+            __bandFocusStep = Environment.TickCount64;
 
             long cwPitchShift = 0;
             if (chkTUN.Checked && chkVFOATX.Checked && !_display_duplex) // MW0LGE only if not display duplex
@@ -32277,6 +32324,9 @@ namespace Thetis
             Band b = BandByFreq(freq, rx1_xvtr_index, current_region);
             if (b != rx1_band)
                 SetRX1Band(b);
+            if (m_bSetBandRunning)
+                GPUWaterfallLogger.Log("UI-BAND-FOCUS", "after SetRX1Band dt=" + (Environment.TickCount64 - __bandFocusStep) + "ms band=" + rx1_band);
+            __bandFocusStep = Environment.TickCount64;
 
             Band old_tx_band = _tx_band;
             if (!chkVFOSplit.Checked && !chkVFOBTX.Checked)
@@ -32497,9 +32547,15 @@ namespace Thetis
                     {
                         tx_dds_freq_mhz = tx_freq;
                         UpdateTXDDSFreq(); // update tx freq
+                        if (m_bSetBandRunning)
+                            GPUWaterfallLogger.Log("UI-BAND-FOCUS", "after UpdateTXDDSFreq dt=" + (Environment.TickCount64 - __bandFocusStep) + "ms");
+                        __bandFocusStep = Environment.TickCount64;
                     }
                     if (!_click_tune_display)
                         RX1DDSFreq = rx_freq; // update rx freq
+                    if (m_bSetBandRunning)
+                        GPUWaterfallLogger.Log("UI-BAND-FOCUS", "after RX1DDSFreq dt=" + (Environment.TickCount64 - __bandFocusStep) + "ms");
+                    __bandFocusStep = Environment.TickCount64;
 
                     if (_click_tune_display) //-W2PA This was preventing proper receiver adjustment
                     {
@@ -32546,10 +32602,16 @@ namespace Thetis
 
             WDSP.RXANBPSetTuneFrequency(WDSP.id(0, 0), (RX1DDSFreq + f_LO) * 1.0e6);
             WDSP.RXANBPSetTuneFrequency(WDSP.id(0, 1), (RX1DDSFreq + f_LO) * 1.0e6);
+            if (m_bSetBandRunning)
+                GPUWaterfallLogger.Log("UI-BAND-FOCUS", "after WDSP tune dt=" + (Environment.TickCount64 - __bandFocusStep) + "ms");
+            __bandFocusStep = Environment.TickCount64;
             
             Display.CentreFreqRX1 = rx1_dds_freq_mhz;
 
             UpdatePreamps();
+            if (m_bSetBandRunning)
+                GPUWaterfallLogger.Log("UI-BAND-FOCUS", "after UpdatePreamps dt=" + (Environment.TickCount64 - __bandFocusStep) + "ms");
+            __bandFocusStep = Environment.TickCount64;
 
             //MW0LGE_21d
             double old_vfoa_freq_rounded = Math.Round(dOldFreq, 6);
@@ -32557,6 +32619,10 @@ namespace Thetis
             {
                 VFOAFrequencyChangeHandlers?.Invoke(oldBand, RX1Band, oldMode, RX1DSPMode, oldFilter, RX1Filter, old_vfoa_freq_rounded, VFOAFreq,
                     oldCentreFreq, CentreFrequency, oldCtun, ClickTuneDisplay, oldZoomSlider, ptbDisplayZoom.Value, radio.GetDSPRX(0, 0).RXOsc, 1);
+            if (m_bSetBandRunning)
+                GPUWaterfallLogger.Log("UI-BAND-FOCUS", "after VFO handlers dt=" + (Environment.TickCount64 - __bandFocusStep) +
+                    "ms total=" + (Environment.TickCount64 - __bandFocusStart) + "ms");
+            __bandFocusStep = Environment.TickCount64;
             }
 
             double old_tx_freq_rounded = Math.Round(_old_tx_freq, 6);
@@ -44297,7 +44363,12 @@ namespace Thetis
                 chkX2TR.Checked = chkFWCATU.Checked;
             }
 
+            long __bandCtunFocusStart = Environment.TickCount64;
+            if (m_bSetBandRunning)
+                GPUWaterfallLogger.Log("UI-BAND-CTUN", "chkFWCATU txtVFOAFreq_LostFocus BEGIN checked=" + chkFWCATU.Checked);
             txtVFOAFreq_LostFocus(this, EventArgs.Empty);
+            if (m_bSetBandRunning)
+                GPUWaterfallLogger.Log("UI-BAND-CTUN", "chkFWCATU txtVFOAFreq_LostFocus END elapsed=" + (Environment.TickCount64 - __bandCtunFocusStart) + "ms");
 
             AndromedaIndicatorCheck(EIndicatorActions.eINCTune, true, chkFWCATU.Checked);
 
