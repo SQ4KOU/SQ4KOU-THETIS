@@ -29,6 +29,7 @@
 //     flat colour = front-row edge surface colour x0.32 blended toward bg by mid fog
 // All premultiplied-alpha outputs so the shared AlphaBlend state composites as SourceOver.
 using System;
+using SharpGen.Runtime;
 // Third-party: GPU interop via Vortice.Windows (MIT License, Copyright (c) Amer Koleci and Contributors).
 // Full license text ships with the app (Licenses folder) and lives in the repo under Project Files\lib\licenses\.
 using Vortice.Direct3D11;
@@ -48,6 +49,16 @@ namespace Thetis
         private static bool _meshShadersBuilt;
         private static bool _meshFailedLogged;
         private static ID3D11RenderTargetView _meshRTV;
+        private static ID3D11Texture2D _meshSheetTex;
+        private static ID2D1Bitmap _meshSheetBitmap;
+        private static ID3D11RenderTargetView _meshRTV2;
+        private static ID3D11Texture2D _meshSheetTex2;
+        private static ID2D1Bitmap _meshSheetBitmap2;
+        private static int _meshPresentSlot;
+        private static int _meshSheetW = -1;
+        private static int _meshSheetH = -1;
+        private static bool _meshHasLastGoodFrame;
+        private static int _meshLastGoodOwnerRX;
         private static ID3D11VertexShader _meshVS;
         private static ID3D11PixelShader _meshPS;
         private static ID3D11InputLayout _meshIL;
@@ -99,8 +110,25 @@ namespace Thetis
 
         #region GPU mesh public control
 
-        /// <summary>Experimental Tier 3 GPU mesh 3D surface toggle (session only).</summary>
-        public static bool GpuMeshEnabled { get; set; } = true;
+        // SQ4KOU stability: shared-backbuffer Tier-3 mesh passes are disabled.
+        // The proven ff62 renderer has no Pan3DMesh/WaterfallMesh ownership layer;
+        // D2D/Vortice remains the sole presenter while native GPU FFT may still run
+        // on its dedicated device.
+        private const bool ExperimentalSharedBackbufferMeshesEnabled = false;
+        private const bool StableOffscreen3DMeshEnabled = true;
+
+        /// <summary>GPU 3D surface toggle. The stable path renders to an offscreen shared texture.</summary>
+        private static bool _gpuMeshEnabled = true;
+        public static bool GpuMeshEnabled
+        {
+            get { return _gpuMeshEnabled; }
+            set
+            {
+                if (_gpuMeshEnabled == value) return;
+                GPUWaterfallLogger.Log("STATE", "GpuMeshEnabled " + _gpuMeshEnabled + " -> " + value);
+                _gpuMeshEnabled = value;
+            }
+        }
 
         private static void CaptureMeshFrameParams(int nVerticalShift, int W, int H, int rx, int nDecimatedWidth, int local_Decimation, int grid_min, int grid_max)
         {
@@ -273,6 +301,15 @@ namespace Thetis
         private static void ReleaseGpuMeshDeviceObjects()
         {
             _meshRTV?.Dispose(); _meshRTV = null;
+            _meshSheetBitmap?.Dispose(); _meshSheetBitmap = null;
+            _meshSheetTex?.Dispose(); _meshSheetTex = null;
+            _meshRTV2?.Dispose(); _meshRTV2 = null;
+            _meshSheetBitmap2?.Dispose(); _meshSheetBitmap2 = null;
+            _meshSheetTex2?.Dispose(); _meshSheetTex2 = null;
+            _meshPresentSlot = 0;
+            _meshSheetW = -1; _meshSheetH = -1;
+            _meshHasLastGoodFrame = false;
+            _meshLastGoodOwnerRX = 0;
             _meshHeightSRV?.Dispose(); _meshHeightSRV = null;
             _meshHeightTex?.Dispose(); _meshHeightTex = null;
             _meshPaletteSRV?.Dispose(); _meshPaletteSRV = null;
@@ -310,6 +347,21 @@ namespace Thetis
         {
             _meshRTV?.Dispose();
             _meshRTV = null;
+            _meshSheetBitmap?.Dispose();
+            _meshSheetBitmap = null;
+            _meshSheetTex?.Dispose();
+            _meshSheetTex = null;
+            _meshRTV2?.Dispose();
+            _meshRTV2 = null;
+            _meshSheetBitmap2?.Dispose();
+            _meshSheetBitmap2 = null;
+            _meshSheetTex2?.Dispose();
+            _meshSheetTex2 = null;
+            _meshPresentSlot = 0;
+            _meshSheetW = -1;
+            _meshSheetH = -1;
+            _meshHasLastGoodFrame = false;
+            _meshLastGoodOwnerRX = 0;
             _meshParams.Valid = false;
         }
 
@@ -380,7 +432,7 @@ namespace Thetis
                         };
                 _meshIL = device.CreateInputLayout(layout, vsBytes);
 
-                _meshCB = device.CreateBuffer(new BufferDescription(64, BindFlags.ConstantBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write));
+                _meshCB = device.CreateBuffer(new BufferDescription(64, BindFlags.ConstantBuffer, ResourceUsage.Default));
                 _meshBlend = device.CreateBlendState(Vortice.Direct3D11.BlendDescription.AlphaBlend);
                 // winding ends up CCW in NDC (y-flip in the VS) - disable culling entirely
                 _meshRS = device.CreateRasterizerState(new Vortice.Direct3D11.RasterizerDescription(CullMode.None, Vortice.Direct3D11.FillMode.Solid));
@@ -480,7 +532,7 @@ namespace Thetis
                 // dynamic aux vertices (grid floor + rails lines, then wall triangles),
                 // stride float2 pos + float4 premultiplied colour
                 uint auxVerts = AuxVertexBudget(rows);
-                _meshAuxVB = device.CreateBuffer(new BufferDescription(auxVerts * 32, BindFlags.VertexBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write));
+                _meshAuxVB = device.CreateBuffer(new BufferDescription(auxVerts * 32, BindFlags.VertexBuffer, ResourceUsage.Default));
 
                 _meshHeightTex = device.CreateTexture2D(new Texture2DDescription()
                 {
@@ -490,9 +542,8 @@ namespace Thetis
                     ArraySize = 1,
                     Format = Format.R32_Float,
                     SampleDescription = new SampleDescription(1, 0),
-                    Usage = ResourceUsage.Dynamic,
+                    Usage = ResourceUsage.Default,
                     BindFlags = BindFlags.ShaderResource,
-                    CPUAccessFlags = CpuAccessFlags.Write,
                 });
                 _meshHeightSRV = device.CreateShaderResourceView(_meshHeightTex);
 
@@ -506,9 +557,8 @@ namespace Thetis
                         ArraySize = 1,
                         Format = Format.B8G8R8A8_UNorm,
                         SampleDescription = new SampleDescription(1, 0),
-                        Usage = ResourceUsage.Dynamic,
+                        Usage = ResourceUsage.Default,
                         BindFlags = BindFlags.ShaderResource,
-                        CPUAccessFlags = CpuAccessFlags.Write,
                     });
                     _meshPaletteSRV = device.CreateShaderResourceView(_meshPaletteTex);
                 }
@@ -529,18 +579,101 @@ namespace Thetis
 
         private static bool EnsureMeshRTV(ID3D11Device device)
         {
-            if (_meshRTV != null) return true;
+            int w = Math.Max(1, displayTargetWidth);
+            int h = Math.Max(1, displayTargetHeight);
+            if (_meshRTV != null && _meshSheetTex != null && _meshSheetBitmap != null &&
+                _meshRTV2 != null && _meshSheetTex2 != null && _meshSheetBitmap2 != null &&
+                _meshSheetW == w && _meshSheetH == h)
+                return true;
+
             try
             {
-                using (ID3D11Texture2D bb = _swapChain1.GetBuffer<ID3D11Texture2D>(0))
-                    _meshRTV = device.CreateRenderTargetView(bb);
+                _meshRTV?.Dispose(); _meshRTV = null;
+                _meshSheetBitmap?.Dispose(); _meshSheetBitmap = null;
+                _meshSheetTex?.Dispose(); _meshSheetTex = null;
+                _meshRTV2?.Dispose(); _meshRTV2 = null;
+                _meshSheetBitmap2?.Dispose(); _meshSheetBitmap2 = null;
+                _meshSheetTex2?.Dispose(); _meshSheetTex2 = null;
+
+                Texture2DDescription td = new Texture2DDescription()
+                {
+                    Width = (uint)w,
+                    Height = (uint)h,
+                    MipLevels = 1,
+                    ArraySize = 1,
+                    Format = Format.B8G8R8A8_UNorm,
+                    SampleDescription = new SampleDescription(1, 0),
+                    Usage = ResourceUsage.Default,
+                    BindFlags = BindFlags.RenderTarget | BindFlags.ShaderResource,
+                };
+
+                _meshSheetTex = device.CreateTexture2D(td);
+                _meshRTV = device.CreateRenderTargetView(_meshSheetTex);
+                using (IDXGISurface surf = _meshSheetTex.QueryInterface<IDXGISurface>())
+                {
+                    _meshSheetBitmap = _d2dRenderTarget.CreateSharedBitmap(surf, new BitmapProperties(
+                        new Vortice.DCommon.PixelFormat(Format.B8G8R8A8_UNorm, Vortice.DCommon.AlphaMode.Premultiplied)));
+                }
+
+                _meshSheetTex2 = device.CreateTexture2D(td);
+                _meshRTV2 = device.CreateRenderTargetView(_meshSheetTex2);
+                using (IDXGISurface surf2 = _meshSheetTex2.QueryInterface<IDXGISurface>())
+                {
+                    _meshSheetBitmap2 = _d2dRenderTarget.CreateSharedBitmap(surf2, new BitmapProperties(
+                        new Vortice.DCommon.PixelFormat(Format.B8G8R8A8_UNorm, Vortice.DCommon.AlphaMode.Premultiplied)));
+                }
+
+                _meshPresentSlot = 0;
+                _meshSheetW = w;
+                _meshSheetH = h;
+                _meshHasLastGoodFrame = false;
+                GPUWaterfallLogger.Log("BANDSCOPE", "double-buffer offscreen surfaces created " + w + "x" + h);
                 return true;
             }
             catch (Exception e)
             {
-                Common.MeshDiagLog("GPU mesh: RTV creation failed - " + e.Message);
+                Common.MeshDiagLog("GPU 3D double-buffer surface creation failed - " + e.Message);
+                _meshRTV?.Dispose(); _meshRTV = null;
+                _meshSheetBitmap?.Dispose(); _meshSheetBitmap = null;
+                _meshSheetTex?.Dispose(); _meshSheetTex = null;
+                _meshRTV2?.Dispose(); _meshRTV2 = null;
+                _meshSheetBitmap2?.Dispose(); _meshSheetBitmap2 = null;
+                _meshSheetTex2?.Dispose(); _meshSheetTex2 = null;
+                _meshSheetW = -1; _meshSheetH = -1;
+                _meshHasLastGoodFrame = false;
                 return false;
             }
+        }
+
+        private static bool BlitGpuMesh3D()
+        {
+            ID2D1Bitmap presentBitmap = _meshPresentSlot == 0 ? _meshSheetBitmap : _meshSheetBitmap2;
+            if (presentBitmap == null || _d2dRenderTarget == null)
+            {
+                GPUWaterfallLogger.LogRateLimited("BANDSCOPE", "blit-missing", 1000,
+                    "Blit skipped slot=" + _meshPresentSlot + " bitmap=" + (presentBitmap != null) +
+                    " d2d=" + (_d2dRenderTarget != null));
+                return false;
+            }
+            GPUWaterfallLogger.LogRateLimited("BANDSCOPE", "gpu-blit", 1000,
+                "GPU BLIT " + _meshSheetW + "x" + _meshSheetH +
+                " slot=" + _meshPresentSlot + " ownerRX=" + GpuMesh3DOwnerRX);
+            _d2dRenderTarget.DrawBitmap(presentBitmap,
+                new Rect(0f, 0f, displayTargetWidth, displayTargetHeight),
+                1f, BitmapInterpolationMode.Linear, null);
+            return true;
+        }
+
+        private static bool BlitLastGoodGpuMesh3D(int rx)
+        {
+            if (!_meshHasLastGoodFrame || _meshLastGoodOwnerRX != rx ||
+                (_meshPresentSlot == 0 ? _meshSheetBitmap : _meshSheetBitmap2) == null ||
+                _d2dRenderTarget == null)
+                return false;
+
+            GPUWaterfallLogger.LogRateLimited("BANDSCOPE-HOLD", "rx" + rx, 1000,
+                "RX" + rx + " reusing last good GPU frame");
+            return BlitGpuMesh3D();
         }
 
         private struct MeshConstants
@@ -560,11 +693,27 @@ namespace Thetis
         /// </summary>
         private static bool RenderGpuMesh3D()
         {
-            if (!GpuMeshEnabled || m_eRenderPath != DXRenderPath.Hardware || _device == null || !_bDX2Setup)
+            if (!StableOffscreen3DMeshEnabled || !GpuMeshEnabled ||
+                m_bForceCPURendering || m_eRenderPath != DXRenderPath.Hardware || _device == null || !_bDX2Setup)
+            {
+                GPUWaterfallLogger.LogRateLimited("BANDSCOPE", "fallback-gate", 1000,
+                    "FALLBACK gate enabled=" + GpuMeshEnabled + " forceCPU=" + m_bForceCPURendering +
+                    " path=" + m_eRenderPath + " device=" + (_device != null) + " dx=" + _bDX2Setup);
                 return false;
+            }
             if (!_pan3DEnabled || _3dHistoryBuffer == null || _3dHistoryCount < 3 || !_meshParams.Valid)
+            {
+                GPUWaterfallLogger.LogRateLimited("BANDSCOPE", "fallback-data", 1000,
+                    "FALLBACK data pan3D=" + _pan3DEnabled + " hist=" + (_3dHistoryBuffer != null) +
+                    " count=" + _3dHistoryCount + " params=" + _meshParams.Valid);
                 return false;
-            if (_paused_display || localMox(1)) return false;
+            }
+            if (_paused_display || localMox(1))
+            {
+                GPUWaterfallLogger.LogRateLimited("BANDSCOPE", "fallback-pause-tx", 1000,
+                    "FALLBACK paused=" + _paused_display + " localMox=" + localMox(1));
+                return false;
+            }
 
             try
             {
@@ -639,22 +788,32 @@ namespace Thetis
                     }
                 }
 
-                MappedSubresource mapped = dc.Map(_meshHeightTex, 0, MapMode.WriteDiscard, Vortice.Direct3D11.MapFlags.None);
-                unsafe
+                int diagTotal = rowCount * cols;
+                int diagStride = Math.Max(1, diagTotal / 2048);
+                float diagMin = 1f, diagMax = 0f;
+                int diagNonZero = 0, diagSamples = 0;
+                for (int i = 0; i < diagTotal; i += diagStride)
                 {
-                    fixed (float* src = scratch)
-                    {
-                        int copyBytes = cols * sizeof(float);
-                        byte* dst = (byte*)mapped.DataPointer;
-                        for (int r = 0; r < rowCount; r++)
-                            Buffer.MemoryCopy(src + r * cols, dst + r * mapped.RowPitch, copyBytes, copyBytes);
-                    }
+                    float v = scratch[i];
+                    if (v < diagMin) diagMin = v;
+                    if (v > diagMax) diagMax = v;
+                    if (v > 0.002f) diagNonZero++;
+                    diagSamples++;
                 }
-                dc.Unmap((ID3D11Resource)_meshHeightTex, 0);
+                GPUWaterfallLogger.LogRateLimited("BANDSCOPE-DATA", "mesh", 1000,
+                    "rows=" + rowCount + " cols=" + cols +
+                    " samples=" + diagSamples +
+                    " nonzero=" + diagNonZero +
+                    " min=" + diagMin.ToString("F3") +
+                    " max=" + diagMax.ToString("F3") +
+                    " grid=" + _meshParams.GridMin + ".." + _meshParams.GridMax);
+
+                dc.UpdateSubresource(scratch, _meshHeightTex, 0,
+                    (uint)(cols * sizeof(float)), 0);
 
                 // ---- palette texture (same colour selection rules as SelectSurfaceColour) ----
                 uint[] palette = ComputePaletteArray(yRange);
-                UploadPalette(dc, palette);
+                if (!UploadPalette(dc, palette)) return false;
 
                 // ---- constants (hoisted so the CPU-side aux geometry mirrors vs_main) ----
                 float bottomY = _meshParams.Shift + _meshParams.PlotH;
@@ -677,64 +836,27 @@ namespace Thetis
                     TexelX = 1f / cols,
                     TexelY = 1f / rowCount,
                 };
-                MappedSubresource cbMap = dc.Map((ID3D11Resource)_meshCB, 0, MapMode.WriteDiscard, Vortice.Direct3D11.MapFlags.None);
-                unsafe { System.Runtime.CompilerServices.Unsafe.Write((void*)cbMap.DataPointer, cb); }
-                dc.Unmap((ID3D11Resource)_meshCB, 0);
+                dc.UpdateSubresource(cb, _meshCB);
 
                 dc.IASetInputLayout(_meshIL);
                 dc.IASetPrimitiveTopology(Vortice.Direct3D.PrimitiveTopology.TriangleList);
-                // CRITICAL: bind the render target to the output-merger stage -
-                // without this every fragment is discarded (clear works regardless)
-                dc.OMSetRenderTargets(new[] { _meshRTV }, null);
 
-                if (_bitmapBackground != null)
-                {
-                    // skin image drawn by the shared backdrop step (once per frame
-                    // across all mesh passes); repaint ONLY the plot strip with a
-                    // scissored opaque quad so the 3D scene sits on flat background
-                    EnsureGpuBackdrop(dc);
+                // Ping-pong the offscreen target: never write the texture that D2D
+                // presented in the previous frame. This removes D3D11-write /
+                // D2D-read overlap on the same shared DXGI surface.
+                int renderSlot = _meshPresentSlot == 0 ? 1 : 0;
+                ID3D11RenderTargetView renderRTV = renderSlot == 0 ? _meshRTV : _meshRTV2;
+                if (renderRTV == null) return false;
 
-                    dc.RSSetState(_meshRSScissor);
-                    dc.RSSetScissorRects(new[] { new Vortice.RawRect(0, (int)_meshParams.Shift,
-                        (int)displayTargetWidth, (int)_meshParams.Shift + (int)_meshParams.PlotH) });
-                    dc.OMSetBlendState(_meshBlendOpaque);
-                    dc.VSSetShader(_meshClearVS);
-                    dc.PSSetShader(_meshClearPS);
-                    dc.VSSetConstantBuffer(0, _meshCB);   // ps_clear reads CB_Background
-                    dc.IASetVertexBuffer(0, _meshClearVB, 8, 0);
-                    dc.IASetIndexBuffer(_meshClearIB, Format.R32_UInt, 0);
-                    dc.DrawIndexed(6, 0, 0);
-
-                    // restore surface state
-                    dc.VSSetShader(_meshVS);
-                    dc.PSSetShader(_meshPS);
-                    dc.OMSetBlendState(_meshBlend);
-                    dc.RSSetState(_meshRS);
-                    dc.RSSetScissorRects(new[] { new Vortice.RawRect(0, 0,
-                        (int)displayTargetWidth, (int)displayTargetHeight) });
-                }
-                else
-                {
-                    // no skin image: the shared backdrop step full-clears to the
-                    // configured background colour (once per frame)
-                    EnsureGpuBackdrop(dc);
-                }
+                dc.OMSetRenderTargets(new[] { renderRTV }, null);
+                dc.ClearRenderTargetView(renderRTV, new Color4(0f, 0f, 0f, 0f));
 
                 // ---- flat pass: perspective grid floor + rails, then side walls.
                 // Drawn BEFORE the surface so rows occlude them (D2D draw order). ----
                 int auxCount = FillAuxVertices(rowCount, cols, palette);
                 if (auxCount > 0 && _meshAuxVB != null && _meshAuxScratch != null)
                 {
-                    MappedSubresource auxMap = dc.Map((ID3D11Resource)_meshAuxVB, 0, MapMode.WriteDiscard, Vortice.Direct3D11.MapFlags.None);
-                    unsafe
-                    {
-                        fixed (float* src = _meshAuxScratch)
-                        {
-                            uint copyBytes = (uint)auxCount * 32;
-                            Buffer.MemoryCopy(src, (void*)auxMap.DataPointer, copyBytes, copyBytes);
-                        }
-                    }
-                    dc.Unmap((ID3D11Resource)_meshAuxVB, 0);
+                    dc.UpdateSubresource(_meshAuxScratch, _meshAuxVB);
 
                     dc.IASetInputLayout(_meshFlatIL);
                     dc.IASetVertexBuffer(0, _meshAuxVB, 32, 0);
@@ -788,7 +910,20 @@ namespace Thetis
                     dc.IASetPrimitiveTopology(Vortice.Direct3D.PrimitiveTopology.TriangleList);
                     dc.DrawIndexed(quadsPerRow, (uint)(r * quadsPerRow), 0);
                 }
+                // Fully release shader reads and render-target writes before D2D
+                // consumes the completed slot.
+                dc.VSSetShaderResource(0, null);
+                dc.PSSetShaderResource(0, null);
+                dc.PSSetShaderResource(1, null);
+                dc.OMSetRenderTargets(Array.Empty<ID3D11RenderTargetView>(), null);
                 dc.Flush();
+
+                _meshPresentSlot = renderSlot;
+
+                GPUWaterfallLogger.LogRateLimited("BANDSCOPE", "gpu-render-ok", 1000,
+                    "GPU RENDER OK rows=" + rowCount + " cols=" + cols +
+                    " surface=" + _meshSheetW + "x" + _meshSheetH +
+                    " slot=" + _meshPresentSlot);
 
                 if (!_meshFailedLogged)
                 {
@@ -796,13 +931,17 @@ namespace Thetis
                     Common.MeshDiagLog("GPU mesh surface active (" + rowCount + "x" + cols + ")");
                 }
                 GpuMesh3DOwnerRX = _meshParams.RX;   // this pane's D2D 3D fallback is skipped
+                _meshLastGoodOwnerRX = _meshParams.RX;
+                _meshHasLastGoodFrame = true;
                 return true;
             }
             catch (Exception e)
             {
-                Common.MeshDiagLog("GPU mesh render failed - falling back to D2D lines : " + e.Message);
-                ReleaseGpuMeshDeviceObjects();
-                ReleaseGpuMeshFrameState();
+                GPUWaterfallLogger.LogRateLimited("BANDSCOPE-EX", e.GetType().FullName + ":" + e.HResult, 1000, e.ToString());
+                Common.MeshDiagLog("GPU mesh frame failed - preserving last good frame : " + e.Message);
+                // Do not destroy the offscreen surface here. A transient GPU/upload
+                // failure must not erase the last valid bandscope image; the D2D
+                // compositor will keep presenting it until a fresh GPU frame succeeds.
                 return false;
             }
         }
@@ -878,6 +1017,7 @@ namespace Thetis
                 if (rx1_waterfall_agc && !m_bRX1_spectrum_thresholds)
                     lo = _RX1waterfallPreviousMinValue - m_fWaterfallAGCOffsetRX1;
             }
+            ApplyWaterfallProThresholds(rx, false, ref lo, ref hi);
             return hi - lo > 0;
         }
 
@@ -956,18 +1096,11 @@ namespace Thetis
             return palette;
         }
 
-        private static void UploadPalette(ID3D11DeviceContext dc, uint[] palette)
+        private static bool UploadPalette(ID3D11DeviceContext dc, uint[] palette)
         {
-            MappedSubresource map = dc.Map(_meshPaletteTex, 0, MapMode.WriteDiscard, Vortice.Direct3D11.MapFlags.None);
-            unsafe
-            {
-                fixed (uint* src = palette)
-                {
-                    uint copyBytes = MeshPaletteSize * sizeof(uint);
-                    Buffer.MemoryCopy(src, (void*)map.DataPointer, copyBytes, copyBytes);
-                }
-            }
-            dc.Unmap((ID3D11Resource)_meshPaletteTex, 0);
+            dc.UpdateSubresource(palette, _meshPaletteTex, 0,
+                (uint)(MeshPaletteSize * sizeof(uint)), 0);
+            return true;
         }
 
         /// <summary>Vertex capacity of _meshAuxVB: grid floor + rails lines then wall triangles.</summary>
