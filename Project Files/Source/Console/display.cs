@@ -4662,6 +4662,11 @@ namespace Thetis
                         GPUWaterfallLogger.FrameStage("GPU_BG_CLEAR");
                         SharedContextBoundary("frame-start-d2d-to-native");
 
+                        // Set this before touching the RTV. Even if RTV recreation
+                        // fails, native passes are forbidden from falling back to the
+                        // legacy DrawSkinBackgroundPrepass() second D2D frame.
+                        _bGpuBackdropDone = true;
+
                         if (EnsureMeshRTV(_device))
                         {
                             _device.ImmediateContext.ClearRenderTargetView(
@@ -4671,10 +4676,6 @@ namespace Thetis
                                     m_cDX2_display_background_clear_colour.G,
                                     m_cDX2_display_background_clear_colour.B,
                                     1f));
-
-                            // Prevent Pan3D/Waterfall EnsureGpuBackdrop() from invoking
-                            // the legacy DrawSkinBackgroundPrepass() D2D mini-frame.
-                            _bGpuBackdropDone = true;
 
                             if (_bitmapBackground != null)
                             {
