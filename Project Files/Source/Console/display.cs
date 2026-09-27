@@ -3588,73 +3588,93 @@ namespace Thetis
             }
         }
 
+        private static void ShutdownDXStage(string stage, Action action)
+        {
+            try
+            {
+                action();
+            }
+            catch (Exception ex)
+            {
+                GPUWaterfallLogger.Log("DX-SHUTDOWN", stage + " failed: " + ex.GetType().FullName + ": " + ex.Message);
+            }
+        }
+
         public static void ShutdownDX2D()
         {
             GPUWaterfallLogger.Log("DX", "ShutdownDX2D requested setup=" + _bDX2Setup + " path=" + RenderPathString());
             GPUWaterfallLogger.RendererStopped();
+
             lock (_objDX2Lock)
             {
                 if (!_bDX2Setup) return;
 
+                GPUWaterfallLogger.Log("DX-SHUTDOWN", "begin native-owner teardown");
                 try
                 {
-                    if (_device != null && _device.ImmediateContext != null)
+                    // Keep the SDR-VST3/Vortice owner teardown order intact.  The
+                    // SharpDX waterfall layer is a non-owning interop client of these
+                    // COM objects and must be retired only AFTER the Vortice owner has
+                    // finished releasing its own references.  Releasing the SharpDX
+                    // wrappers first could invalidate the following Vortice Dispose()
+                    // calls and was the source of the SharpGen SEH shutdown dialog.
+                    ShutdownDXStage("ImmediateContext.ClearState/Flush", () =>
                     {
-                        _device.ImmediateContext.ClearState();
-                        _device.ImmediateContext.Flush();
-                    }
+                        if (_device != null && _device.ImmediateContext != null)
+                        {
+                            _device.ImmediateContext.ClearState();
+                            _device.ImmediateContext.Flush();
+                        }
+                    });
 
-                    releaseFonts();
-                    releaseDX2Resources();
+                    ShutdownDXStage("releaseFonts", () => releaseFonts());
+                    ShutdownDXStage("releaseDX2Resources", () => releaseDX2Resources());
 
-                    if (_bitmapBackground != null)
-                        _bitmapBackground?.Dispose();
+                    ShutdownDXStage("bitmapBackground", () => _bitmapBackground?.Dispose());
 
 #if SNOWFALL
-                    santaCleanUp();
+                    ShutdownDXStage("santaCleanUp", () => santaCleanUp());
 #endif
 
-                    _waterfall_bmp_dx2d?.Dispose();
-                    _waterfall_bmp2_dx2d?.Dispose();
+                    ShutdownDXStage("waterfall_bmp_dx2d", () => _waterfall_bmp_dx2d?.Dispose());
+                    ShutdownDXStage("waterfall_bmp2_dx2d", () => _waterfall_bmp2_dx2d?.Dispose());
 
-                    if (_pause_bitmap != null)
+                    ShutdownDXStage("pause_bitmap", () =>
                     {
                         _pause_bitmap?.Dispose();
                         _pause_bitmap = null;
-                    }
+                    });
 
-                    if (_d2dDeviceContext != null) _d2dDeviceContext.Target = null;
+                    ShutdownDXStage("d2d target detach", () =>
+                    {
+                        if (_d2dDeviceContext != null) _d2dDeviceContext.Target = null;
+                    });
 
-                    releaseGlowLayer();
+                    ShutdownDXStage("releaseGlowLayer", () => releaseGlowLayer());
+                    ShutdownDXStage("ReleaseGpuMeshDeviceObjects", () => ReleaseGpuMeshDeviceObjects());
+                    ShutdownDXStage("ReleaseWaterfallMeshObjects", () => ReleaseWaterfallMeshObjects());
+                    ShutdownDXStage("ReleaseSpectrumFillObjects", () => ReleaseSpectrumFillObjects());
+                    ShutdownDXStage("ReleaseSpectrumOverlayObjects", () => ReleaseSpectrumOverlayObjects());
+                    ShutdownDXStage("ReleaseComputeResources", () => ReleaseComputeResources());
+                    ShutdownDXStage("backBufferBitmap", () => _backBufferBitmap?.Dispose());
 
-                    // Managed SharpDX waterfall objects wrap this same COM device/context.
-                    // Retire them before releasing the Vortice side.
-                    ReleaseManagedGPUInteropForDXShutdown();
-
-                    ReleaseGpuMeshDeviceObjects();
-                    ReleaseWaterfallMeshObjects();
-                    ReleaseSpectrumFillObjects();
-                    ReleaseSpectrumOverlayObjects();
-                    ReleaseComputeResources();
-                    _backBufferBitmap?.Dispose();
                     _d2dRenderTarget = null;
-                    _d2dDeviceContext?.Dispose();
-                    _d2dDevice?.Dispose();
+                    ShutdownDXStage("d2dDeviceContext", () => _d2dDeviceContext?.Dispose());
+                    ShutdownDXStage("d2dDevice", () => _d2dDevice?.Dispose());
 
                     _backBufferBitmap = null;
                     _d2dDeviceContext = null;
                     _d2dDevice = null;
 
-                    _swapChain1?.Dispose();
-                    _swapChain?.Dispose();
-                    _surface?.Dispose();
-                    _d2dFactory?.Dispose();
-                    _factory1?.Dispose();
+                    ShutdownDXStage("swapChain1", () => _swapChain1?.Dispose());
+                    ShutdownDXStage("swapChain", () => _swapChain?.Dispose());
+                    ShutdownDXStage("surface", () => _surface?.Dispose());
+                    ShutdownDXStage("d2dFactory", () => _d2dFactory?.Dispose());
+                    ShutdownDXStage("factory1", () => _factory1?.Dispose());
 
                     _bitmapBackground = null;
                     _waterfall_bmp_dx2d = null;
                     _waterfall_bmp2_dx2d = null;
-
                     _d2dRenderTarget = null;
                     _swapChain1 = null;
                     _swapChain = null;
@@ -3662,21 +3682,26 @@ namespace Thetis
                     _d2dFactory = null;
                     _factory1 = null;
 
-                    if (_device != null && _device.ImmediateContext != null)
+                    ShutdownDXStage("device immediate context", () =>
                     {
-                        ID3D11DeviceContext dc = _device.ImmediateContext;
-                        dc?.Dispose();
-                        dc = null;
-                    }
-
-                    _device?.Dispose();
+                        if (_device != null && _device.ImmediateContext != null)
+                        {
+                            ID3D11DeviceContext dc = _device.ImmediateContext;
+                            dc?.Dispose();
+                        }
+                    });
+                    ShutdownDXStage("device", () => _device?.Dispose());
                     _device = null;
 
-                    _bDX2Setup = false;
+                    GPUWaterfallLogger.Log("DX-SHUTDOWN", "native-owner teardown complete; releasing managed GPU waterfall interop");
+                    ShutdownDXStage("managed GPU waterfall interop", () => ReleaseManagedGPUInteropForDXShutdown());
+                    GPUWaterfallLogger.Log("DX-SHUTDOWN", "complete");
                 }
-                catch (Exception e)
+                finally
                 {
-                    Common.ReportError("SDR-VST3 DirectX", "Problem Shutting Down DirectX !" + System.Environment.NewLine + System.Environment.NewLine + "[" + e.ToString() + "]", e);
+                    // Never leave the renderer marked as set up after a partial COM
+                    // teardown.  The next init must create a clean device graph.
+                    _bDX2Setup = false;
                 }
             }
         }
