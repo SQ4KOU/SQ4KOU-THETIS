@@ -686,6 +686,12 @@ namespace Thetis
         /// </summary>
         public static void MeshDiagLog(string entry)
         {
+            if (string.IsNullOrEmpty(entry)) return;
+
+            // Always mirror native mesh diagnostics into the renderer log. The
+            // legacy ErrorLog.txt switch remains optional.
+            GPUWaterfallLogger.Log("MESH-DIAG", entry);
+
             if (!m_bMeshDiagLogEnabled) return;
             LogString(entry);
         }

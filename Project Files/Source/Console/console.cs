@@ -47128,9 +47128,21 @@ namespace Thetis
             //reset smeter pixel history //MW0LGE_21a
             clearRXSignalPixels(rx);
 
-            if (m_bSetBandRunning) return;
-            if (!BandStackManager.Ready) return;
-            if (rx != 1) return;
+            if (m_bSetBandRunning)
+            {
+                GPUWaterfallLogger.Log("UI-BAND", "OnBandChangeHandler END-EARLY reason=setBandRunning rx=" + rx);
+                return;
+            }
+            if (!BandStackManager.Ready)
+            {
+                GPUWaterfallLogger.Log("UI-BAND", "OnBandChangeHandler END-EARLY reason=BandStackNotReady rx=" + rx);
+                return;
+            }
+            if (rx != 1)
+            {
+                GPUWaterfallLogger.Log("UI-BAND", "OnBandChangeHandler END-EARLY reason=rx!=1 rx=" + rx);
+                return;
+            }
 
             BandStackFilter bsf = BandStackManager.GetFilter(oldBand, false);
             if (bsf != null) bsf.LastVisited.Band = oldBand;

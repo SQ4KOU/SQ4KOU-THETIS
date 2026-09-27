@@ -18,6 +18,10 @@ typedef struct _WF_IQ_RING
     volatile LONG writeIndex;
     volatile LONG enabled;
     volatile LONG64 dropped;
+    volatile LONG64 pushCalls;
+    volatile LONG64 pushSamples;
+    volatile LONG64 acceptedCalls;
+    volatile LONG64 acceptedSamples;
 } WF_IQ_RING;
 
 static WF_IQ_RING g_wfIq[WF_MAX_CHANNELS];
@@ -53,6 +57,10 @@ __declspec(dllexport) int __cdecl CM_WaterfallIQ_Init(int channel, int requested
     InterlockedExchange(&r->readIndex, 0);
     InterlockedExchange(&r->writeIndex, 0);
     InterlockedExchange64(&r->dropped, 0);
+    InterlockedExchange64(&r->pushCalls, 0);
+    InterlockedExchange64(&r->pushSamples, 0);
+    InterlockedExchange64(&r->acceptedCalls, 0);
+    InterlockedExchange64(&r->acceptedSamples, 0);
     return r->capacity;
 }
 
@@ -133,6 +141,36 @@ __declspec(dllexport) unsigned __int64 __cdecl CM_WaterfallIQ_DroppedSamples(int
     return (unsigned __int64)InterlockedCompareExchange64(&g_wfIq[channel].dropped, 0, 0);
 }
 
+__declspec(dllexport) unsigned __int64 __cdecl CM_WaterfallIQ_PushCalls(int channel)
+{
+    if (!wf_valid_channel(channel)) return 0;
+    return (unsigned __int64)InterlockedCompareExchange64(&g_wfIq[channel].pushCalls, 0, 0);
+}
+
+__declspec(dllexport) unsigned __int64 __cdecl CM_WaterfallIQ_PushSamples(int channel)
+{
+    if (!wf_valid_channel(channel)) return 0;
+    return (unsigned __int64)InterlockedCompareExchange64(&g_wfIq[channel].pushSamples, 0, 0);
+}
+
+__declspec(dllexport) unsigned __int64 __cdecl CM_WaterfallIQ_AcceptedCalls(int channel)
+{
+    if (!wf_valid_channel(channel)) return 0;
+    return (unsigned __int64)InterlockedCompareExchange64(&g_wfIq[channel].acceptedCalls, 0, 0);
+}
+
+__declspec(dllexport) unsigned __int64 __cdecl CM_WaterfallIQ_AcceptedSamples(int channel)
+{
+    if (!wf_valid_channel(channel)) return 0;
+    return (unsigned __int64)InterlockedCompareExchange64(&g_wfIq[channel].acceptedSamples, 0, 0);
+}
+
+__declspec(dllexport) int __cdecl CM_WaterfallIQ_IsEnabled(int channel)
+{
+    if (!wf_valid_channel(channel)) return 0;
+    return InterlockedCompareExchange(&g_wfIq[channel].enabled, 0, 0) != 0 ? 1 : 0;
+}
+
 __declspec(dllexport) void __cdecl CM_WaterfallIQ_ResetDropped(int channel)
 {
     if (!wf_valid_channel(channel)) return;
@@ -146,6 +184,10 @@ void CM_WaterfallIQ_Push(int channel, int nsamples, const double* data)
 
     if (!wf_valid_channel(channel) || nsamples <= 0 || data == 0) return;
     r = &g_wfIq[channel];
+
+    InterlockedIncrement64(&r->pushCalls);
+    InterlockedExchangeAdd64(&r->pushSamples, (LONG64)nsamples);
+
     if (InterlockedCompareExchange(&r->enabled, 0, 0) == 0 || r->data == 0 || r->capacity == 0) return;
 
     rd = InterlockedCompareExchange(&r->readIndex, 0, 0);
@@ -162,7 +204,11 @@ void CM_WaterfallIQ_Push(int channel, int nsamples, const double* data)
     }
 
     if (count > 0)
+    {
         InterlockedExchange(&r->writeIndex, (wr + count) & r->mask);
+        InterlockedIncrement64(&r->acceptedCalls);
+        InterlockedExchangeAdd64(&r->acceptedSamples, (LONG64)count);
+    }
 
     if (count < nsamples)
         InterlockedExchangeAdd64(&r->dropped, (LONG64)(nsamples - count));

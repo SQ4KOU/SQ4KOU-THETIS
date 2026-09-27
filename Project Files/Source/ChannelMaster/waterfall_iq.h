@@ -10,6 +10,11 @@ __declspec(dllexport) int __cdecl CM_WaterfallIQ_Available(int channel);
 __declspec(dllexport) int __cdecl CM_WaterfallIQ_Get(int channel, int requestedSamples, float* iOut, float* qOut);
 __declspec(dllexport) void __cdecl CM_WaterfallIQ_Free(int channel);
 __declspec(dllexport) unsigned __int64 __cdecl CM_WaterfallIQ_DroppedSamples(int channel);
+__declspec(dllexport) unsigned __int64 __cdecl CM_WaterfallIQ_PushCalls(int channel);
+__declspec(dllexport) unsigned __int64 __cdecl CM_WaterfallIQ_PushSamples(int channel);
+__declspec(dllexport) unsigned __int64 __cdecl CM_WaterfallIQ_AcceptedCalls(int channel);
+__declspec(dllexport) unsigned __int64 __cdecl CM_WaterfallIQ_AcceptedSamples(int channel);
+__declspec(dllexport) int __cdecl CM_WaterfallIQ_IsEnabled(int channel);
 __declspec(dllexport) void __cdecl CM_WaterfallIQ_ResetDropped(int channel);
 
 /* Internal producer hook. data contains interleaved complex doubles: I,Q,I,Q,... */

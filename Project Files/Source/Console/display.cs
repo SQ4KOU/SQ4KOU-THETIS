@@ -263,6 +263,9 @@ namespace Thetis
         private static float[][] _3dHistoryBuffer;
         private static int _3dHistoryCount;
         private static int _3dHistoryHead;
+        private static long _pan3DHistoryPushSeq;
+        private static long _pan3DHistoryLastPushUtcTicks;
+        private static long _pan3DD2DFallbackSeq;
 
         // 3D panadapter perspective constants (matched to AetherSDR DssRenderer)
         private static float _pan3DPerspective = 0.60f;   // back rows = 60% of front width (kBackWidthFrac)
@@ -564,6 +567,9 @@ namespace Thetis
                     _3dHistoryHead = 0;
                     _3dMedianCount = 0;
                     _3dLastPushTicks = 0;
+                    Interlocked.Exchange(ref _pan3DHistoryPushSeq, 0);
+                    Interlocked.Exchange(ref _pan3DHistoryLastPushUtcTicks, 0);
+                    Interlocked.Exchange(ref _pan3DD2DFallbackSeq, 0);
 
                     // Relinquish every native D3D11 binding while the render
                     // lock is exclusively held.  The previous native 3D frame may
@@ -3973,6 +3979,9 @@ namespace Thetis
                     _3dHistoryBuffer = histBuf;
                     _3dHistoryCount = 0;
                     _3dHistoryHead = 0;
+                    Interlocked.Exchange(ref _pan3DHistoryPushSeq, 0);
+                    Interlocked.Exchange(ref _pan3DHistoryLastPushUtcTicks, 0);
+                    Interlocked.Exchange(ref _pan3DD2DFallbackSeq, 0);
 
                     // initialize 3D temporal median filter buffers
                     float[][] medBuf = new float[2][];
@@ -4552,6 +4561,68 @@ namespace Thetis
             return (Stopwatch.GetTimestamp() - startTicks) * 1000.0 / Stopwatch.Frequency;
         }
 
+        private static void LogPan3DHealth(bool drew, double renderMs)
+        {
+            try
+            {
+                long nowUtc = DateTime.UtcNow.Ticks;
+                long lastPushUtc = Interlocked.Read(ref _pan3DHistoryLastPushUtcTicks);
+                long pushSeq = Interlocked.Read(ref _pan3DHistoryPushSeq);
+                long fallbackSeq = Interlocked.Read(ref _pan3DD2DFallbackSeq);
+                double pushAgeMs = lastPushUtc > 0 ? (nowUtc - lastPushUtc) / (double)TimeSpan.TicksPerMillisecond : -1.0;
+
+                string reason = "drawn";
+                if (!drew)
+                {
+                    if (!GpuMeshEnabled) reason = "gpu-mesh-disabled";
+                    else if (m_eRenderPath != DXRenderPath.Hardware) reason = "render-path-" + RenderPathString();
+                    else if (_device == null) reason = "device-null";
+                    else if (!_bDX2Setup) reason = "dx-not-setup";
+                    else if (!_pan3DEnabled) reason = "pan3d-disabled";
+                    else if (_3dHistoryBuffer == null) reason = "history-null";
+                    else if (_3dHistoryCount < 3) reason = "history-underflow";
+                    else if (!_meshParams.Valid) reason = "mesh-params-invalid";
+                    else if (_paused_display) reason = "display-paused";
+                    else if (localMox(1)) reason = "mox";
+                    else if ((_meshParams.GridMax - _meshParams.GridMin) <= 0) reason = "invalid-grid-range";
+                    else if (_meshParams.Cols < 2) reason = "invalid-mesh-cols";
+                    else if (!_meshShadersBuilt) reason = "mesh-pipeline-not-ready";
+                    else if (_meshRTV == null) reason = "mesh-rtv-null";
+                    else reason = "internal-decline-see-MESH-DIAG";
+                }
+
+                GPUWaterfallLogger.LogRateLimited("PAN3D-HEALTH", reason, 1000,
+                    "draw=" + drew +
+                    " reason=" + reason +
+                    " ms=" + renderMs.ToString("F2") +
+                    " hist=" + _3dHistoryCount +
+                    " head=" + _3dHistoryHead +
+                    " pushSeq=" + pushSeq +
+                    " pushAgeMs=" + (pushAgeMs < 0 ? "never" : pushAgeMs.ToString("F0")) +
+                    " dataReady=" + data_ready +
+                    " meshValid=" + _meshParams.Valid +
+                    " meshRx=" + _meshParams.RX +
+                    " meshCols=" + _meshParams.Cols +
+                    " grid=" + _meshParams.GridMin + ".." + _meshParams.GridMax +
+                    " d2dFallbackSeq=" + fallbackSeq);
+
+                if (_pan3DEnabled && pushAgeMs >= 2000.0)
+                {
+                    GPUWaterfallLogger.LogRateLimited("PAN3D-STALE", "history", 1000,
+                        "no 3D history advance for " + pushAgeMs.ToString("F0") +
+                        "ms hist=" + _3dHistoryCount +
+                        " pushSeq=" + pushSeq +
+                        " dataReady=" + data_ready +
+                        " drew=" + drew);
+                }
+            }
+            catch (Exception ex)
+            {
+                GPUWaterfallLogger.LogRateLimited("PAN3D-HEALTH-EX", ex.GetType().Name, 1000,
+                    ex.GetType().FullName + ": " + ex.Message);
+            }
+        }
+
         private static void SharedContextBoundary(string label)
         {
             if (_device == null || _device.ImmediateContext == null) return;
@@ -4627,6 +4698,10 @@ namespace Thetis
                         " compute=" + GpuComputeEnabled +
                         " pan3D=" + _pan3DEnabled +
                         " mesh3D=" + GpuMeshEnabled +
+                        " hist=" + _3dHistoryCount +
+                        " hseq=" + Interlocked.Read(ref _pan3DHistoryPushSeq) +
+                        " meshValid=" + _meshParams.Valid +
+                        " dataReady=" + data_ready +
                         " cb3D=" + _native3DCircuitOpen +
                         " cbWF=" + _nativeWfCircuitOpen +
                         " fft=" + _gpuWaterfallFFTSize +
@@ -4705,6 +4780,7 @@ namespace Thetis
                         long t3d = Stopwatch.GetTimestamp();
                         _b3DMeshDrewFrame = RenderGpuMesh3D();
                         double ms3d = NativePassElapsedMs(t3d);
+                        LogPan3DHealth(_b3DMeshDrewFrame, ms3d);
 
                         if (_b3DMeshDrewFrame)
                         {
@@ -6192,8 +6268,19 @@ namespace Thetis
                     // snapshot params for the GPU mesh path (consumed pre-BeginDraw next frame)
                     CaptureMeshFrameParams(nVerticalShift, W, H, rx, nDecimatedWidth, m_nDecimation, grid_min, grid_max);
                     if (!_b3DMeshDrewFrame || GpuMesh3DOwnerRX != rx)   // only skip for the pane the GPU surface actually served
+                    {
                         DrawPanadapter3DHistoryDX2D(nVerticalShift, W, H, rx, bottom,
                             null, 0, grid_max, nDecimatedWidth, m_nDecimation);
+                        long fallbackSeq = Interlocked.Increment(ref _pan3DD2DFallbackSeq);
+                        GPUWaterfallLogger.LogRateLimited("PAN3D-D2D", "rx" + rx, 1000,
+                            "rx=" + rx +
+                            " fallbackSeq=" + fallbackSeq +
+                            " hist=" + _3dHistoryCount +
+                            " head=" + _3dHistoryHead +
+                            " meshDrew=" + _b3DMeshDrewFrame +
+                            " meshOwner=" + GpuMesh3DOwnerRX +
+                            " meshValid=" + _meshParams.Valid);
+                    }
                 }
 
             //if (grid_control) //[2.10.3.9]MW0LGE raw grid control option now just turns off the grid, all other elements are shown
@@ -6305,6 +6392,14 @@ namespace Thetis
                                 _3dHistoryHead = (head + 1) % Max3DHistoryLines;
                                 if (_3dHistoryCount < Max3DHistoryLines) _3dHistoryCount++;
                                 _3dLastPushTicks = nowTicks;
+                                long pushSeq = Interlocked.Increment(ref _pan3DHistoryPushSeq);
+                                Interlocked.Exchange(ref _pan3DHistoryLastPushUtcTicks, nowTicks);
+                                GPUWaterfallLogger.LogRateLimited("PAN3D-DATA", "push", 1000,
+                                    "pushSeq=" + pushSeq +
+                                    " hist=" + _3dHistoryCount +
+                                    " head=" + _3dHistoryHead +
+                                    " width=" + nDecimatedWidth +
+                                    " dataReadyConsumed=True");
                             }
                             catch (Exception ex)
                             {

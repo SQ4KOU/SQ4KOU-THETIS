@@ -55,6 +55,18 @@ namespace Thetis
             internal static extern int CM_WaterfallIQ_Available(int channel);
             [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
             internal static extern int CM_WaterfallIQ_Get(int channel, int requestedSamples, [Out] float[] iOut, [Out] float[] qOut);
+            [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+            internal static extern ulong CM_WaterfallIQ_DroppedSamples(int channel);
+            [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+            internal static extern ulong CM_WaterfallIQ_PushCalls(int channel);
+            [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+            internal static extern ulong CM_WaterfallIQ_PushSamples(int channel);
+            [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+            internal static extern ulong CM_WaterfallIQ_AcceptedCalls(int channel);
+            [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+            internal static extern ulong CM_WaterfallIQ_AcceptedSamples(int channel);
+            [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
+            internal static extern int CM_WaterfallIQ_IsEnabled(int channel);
 
             [DllImport(DllName, CallingConvention = CallingConvention.Cdecl)]
             internal static extern int CM_GPUWaterfallExact_Init(int channel, int fftSize, int displayWidth);
@@ -261,9 +273,22 @@ namespace Thetis
 
                     if (_exactRingCount[slot] < fftSize)
                     {
+                        ulong pushCalls = ExactGpuNative.CM_WaterfallIQ_PushCalls(slot);
+                        ulong pushSamples = ExactGpuNative.CM_WaterfallIQ_PushSamples(slot);
+                        ulong acceptedCalls = ExactGpuNative.CM_WaterfallIQ_AcceptedCalls(slot);
+                        ulong acceptedSamples = ExactGpuNative.CM_WaterfallIQ_AcceptedSamples(slot);
+                        ulong dropped = ExactGpuNative.CM_WaterfallIQ_DroppedSamples(slot);
+                        int nativeEnabled = ExactGpuNative.CM_WaterfallIQ_IsEnabled(slot);
                         GPUWaterfallLogger.LogRateLimited("WF-SOURCE", "fill-rx" + rx, 1000,
                             "RX" + rx + " filling ring count=" + _exactRingCount[slot] + "/" + fftSize +
-                            " credit=" + _exactSampleCredit[slot]);
+                            " credit=" + _exactSampleCredit[slot] +
+                            " nativeAvailable=" + available +
+                            " nativeEnabled=" + nativeEnabled +
+                            " pushCalls=" + pushCalls +
+                            " pushSamples=" + pushSamples +
+                            " acceptedCalls=" + acceptedCalls +
+                            " acceptedSamples=" + acceptedSamples +
+                            " dropped=" + dropped);
                         return 0;
                     }
 
