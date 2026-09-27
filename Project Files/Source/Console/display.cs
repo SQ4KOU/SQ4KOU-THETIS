@@ -4776,7 +4776,14 @@ namespace Thetis
                     _d2dRenderTarget.Transform = t;
 
                     RectangleF rectDest = new RectangleF(0, 0, displayTargetWidth, displayTargetHeight);
-                    if (!_b3DMeshDrewFrame && !_bWfMeshDrewFrame)
+                    // Once Pan3D is requested, never full-clear the shared backbuffer just
+                    // because one mesh pre-pass missed a frame. The previous 3D surface is
+                    // retained and D2D overlays/waterfall continue updating. A transient
+                    // band3D=false must not become a full-screen Bandscope/Waterfall flash.
+                    bool pan3DOwnsBackdrop = _pan3DEnabled && GpuMeshEnabled &&
+                                             !m_bForceCPURendering &&
+                                             m_eRenderPath == DXRenderPath.Hardware;
+                    if (!_b3DMeshDrewFrame && !pan3DOwnsBackdrop && !_bWfMeshDrewFrame)
                     {
                         //always clear without using alpha
                         _d2dRenderTarget.Clear(m_cDX2_display_background_clear_colour);

@@ -8,6 +8,7 @@ on:
       - fix/sdr-vst3-overlay-shutdown-20260927
       - fix/renderer-final-audit-20260927
       - fix/power-resume-no-reset-20260927
+      - fix/render-continuity-no-full-clear-20260927
   pull_request:
     branches:
       - feature/sdr-vst3-full-gpu-waterfall-ff62
