@@ -566,15 +566,6 @@ namespace Thetis
                 return false;
             if (_paused_display || localMox(1)) return false;
 
-            if (_pan3DNativeWarmupFrames > 0)
-            {
-                _pan3DNativeWarmupFrames--;
-                GPUWaterfallLogger.LogRateLimited("PAN3D-WARMUP", "native", 250,
-                    "native mesh deferred; framesLeft=" + _pan3DNativeWarmupFrames +
-                    " hist=" + _3dHistoryCount + " valid=" + _meshParams.Valid);
-                return false;
-            }
-
             try
             {
                 float[][] histBuf = _3dHistoryBuffer;
@@ -813,32 +804,6 @@ namespace Thetis
                 ReleaseGpuMeshDeviceObjects();
                 ReleaseGpuMeshFrameState();
                 return false;
-            }
-        }
-
-        /// <summary>
-        /// Explicitly relinquishes the shared swapchain surface after native D3D11
-        /// prepasses and before the main Direct2D BeginDraw.  ClearState unbinds the
-        /// backbuffer RTV, SRVs, UAVs, shaders and samplers in one operation; the next
-        /// native frame rebinds everything it needs.  This avoids stale ownership
-        /// surviving a Pan3D OFF->ON transition.
-        /// </summary>
-        private static void PrepareNativePassForD2D()
-        {
-            if (_device == null || _device.ImmediateContext == null) return;
-
-            try
-            {
-                ID3D11DeviceContext dc = _device.ImmediateContext;
-                dc.ClearState();
-                dc.Flush();
-                GPUWaterfallLogger.LogRateLimited("DX-HANDOFF", "native-to-d2d", 1000,
-                    "ClearState+Flush before D2D BeginDraw");
-            }
-            catch (Exception e)
-            {
-                GPUWaterfallLogger.Log("DX-HANDOFF-FAIL", e.ToString());
-                throw;
             }
         }
 
