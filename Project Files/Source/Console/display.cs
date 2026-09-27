@@ -4533,6 +4533,42 @@ namespace Thetis
             }
         }
 
+        // Renderer stability policy: one graphics API owns the shared immediate
+        // context at a time. Native D3D11 work is restricted to the pre-BeginDraw
+        // phase; no D3D11 draw/compute is allowed while the main D2D frame is active.
+        private const bool NativeD3DInsideMainD2DAllowed = false;
+
+        // Per-session circuit breakers. A transient slow native pass is allowed during
+        // shader/resource warm-up; repeated/late stalls force that feature back to the
+        // known-safe D2D path for the rest of the current DX session.
+        private static bool _native3DCircuitOpen = false;
+        private static bool _nativeWfCircuitOpen = false;
+        private static int _native3DGoodFrames = 0;
+        private static int _nativeWfGoodFrames = 0;
+
+        private static double NativePassElapsedMs(long startTicks)
+        {
+            return (Stopwatch.GetTimestamp() - startTicks) * 1000.0 / Stopwatch.Frequency;
+        }
+
+        private static void SharedContextBoundary(string label)
+        {
+            if (_device == null || _device.ImmediateContext == null) return;
+            try
+            {
+                _device.ImmediateContext.ClearState();
+                _device.ImmediateContext.Flush();
+                GPUWaterfallLogger.LogRateLimited("DX-BOUNDARY", label, 1000,
+                    "ClearState+Flush " + label);
+            }
+            catch (Exception ex)
+            {
+                GPUWaterfallLogger.Log("DX-BOUNDARY-FAIL",
+                    label + " " + ex.GetType().FullName + ": " + ex.Message);
+                throw;
+            }
+        }
+
         private static bool _pa_issue = false;
         private static string _pa_state_details = "";
         public static PAstatusIndicatorState PAStatus
@@ -4573,6 +4609,8 @@ namespace Thetis
                         " compute=" + GpuComputeEnabled +
                         " pan3D=" + _pan3DEnabled +
                         " mesh3D=" + GpuMeshEnabled +
+                        " cb3D=" + _native3DCircuitOpen +
+                        " cbWF=" + _nativeWfCircuitOpen +
                         " fft=" + _gpuWaterfallFFTSize +
                         " overlap=" + _gpuWaterfallOverlapPercent +
                         " autoOverlap=" + _gpuWaterfallAutoOverlap +
@@ -4582,13 +4620,33 @@ namespace Thetis
                     _bNoiseFloorAlreadyCalculatedRX1 = false; // keeps track of noise floor processing, only want to do it once, even if pana + water shown
                     _bNoiseFloorAlreadyCalculatedRX2 = false;
 
-                    // Tier 3 GPU mesh passes (3D surface + waterfall): drawn straight
-                    // into the backbuffer BEFORE the D2D frame begins. When any pass
-                    // succeeds, the D2D clear + background fill below are skipped so
-                    // the GPU content survives; grid, text, traces and all overlays
-                    // still come from D2D on top.
+                    // ---- strict phase 1: optional D2D background prepass ----
+                    // Pan3D's historical helper used to call D2D BeginDraw/EndDraw from
+                    // inside RenderGpuMesh3D(), then resume D3D11 on the same immediate
+                    // context. That cross-API nesting is removed here: background D2D
+                    // completes first, an explicit boundary is issued, then ALL native
+                    // D3D11 work runs as one uninterrupted phase.
                     _bGpuBackdropDone = false;
                     GpuMesh3DOwnerRX = 0;
+
+                    bool native3DCandidate =
+                        !_native3DCircuitOpen && GpuMeshEnabled && _pan3DEnabled &&
+                        m_eRenderPath == DXRenderPath.Hardware && !m_bForceCPURendering;
+                    bool nativeWfCandidate =
+                        !_nativeWfCircuitOpen && WfMeshArmed;
+
+                    if (_bitmapBackground != null && (native3DCandidate || nativeWfCandidate))
+                    {
+                        GPUWaterfallLogger.FrameStage("D2D_BG_PREPASS");
+                        DrawSkinBackgroundPrepass();
+                        SharedContextBoundary("d2d-bg-to-native");
+
+                        // Suppress the legacy nested D2D backdrop helper inside the
+                        // native mesh passes; the bitmap has already been drawn.
+                        _bGpuBackdropDone = true;
+                    }
+
+                    // ---- strict phase 2: native D3D11 only ----
                     GPUWaterfallLogger.FrameStage("GPU_3D");
                     if (_pan3DNativeWarmupFrames > 0)
                     {
@@ -4598,25 +4656,68 @@ namespace Thetis
                             "native mesh deferred; framesLeft=" + _pan3DNativeWarmupFrames +
                             " hist=" + _3dHistoryCount);
                     }
+                    else if (_native3DCircuitOpen)
+                    {
+                        _b3DMeshDrewFrame = false;
+                    }
                     else
                     {
+                        long t3d = Stopwatch.GetTimestamp();
                         _b3DMeshDrewFrame = RenderGpuMesh3D();
+                        double ms3d = NativePassElapsedMs(t3d);
+
+                        if (_b3DMeshDrewFrame)
+                        {
+                            _native3DGoodFrames++;
+                            if (_native3DGoodFrames > 20 && ms3d >= 250.0)
+                            {
+                                _native3DCircuitOpen = true;
+                                _b3DMeshDrewFrame = false;
+                                GpuMesh3DOwnerRX = 0;
+                                GPUWaterfallLogger.Log("STABILITY-CB",
+                                    "Pan3D native circuit opened after " + ms3d.ToString("F1") +
+                                    "ms; fallback=D2D for current DX session");
+                            }
+                        }
                     }
+
                     GPUWaterfallLogger.FrameStage("GPU_WATERFALL_COMPUTE");
-                    _bWfNativeUpdatedFrame = ProcessPendingNativeWaterfallRows();
+                    if (_nativeWfCircuitOpen)
+                    {
+                        _bWfNativeUpdatedFrame = false;
+                    }
+                    else
+                    {
+                        long twf = Stopwatch.GetTimestamp();
+                        _bWfNativeUpdatedFrame = ProcessPendingNativeWaterfallRows();
+                        double mswf = NativePassElapsedMs(twf);
+
+                        if (_bWfNativeUpdatedFrame)
+                        {
+                            _nativeWfGoodFrames++;
+                            if (_nativeWfGoodFrames > 20 && mswf >= 150.0)
+                            {
+                                _nativeWfCircuitOpen = true;
+                                _bWfNativeUpdatedFrame = false;
+                                SetOwns(1, false);
+                                SetOwns(2, false);
+                                GPUWaterfallLogger.Log("STABILITY-CB",
+                                    "Waterfall native compute/history circuit opened after " +
+                                    mswf.ToString("F1") +
+                                    "ms; fallback=classicD2D for current DX session");
+                            }
+                        }
+                    }
 
                     GPUWaterfallLogger.FrameStage("GPU_WATERFALL_MESH");
-                    _bWfMeshDrewFrame = RenderGpuWaterfall();
+                    _bWfMeshDrewFrame = !_nativeWfCircuitOpen && RenderGpuWaterfall();
                     ClearWaterfallPaneCaptures();
 
-                    // D3D11 native passes must relinquish all pipeline bindings before
-                    // Direct2D resumes ownership of the same swapchain surface.
-                    // Leaving the backbuffer RTV/SRVs bound worked during steady-state
-                    // rendering but produced a native SEH on the OFF->ON 3D transition.
+                    // ---- strict phase 3: native -> D2D main frame ----
                     if (_b3DMeshDrewFrame || _bWfMeshDrewFrame || _bWfNativeUpdatedFrame)
                     {
                         GPUWaterfallLogger.FrameStage("GPU_TO_D2D_HANDOFF");
-                        PrepareNativePassForD2D();
+                        SharedContextBoundary("native-to-d2d-main");
                     }
 
                     GPUWaterfallLogger.FrameStage("D2D_BEGIN");
@@ -6364,12 +6465,17 @@ namespace Thetis
                 // Plain 2D panadapters only; the 3D-history overlay keeps its own
                 // live fill. Any failure leaves the legacy column loop untouched.
                 bool bSpecFillMesh = false;
-                if (!draw3DHistory && pan_fill)
+                if (NativeD3DInsideMainD2DAllowed && !draw3DHistory && pan_fill)
                 {
                     bSpecFillMesh = TryRenderSpectrumFillMesh(rx, nVerticalShift, W, H,
                         nDecimatedWidth, data, fOffset, grid_min, grid_max, local_mox);
                     if (bSpecFillMesh)
                         BlitSpectrumFillMesh(rx, nVerticalShift, W, H);
+                }
+                else if (!NativeD3DInsideMainD2DAllowed && !draw3DHistory && pan_fill)
+                {
+                    GPUWaterfallLogger.LogRateLimited("STABILITY", "specfill-d2d", 5000,
+                        "GPU spectrum fill suppressed inside D2D BeginDraw; fallback=D2D");
                 }
 
                 float averageSum = 0;
@@ -6463,7 +6569,8 @@ namespace Thetis
                     " draw3D=" + draw3DHistory +
                     " specFillMesh=" + bSpecFillMesh +
                     " panFill=" + pan_fill);
-                if (bSpectralPeakHold && spectralPeaks != null &&
+                if (NativeD3DInsideMainD2DAllowed &&
+                    bSpectralPeakHold && spectralPeaks != null &&
                     (draw3DHistory || bSpecFillMesh || !pan_fill))
                 {
                     bOverlayMesh = TryRenderSpectrumOverlayMesh(rx, nVerticalShift, W, H,
@@ -6472,6 +6579,11 @@ namespace Thetis
                         live3DMapping, live3DBottomY, live3DRidge, live3DZCurve);
                     if (bOverlayMesh)
                         BlitSpectrumOverlayMesh(rx, nVerticalShift, W, H);
+                }
+                else if (!NativeD3DInsideMainD2DAllowed && bSpectralPeakHold && spectralPeaks != null)
+                {
+                    GPUWaterfallLogger.LogRateLimited("STABILITY", "overlay-d2d", 5000,
+                        "GPU peak overlay suppressed inside D2D BeginDraw; fallback=D2D");
                 }
 
                 for (int i = 0; i < nDecimatedWidth; i++)
