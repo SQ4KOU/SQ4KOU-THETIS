@@ -28,6 +28,7 @@ function Insert-After([string]$Text, [string]$Anchor, [string]$Insert, [string]$
 }
 
 $displayPath = "Project Files/Source/Console/display.cs"
+$consolePath = "Project Files/Source/Console/console.cs"
 $projPath = "Project Files/Source/Console/Thetis.csproj"
 $d = Read-Norm $displayPath
 
@@ -63,6 +64,69 @@ $newBg = @'
 
 '@
 $d = Replace-Between $d $bgStart $bgEnd $newBg "native background block"
+
+$powerAnchor = @'
+        public static void RequestDXRestart()
+        {
+            GPUWaterfallLogger.Log("STATE", "RequestDXRestart setup=" + _bDX2Setup + " path=" + RenderPathString());
+            if (!_bDX2Setup) return;
+            m_bDXRestartPending = true;
+            m_bWarpDowngradeAttempted = false;
+        }
+'@
+if (-not $d.Contains('public static void OnRadioPowerChanged(bool oldPower, bool newPower)')) {
+    $powerMethod = @'
+
+        public static void OnRadioPowerChanged(bool oldPower, bool newPower)
+        {
+            GPUWaterfallLogger.Log("POWER-DX",
+                "radio power " + oldPower + " -> " + newPower +
+                " setup=" + _bDX2Setup +
+                " path=" + RenderPathString() +
+                " pipeline=" + _gpuWaterfallPipelineEnabled +
+                " forceCPU=" + m_bForceCPURendering);
+
+            // POWER OFF stops Audio/xcmaster. Do not leave exact-IQ credit or
+            // Pan3D input state armed across that discontinuity.
+            try
+            {
+                ResetExactGPUWaterfallSourceForModeChange(
+                    newPower && !m_bForceCPURendering && _gpuWaterfallPipelineEnabled);
+            }
+            catch (Exception ex)
+            {
+                GPUWaterfallLogger.Log("POWER-DX",
+                    "exact source reset failed: " + ex.GetType().FullName + ": " + ex.Message);
+            }
+
+            ResetGPUWaterfallState(1, resetCalibration: false);
+            ResetGPUWaterfallState(2, resetCalibration: false);
+            data_ready = false;
+
+            if (!newPower)
+            {
+                GPUWaterfallLogger.Log("POWER-DX",
+                    "POWER OFF: renderer retained, input state invalidated");
+                return;
+            }
+
+            // Treat POWER ON as a new native-render session. Audio.Start() has
+            // already completed before PowerChangeHandlers fires. Recreate all
+            // shared D2D/D3D resources only after the active frame reaches Present,
+            // never synchronously on the UI thread.
+            _native3DCircuitOpen = false;
+            _nativeWfCircuitOpen = false;
+            _native3DGoodFrames = 0;
+            _nativeWfGoodFrames = 0;
+            _pan3DNativeWarmupFrames = _pan3DEnabled ? 2 : 0;
+
+            RequestDXRestart();
+            GPUWaterfallLogger.Log("POWER-DX",
+                "POWER ON: exact source reset + deferred full DX restart requested");
+        }
+'@
+    $d = Insert-After $d $powerAnchor $powerMethod "radio power lifecycle"
+}
 
 $boundaryStart = '        private static void SharedContextBoundary(string label)'
 $boundaryEnd = '        private static void ClearNativeSubpassState(string label)'
@@ -113,6 +177,31 @@ if (-not $d.Contains('ShutdownDXStage("ReleaseNativeBackgroundResources"')) {
 }
 
 Write-Norm $displayPath $d
+
+$c = Read-Norm $consolePath
+$onPowerOld = @'
+        private void OnPowerChangeHander(bool oldPower, bool newPower)
+        {
+            if (newPower)
+            {
+'@
+$onPowerNew = @'
+        private void OnPowerChangeHander(bool oldPower, bool newPower)
+        {
+            GPUWaterfallLogger.Log("POWER",
+                "PowerChangeHandlers " + oldPower + " -> " + newPower +
+                " DataFlowing=" + DataFlowing);
+            Display.OnRadioPowerChanged(oldPower, newPower);
+
+            if (newPower)
+            {
+'@
+if (-not $c.Contains('Display.OnRadioPowerChanged(oldPower, newPower);')) {
+    $c = Replace-Between $c $onPowerOld '                // reset meter pixel historory when powering up' ($onPowerNew + '                // reset meter pixel historory when powering up' + "`n") "OnPowerChangeHander lifecycle hook"
+}
+Write-Norm $consolePath $c
+
+
 
 $p = Read-Norm $projPath
 if (-not $p.Contains('<Compile Include="Display.NativeBackground.cs" />')) {
