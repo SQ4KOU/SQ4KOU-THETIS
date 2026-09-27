@@ -35,16 +35,35 @@ jobs:
       - name: Build
         run: msbuild "Project Files/Source/Thetis_VS2026.sln" -p:Configuration=Release -p:Platform=x64 -m -nologo
 
-      - name: Verify renderer stability contract and SDR-VST3 3D parity
+      - name: Verify renderer stability contract and Pan3D/D2D handoff
         shell: pwsh
         run: |
-          $pan3d = git hash-object -- "Project Files/Source/Console/Display.Pan3DMesh.cs"
-          if ($pan3d -ne "4ac1445c302537d3f61ea8f877527767921eaec5") {
-            throw "Display.Pan3DMesh.cs is not the SDR-VST3 reference blob: $pan3d"
-          }
           $form3d = git hash-object -- "Project Files/Source/Console/frm3DPanadapter.cs"
           if ($form3d -ne "b79852f27d3882c5b6008d8dd1e0af9099ff13fc") {
             throw "frm3DPanadapter.cs is not the SDR-VST3 reference blob: $form3d"
+          }
+
+          $pan3d = Get-Content "Project Files/Source/Console/Display.Pan3DMesh.cs" -Raw
+          if (-not $pan3d.Contains("ReleasePan3DBackbufferForD2D")) {
+            throw "Pan3D explicit D3D11->D2D handoff helper is missing"
+          }
+          if (-not $pan3d.Contains("PAN3D_BG_HANDOFF") -or
+              -not $pan3d.Contains("PAN3D_TO_D2D") -or
+              -not $pan3d.Contains("PAN3D_FAIL_TO_D2D")) {
+            throw "Pan3D handoff coverage is incomplete"
+          }
+          if (-not $pan3d.Contains("OMSetRenderTargets(new[] { (ID3D11RenderTargetView)null }, null)")) {
+            throw "Pan3D backbuffer RTV is not explicitly unbound before D2D"
+          }
+          if (-not $pan3d.Contains("VSSetShaderResource(0, (ID3D11ShaderResourceView)null)") -or
+              -not $pan3d.Contains("PSSetShaderResource(0, (ID3D11ShaderResourceView)null)") -or
+              -not $pan3d.Contains("PSSetShaderResource(1, (ID3D11ShaderResourceView)null)")) {
+            throw "Pan3D SRV unbind contract is missing"
+          }
+          $prepass = $pan3d.IndexOf("EnsureGpuBackdrop(dc);")
+          $bind = $pan3d.IndexOf("dc.OMSetRenderTargets(new[] { _meshRTV }, null);", $prepass)
+          if ($prepass -lt 0 -or $bind -lt 0 -or $bind -lt $prepass) {
+            throw "Pan3D D2D background prepass is not completed before D3D backbuffer ownership"
           }
 
           $wfMesh = Get-Content "Project Files/Source/Console/Display.WaterfallMesh.cs" -Raw
@@ -85,6 +104,9 @@ jobs:
           if (-not $display.Contains("POWER ON: suppressing full DX restart; renderer retained")) {
             throw "Power-on DX restart suppression is missing"
           }
+          if (-not $display.Contains("FrameStage(\"D2D_DRAW\")")) {
+            throw "D2D BeginDraw vs draw-stage diagnostics are not separated"
+          }
           if (-not $display.Contains("managedGPU=") -or
               -not $display.Contains("computeArmed=") -or
               -not $display.Contains("wfMeshArmed=") -or
@@ -92,7 +114,7 @@ jobs:
             throw "Renderer diagnostics do not expose actual armed-path state"
           }
 
-          Write-Host "PASS: original Pan3D parity retained; dedicated GPU FFT isolated; shared-context waterfall/compute/2D/overlay paths gated; shutdown and power guards present"
+          Write-Host "PASS: Pan3D/D2D handoff explicit; dedicated GPU FFT isolated; shared-context waterfall/compute/2D/overlay paths gated; shutdown, power and diagnostics guards present"
 
       - name: Verify SQ4KOU native and exact GPU waterfall exports
         shell: pwsh
