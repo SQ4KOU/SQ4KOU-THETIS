@@ -5,6 +5,10 @@ on:
     branches:
       - feature/sdr-vst3-sq4kou-hw
       - feature/sdr-vst3-full-gpu-waterfall-ff62
+      - fix/sdr-vst3-overlay-shutdown-20260927
+  pull_request:
+    branches:
+      - feature/sdr-vst3-full-gpu-waterfall-ff62
   workflow_dispatch:
 
 permissions:
@@ -30,6 +34,94 @@ jobs:
 
       - name: Build
         run: msbuild "Project Files/Source/Thetis_VS2026.sln" -p:Configuration=Release -p:Platform=x64 -m -nologo
+
+      - name: Verify renderer stability contract and async GPU isolation
+        shell: pwsh
+        run: |
+          $pan3d = git hash-object -- "Project Files/Source/Console/Display.Pan3DMesh.cs"
+          if ($pan3d -ne "4ac1445c302537d3f61ea8f877527767921eaec5") {
+            throw "Display.Pan3DMesh.cs is not the exact SDR-VST3 reference blob: $pan3d"
+          }
+          $form3d = git hash-object -- "Project Files/Source/Console/frm3DPanadapter.cs"
+          if ($form3d -ne "b79852f27d3882c5b6008d8dd1e0af9099ff13fc") {
+            throw "frm3DPanadapter.cs is not the SDR-VST3 reference blob: $form3d"
+          }
+
+          $exact = Get-Content "Project Files/Source/Console/Display.ExactGPUWaterfallSource.cs" -Raw
+          if (-not $exact.Contains('Name = "ExactGPUWaterfall"') -or
+              -not $exact.Contains("ProcessExactGPUWorkerSlot") -or
+              -not $exact.Contains("ExactGpuWorkerHungMs") -or
+              -not $exact.Contains("WF-WORKER-HANG")) {
+            throw "Exact GPU waterfall is not isolated behind the background worker"
+          }
+          $consumer = $exact.IndexOf("private static int TryGetExactGpuWaterfallDataRow")
+          $nativeProcess = $exact.LastIndexOf("ExactGpuNative.CM_GPUWaterfallExact_Process")
+          if ($consumer -lt 0 -or $nativeProcess -lt 0 -or $nativeProcess -gt $consumer) {
+            throw "Native GPU Process call leaked back into the render-thread consumer path"
+          }
+
+          $wfMesh = Get-Content "Project Files/Source/Console/Display.WaterfallMesh.cs" -Raw
+          if ($wfMesh -notmatch "ExperimentalSharedBackbufferMeshesEnabled\s*=\s*false") {
+            throw "Shared-backbuffer waterfall mesh is not hard-disabled"
+          }
+
+          $compute = Get-Content "Project Files/Source/Console/Display.SpectrumCompute.cs" -Raw
+          if ($compute -notmatch "private static bool ComputeArmed[\s\S]*?return false;") {
+            throw "Blocking shared-context compute path is not hard-disabled"
+          }
+
+          $pan2d = Get-Content "Project Files/Source/Console/Display.Pan2DMesh.cs" -Raw
+          if ($pan2d -notmatch "ExperimentalSharedBackbufferMeshesEnabled\s*&&\s*GpuMeshEnabled") {
+            throw "2D spectrum mesh is not routed through the shared-backbuffer stability gate"
+          }
+
+          $gpuWf = Get-Content "Project Files/Source/Console/Display.GPUWaterfall.cs" -Raw
+          if ($gpuWf -notmatch "ManagedGPUFFTRequested\s*=>\s*false") {
+            throw "Managed SharpDX FFT path on the live Vortice device is not hard-disabled"
+          }
+
+          $overlay = Get-Content "Project Files/Source/Console/Display.OverlayMesh.cs" -Raw
+          if ($overlay -notmatch "return ExperimentalSharedBackbufferMeshesEnabled\s*&&\s*GpuOverlayEnabled") {
+            throw "GPU overlay is not routed through the shared-backbuffer stability gate"
+          }
+
+          $display = Get-Content "Project Files/Source/Console/display.cs" -Raw
+          if ($display.Contains("_bWfMeshDrewFrame = RenderGpuWaterfall();")) {
+            throw "Shared-swapchain waterfall presentation is still called from RenderDX2D"
+          }
+          if (-not $display.Contains("_bWfMeshDrewFrame = false;")) {
+            throw "Stable D2D waterfall presentation contract is missing"
+          }
+          if (-not $display.Contains("TryEnterDXLock(8") -or
+              -not $display.Contains("DX-LOCK-SKIP") -or
+              -not $display.Contains("DX-LOCK-HOLD") -or
+              -not $display.Contains("DescribeDXLockOwner")) {
+            throw "Global renderer lock ownership/skip contract is missing"
+          }
+          if (-not $display.Contains('TryEnterDXLock(1500, out DXLockScope shutdownScope')) {
+            throw "Bounded shutdown lock contract is missing"
+          }
+          if (-not $display.Contains("POWER ON: suppressing full DX restart; renderer retained")) {
+            throw "Power-on DX restart suppression is missing"
+          }
+          if (-not $display.Contains('FrameStage("D2D_DRAW")')) {
+            throw "D2D BeginDraw vs draw-stage diagnostics are not separated"
+          }
+          if (-not $display.Contains("managedGPU=") -or
+              -not $display.Contains("computeArmed=") -or
+              -not $display.Contains("wfMeshArmed=") -or
+              -not $display.Contains("overlayArmed=")) {
+            throw "Renderer diagnostics do not expose actual armed-path state"
+          }
+
+          $logger = Get-Content "Project Files/Source/Console/GPUWaterfallLogger.cs" -Raw
+          if (-not $logger.Contains("VisualProbeIntervalMs = 750") -or
+              -not $logger.Contains("QueueUrgentVisualProbe") -or
+              -not $logger.Contains("if (!foreground)")) {
+            throw "Low-impact foreground-only visual diagnostics contract is missing"
+          }
+
+          Write-Host "PASS: reference Pan3D restored; exact GPU FFT isolated to worker; shared-context experimental paths gated; renderer lock bounded/tracked; visual diagnostics low-impact"
 
       - name: Verify SQ4KOU native and exact GPU waterfall exports
         shell: pwsh

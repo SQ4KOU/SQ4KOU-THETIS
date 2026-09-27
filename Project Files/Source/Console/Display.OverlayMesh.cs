@@ -113,7 +113,15 @@ namespace Thetis
 
         private static bool OverlayMeshArmed
         {
-            get { return GpuOverlayEnabled && m_eRenderPath == DXRenderPath.Hardware && _device != null && _bDX2Setup; }
+            get
+            {
+                // Shared-backbuffer D3D work inside an active D2D BeginDraw can
+                // deadlock in EndDraw on the common immediate context.  Keep the
+                // visual peak/hold overlay functional through its existing D2D
+                // fallback while the experimental shared-backbuffer gate is off.
+                return ExperimentalSharedBackbufferMeshesEnabled && GpuOverlayEnabled &&
+                    m_eRenderPath == DXRenderPath.Hardware && _device != null && _bDX2Setup;
+            }
         }
 
         /// <summary>Releases the D2D-side wrappers only - used on render-target
@@ -280,6 +288,15 @@ namespace Thetis
             bool live3DMapping, float live3DBottomY, float live3DRidge, float live3DZCurve)
         {
             int slot = rx == 2 ? 1 : 0;
+            GPUWaterfallLogger.LogRateLimited("OVL", "attempt-rx" + rx, 1000,
+                "rx=" + rx +
+                " enabled=" + GpuOverlayEnabled +
+                " armed=" + OverlayMeshArmed +
+                " peakHold=" + bSpectralPeakHold +
+                " activeFill=" + bActivePeakFill +
+                " live3D=" + live3DMapping +
+                " cols=" + nDecimatedWidth +
+                " size=" + W + "x" + H);
             if (!OverlayMeshArmed || _paused_display)
             {
                 if (!_ovlGuardLogged[slot])
@@ -289,6 +306,11 @@ namespace Thetis
                         " paused=" + _paused_display + " enabled=" + GpuOverlayEnabled +
                         " path=" + m_eRenderPath + " dx2=" + _bDX2Setup + " device=" + (_device != null));
                 }
+                GPUWaterfallLogger.LogRateLimited("OVL", "guard-rx" + rx, 1000,
+                    "blocked rx=" + rx + " armed=" + OverlayMeshArmed +
+                    " paused=" + _paused_display + " enabled=" + GpuOverlayEnabled +
+                    " path=" + m_eRenderPath + " dx2=" + _bDX2Setup +
+                    " device=" + (_device != null));
                 return false;
             }
 
@@ -304,14 +326,36 @@ namespace Thetis
                         " peaks=" + (spectralPeaks == null ? "null" : spectralPeaks.Length.ToString()) +
                         " cols=" + nDecimatedWidth);
                 }
+                GPUWaterfallLogger.LogRateLimited("OVL", "input-rx" + rx, 1000,
+                    "input blocked rx=" + rx +
+                    " peakHold=" + bSpectralPeakHold +
+                    " peaks=" + (spectralPeaks == null ? "null" : spectralPeaks.Length.ToString()) +
+                    " data=" + (data == null ? "null" : data.Length.ToString()) +
+                    " cols=" + nDecimatedWidth + " yRange=" + yRange +
+                    " size=" + W + "x" + H);
                 return false;
             }
 
             try
             {
-                if (!BuildOverlayPipeline(_device)) return false;
-                if (!EnsureOverlaySheet(_device, slot, W, H, nDecimatedWidth)) return false;
-                if (!EnsureMeshRTV(_device)) return false;   // for the backbuffer restore below
+                if (!BuildOverlayPipeline(_device))
+                {
+                    GPUWaterfallLogger.LogRateLimited("OVL", "pipeline-rx" + rx, 1000,
+                        "pipeline build failed rx=" + rx);
+                    return false;
+                }
+                if (!EnsureOverlaySheet(_device, slot, W, H, nDecimatedWidth))
+                {
+                    GPUWaterfallLogger.LogRateLimited("OVL", "sheet-rx" + rx, 1000,
+                        "sheet build/rebind failed rx=" + rx + " size=" + W + "x" + H + " cols=" + nDecimatedWidth);
+                    return false;
+                }
+                if (!EnsureMeshRTV(_device))
+                {
+                    GPUWaterfallLogger.LogRateLimited("OVL", "rtv-rx" + rx, 1000,
+                        "backbuffer RTV unavailable rx=" + rx);
+                    return false;
+                }   // for the backbuffer restore below
                 ref OverlaySheetState s = ref _ovl[slot];
 
                 float[] sc = _ovlScratch;
@@ -516,6 +560,10 @@ namespace Thetis
                 dc.Flush();
 
                 _ovlGuardLogged[slot] = false;
+                GPUWaterfallLogger.LogRateLimited("OVL", "active-rx" + rx, 1000,
+                    "ACTIVE rx=" + rx + " verts=" + (nDecimatedWidth * 6) +
+                    " mode=" + (bActivePeakFill ? "fill" : "trace") +
+                    " live3D=" + live3DMapping);
                 if (!_ovlLoggedActive)
                 {
                     _ovlLoggedActive = true;
@@ -526,6 +574,7 @@ namespace Thetis
             }
             catch (Exception e)
             {
+                GPUWaterfallLogger.Log("OVL-FAIL", "rx=" + rx + " " + e);
                 Common.MeshDiagLog("GPU overlay: render failed - falling back to D2D peak strokes : " + e.Message);
                 ReleaseSpectrumOverlayObjects();
                 return false;

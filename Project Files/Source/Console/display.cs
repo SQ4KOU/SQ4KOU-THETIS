@@ -698,7 +698,7 @@ namespace Thetis
                 // for this frame's DrawLine (SEHException inside d2d1). The frame body
                 // holds _objDX2Lock for its entire duration, so taking it here makes
                 // disposal wait for frame end; the next frame recreates lazily.
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     if (m_bDX2_3d_fill_brush != null)
                     {
@@ -800,7 +800,7 @@ namespace Thetis
                 current_display_mode_bottom = value;
                 if (bDifferent)
                 {
-                    lock (_objDX2Lock)
+                    using (EnterDXLock())
                     {
                         clearBuffers(displayTargetWidth, 2);
                     }
@@ -1353,7 +1353,7 @@ namespace Thetis
             get { return displayTarget; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     _cpu = Common.GetCpuName();
                     //List<string> gpus = Common.GetGpuNames();
@@ -1453,7 +1453,7 @@ namespace Thetis
             set
             {
                 int old = m_nDecimation;
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     m_nDecimation = value;
                 }
@@ -1829,7 +1829,7 @@ namespace Thetis
             get { return _mox; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     if (value != _old_mox)
                     {
@@ -1904,7 +1904,7 @@ namespace Thetis
 
                 if (bDifferent)
                 {
-                    lock (_objDX2Lock)
+                    using (EnterDXLock())
                     {
                         clearBuffers(displayTargetWidth, 1);
                     }
@@ -2201,7 +2201,7 @@ namespace Thetis
             get { return band_edge_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     band_edge_color = value;
                     band_edge_pen.Color = band_edge_color;
@@ -2217,7 +2217,7 @@ namespace Thetis
             get { return tx_band_edge_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     tx_band_edge_color = value;
                     tx_band_edge_pen.Color = tx_band_edge_color;
@@ -2233,7 +2233,7 @@ namespace Thetis
             get { return sub_rx_zero_line_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     sub_rx_zero_line_color = value;
                     sub_rx_zero_line_pen.Color = sub_rx_zero_line_color;
@@ -2249,7 +2249,7 @@ namespace Thetis
             get { return sub_rx_filter_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     sub_rx_filter_color = value;
                     sub_rx_filter_brush.Color = sub_rx_filter_color;
@@ -2266,7 +2266,7 @@ namespace Thetis
             get { return grid_text_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     grid_text_color = value;
                     grid_text_brush.Color = grid_text_color;
@@ -2283,7 +2283,7 @@ namespace Thetis
             get { return grid_tx_text_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     grid_tx_text_color = value;
                     grid_tx_text_brush.Color = grid_tx_text_color;
@@ -2299,7 +2299,7 @@ namespace Thetis
             get { return grid_zero_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     grid_zero_color = value;
                     grid_zero_pen.Color = grid_zero_color;
@@ -2315,7 +2315,7 @@ namespace Thetis
             get { return tx_grid_zero_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     tx_grid_zero_color = value;
                     tx_grid_zero_pen.Color = tx_grid_zero_color;
@@ -2331,7 +2331,7 @@ namespace Thetis
             get { return grid_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     grid_color = value;
                     grid_pen.Color = grid_color;
@@ -2347,7 +2347,7 @@ namespace Thetis
             get { return tx_vgrid_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     tx_vgrid_color = value;
                     tx_vgrid_pen.Color = tx_vgrid_color;
@@ -2364,7 +2364,7 @@ namespace Thetis
             get { return hgrid_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     hgrid_color = value;
                     hgrid_pen.Color = hgrid_color;
@@ -2381,7 +2381,7 @@ namespace Thetis
             get { return tx_hgrid_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     tx_hgrid_color = value;
                     tx_hgrid_pen.Color = tx_hgrid_color;
@@ -2405,7 +2405,7 @@ namespace Thetis
             get { return data_fill_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     data_fill_color = value;
                     data_fill_fpen.Color = data_fill_color;
@@ -2418,7 +2418,7 @@ namespace Thetis
             get { return data_fill_color_tx; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     data_fill_color_tx = value;
                     data_fill_fpen_tx.Color = data_fill_color_tx;
@@ -2431,7 +2431,7 @@ namespace Thetis
             get { return dataPeaks_fill_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     dataPeaks_fill_color = value;
                     dataPeaks_fill_fpen.Color = dataPeaks_fill_color;
@@ -2446,7 +2446,7 @@ namespace Thetis
             get { return data_line_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     data_line_color = value;
                     data_line_pen.Color = data_line_color;
@@ -2463,7 +2463,7 @@ namespace Thetis
             get { return tx_data_line_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     tx_data_line_color = value;
                     tx_data_line_pen.Color = tx_data_line_color;
@@ -2480,7 +2480,7 @@ namespace Thetis
             get { return grid_pen_dark; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     grid_pen_dark = value;
                     grid_pen_inb.Color = grid_pen_dark;
@@ -2496,7 +2496,7 @@ namespace Thetis
             get { return tx_vgrid_pen_fine; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     tx_vgrid_pen_fine = value;
                     tx_vgrid_pen_inb.Color = tx_vgrid_pen_fine;
@@ -2514,7 +2514,7 @@ namespace Thetis
             get { return bandstack_overlay_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     bandstack_overlay_color = value;
                     bandstack_overlay_brush.Color = bandstack_overlay_color;
@@ -2533,7 +2533,7 @@ namespace Thetis
             get { return display_filter_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     display_filter_color = value;
                     display_filter_brush.Color = display_filter_color;
@@ -2550,7 +2550,7 @@ namespace Thetis
             get { return tx_filter_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     tx_filter_color = value;
                     tx_filter_brush.Color = tx_filter_color;
@@ -2577,7 +2577,7 @@ namespace Thetis
             get { return noisefloor_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     noisefloor_color = value;
                     buildDX2Resources();
@@ -2590,7 +2590,7 @@ namespace Thetis
             get { return noisefloor_color_text; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     noisefloor_color_text = value;
                     buildDX2Resources();
@@ -2629,7 +2629,7 @@ namespace Thetis
             get { return display_filter_tx_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     display_filter_tx_color = value;
                     tx_filter_pen.Color = display_filter_tx_color;
@@ -2645,7 +2645,7 @@ namespace Thetis
             get { return display_background_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     display_background_color = value;
                     display_background_brush.Color = display_background_color;
@@ -2661,7 +2661,7 @@ namespace Thetis
             get { return tx_display_background_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     tx_display_background_color = value;
                     tx_display_background_brush.Color = tx_display_background_color;
@@ -2846,7 +2846,7 @@ namespace Thetis
             get { return _display_line_width; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     _display_line_width = value;
                     data_line_pen.Width = _display_line_width;
@@ -2860,7 +2860,7 @@ namespace Thetis
             get { return _tx_display_line_width; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     _tx_display_line_width = value;
                     tx_data_line_pen.Width = _tx_display_line_width;
@@ -2894,7 +2894,7 @@ namespace Thetis
             get { return phase_num_pts; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     phase_num_pts = value;
                 }
@@ -3129,7 +3129,7 @@ namespace Thetis
 
         private static void initDisplayArrays(int W, int H)
         {
-            lock (_objDX2Lock)
+            using (EnterDXLock())
             {
                 if (histogram_data != null) m_objIntPool.Return(histogram_data);
                 if (histogram_history != null) m_objIntPool.Return(histogram_history);
@@ -3347,7 +3347,7 @@ namespace Thetis
             //override for splitter pos, when only one rx and it is panafall
             if (!_rx2_enabled && current_display_mode == DisplayMode.PANAFALL) H = displayTargetHeight - PanafallSplitBarPos;
 
-            lock (_objDX2Lock)
+            using (EnterDXLock())
             {
                 if (_bDX2Setup)
                 {
@@ -3403,7 +3403,7 @@ namespace Thetis
             H /= 2; // it will always be
             int preservedRows = 0;
 
-            lock (_objDX2Lock)
+            using (EnterDXLock())
             {
                 if (_bDX2Setup)
                 {
@@ -3484,6 +3484,121 @@ namespace Thetis
         private static ID3D11Device _device;
         private static IDXGIFactory1 _factory1;
         private static readonly Object _objDX2Lock = new Object();
+
+        // All renderer-resource ownership is tracked through this monitor.  UI/setup
+        // code may still perform short synchronous mutations, but the render thread
+        // never waits indefinitely behind them.  The owner metadata makes every
+        // future lock stall attributable to a concrete caller instead of only
+        // reporting WAIT_DX_LOCK.
+        [ThreadStatic]
+        private static int _dxLockDepth;
+        private static volatile int _dxLockOwnerThread;
+        private static volatile string _dxLockOwnerName = "";
+        private static long _dxLockOwnerSinceTicks;
+
+        private sealed class DXLockScope : IDisposable
+        {
+            private bool _taken;
+            private readonly bool _outermost;
+            private readonly long _acquiredTicks;
+            private readonly string _owner;
+
+            internal DXLockScope(bool taken, bool outermost, long acquiredTicks, string owner)
+            {
+                _taken = taken;
+                _outermost = outermost;
+                _acquiredTicks = acquiredTicks;
+                _owner = owner ?? "?";
+            }
+
+            public void Dispose()
+            {
+                if (!_taken) return;
+                _taken = false;
+
+                try
+                {
+                    int newDepth = Math.Max(0, _dxLockDepth - 1);
+                    _dxLockDepth = newDepth;
+                    if (_outermost && newDepth == 0)
+                    {
+                        double heldMs = (Stopwatch.GetTimestamp() - _acquiredTicks) * 1000.0 / Stopwatch.Frequency;
+                        if (heldMs >= 100.0)
+                            GPUWaterfallLogger.Log("DX-LOCK-HOLD",
+                                "owner=" + _owner + " thread=" + Environment.CurrentManagedThreadId +
+                                " held=" + heldMs.ToString("F1") + "ms");
+
+                        _dxLockOwnerName = "";
+                        _dxLockOwnerThread = 0;
+                        Interlocked.Exchange(ref _dxLockOwnerSinceTicks, 0);
+                    }
+                }
+                finally
+                {
+                    Monitor.Exit(_objDX2Lock);
+                }
+            }
+        }
+
+        private static DXLockScope EnterDXLock([CallerMemberName] string owner = "")
+        {
+            long waitStart = Stopwatch.GetTimestamp();
+            Monitor.Enter(_objDX2Lock);
+            long acquired = Stopwatch.GetTimestamp();
+            bool outermost = _dxLockDepth++ == 0;
+
+            if (outermost)
+            {
+                _dxLockOwnerThread = Environment.CurrentManagedThreadId;
+                _dxLockOwnerName = owner ?? "?";
+                Interlocked.Exchange(ref _dxLockOwnerSinceTicks, acquired);
+            }
+
+            double waitMs = (acquired - waitStart) * 1000.0 / Stopwatch.Frequency;
+            if (waitMs >= 50.0)
+                GPUWaterfallLogger.Log("DX-LOCK-WAIT",
+                    "caller=" + owner + " thread=" + Environment.CurrentManagedThreadId +
+                    " waited=" + waitMs.ToString("F1") + "ms");
+
+            return new DXLockScope(true, outermost, acquired, owner);
+        }
+
+        private static bool TryEnterDXLock(int timeoutMs, out DXLockScope scope, [CallerMemberName] string owner = "")
+        {
+            scope = null;
+            long waitStart = Stopwatch.GetTimestamp();
+            if (!Monitor.TryEnter(_objDX2Lock, timeoutMs))
+                return false;
+
+            long acquired = Stopwatch.GetTimestamp();
+            bool outermost = _dxLockDepth++ == 0;
+            if (outermost)
+            {
+                _dxLockOwnerThread = Environment.CurrentManagedThreadId;
+                _dxLockOwnerName = owner ?? "?";
+                Interlocked.Exchange(ref _dxLockOwnerSinceTicks, acquired);
+            }
+
+            double waitMs = (acquired - waitStart) * 1000.0 / Stopwatch.Frequency;
+            if (waitMs >= 50.0)
+                GPUWaterfallLogger.Log("DX-LOCK-WAIT",
+                    "caller=" + owner + " thread=" + Environment.CurrentManagedThreadId +
+                    " waited=" + waitMs.ToString("F1") + "ms");
+
+            scope = new DXLockScope(true, outermost, acquired, owner);
+            return true;
+        }
+
+        private static string DescribeDXLockOwner()
+        {
+            int tid = _dxLockOwnerThread;
+            string name = _dxLockOwnerName;
+            long since = Interlocked.Read(ref _dxLockOwnerSinceTicks);
+            double heldMs = since > 0 ? (Stopwatch.GetTimestamp() - since) * 1000.0 / Stopwatch.Frequency : 0.0;
+            return "owner=" + (string.IsNullOrEmpty(name) ? "unknown" : name) +
+                   " thread=" + tid + " held=" + heldMs.ToString("F1") + "ms";
+        }
+
         private static Vector2 m_pixelShift = new Vector2(0.5f, 0.5f);
         private static int _nOldHeightRX1 = -1;
         private static int _nOldHeightRX2 = -1;
@@ -3502,6 +3617,14 @@ namespace Thetis
         private static bool m_bForceCPURendering = false;
         private static volatile bool m_bDXRestartPending = false;
         private static bool m_bWarpDowngradeAttempted = false;
+        // Renderer-side power tracking prevents a normal radio OFF->ON transition
+        // from tearing down the complete D3D11/D2D device graph.  The exact GPU
+        // waterfall source is reset separately; the visible compositor is retained.
+        private static bool _rendererPowerStateKnown = false;
+        private static bool _rendererLastPowerOn = false;
+        private static bool _visualStateKnown = false;
+        private static bool _lastObservedGpuMeshEnabled = false;
+        private static int _lastObservedVBlanks = -1;
         public static DXRenderPath RenderPath
         {
             get { return m_eRenderPath; }
@@ -3539,8 +3662,103 @@ namespace Thetis
         {
             GPUWaterfallLogger.Log("STATE", "RequestDXRestart setup=" + _bDX2Setup + " path=" + RenderPathString());
             if (!_bDX2Setup) return;
+
+            // A radio power transition does not change the renderer device, swapchain,
+            // adapter or target size.  Rebuilding the whole DX graph here previously
+            // created WAIT_DX_LOCK stalls and made a later EndDraw hang much harder to
+            // recover from.  Keep the compositor alive; the waterfall IQ/FFT source has
+            // its own reset path in the power handler.
+            if (console != null && _rendererPowerStateKnown &&
+                console.PowerOn && !_rendererLastPowerOn)
+            {
+                GPUWaterfallLogger.Log("POWER-DX",
+                    "POWER ON: suppressing full DX restart; renderer retained");
+                return;
+            }
+
             m_bDXRestartPending = true;
             m_bWarpDowngradeAttempted = false;
+        }
+
+        private static void ObserveRendererPowerState()
+        {
+            if (console == null) return;
+
+            bool powerOn = console.PowerOn;
+            if (!_rendererPowerStateKnown)
+            {
+                _rendererLastPowerOn = powerOn;
+                _rendererPowerStateKnown = true;
+                return;
+            }
+
+            if (powerOn == _rendererLastPowerOn) return;
+
+            bool oldPower = _rendererLastPowerOn;
+            _rendererLastPowerOn = powerOn;
+            GPUWaterfallLogger.Log("POWER-DX",
+                "renderer observed power " + oldPower + " -> " + powerOn);
+
+            // The exact GPU worker is process-lifetime and independent of the visible
+            // compositor.  Power transitions only enable/disable its IQ feed and
+            // reset ring credit; no D3D/D2D device teardown is performed here.
+            try
+            {
+                ResetExactGPUWaterfallSourceForModeChange(
+                    powerOn && _gpuWaterfallPipelineEnabled && !m_bForceCPURendering);
+            }
+            catch (Exception ex)
+            {
+                GPUWaterfallLogger.Log("WF-WORKER", "power transition reset failed: " + ex.Message);
+            }
+
+            // Covers the race where the UI queued RequestDXRestart immediately before
+            // this render tick observed the OFF->ON transition.
+            if (powerOn && m_bDXRestartPending)
+            {
+                m_bDXRestartPending = false;
+                m_bWarpDowngradeAttempted = false;
+                GPUWaterfallLogger.Log("POWER-DX",
+                    "POWER ON: cancelled pending full DX restart; renderer retained");
+            }
+        }
+
+        private static void ObserveVisualStateTransitions()
+        {
+            try
+            {
+                bool mesh = GpuMeshEnabled;
+                int vblanks = m_nVBlanks;
+
+                if (!_visualStateKnown)
+                {
+                    _lastObservedGpuMeshEnabled = mesh;
+                    _lastObservedVBlanks = vblanks;
+                    _visualStateKnown = true;
+                    GPUWaterfallLogger.Log("VISUAL-STATE",
+                        "initial GpuMeshEnabled=" + mesh + " VerticalBlanks=" + vblanks);
+                    return;
+                }
+
+                if (mesh != _lastObservedGpuMeshEnabled)
+                {
+                    bool old = _lastObservedGpuMeshEnabled;
+                    _lastObservedGpuMeshEnabled = mesh;
+                    GPUWaterfallLogger.Log("VISUAL-STATE",
+                        "observed GpuMeshEnabled " + old + " -> " + mesh);
+                }
+
+                if (vblanks != _lastObservedVBlanks)
+                {
+                    int old = _lastObservedVBlanks;
+                    _lastObservedVBlanks = vblanks;
+                    GPUWaterfallLogger.Log("VISUAL-STATE",
+                        "observed VerticalBlanks " + old + " -> " + vblanks);
+                }
+            }
+            catch
+            {
+            }
         }
 
         private static bool ProcessPendingDXRestartAfterFrame()
@@ -3588,73 +3806,91 @@ namespace Thetis
             }
         }
 
+        private static void ShutdownDXStage(string stage, Action action)
+        {
+            try
+            {
+                action();
+            }
+            catch (Exception ex)
+            {
+                GPUWaterfallLogger.Log("DX-SHUTDOWN", stage + " failed: " + ex.GetType().FullName + ": " + ex.Message);
+            }
+        }
+
         public static void ShutdownDX2D()
         {
             GPUWaterfallLogger.Log("DX", "ShutdownDX2D requested setup=" + _bDX2Setup + " path=" + RenderPathString());
-            GPUWaterfallLogger.RendererStopped();
-            lock (_objDX2Lock)
+
+            if (!TryEnterDXLock(1500, out DXLockScope shutdownScope, "ShutdownDX2D"))
             {
+                GPUWaterfallLogger.Log("DX-SHUTDOWN",
+                    "render lock timeout after 1500ms; teardown skipped; " + DescribeDXLockOwner());
+                return;
+            }
+
+            using (shutdownScope)
+            {
+                GPUWaterfallLogger.RendererStopped();
                 if (!_bDX2Setup) return;
 
+                GPUWaterfallLogger.Log("DX-SHUTDOWN", "begin native-owner teardown");
                 try
                 {
-                    if (_device != null && _device.ImmediateContext != null)
+                    ShutdownDXStage("ImmediateContext.ClearState/Flush", () =>
                     {
-                        _device.ImmediateContext.ClearState();
-                        _device.ImmediateContext.Flush();
-                    }
+                        if (_device != null && _device.ImmediateContext != null)
+                        {
+                            _device.ImmediateContext.ClearState();
+                            _device.ImmediateContext.Flush();
+                        }
+                    });
 
-                    releaseFonts();
-                    releaseDX2Resources();
-
-                    if (_bitmapBackground != null)
-                        _bitmapBackground?.Dispose();
+                    ShutdownDXStage("releaseFonts", () => releaseFonts());
+                    ShutdownDXStage("releaseDX2Resources", () => releaseDX2Resources());
+                    ShutdownDXStage("bitmapBackground", () => _bitmapBackground?.Dispose());
 
 #if SNOWFALL
-                    santaCleanUp();
+                    ShutdownDXStage("santaCleanUp", () => santaCleanUp());
 #endif
 
-                    _waterfall_bmp_dx2d?.Dispose();
-                    _waterfall_bmp2_dx2d?.Dispose();
-
-                    if (_pause_bitmap != null)
+                    ShutdownDXStage("waterfall_bmp_dx2d", () => _waterfall_bmp_dx2d?.Dispose());
+                    ShutdownDXStage("waterfall_bmp2_dx2d", () => _waterfall_bmp2_dx2d?.Dispose());
+                    ShutdownDXStage("pause_bitmap", () =>
                     {
                         _pause_bitmap?.Dispose();
                         _pause_bitmap = null;
-                    }
+                    });
+                    ShutdownDXStage("d2d target detach", () =>
+                    {
+                        if (_d2dDeviceContext != null) _d2dDeviceContext.Target = null;
+                    });
 
-                    if (_d2dDeviceContext != null) _d2dDeviceContext.Target = null;
+                    ShutdownDXStage("releaseGlowLayer", () => releaseGlowLayer());
+                    ShutdownDXStage("ReleaseGpuMeshDeviceObjects", () => ReleaseGpuMeshDeviceObjects());
+                    ShutdownDXStage("ReleaseWaterfallMeshObjects", () => ReleaseWaterfallMeshObjects());
+                    ShutdownDXStage("ReleaseSpectrumFillObjects", () => ReleaseSpectrumFillObjects());
+                    ShutdownDXStage("ReleaseSpectrumOverlayObjects", () => ReleaseSpectrumOverlayObjects());
+                    ShutdownDXStage("ReleaseComputeResources", () => ReleaseComputeResources());
+                    ShutdownDXStage("backBufferBitmap", () => _backBufferBitmap?.Dispose());
 
-                    releaseGlowLayer();
-
-                    // Managed SharpDX waterfall objects wrap this same COM device/context.
-                    // Retire them before releasing the Vortice side.
-                    ReleaseManagedGPUInteropForDXShutdown();
-
-                    ReleaseGpuMeshDeviceObjects();
-                    ReleaseWaterfallMeshObjects();
-                    ReleaseSpectrumFillObjects();
-                    ReleaseSpectrumOverlayObjects();
-                    ReleaseComputeResources();
-                    _backBufferBitmap?.Dispose();
                     _d2dRenderTarget = null;
-                    _d2dDeviceContext?.Dispose();
-                    _d2dDevice?.Dispose();
+                    ShutdownDXStage("d2dDeviceContext", () => _d2dDeviceContext?.Dispose());
+                    ShutdownDXStage("d2dDevice", () => _d2dDevice?.Dispose());
 
                     _backBufferBitmap = null;
                     _d2dDeviceContext = null;
                     _d2dDevice = null;
 
-                    _swapChain1?.Dispose();
-                    _swapChain?.Dispose();
-                    _surface?.Dispose();
-                    _d2dFactory?.Dispose();
-                    _factory1?.Dispose();
+                    ShutdownDXStage("swapChain1", () => _swapChain1?.Dispose());
+                    ShutdownDXStage("swapChain", () => _swapChain?.Dispose());
+                    ShutdownDXStage("surface", () => _surface?.Dispose());
+                    ShutdownDXStage("d2dFactory", () => _d2dFactory?.Dispose());
+                    ShutdownDXStage("factory1", () => _factory1?.Dispose());
 
                     _bitmapBackground = null;
                     _waterfall_bmp_dx2d = null;
                     _waterfall_bmp2_dx2d = null;
-
                     _d2dRenderTarget = null;
                     _swapChain1 = null;
                     _swapChain = null;
@@ -3662,21 +3898,24 @@ namespace Thetis
                     _d2dFactory = null;
                     _factory1 = null;
 
-                    if (_device != null && _device.ImmediateContext != null)
+                    ShutdownDXStage("device immediate context", () =>
                     {
-                        ID3D11DeviceContext dc = _device.ImmediateContext;
-                        dc?.Dispose();
-                        dc = null;
-                    }
-
-                    _device?.Dispose();
+                        if (_device != null && _device.ImmediateContext != null)
+                        {
+                            ID3D11DeviceContext dc = _device.ImmediateContext;
+                            dc?.Dispose();
+                        }
+                    });
+                    ShutdownDXStage("device", () => _device?.Dispose());
                     _device = null;
 
-                    _bDX2Setup = false;
+                    GPUWaterfallLogger.Log("DX-SHUTDOWN", "native-owner teardown complete; releasing managed GPU waterfall interop");
+                    ShutdownDXStage("managed GPU waterfall interop", () => ReleaseManagedGPUInteropForDXShutdown());
+                    GPUWaterfallLogger.Log("DX-SHUTDOWN", "complete");
                 }
-                catch (Exception e)
+                finally
                 {
-                    Common.ReportError("SDR-VST3 DirectX", "Problem Shutting Down DirectX !" + System.Environment.NewLine + System.Environment.NewLine + "[" + e.ToString() + "]", e);
+                    _bDX2Setup = false;
                 }
             }
         }
@@ -3756,7 +3995,7 @@ namespace Thetis
         //
         private static string getGPUNameInUse()
         {
-            lock (_objDX2Lock)
+            using (EnterDXLock())
             {
                 if (_bDX2Setup)
                 {
@@ -3781,7 +4020,7 @@ namespace Thetis
             GPUWaterfallLogger.Log("DX", "initDX2D requested driver=" + driverType +
                 " adaptor=" + (adaptorInfo == null ? "<default>" : adaptorInfo.Description) +
                 " setup=" + _bDX2Setup + " target=" + (displayTarget != null));
-            lock (_objDX2Lock)
+            using (EnterDXLock())
             {
                 if (_bDX2Setup || displayTarget == null) return;
 
@@ -4178,7 +4417,7 @@ namespace Thetis
         }
         public static int DXVersion()
         {
-            lock (_objDX2Lock)
+            using (EnterDXLock())
             {
                 if (!_bDX2Setup) return -1;
 
@@ -4207,7 +4446,7 @@ namespace Thetis
             // used to reset the FPS on the swapChain
             try
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     if (!_bDX2Setup) return;
                     ModeDescription modeDesc = new ModeDescription((uint)displayTargetWidth, (uint)displayTargetHeight,
@@ -4233,7 +4472,7 @@ namespace Thetis
         {
             try
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     if (!_bDX2Setup)
                     {
@@ -4309,7 +4548,7 @@ namespace Thetis
             {
                 bool resetBmp = false;
 
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     resetBmp = value != m_fPanafallSplitPerc;
                     m_fPanafallSplitPerc = value;
@@ -4352,7 +4591,7 @@ namespace Thetis
 
         private static void setupAliasing()
         {
-            lock (_objDX2Lock)
+            using (EnterDXLock())
             {
                 if (!_bDX2Setup) return;
 
@@ -4379,7 +4618,7 @@ namespace Thetis
             get { return _paused_display; }
             set 
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     _old_paused_display = _paused_display;
                     _paused_display = value;
@@ -4456,7 +4695,15 @@ namespace Thetis
             GPUWaterfallLogger.FrameEnter("WAIT_DX_LOCK");
             try
             {
-                lock (_objDX2Lock)
+                if (!TryEnterDXLock(8, out DXLockScope renderScope, "RenderDX2D"))
+                {
+                    GPUWaterfallLogger.LogRateLimited("DX-LOCK-SKIP", "render", 500,
+                        "render frame skipped after 8ms; " + DescribeDXLockOwner());
+                    GPUWaterfallLogger.FrameEnd("DX_LOCK_BUSY_SKIP");
+                    return;
+                }
+
+                using (renderScope)
                 {
                     GPUWaterfallLogger.FrameStage("DX_LOCK_ACQUIRED");
                     if (!_bDX2Setup)
@@ -4464,6 +4711,9 @@ namespace Thetis
                         GPUWaterfallLogger.FrameEnd("DX_NOT_SETUP");
                         return;
                     }
+
+                    ObserveRendererPowerState();
+                    ObserveVisualStateTransitions();
 
                     m_dElapsedFrameStart = _high_perf_timer.ElapsedMsec;
                     calcFps();
@@ -4474,9 +4724,13 @@ namespace Thetis
                         " gpuEffects=" + _gpuEffectsEnabled +
                         " gpuPipeline=" + _gpuWaterfallPipelineEnabled +
                         " exactGPU=" + ExactNativeGPURequested +
-                        " compute=" + GpuComputeEnabled +
+                        " managedGPU=" + ManagedGPUFFTRequested +
+                        " computeRequested=" + GpuComputeEnabled +
+                        " computeArmed=" + ComputeArmed +
+                        " wfMeshArmed=" + WfMeshArmed +
+                        " overlayArmed=" + OverlayMeshArmed +
                         " pan3D=" + _pan3DEnabled +
-                        " mesh3D=" + GpuMeshEnabled +
+                        " mesh3DRequested=" + GpuMeshEnabled +
                         " fft=" + _gpuWaterfallFFTSize +
                         " overlap=" + _gpuWaterfallOverlapPercent +
                         " autoOverlap=" + _gpuWaterfallAutoOverlap +
@@ -4486,21 +4740,25 @@ namespace Thetis
                     _bNoiseFloorAlreadyCalculatedRX1 = false; // keeps track of noise floor processing, only want to do it once, even if pana + water shown
                     _bNoiseFloorAlreadyCalculatedRX2 = false;
 
-                    // Tier 3 GPU mesh passes (3D surface + waterfall): drawn straight
-                    // into the backbuffer BEFORE the D2D frame begins. When any pass
-                    // succeeds, the D2D clear + background fill below are skipped so
-                    // the GPU content survives; grid, text, traces and all overlays
-                    // still come from D2D on top.
+                    // Preserve the SDR-VST3 3D bandscope mesh exactly as the reference
+                    // implementation.  All SQ4KOU waterfall additions are isolated from
+                    // this shared backbuffer: only the original 3D pre-pass may draw
+                    // before the main D2D BeginDraw.
                     _bGpuBackdropDone = false;
                     GpuMesh3DOwnerRX = 0;
                     GPUWaterfallLogger.FrameStage("GPU_3D");
                     _b3DMeshDrewFrame = RenderGpuMesh3D();
-                    GPUWaterfallLogger.FrameStage("GPU_WATERFALL_MESH");
-                    _bWfMeshDrewFrame = RenderGpuWaterfall();
+                    // Stability contract: GPU FFT stays on the dedicated native
+                    // device, while visible waterfall history/presentation stays in
+                    // the normal D2D bitmap path.  Do not render a waterfall mesh into
+                    // the shared swapchain immediate context.
+                    GPUWaterfallLogger.FrameStage("GPU_WATERFALL_STABLE_D2D");
+                    _bWfMeshDrewFrame = false;
                     ClearWaterfallPaneCaptures();
 
                     GPUWaterfallLogger.FrameStage("D2D_BEGIN");
                     _d2dRenderTarget.BeginDraw();
+                    GPUWaterfallLogger.FrameStage("D2D_DRAW");
 
                     if (_paused_display && _pause_bitmap != null)
                     {
@@ -4914,6 +5172,7 @@ namespace Thetis
                             "result=" + r + " code=" + r.Code + " retry=" + _dx_fail_retry +
                             " path=" + RenderPathString());
                     else
+                    {
                         GPUWaterfallLogger.LogRateLimited("PRESENT-OK", "ok", 1000,
                             "code=" + r.Code +
                             " path=" + RenderPathString() +
@@ -4921,6 +5180,19 @@ namespace Thetis
                             " band3D=" + _b3DMeshDrewFrame +
                             " wfMesh=" + _bWfMeshDrewFrame +
                             " specMesh=" + SpecMeshWasUsedThisFrame);
+
+                        // Output-side probe: sample the client area actually visible to
+                        // the operator after Present, not only internal renderer state.
+                        try
+                        {
+                            if (displayTarget != null && displayTarget.IsHandleCreated)
+                                GPUWaterfallLogger.QueueVisualProbe(displayTarget.Handle, displayTargetWidth, displayTargetHeight);
+                        }
+                        catch
+                        {
+                            // Diagnostics must never destabilise the renderer.
+                        }
+                    }
 
                     if (r.Failure && !(
                         r == Vortice.DXGI.ResultCode.WasStillDrawing/*0x887A000A*/ ||
@@ -5033,7 +5305,13 @@ namespace Thetis
                 int v = value;
                 if (v < 0) v = 0;
                 if (v > 4) v = 4;
-                m_nVBlanks = v;
+                if (v != m_nVBlanks)
+                {
+                    int old = m_nVBlanks;
+                    m_nVBlanks = v;
+                    GPUWaterfallLogger.Log("VISUAL-STATE",
+                        "VerticalBlanks " + old + " -> " + v + Environment.NewLine + Environment.StackTrace);
+                }
             }
         }
 
@@ -6335,6 +6613,14 @@ namespace Thetis
                 // touched, mirroring the D2D strokes it replaces. Any failure leaves the
                 // D2D peak strokes in the column loop untouched (GPU fallback 1).
                 bool bOverlayMesh = false;
+                GPUWaterfallLogger.LogRateLimited("OVL-STATE", "rx" + rx, 1000,
+                    "rx=" + rx +
+                    " enabled=" + GpuOverlayEnabled +
+                    " peakHold=" + bSpectralPeakHold +
+                    " peaks=" + (spectralPeaks == null ? "null" : spectralPeaks.Length.ToString()) +
+                    " draw3D=" + draw3DHistory +
+                    " specFillMesh=" + bSpecFillMesh +
+                    " panFill=" + pan_fill);
                 if (bSpectralPeakHold && spectralPeaks != null &&
                     (draw3DHistory || bSpecFillMesh || !pan_fill))
                 {
@@ -8539,9 +8825,11 @@ namespace Thetis
             Matrix3x2 originalTransform = _d2dRenderTarget.Transform;
             _d2dRenderTarget.Transform = Matrix3x2.Identity;
 
-            // Tier 3 GPU mesh waterfall: record this pane's geometry for the next
-            // frame's pre-BeginDraw presentation pass
-            CaptureWaterfallPaneParams(nVerticalShift, W, H, rx);
+            // The shared-backbuffer waterfall mesh is stability-gated off. Keep the
+            // capture hook conditional so dormant experimental code cannot accumulate
+            // presentation state in the stable D2D path.
+            if (WfMeshArmed)
+                CaptureWaterfallPaneParams(nVerticalShift, W, H, rx);
 
             if (waterfall_data == null || waterfall_data.Length < W)
             {
@@ -9944,6 +10232,8 @@ namespace Thetis
                     }
                 }
 
+                GPUWaterfallLogger.SetVisualWaterfallLayout(rx, nVerticalShift + 20, H - 20);
+
                 // Presentation priority is strict: full GPU Waterfall -> optional
                 // legacy mesh -> classic D2D fallback. This prevents two waterfall
                 // histories from being composited on top of each other.
@@ -9997,7 +10287,7 @@ namespace Thetis
 
         public static void SetDX2BackgoundImage(System.Drawing.Image image)
         {
-            lock (_objDX2Lock)
+            using (EnterDXLock())
             {
                 if (!_bDX2Setup) return;
 
@@ -10517,7 +10807,7 @@ namespace Thetis
         }
         private static void buildDX2Resources()
         {
-            lock (_objDX2Lock)
+            using (EnterDXLock())
             {
                 if (!_bDX2Setup) return;
 
@@ -10654,7 +10944,7 @@ namespace Thetis
         }
         private static void buildFontsDX2D()
         {
-            lock (_objDX2Lock)
+            using (EnterDXLock())
             {
                 if (!_bDX2Setup) return;
 
@@ -13999,7 +14289,7 @@ namespace Thetis
 
         public static void PurgeBuffers()
         {
-            lock (_objDX2Lock)
+            using (EnterDXLock())
             { 
                 clearBuffers(displayTargetWidth, 1);
                 if (_rx2_enabled) clearBuffers(displayTargetWidth, 2);
@@ -14221,7 +14511,7 @@ namespace Thetis
         }
         public static void SetSantaGif(System.Drawing.Image image)
         {
-            lock (_objDX2Lock)
+            using (EnterDXLock())
             {
                 if (!_bDX2Setup) return;
                 if (image== null) return;
