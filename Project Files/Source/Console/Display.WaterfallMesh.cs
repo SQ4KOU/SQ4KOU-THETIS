@@ -109,7 +109,10 @@ namespace Thetis
                 bool supportedDepth =
                     WaterfallEnhancer.Depth == WaterfallEnhancer.ColorDepth.Bit8 ||
                     WaterfallEnhancer.Depth == WaterfallEnhancer.ColorDepth.Bit16;
-                return supportedDepth && GpuComputeEnabled && ExactNativeGPURequested &&
+                // This is the new native Vortice waterfall owner.  It must not
+                // depend on GpuComputeEnabled, which belongs to the old experimental
+                // readback compute path and may legitimately be persisted OFF.
+                return supportedDepth && ExactNativeGPURequested &&
                     !m_bForceCPURendering &&
                     m_eRenderPath == DXRenderPath.Hardware && _device != null && _bDX2Setup;
             }
