@@ -539,17 +539,45 @@ namespace Thetis
         }
 
         private static bool _pan3DEnabled = false;
+        private static int _pan3DNativeWarmupFrames = 0;
         public static bool Pan3DEnabled
         {
             get { return _pan3DEnabled; }
             set
             {
-                _pan3DEnabled = value;
-                if (!value)
+                if (_pan3DEnabled == value) return;
+
+                // Pan3D is toggled from the UI thread while RenderDX2D owns all
+                // D2D/D3D resources on the render thread.  Serialize the transition
+                // with the same lock used by the frame body so history counters,
+                // backbuffer RTV state and captured mesh parameters cannot change
+                // underneath an active native pass.
+                lock (_objDX2Lock)
                 {
+                    bool old = _pan3DEnabled;
+                    _pan3DEnabled = value;
+
+                    // A toggle starts a fresh 3D history.  Reusing rows captured
+                    // before the mode transition can feed stale dimensions/indices
+                    // to the first native frame after re-enable.
                     _3dHistoryCount = 0;
                     _3dHistoryHead = 0;
                     _3dMedianCount = 0;
+                    _3dLastPushTicks = 0;
+
+                    // Force a fresh backbuffer RTV and fresh frame parameters.
+                    // This is intentionally frame-state only; shaders/buffers remain
+                    // cached and are reused after the guarded warm-up.
+                    ReleaseGpuMeshFrameState();
+                    GpuMesh3DOwnerRX = 0;
+
+                    // Give D2D two complete frames to repopulate history and capture
+                    // current geometry before native D3D11 ownership resumes.
+                    _pan3DNativeWarmupFrames = value ? 2 : 0;
+
+                    GPUWaterfallLogger.Log("PAN3D-STATE",
+                        old + " -> " + value +
+                        " historyReset=True nativeWarmup=" + _pan3DNativeWarmupFrames);
                 }
             }
         }
@@ -4523,6 +4551,16 @@ namespace Thetis
                     GPUWaterfallLogger.FrameStage("GPU_WATERFALL_MESH");
                     _bWfMeshDrewFrame = RenderGpuWaterfall();
                     ClearWaterfallPaneCaptures();
+
+                    // D3D11 native passes must relinquish all pipeline bindings before
+                    // Direct2D resumes ownership of the same swapchain surface.
+                    // Leaving the backbuffer RTV/SRVs bound worked during steady-state
+                    // rendering but produced a native SEH on the OFF->ON 3D transition.
+                    if (_b3DMeshDrewFrame || _bWfMeshDrewFrame)
+                    {
+                        GPUWaterfallLogger.FrameStage("GPU_TO_D2D_HANDOFF");
+                        PrepareNativePassForD2D();
+                    }
 
                     GPUWaterfallLogger.FrameStage("D2D_BEGIN");
                     _d2dRenderTarget.BeginDraw();
