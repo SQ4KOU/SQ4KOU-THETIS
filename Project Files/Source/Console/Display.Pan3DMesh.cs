@@ -100,19 +100,7 @@ namespace Thetis
         #region GPU mesh public control
 
         /// <summary>Experimental Tier 3 GPU mesh 3D surface toggle (session only).</summary>
-        private static bool _gpuMeshEnabled = true;
-        public static bool GpuMeshEnabled
-        {
-            get { return _gpuMeshEnabled; }
-            set
-            {
-                if (_gpuMeshEnabled == value) return;
-                bool old = _gpuMeshEnabled;
-                _gpuMeshEnabled = value;
-                GPUWaterfallLogger.Log("VISUAL-STATE",
-                    "GpuMeshEnabled " + old + " -> " + value + Environment.NewLine + Environment.StackTrace);
-            }
-        }
+        public static bool GpuMeshEnabled { get; set; } = true;
 
         private static void CaptureMeshFrameParams(int nVerticalShift, int W, int H, int rx, int nDecimatedWidth, int local_Decimation, int grid_min, int grid_max)
         {
