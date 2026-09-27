@@ -698,7 +698,7 @@ namespace Thetis
                 // for this frame's DrawLine (SEHException inside d2d1). The frame body
                 // holds _objDX2Lock for its entire duration, so taking it here makes
                 // disposal wait for frame end; the next frame recreates lazily.
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     if (m_bDX2_3d_fill_brush != null)
                     {
@@ -800,7 +800,7 @@ namespace Thetis
                 current_display_mode_bottom = value;
                 if (bDifferent)
                 {
-                    lock (_objDX2Lock)
+                    using (EnterDXLock())
                     {
                         clearBuffers(displayTargetWidth, 2);
                     }
@@ -1353,7 +1353,7 @@ namespace Thetis
             get { return displayTarget; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     _cpu = Common.GetCpuName();
                     //List<string> gpus = Common.GetGpuNames();
@@ -1453,7 +1453,7 @@ namespace Thetis
             set
             {
                 int old = m_nDecimation;
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     m_nDecimation = value;
                 }
@@ -1829,7 +1829,7 @@ namespace Thetis
             get { return _mox; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     if (value != _old_mox)
                     {
@@ -1904,7 +1904,7 @@ namespace Thetis
 
                 if (bDifferent)
                 {
-                    lock (_objDX2Lock)
+                    using (EnterDXLock())
                     {
                         clearBuffers(displayTargetWidth, 1);
                     }
@@ -2201,7 +2201,7 @@ namespace Thetis
             get { return band_edge_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     band_edge_color = value;
                     band_edge_pen.Color = band_edge_color;
@@ -2217,7 +2217,7 @@ namespace Thetis
             get { return tx_band_edge_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     tx_band_edge_color = value;
                     tx_band_edge_pen.Color = tx_band_edge_color;
@@ -2233,7 +2233,7 @@ namespace Thetis
             get { return sub_rx_zero_line_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     sub_rx_zero_line_color = value;
                     sub_rx_zero_line_pen.Color = sub_rx_zero_line_color;
@@ -2249,7 +2249,7 @@ namespace Thetis
             get { return sub_rx_filter_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     sub_rx_filter_color = value;
                     sub_rx_filter_brush.Color = sub_rx_filter_color;
@@ -2266,7 +2266,7 @@ namespace Thetis
             get { return grid_text_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     grid_text_color = value;
                     grid_text_brush.Color = grid_text_color;
@@ -2283,7 +2283,7 @@ namespace Thetis
             get { return grid_tx_text_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     grid_tx_text_color = value;
                     grid_tx_text_brush.Color = grid_tx_text_color;
@@ -2299,7 +2299,7 @@ namespace Thetis
             get { return grid_zero_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     grid_zero_color = value;
                     grid_zero_pen.Color = grid_zero_color;
@@ -2315,7 +2315,7 @@ namespace Thetis
             get { return tx_grid_zero_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     tx_grid_zero_color = value;
                     tx_grid_zero_pen.Color = tx_grid_zero_color;
@@ -2331,7 +2331,7 @@ namespace Thetis
             get { return grid_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     grid_color = value;
                     grid_pen.Color = grid_color;
@@ -2347,7 +2347,7 @@ namespace Thetis
             get { return tx_vgrid_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     tx_vgrid_color = value;
                     tx_vgrid_pen.Color = tx_vgrid_color;
@@ -2364,7 +2364,7 @@ namespace Thetis
             get { return hgrid_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     hgrid_color = value;
                     hgrid_pen.Color = hgrid_color;
@@ -2381,7 +2381,7 @@ namespace Thetis
             get { return tx_hgrid_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     tx_hgrid_color = value;
                     tx_hgrid_pen.Color = tx_hgrid_color;
@@ -2405,7 +2405,7 @@ namespace Thetis
             get { return data_fill_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     data_fill_color = value;
                     data_fill_fpen.Color = data_fill_color;
@@ -2418,7 +2418,7 @@ namespace Thetis
             get { return data_fill_color_tx; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     data_fill_color_tx = value;
                     data_fill_fpen_tx.Color = data_fill_color_tx;
@@ -2431,7 +2431,7 @@ namespace Thetis
             get { return dataPeaks_fill_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     dataPeaks_fill_color = value;
                     dataPeaks_fill_fpen.Color = dataPeaks_fill_color;
@@ -2446,7 +2446,7 @@ namespace Thetis
             get { return data_line_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     data_line_color = value;
                     data_line_pen.Color = data_line_color;
@@ -2463,7 +2463,7 @@ namespace Thetis
             get { return tx_data_line_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     tx_data_line_color = value;
                     tx_data_line_pen.Color = tx_data_line_color;
@@ -2480,7 +2480,7 @@ namespace Thetis
             get { return grid_pen_dark; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     grid_pen_dark = value;
                     grid_pen_inb.Color = grid_pen_dark;
@@ -2496,7 +2496,7 @@ namespace Thetis
             get { return tx_vgrid_pen_fine; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     tx_vgrid_pen_fine = value;
                     tx_vgrid_pen_inb.Color = tx_vgrid_pen_fine;
@@ -2514,7 +2514,7 @@ namespace Thetis
             get { return bandstack_overlay_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     bandstack_overlay_color = value;
                     bandstack_overlay_brush.Color = bandstack_overlay_color;
@@ -2533,7 +2533,7 @@ namespace Thetis
             get { return display_filter_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     display_filter_color = value;
                     display_filter_brush.Color = display_filter_color;
@@ -2550,7 +2550,7 @@ namespace Thetis
             get { return tx_filter_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     tx_filter_color = value;
                     tx_filter_brush.Color = tx_filter_color;
@@ -2577,7 +2577,7 @@ namespace Thetis
             get { return noisefloor_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     noisefloor_color = value;
                     buildDX2Resources();
@@ -2590,7 +2590,7 @@ namespace Thetis
             get { return noisefloor_color_text; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     noisefloor_color_text = value;
                     buildDX2Resources();
@@ -2629,7 +2629,7 @@ namespace Thetis
             get { return display_filter_tx_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     display_filter_tx_color = value;
                     tx_filter_pen.Color = display_filter_tx_color;
@@ -2645,7 +2645,7 @@ namespace Thetis
             get { return display_background_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     display_background_color = value;
                     display_background_brush.Color = display_background_color;
@@ -2661,7 +2661,7 @@ namespace Thetis
             get { return tx_display_background_color; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     tx_display_background_color = value;
                     tx_display_background_brush.Color = tx_display_background_color;
@@ -2846,7 +2846,7 @@ namespace Thetis
             get { return _display_line_width; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     _display_line_width = value;
                     data_line_pen.Width = _display_line_width;
@@ -2860,7 +2860,7 @@ namespace Thetis
             get { return _tx_display_line_width; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     _tx_display_line_width = value;
                     tx_data_line_pen.Width = _tx_display_line_width;
@@ -2894,7 +2894,7 @@ namespace Thetis
             get { return phase_num_pts; }
             set
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     phase_num_pts = value;
                 }
@@ -3129,7 +3129,7 @@ namespace Thetis
 
         private static void initDisplayArrays(int W, int H)
         {
-            lock (_objDX2Lock)
+            using (EnterDXLock())
             {
                 if (histogram_data != null) m_objIntPool.Return(histogram_data);
                 if (histogram_history != null) m_objIntPool.Return(histogram_history);
@@ -3347,7 +3347,7 @@ namespace Thetis
             //override for splitter pos, when only one rx and it is panafall
             if (!_rx2_enabled && current_display_mode == DisplayMode.PANAFALL) H = displayTargetHeight - PanafallSplitBarPos;
 
-            lock (_objDX2Lock)
+            using (EnterDXLock())
             {
                 if (_bDX2Setup)
                 {
@@ -3403,7 +3403,7 @@ namespace Thetis
             H /= 2; // it will always be
             int preservedRows = 0;
 
-            lock (_objDX2Lock)
+            using (EnterDXLock())
             {
                 if (_bDX2Setup)
                 {
@@ -3484,6 +3484,121 @@ namespace Thetis
         private static ID3D11Device _device;
         private static IDXGIFactory1 _factory1;
         private static readonly Object _objDX2Lock = new Object();
+
+        // All renderer-resource ownership is tracked through this monitor.  UI/setup
+        // code may still perform short synchronous mutations, but the render thread
+        // never waits indefinitely behind them.  The owner metadata makes every
+        // future lock stall attributable to a concrete caller instead of only
+        // reporting WAIT_DX_LOCK.
+        [ThreadStatic]
+        private static int _dxLockDepth;
+        private static volatile int _dxLockOwnerThread;
+        private static volatile string _dxLockOwnerName = "";
+        private static long _dxLockOwnerSinceTicks;
+
+        private sealed class DXLockScope : IDisposable
+        {
+            private bool _taken;
+            private readonly bool _outermost;
+            private readonly long _acquiredTicks;
+            private readonly string _owner;
+
+            internal DXLockScope(bool taken, bool outermost, long acquiredTicks, string owner)
+            {
+                _taken = taken;
+                _outermost = outermost;
+                _acquiredTicks = acquiredTicks;
+                _owner = owner ?? "?";
+            }
+
+            public void Dispose()
+            {
+                if (!_taken) return;
+                _taken = false;
+
+                try
+                {
+                    int newDepth = Math.Max(0, _dxLockDepth - 1);
+                    _dxLockDepth = newDepth;
+                    if (_outermost && newDepth == 0)
+                    {
+                        double heldMs = (Stopwatch.GetTimestamp() - _acquiredTicks) * 1000.0 / Stopwatch.Frequency;
+                        if (heldMs >= 100.0)
+                            GPUWaterfallLogger.Log("DX-LOCK-HOLD",
+                                "owner=" + _owner + " thread=" + Environment.CurrentManagedThreadId +
+                                " held=" + heldMs.ToString("F1") + "ms");
+
+                        _dxLockOwnerName = "";
+                        _dxLockOwnerThread = 0;
+                        Interlocked.Exchange(ref _dxLockOwnerSinceTicks, 0);
+                    }
+                }
+                finally
+                {
+                    Monitor.Exit(_objDX2Lock);
+                }
+            }
+        }
+
+        private static DXLockScope EnterDXLock([CallerMemberName] string owner = "")
+        {
+            long waitStart = Stopwatch.GetTimestamp();
+            Monitor.Enter(_objDX2Lock);
+            long acquired = Stopwatch.GetTimestamp();
+            bool outermost = _dxLockDepth++ == 0;
+
+            if (outermost)
+            {
+                _dxLockOwnerThread = Environment.CurrentManagedThreadId;
+                _dxLockOwnerName = owner ?? "?";
+                Interlocked.Exchange(ref _dxLockOwnerSinceTicks, acquired);
+            }
+
+            double waitMs = (acquired - waitStart) * 1000.0 / Stopwatch.Frequency;
+            if (waitMs >= 50.0)
+                GPUWaterfallLogger.Log("DX-LOCK-WAIT",
+                    "caller=" + owner + " thread=" + Environment.CurrentManagedThreadId +
+                    " waited=" + waitMs.ToString("F1") + "ms");
+
+            return new DXLockScope(true, outermost, acquired, owner);
+        }
+
+        private static bool TryEnterDXLock(int timeoutMs, out DXLockScope scope, [CallerMemberName] string owner = "")
+        {
+            scope = null;
+            long waitStart = Stopwatch.GetTimestamp();
+            if (!Monitor.TryEnter(_objDX2Lock, timeoutMs))
+                return false;
+
+            long acquired = Stopwatch.GetTimestamp();
+            bool outermost = _dxLockDepth++ == 0;
+            if (outermost)
+            {
+                _dxLockOwnerThread = Environment.CurrentManagedThreadId;
+                _dxLockOwnerName = owner ?? "?";
+                Interlocked.Exchange(ref _dxLockOwnerSinceTicks, acquired);
+            }
+
+            double waitMs = (acquired - waitStart) * 1000.0 / Stopwatch.Frequency;
+            if (waitMs >= 50.0)
+                GPUWaterfallLogger.Log("DX-LOCK-WAIT",
+                    "caller=" + owner + " thread=" + Environment.CurrentManagedThreadId +
+                    " waited=" + waitMs.ToString("F1") + "ms");
+
+            scope = new DXLockScope(true, outermost, acquired, owner);
+            return true;
+        }
+
+        private static string DescribeDXLockOwner()
+        {
+            int tid = _dxLockOwnerThread;
+            string name = _dxLockOwnerName;
+            long since = Interlocked.Read(ref _dxLockOwnerSinceTicks);
+            double heldMs = since > 0 ? (Stopwatch.GetTimestamp() - since) * 1000.0 / Stopwatch.Frequency : 0.0;
+            return "owner=" + (string.IsNullOrEmpty(name) ? "unknown" : name) +
+                   " thread=" + tid + " held=" + heldMs.ToString("F1") + "ms";
+        }
+
         private static Vector2 m_pixelShift = new Vector2(0.5f, 0.5f);
         private static int _nOldHeightRX1 = -1;
         private static int _nOldHeightRX2 = -1;
@@ -3694,31 +3809,21 @@ namespace Thetis
         {
             GPUWaterfallLogger.Log("DX", "ShutdownDX2D requested setup=" + _bDX2Setup + " path=" + RenderPathString());
 
-            bool shutdownLockTaken = false;
-            try
+            if (!TryEnterDXLock(1500, out DXLockScope shutdownScope, "ShutdownDX2D"))
             {
-                if (!Monitor.TryEnter(_objDX2Lock, 1500))
-                {
-                    GPUWaterfallLogger.Log("DX-SHUTDOWN",
-                        "render lock timeout after 1500ms; teardown skipped so UI shutdown cannot deadlock behind a stuck EndDraw");
-                    return;
-                }
-                shutdownLockTaken = true;
-                GPUWaterfallLogger.RendererStopped();
+                GPUWaterfallLogger.Log("DX-SHUTDOWN",
+                    "render lock timeout after 1500ms; teardown skipped; " + DescribeDXLockOwner());
+                return;
+            }
 
-                lock (_objDX2Lock)
-                {
+            using (shutdownScope)
+            {
+                GPUWaterfallLogger.RendererStopped();
                 if (!_bDX2Setup) return;
 
                 GPUWaterfallLogger.Log("DX-SHUTDOWN", "begin native-owner teardown");
                 try
                 {
-                    // Keep the SDR-VST3/Vortice owner teardown order intact.  The
-                    // SharpDX waterfall layer is a non-owning interop client of these
-                    // COM objects and must be retired only AFTER the Vortice owner has
-                    // finished releasing its own references.  Releasing the SharpDX
-                    // wrappers first could invalidate the following Vortice Dispose()
-                    // calls and was the source of the SharpGen SEH shutdown dialog.
                     ShutdownDXStage("ImmediateContext.ClearState/Flush", () =>
                     {
                         if (_device != null && _device.ImmediateContext != null)
@@ -3730,7 +3835,6 @@ namespace Thetis
 
                     ShutdownDXStage("releaseFonts", () => releaseFonts());
                     ShutdownDXStage("releaseDX2Resources", () => releaseDX2Resources());
-
                     ShutdownDXStage("bitmapBackground", () => _bitmapBackground?.Dispose());
 
 #if SNOWFALL
@@ -3739,13 +3843,11 @@ namespace Thetis
 
                     ShutdownDXStage("waterfall_bmp_dx2d", () => _waterfall_bmp_dx2d?.Dispose());
                     ShutdownDXStage("waterfall_bmp2_dx2d", () => _waterfall_bmp2_dx2d?.Dispose());
-
                     ShutdownDXStage("pause_bitmap", () =>
                     {
                         _pause_bitmap?.Dispose();
                         _pause_bitmap = null;
                     });
-
                     ShutdownDXStage("d2d target detach", () =>
                     {
                         if (_d2dDeviceContext != null) _d2dDeviceContext.Target = null;
@@ -3800,16 +3902,8 @@ namespace Thetis
                 }
                 finally
                 {
-                    // Never leave the renderer marked as set up after a partial COM
-                    // teardown.  The next init must create a clean device graph.
                     _bDX2Setup = false;
                 }
-            }
-            }
-            finally
-            {
-                if (shutdownLockTaken)
-                    Monitor.Exit(_objDX2Lock);
             }
         }
 
@@ -3888,7 +3982,7 @@ namespace Thetis
         //
         private static string getGPUNameInUse()
         {
-            lock (_objDX2Lock)
+            using (EnterDXLock())
             {
                 if (_bDX2Setup)
                 {
@@ -3913,7 +4007,7 @@ namespace Thetis
             GPUWaterfallLogger.Log("DX", "initDX2D requested driver=" + driverType +
                 " adaptor=" + (adaptorInfo == null ? "<default>" : adaptorInfo.Description) +
                 " setup=" + _bDX2Setup + " target=" + (displayTarget != null));
-            lock (_objDX2Lock)
+            using (EnterDXLock())
             {
                 if (_bDX2Setup || displayTarget == null) return;
 
@@ -4310,7 +4404,7 @@ namespace Thetis
         }
         public static int DXVersion()
         {
-            lock (_objDX2Lock)
+            using (EnterDXLock())
             {
                 if (!_bDX2Setup) return -1;
 
@@ -4339,7 +4433,7 @@ namespace Thetis
             // used to reset the FPS on the swapChain
             try
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     if (!_bDX2Setup) return;
                     ModeDescription modeDesc = new ModeDescription((uint)displayTargetWidth, (uint)displayTargetHeight,
@@ -4365,7 +4459,7 @@ namespace Thetis
         {
             try
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     if (!_bDX2Setup)
                     {
@@ -4441,7 +4535,7 @@ namespace Thetis
             {
                 bool resetBmp = false;
 
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     resetBmp = value != m_fPanafallSplitPerc;
                     m_fPanafallSplitPerc = value;
@@ -4484,7 +4578,7 @@ namespace Thetis
 
         private static void setupAliasing()
         {
-            lock (_objDX2Lock)
+            using (EnterDXLock())
             {
                 if (!_bDX2Setup) return;
 
@@ -4511,7 +4605,7 @@ namespace Thetis
             get { return _paused_display; }
             set 
             {
-                lock (_objDX2Lock)
+                using (EnterDXLock())
                 {
                     _old_paused_display = _paused_display;
                     _paused_display = value;
@@ -4588,7 +4682,15 @@ namespace Thetis
             GPUWaterfallLogger.FrameEnter("WAIT_DX_LOCK");
             try
             {
-                lock (_objDX2Lock)
+                if (!TryEnterDXLock(8, out DXLockScope renderScope, "RenderDX2D"))
+                {
+                    GPUWaterfallLogger.LogRateLimited("DX-LOCK-SKIP", "render", 500,
+                        "render frame skipped after 8ms; " + DescribeDXLockOwner());
+                    GPUWaterfallLogger.FrameEnd("DX_LOCK_BUSY_SKIP");
+                    return;
+                }
+
+                using (renderScope)
                 {
                     GPUWaterfallLogger.FrameStage("DX_LOCK_ACQUIRED");
                     if (!_bDX2Setup)
@@ -10172,7 +10274,7 @@ namespace Thetis
 
         public static void SetDX2BackgoundImage(System.Drawing.Image image)
         {
-            lock (_objDX2Lock)
+            using (EnterDXLock())
             {
                 if (!_bDX2Setup) return;
 
@@ -10692,7 +10794,7 @@ namespace Thetis
         }
         private static void buildDX2Resources()
         {
-            lock (_objDX2Lock)
+            using (EnterDXLock())
             {
                 if (!_bDX2Setup) return;
 
@@ -10829,7 +10931,7 @@ namespace Thetis
         }
         private static void buildFontsDX2D()
         {
-            lock (_objDX2Lock)
+            using (EnterDXLock())
             {
                 if (!_bDX2Setup) return;
 
@@ -14174,7 +14276,7 @@ namespace Thetis
 
         public static void PurgeBuffers()
         {
-            lock (_objDX2Lock)
+            using (EnterDXLock())
             { 
                 clearBuffers(displayTargetWidth, 1);
                 if (_rx2_enabled) clearBuffers(displayTargetWidth, 2);
@@ -14396,7 +14498,7 @@ namespace Thetis
         }
         public static void SetSantaGif(System.Drawing.Image image)
         {
-            lock (_objDX2Lock)
+            using (EnterDXLock())
             {
                 if (!_bDX2Setup) return;
                 if (image== null) return;
