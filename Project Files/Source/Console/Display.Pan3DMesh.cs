@@ -100,19 +100,7 @@ namespace Thetis
         #region GPU mesh public control
 
         /// <summary>Experimental Tier 3 GPU mesh 3D surface toggle (session only).</summary>
-        private static bool _gpuMeshEnabled = true;
-        public static bool GpuMeshEnabled
-        {
-            get { return _gpuMeshEnabled; }
-            set
-            {
-                if (_gpuMeshEnabled == value) return;
-                bool old = _gpuMeshEnabled;
-                _gpuMeshEnabled = value;
-                GPUWaterfallLogger.Log("VISUAL-STATE",
-                    "GpuMeshEnabled " + old + " -> " + value + Environment.NewLine + Environment.StackTrace);
-            }
-        }
+        public static bool GpuMeshEnabled { get; set; } = true;
 
         private static void CaptureMeshFrameParams(int nVerticalShift, int W, int H, int rx, int nDecimatedWidth, int local_Decimation, int grid_min, int grid_max)
         {
@@ -331,42 +319,6 @@ namespace Thetis
         // at the top of every frame in RenderDX2D before the mesh dispatches.
         private static bool _bGpuBackdropDone;
 
-        /// <summary>
-        /// Explicit ownership boundary before any Direct2D access to the DXGI
-        /// backbuffer.  Pan3D uses the same D3D11 immediate context/backbuffer as
-        /// Direct2D; leaving the RTV or mesh SRVs bound lets a later BeginDraw race
-        /// the previous D3D state and can produce partial frames or a hard hang.
-        /// Do targeted unbinding only -- never ClearState() in the live frame.
-        /// </summary>
-        private static void ReleasePan3DBackbufferForD2D(ID3D11DeviceContext dc, string stage)
-        {
-            if (dc == null) return;
-
-            GPUWaterfallLogger.FrameStage(stage);
-
-            // Mesh textures are still referenced by VS/PS after DrawIndexed.
-            // Release them before Direct2D takes over the same immediate context.
-            dc.VSSetShaderResource(0, (ID3D11ShaderResourceView)null);
-            dc.PSSetShaderResource(0, (ID3D11ShaderResourceView)null);
-            dc.PSSetShaderResource(1, (ID3D11ShaderResourceView)null);
-
-            // Most importantly: the DXGI backbuffer must no longer be owned by OM
-            // when Direct2D begins drawing to that surface.
-            dc.OMSetRenderTargets(new[] { (ID3D11RenderTargetView)null }, null);
-
-            // Remove live mesh shaders as an additional ownership fence. D2D will
-            // install the state it needs on BeginDraw.
-            dc.VSSetShader(null);
-            dc.PSSetShader(null);
-
-            // Queue the unbinds before the following D2D call. Flush does not wait
-            // for the GPU, but preserves submission order without a blocking query.
-            dc.Flush();
-
-            GPUWaterfallLogger.LogRateLimited("DX-HANDOFF", stage, 1000,
-                "Pan3D released RTV/SRV/shaders before D2D");
-        }
-
         private static void EnsureGpuBackdrop(ID3D11DeviceContext dc)
         {
             if (_bGpuBackdropDone || _meshRTV == null) return;
@@ -374,14 +326,10 @@ namespace Thetis
 
             if (_bitmapBackground != null)
             {
-                // The background prepass is Direct2D. Ensure no D3D11 backbuffer
-                // binding from the current or previous frame survives into it.
-                ReleasePan3DBackbufferForD2D(dc, "PAN3D_BG_HANDOFF");
                 DrawSkinBackgroundPrepass();
             }
             else
             {
-                dc.OMSetRenderTargets(new[] { _meshRTV }, null);
                 dc.ClearRenderTargetView(_meshRTV, new Color4(
                     m_cDX2_display_background_clear_colour.R,
                     m_cDX2_display_background_clear_colour.G,
@@ -735,13 +683,16 @@ namespace Thetis
 
                 dc.IASetInputLayout(_meshIL);
                 dc.IASetPrimitiveTopology(Vortice.Direct3D.PrimitiveTopology.TriangleList);
+                // CRITICAL: bind the render target to the output-merger stage -
+                // without this every fragment is discarded (clear works regardless)
+                dc.OMSetRenderTargets(new[] { _meshRTV }, null);
 
                 if (_bitmapBackground != null)
                 {
-                    // Draw the D2D skin first while D3D owns no backbuffer RTV, then
-                    // take explicit D3D ownership for the Pan3D pass.
+                    // skin image drawn by the shared backdrop step (once per frame
+                    // across all mesh passes); repaint ONLY the plot strip with a
+                    // scissored opaque quad so the 3D scene sits on flat background
                     EnsureGpuBackdrop(dc);
-                    dc.OMSetRenderTargets(new[] { _meshRTV }, null);
 
                     dc.RSSetState(_meshRSScissor);
                     dc.RSSetScissorRects(new[] { new Vortice.RawRect(0, (int)_meshParams.Shift,
@@ -837,7 +788,7 @@ namespace Thetis
                     dc.IASetPrimitiveTopology(Vortice.Direct3D.PrimitiveTopology.TriangleList);
                     dc.DrawIndexed(quadsPerRow, (uint)(r * quadsPerRow), 0);
                 }
-                ReleasePan3DBackbufferForD2D(dc, "PAN3D_TO_D2D");
+                dc.Flush();
 
                 if (!_meshFailedLogged)
                 {
@@ -850,13 +801,6 @@ namespace Thetis
             catch (Exception e)
             {
                 Common.MeshDiagLog("GPU mesh render failed - falling back to D2D lines : " + e.Message);
-                try
-                {
-                    ReleasePan3DBackbufferForD2D(_device?.ImmediateContext, "PAN3D_FAIL_TO_D2D");
-                }
-                catch
-                {
-                }
                 ReleaseGpuMeshDeviceObjects();
                 ReleaseGpuMeshFrameState();
                 return false;
@@ -900,15 +844,11 @@ namespace Thetis
                     rectDest = new System.Drawing.RectangleF(0, 0, displayTargetWidth, displayTargetHeight);
                 }
 
-                GPUWaterfallLogger.FrameStage("PAN3D_BG_D2D_BEGIN");
                 _d2dRenderTarget.BeginDraw();
-                GPUWaterfallLogger.FrameStage("PAN3D_BG_D2D_DRAW");
                 _d2dRenderTarget.DrawBitmap(_bitmapBackground,
                     new Vortice.RawRectF(rectDest.X, rectDest.Y, rectDest.Right, rectDest.Bottom),
                     1f, BitmapInterpolationMode.Linear, null);
-                GPUWaterfallLogger.FrameStage("PAN3D_BG_D2D_END");
                 _d2dRenderTarget.EndDraw();
-                GPUWaterfallLogger.FrameStage("PAN3D_DRAW");
             }
             catch (Exception e)
             {
