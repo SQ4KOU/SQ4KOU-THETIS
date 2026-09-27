@@ -113,7 +113,15 @@ namespace Thetis
 
         private static bool OverlayMeshArmed
         {
-            get { return GpuOverlayEnabled && m_eRenderPath == DXRenderPath.Hardware && _device != null && _bDX2Setup; }
+            get
+            {
+                // Shared-backbuffer D3D work inside an active D2D BeginDraw can
+                // deadlock in EndDraw on the common immediate context.  Keep the
+                // visual peak/hold overlay functional through its existing D2D
+                // fallback while the experimental shared-backbuffer gate is off.
+                return ExperimentalSharedBackbufferMeshesEnabled && GpuOverlayEnabled &&
+                    m_eRenderPath == DXRenderPath.Hardware && _device != null && _bDX2Setup;
+            }
         }
 
         /// <summary>Releases the D2D-side wrappers only - used on render-target
