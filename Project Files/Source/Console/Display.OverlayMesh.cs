@@ -109,16 +109,11 @@ namespace Thetis
 
         /// <summary>Master toggle. Session-only like its siblings; the D2D peak
         /// strokes are always the fallback.</summary>
-        public static bool GpuOverlayEnabled { get; set; } = false;
+        public static bool GpuOverlayEnabled { get; set; } = true;
 
         private static bool OverlayMeshArmed
         {
-            get
-            {
-                return ExperimentalSharedBackbufferMeshesEnabled && GpuOverlayEnabled &&
-                    !m_bForceCPURendering && m_eRenderPath == DXRenderPath.Hardware &&
-                    _device != null && _bDX2Setup;
-            }
+            get { return GpuOverlayEnabled && m_eRenderPath == DXRenderPath.Hardware && _device != null && _bDX2Setup; }
         }
 
         /// <summary>Releases the D2D-side wrappers only - used on render-target
