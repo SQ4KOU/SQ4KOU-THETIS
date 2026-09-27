@@ -65,18 +65,13 @@ $newBg = @'
 '@
 $d = Replace-Between $d $bgStart $bgEnd $newBg "native background block"
 
-$powerAnchor = @'
-        public static void RequestDXRestart()
-        {
-            GPUWaterfallLogger.Log("STATE", "RequestDXRestart setup=" + _bDX2Setup + " path=" + RenderPathString());
-            if (!_bDX2Setup) return;
-            m_bDXRestartPending = true;
-            m_bWarpDowngradeAttempted = false;
-        }
-'@
-if (-not $d.Contains('public static void OnRadioPowerChanged(bool oldPower, bool newPower)')) {
-    $powerMethod = @'
+$powerMethodStart = '        public static void OnRadioPowerChanged(bool oldPower, bool newPower)'
+if (-not $d.Contains($powerMethodStart)) {
+    $powerInsertBefore = '        private static bool ProcessPendingDXRestartAfterFrame()'
+    $pi = $d.IndexOf($powerInsertBefore, [StringComparison]::Ordinal)
+    if ($pi -lt 0) { throw "Missing insertion anchor: radio power lifecycle" }
 
+    $powerMethod = @'
         public static void OnRadioPowerChanged(bool oldPower, bool newPower)
         {
             GPUWaterfallLogger.Log("POWER-DX",
@@ -86,8 +81,6 @@ if (-not $d.Contains('public static void OnRadioPowerChanged(bool oldPower, bool
                 " pipeline=" + _gpuWaterfallPipelineEnabled +
                 " forceCPU=" + m_bForceCPURendering);
 
-            // POWER OFF stops Audio/xcmaster. Do not leave exact-IQ credit or
-            // Pan3D input state armed across that discontinuity.
             try
             {
                 ResetExactGPUWaterfallSourceForModeChange(
@@ -110,10 +103,6 @@ if (-not $d.Contains('public static void OnRadioPowerChanged(bool oldPower, bool
                 return;
             }
 
-            // Treat POWER ON as a new native-render session. Audio.Start() has
-            // already completed before PowerChangeHandlers fires. Recreate all
-            // shared D2D/D3D resources only after the active frame reaches Present,
-            // never synchronously on the UI thread.
             _native3DCircuitOpen = false;
             _nativeWfCircuitOpen = false;
             _native3DGoodFrames = 0;
@@ -124,8 +113,9 @@ if (-not $d.Contains('public static void OnRadioPowerChanged(bool oldPower, bool
             GPUWaterfallLogger.Log("POWER-DX",
                 "POWER ON: exact source reset + deferred full DX restart requested");
         }
+
 '@
-    $d = Insert-After $d $powerAnchor $powerMethod "radio power lifecycle"
+    $d = $d.Substring(0, $pi) + $powerMethod + $d.Substring($pi)
 }
 
 $boundaryStart = '        private static void SharedContextBoundary(string label)'
@@ -179,25 +169,23 @@ if (-not $d.Contains('ShutdownDXStage("ReleaseNativeBackgroundResources"')) {
 Write-Norm $displayPath $d
 
 $c = Read-Norm $consolePath
-$onPowerOld = @'
-        private void OnPowerChangeHander(bool oldPower, bool newPower)
-        {
-            if (newPower)
-            {
-'@
-$onPowerNew = @'
-        private void OnPowerChangeHander(bool oldPower, bool newPower)
-        {
+if (-not $c.Contains('Display.OnRadioPowerChanged(oldPower, newPower);')) {
+    $methodStart = '        private void OnPowerChangeHander(bool oldPower, bool newPower)'
+    $ms = $c.IndexOf($methodStart, [StringComparison]::Ordinal)
+    if ($ms -lt 0) { throw "Missing OnPowerChangeHander" }
+
+    $ifPower = '            if (newPower)'
+    $ip = $c.IndexOf($ifPower, $ms, [StringComparison]::Ordinal)
+    if ($ip -lt 0) { throw "Missing newPower branch in OnPowerChangeHander" }
+
+    $hook = @'
             GPUWaterfallLogger.Log("POWER",
                 "PowerChangeHandlers " + oldPower + " -> " + newPower +
                 " DataFlowing=" + DataFlowing);
             Display.OnRadioPowerChanged(oldPower, newPower);
 
-            if (newPower)
-            {
 '@
-if (-not $c.Contains('Display.OnRadioPowerChanged(oldPower, newPower);')) {
-    $c = Replace-Between $c $onPowerOld '                // reset meter pixel historory when powering up' ($onPowerNew + '                // reset meter pixel historory when powering up' + "`n") "OnPowerChangeHander lifecycle hook"
+    $c = $c.Substring(0, $ip) + $hook + $c.Substring($ip)
 }
 Write-Norm $consolePath $c
 
