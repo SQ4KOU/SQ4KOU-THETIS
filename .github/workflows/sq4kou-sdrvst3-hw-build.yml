@@ -6,6 +6,9 @@ on:
       - feature/sdr-vst3-sq4kou-hw
       - feature/sdr-vst3-full-gpu-waterfall-ff62
       - fix/sdr-vst3-overlay-shutdown-20260927
+  pull_request:
+    branches:
+      - feature/sdr-vst3-full-gpu-waterfall-ff62
   workflow_dispatch:
 
 permissions:
