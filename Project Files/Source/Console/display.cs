@@ -4643,6 +4643,7 @@ namespace Thetis
 
                     GPUWaterfallLogger.FrameStage("D2D_BEGIN");
                     _d2dRenderTarget.BeginDraw();
+                    GPUWaterfallLogger.FrameStage("D2D_DRAW");
 
                     if (_paused_display && _pause_bitmap != null)
                     {
