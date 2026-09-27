@@ -4534,8 +4534,9 @@ namespace Thetis
         }
 
         // Renderer stability policy: one graphics API owns the shared immediate
-        // context at a time. Native D3D11 work is restricted to the pre-BeginDraw
-        // phase; no D3D11 draw/compute is allowed while the main D2D frame is active.
+        // context at a time. There is exactly one D2D BeginDraw/EndDraw pair per frame.
+        // Native D3D11 work is restricted to the pre-BeginDraw phase; no D3D11
+        // draw/compute is allowed while the main D2D frame is active.
         private const bool NativeD3DInsideMainD2DAllowed = false;
 
         // Per-session circuit breakers. A transient slow native pass is allowed during
@@ -4652,15 +4653,36 @@ namespace Thetis
                     bool nativeWfCandidate =
                         !_nativeWfCircuitOpen && WfMeshArmed;
 
-                    if (_bitmapBackground != null && (native3DCandidate || nativeWfCandidate))
+                    if (native3DCandidate || nativeWfCandidate)
                     {
-                        GPUWaterfallLogger.FrameStage("D2D_BG_PREPASS");
-                        DrawSkinBackgroundPrepass();
-                        SharedContextBoundary("d2d-bg-to-native");
+                        // Stability rule: exactly ONE Direct2D BeginDraw/EndDraw pair
+                        // per frame.  The old background prepass opened a second D2D
+                        // frame before native D3D11 work and eventually blocked inside
+                        // that prepass.  Native passes now begin from a D3D11 clear.
+                        GPUWaterfallLogger.FrameStage("GPU_BG_CLEAR");
+                        SharedContextBoundary("frame-start-d2d-to-native");
 
-                        // Suppress the legacy nested D2D backdrop helper inside the
-                        // native mesh passes; the bitmap has already been drawn.
-                        _bGpuBackdropDone = true;
+                        if (EnsureMeshRTV(_device))
+                        {
+                            _device.ImmediateContext.ClearRenderTargetView(
+                                _meshRTV,
+                                new Color4(
+                                    m_cDX2_display_background_clear_colour.R,
+                                    m_cDX2_display_background_clear_colour.G,
+                                    m_cDX2_display_background_clear_colour.B,
+                                    1f));
+
+                            // Prevent Pan3D/Waterfall EnsureGpuBackdrop() from invoking
+                            // the legacy DrawSkinBackgroundPrepass() D2D mini-frame.
+                            _bGpuBackdropDone = true;
+
+                            if (_bitmapBackground != null)
+                            {
+                                GPUWaterfallLogger.LogRateLimited(
+                                    "STABILITY", "native-bg-solid", 5000,
+                                    "native frame uses solid background; D2D skin prepass disabled");
+                            }
+                        }
                     }
 
                     // ---- strict phase 2: native D3D11 only ----
