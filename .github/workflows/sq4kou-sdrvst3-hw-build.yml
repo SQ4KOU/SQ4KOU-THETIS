@@ -7,6 +7,7 @@ on:
       - feature/sdr-vst3-full-gpu-waterfall-ff62
       - fix/sdr-vst3-overlay-shutdown-20260927
       - feature/native-vortice-waterfall-20260927
+      - fix/native-vortice-pan3d-toggle-20260927
   workflow_dispatch:
 
 permissions:
