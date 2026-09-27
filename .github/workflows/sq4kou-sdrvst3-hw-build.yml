@@ -9,6 +9,7 @@ on:
       - feature/native-vortice-waterfall-20260927
       - fix/native-vortice-pan3d-toggle-20260927
       - stability/renderer-phase-isolation-20260927
+      - stability/single-d2d-frame-20260927
   workflow_dispatch:
 
 permissions:
