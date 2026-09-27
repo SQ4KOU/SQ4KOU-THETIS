@@ -242,8 +242,12 @@ namespace Thetis
 
                 if (!ok)
                 {
+                    // Do not leave stale GPU history owning presentation after a
+                    // failed prepass. The classic D2D bitmap was kept current in the
+                    // previous frame specifically so it can take over immediately.
+                    SetOwns(p.Rx, false);
                     GPUWaterfallLogger.LogRateLimited("WF-NATIVE-FAIL", "queue-rx" + p.Rx, 1000,
-                        "RX" + p.Rx + " queued prepass dispatch declined");
+                        "RX" + p.Rx + " queued prepass dispatch declined; fallback=classicD2D");
                 }
             }
 
