@@ -62,6 +62,8 @@ internal static class GPUWaterfallLogger
     private static string _causeWfPath = "none";
     private static bool _causePresentOk;
     private static int _causePresentCode;
+    private static string _lastCauseSignature = "";
+    private static long _lastCauseEmitTicks;
 
     // Output-side diagnostics.  Internal "Draw/Present OK" does not prove that the
     // operator actually received the expected pixels.  A low-rate worker samples the
@@ -220,12 +222,9 @@ internal static class GPUWaterfallLogger
         _causePresentOk = ok;
     }
 
-    private static void EmitCausalFrame(string endReason)
+    private static string CausalSnapshot(string endReason)
     {
-        if (!_causeActive) return;
-        _causeActive = false;
-        Log("FRAME-CAUSE",
-            "seq=" + Interlocked.Read(ref _frameSeq) +
+        return "seq=" + Interlocked.Read(ref _frameSeq) +
             " end=" + endReason +
             " power=" + _causePower +
             " panReq=" + _causePanRequested +
@@ -240,7 +239,33 @@ internal static class GPUWaterfallLogger
             " wfPath=" + _causeWfPath +
             " wfPresented=" + _causeWfPresented +
             " presentOk=" + _causePresentOk +
-            " presentCode=" + _causePresentCode);
+            " presentCode=" + _causePresentCode;
+    }
+
+    private static void EmitCausalFrame(string endReason)
+    {
+        if (!_causeActive) return;
+        _causeActive = false;
+
+        string signature =
+            _causePower + "|" + _causePanRequested + "|" + _causePanDrew + "|" +
+            _causePanReason + "|" + _causeBackdrop + "|" + _causeWfSeen + "|" +
+            _causeWfPresented + "|" + _causeWfPath + "|" + _causePresentOk + "|" + _causePresentCode;
+
+        long now = Stopwatch.GetTimestamp();
+        bool anomaly = endReason != "PRESENT_OK" ||
+                       (_causePower && _causePanRequested && !_causePanDrew) ||
+                       (_causePower && _causeWfSeen && !_causeWfPresented) ||
+                       !_causePresentOk;
+        bool changed = !string.Equals(signature, _lastCauseSignature, StringComparison.Ordinal);
+        bool heartbeat = _lastCauseEmitTicks == 0 || (now - _lastCauseEmitTicks) >= Stopwatch.Frequency;
+
+        if (anomaly || changed || heartbeat)
+        {
+            _lastCauseSignature = signature;
+            _lastCauseEmitTicks = now;
+            Log("FRAME-CAUSE", CausalSnapshot(endReason));
+        }
     }
 
     public static void FrameEnter(string stage)
@@ -738,7 +763,7 @@ internal static class GPUWaterfallLogger
                 if (ms >= 1200.0 && seq != Interlocked.Read(ref _lastWatchdogFrameSeq))
                 {
                     Interlocked.Exchange(ref _lastWatchdogFrameSeq, seq);
-                    WriteBatch($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} [WATCHDOG] STALL frame={seq} elapsed={ms:F0}ms thread={_frameThreadId} stage={_frameStage}{Environment.NewLine}");
+                    WriteBatch($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} [WATCHDOG] STALL frame={seq} elapsed={ms:F0}ms thread={_frameThreadId} stage={_frameStage} cause={CausalSnapshot("IN_PROGRESS")}{Environment.NewLine}");
                     // Do not force CopyFromScreen while the renderer is already stalled:
                     // the GDI/DWM synchronization can extend the stall we are measuring.
                     LogRateLimited("VISUAL-PROBE", "watchdog-no-capture", 5000,

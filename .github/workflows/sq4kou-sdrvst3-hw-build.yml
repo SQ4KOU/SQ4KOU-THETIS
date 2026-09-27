@@ -10,6 +10,7 @@ on:
       - fix/power-resume-no-reset-20260927
       - fix/render-continuity-no-full-clear-20260927
       - fix/causal-render-logger-20260927
+      - fix/deep-render-stability-20260927
   pull_request:
     branches:
       - feature/sdr-vst3-full-gpu-waterfall-ff62
@@ -122,8 +123,14 @@ jobs:
           if (-not $logger.Contains("FRAME-CAUSE") -or
               -not $logger.Contains("CausalPan3D") -or
               -not $logger.Contains("CausalWaterfall") -or
-              -not $logger.Contains("CausalPresent")) {
-            throw "Causal per-frame renderer logger contract is missing"
+              -not $logger.Contains("CausalPresent") -or
+              -not $logger.Contains("CausalSnapshot")) {
+            throw "Causal renderer logger contract is missing"
+          }
+          if (-not $display.Contains('FrameStage("WF_D2D_SNAPSHOT")') -or
+              -not $display.Contains('FrameStage("WF_D2D_SCROLL_COPY")') -or
+              -not $display.Contains('FrameStage("WF_D2D_PRESENT_RX1")')) {
+            throw "Fine-grained D2D waterfall stall stages are missing"
           }
           if ($display.Contains("QueueVisualProbe(displayTarget.Handle")) {
             throw "Desktop CopyFromScreen probe is still active in the Present path"
@@ -134,7 +141,13 @@ jobs:
             throw "Power OFF waterfall-history freeze contract is missing"
           }
 
-          Write-Host "PASS: reference Pan3D unchanged; exact GPU FFT isolated; shared-context experimental paths gated; renderer lock bounded/tracked; diagnostics non-interfering; power transitions preserve visible waterfall history"
+          $nativeWf = Get-Content "Project Files/Source/ChannelMaster/gpu_waterfall_exact.cpp" -Raw
+          if (-not $nativeWf.Contains("SetGPUThreadPriority(-7)") -or
+              -not $nativeWf.Contains("D3D11_MAP_FLAG_DO_NOT_WAIT")) {
+            throw "Background exact-GPU priority/nonblocking readback contract is missing"
+          }
+
+          Write-Host "PASS: reference Pan3D unchanged; exact GPU FFT isolated/deprioritized; readback nonblocking; shared-context experimental paths gated; renderer diagnostics low-impact"
 
       - name: Verify SQ4KOU native and exact GPU waterfall exports
         shell: pwsh

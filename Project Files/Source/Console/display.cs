@@ -4800,14 +4800,7 @@ namespace Thetis
                     _d2dRenderTarget.Transform = t;
 
                     RectangleF rectDest = new RectangleF(0, 0, displayTargetWidth, displayTargetHeight);
-                    // Once Pan3D is requested, never full-clear the shared backbuffer just
-                    // because one mesh pre-pass missed a frame. The previous 3D surface is
-                    // retained and D2D overlays/waterfall continue updating. A transient
-                    // band3D=false must not become a full-screen Bandscope/Waterfall flash.
-                    bool pan3DOwnsBackdrop = _pan3DEnabled && GpuMeshEnabled &&
-                                             !m_bForceCPURendering &&
-                                             m_eRenderPath == DXRenderPath.Hardware;
-                    if (!_b3DMeshDrewFrame && !pan3DOwnsBackdrop && !_bWfMeshDrewFrame)
+                    if (!_b3DMeshDrewFrame && !_bWfMeshDrewFrame)
                     {
                         GPUWaterfallLogger.CausalBackdrop("FULL_CLEAR");
                         //always clear without using alpha
@@ -4848,8 +4841,7 @@ namespace Thetis
                     else
                     {
                         GPUWaterfallLogger.CausalBackdrop(
-                            _b3DMeshDrewFrame ? "PAN3D_FRAME" :
-                            (pan3DOwnsBackdrop ? "RETAIN_PREVIOUS_PAN3D" : "WF_MESH_FRAME"));
+                            _b3DMeshDrewFrame ? "PAN3D_FRAME" : "WF_MESH_FRAME");
                     }
 
                     // LINEAR BRUSH BUILDING
@@ -4984,8 +4976,11 @@ namespace Thetis
                                 {
                                     m_nRX1DisplayHeight = (int)(displayTargetHeight * m_fPanafallSplitPerc);
                                     split_display = PanafallSplitBarPos <= (displayTargetHeight / 2);
+                                    GPUWaterfallLogger.FrameStage("D2D_PANADAPTER_RX1");
                                     DrawPanadapterDX2D(0, displayTargetWidth, m_nRX1DisplayHeight, 1, false, _pan3DEnabled);
+                                    GPUWaterfallLogger.FrameStage("D2D_WATERFALL_RX1");
                                     DrawWaterfallDX2D(PanafallSplitBarPos, displayTargetWidth, displayTargetHeight - m_nRX1DisplayHeight, 1, true);
+                                    GPUWaterfallLogger.FrameStage("D2D_POST_WATERFALL_RX1");
                                     if (_showTCISpots) drawSpots(1, 0, displayTargetWidth, false);
                                     split_display = false;
                                 }
@@ -10186,8 +10181,10 @@ namespace Thetis
                             clearWaterfallBitmapRegion(waterfallBitmap, 0, 0, W, (int)waterfallBitmap.Size.Height);
                         }
 
+                        GPUWaterfallLogger.FrameStage("WF_D2D_CREATE_SCRATCH");
                         topPixels = _d2dRenderTarget.CreateBitmap(new Vortice.Mathematics.SizeI((int)waterfallBitmap.Size.Width, preservedBitmapHeight), IntPtr.Zero, 0, new BitmapProperties(new SDXPixelFormat(waterfallBitmap.PixelFormat.Format, ALPHA_MODE)));
 
+                        GPUWaterfallLogger.FrameStage("WF_D2D_SNAPSHOT");
                         topPixels.CopyFromBitmap(new System.Drawing.Point(0, 0), waterfallBitmap, new System.Drawing.Rectangle(0, 0, (int)topPixels.Size.Width, preservedBitmapHeight));
                     }
 
@@ -10195,6 +10192,7 @@ namespace Thetis
                     {
                         if (addRow)
                         {
+                            GPUWaterfallLogger.FrameStage("WF_D2D_UPLOAD_ROW");
                             waterfallBitmap.CopyFromMemory(new System.Drawing.Rectangle(0, 0, W, 1), row, (uint)(W * pixel_size));
                         }
 
@@ -10204,6 +10202,7 @@ namespace Thetis
                         {
                             int sourceX = horizontalShiftPixels < 0 ? -horizontalShiftPixels : 0;
                             int destX = horizontalShiftPixels > 0 ? horizontalShiftPixels : 0;
+                            GPUWaterfallLogger.FrameStage("WF_D2D_SCROLL_COPY");
                             waterfallBitmap.CopyFromBitmap(new System.Drawing.Point(destX, shiftedRowTop), topPixels,
                                 new System.Drawing.Rectangle(sourceX, 0, copyWidth, preservedBitmapHeight));
                         }
@@ -10304,6 +10303,7 @@ namespace Thetis
                     causalPresented = true;
                     if (rx == 1)
                     {
+                        GPUWaterfallLogger.FrameStage("WF_D2D_PRESENT_RX1");
                         _d2dRenderTarget.DrawBitmap(_waterfall_bmp_dx2d, new RectangleF(0, nVerticalShift + 20, _waterfall_bmp_dx2d.Size.Width, _waterfall_bmp_dx2d.Size.Height), m_fRX1WaterfallOpacity, BitmapInterpolationMode.NearestNeighbor, null);
                     }
                     else

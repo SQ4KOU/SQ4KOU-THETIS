@@ -1,6 +1,7 @@
 #define NOMINMAX
 #include <Windows.h>
 #include <d3d11.h>
+#include <dxgi.h>
 #include <stdint.h>
 #include <math.h>
 #include <stdio.h>
@@ -346,6 +347,15 @@ extern "C" __declspec(dllexport) int __cdecl CM_GPUWaterfallExact_Init(int chann
     }
     if (FAILED(hr)) { s.Release(); return 0; }
 
+    // This is a background waterfall-compute device. Never let it compete at the
+    // same scheduling priority as the interactive SDR-VST3 swapchain/3D bandscope.
+    IDXGIDevice* dxgiDevice = 0;
+    if (SUCCEEDED(s.device->QueryInterface(__uuidof(IDXGIDevice), (void**)&dxgiDevice)) && dxgiDevice)
+    {
+        dxgiDevice->SetGPUThreadPriority(-7);
+        dxgiDevice->Release();
+    }
+
     s.fftSize = fftSize;
     s.displayWidth = displayWidth;
     s.bits = Log2Pow2((unsigned)fftSize);
@@ -522,8 +532,14 @@ extern "C" __declspec(dllexport) int __cdecl CM_GPUWaterfallExact_Process(
 
     s.context->CopyResource(s.magStaging, s.mag);
     D3D11_MAPPED_SUBRESOURCE mapped = {};
-    HRESULT hr = s.context->Map(s.magStaging, 0, D3D11_MAP_READ, 0, &mapped);
-    if (FAILED(hr) || !mapped.pData) return -3;
+    HRESULT hr = s.context->Map(s.magStaging, 0, D3D11_MAP_READ, D3D11_MAP_FLAG_DO_NOT_WAIT, &mapped);
+    if (hr == DXGI_ERROR_WAS_STILL_DRAWING) return 0;
+    if (FAILED(hr) || !mapped.pData)
+    {
+        HRESULT removed = s.device ? s.device->GetDeviceRemovedReason() : E_FAIL;
+        if (FAILED(removed)) { s.Release(); return -30; }
+        return -3;
+    }
     memcpy(outputDb, mapped.pData, (size_t)s.displayWidth * sizeof(float));
     s.context->Unmap(s.magStaging, 0);
     return 1;
@@ -579,8 +595,14 @@ extern "C" __declspec(dllexport) int __cdecl CM_GPUWaterfallExact_RenderRow(
 
     s.context->CopyResource(s.rowStaging, s.rowTexture);
     D3D11_MAPPED_SUBRESOURCE mapped = {};
-    HRESULT hr = s.context->Map(s.rowStaging, 0, D3D11_MAP_READ, 0, &mapped);
-    if (FAILED(hr) || !mapped.pData) return -4;
+    HRESULT hr = s.context->Map(s.rowStaging, 0, D3D11_MAP_READ, D3D11_MAP_FLAG_DO_NOT_WAIT, &mapped);
+    if (hr == DXGI_ERROR_WAS_STILL_DRAWING) return 0;
+    if (FAILED(hr) || !mapped.pData)
+    {
+        HRESULT removed = s.device ? s.device->GetDeviceRemovedReason() : E_FAIL;
+        if (FAILED(removed)) { s.Release(); return -31; }
+        return -4;
+    }
     memcpy(outputBGRA, mapped.pData, (size_t)s.displayWidth * 4u);
     s.context->Unmap(s.rowStaging, 0);
     ++s.ditherRow;
