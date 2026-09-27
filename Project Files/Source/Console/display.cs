@@ -565,6 +565,26 @@ namespace Thetis
                     _3dMedianCount = 0;
                     _3dLastPushTicks = 0;
 
+                    // Relinquish every native D3D11 binding while the render
+                    // lock is exclusively held.  The previous native 3D frame may
+                    // have left the swapchain RTV/SRVs bound even though no native
+                    // pass will run on the first OFF frame.
+                    if (_device != null && _device.ImmediateContext != null && _bDX2Setup)
+                    {
+                        try
+                        {
+                            _device.ImmediateContext.ClearState();
+                            _device.ImmediateContext.Flush();
+                            GPUWaterfallLogger.Log("PAN3D-HANDOFF",
+                                "ClearState+Flush at toggle " + old + " -> " + value);
+                        }
+                        catch (Exception ex)
+                        {
+                            GPUWaterfallLogger.Log("PAN3D-HANDOFF-FAIL",
+                                ex.GetType().FullName + ": " + ex.Message);
+                        }
+                    }
+
                     // Force a fresh backbuffer RTV and fresh frame parameters.
                     // This is intentionally frame-state only; shaders/buffers remain
                     // cached and are reused after the guarded warm-up.
