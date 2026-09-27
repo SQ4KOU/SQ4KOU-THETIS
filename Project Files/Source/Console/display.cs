@@ -5014,6 +5014,7 @@ namespace Thetis
                             "result=" + r + " code=" + r.Code + " retry=" + _dx_fail_retry +
                             " path=" + RenderPathString());
                     else
+                    {
                         GPUWaterfallLogger.LogRateLimited("PRESENT-OK", "ok", 1000,
                             "code=" + r.Code +
                             " path=" + RenderPathString() +
@@ -5021,6 +5022,12 @@ namespace Thetis
                             " band3D=" + _b3DMeshDrewFrame +
                             " wfMesh=" + _bWfMeshDrewFrame +
                             " specMesh=" + SpecMeshWasUsedThisFrame);
+
+                        // Output-side probe: sample the client area actually visible to
+                        // the operator after Present, not only internal renderer state.
+                        if (displayTarget != null && displayTarget.IsHandleCreated)
+                            GPUWaterfallLogger.QueueVisualProbe(displayTarget.Handle, displayTargetWidth, displayTargetHeight);
+                    }
 
                     if (r.Failure && !(
                         r == Vortice.DXGI.ResultCode.WasStillDrawing/*0x887A000A*/ ||
@@ -5133,7 +5140,13 @@ namespace Thetis
                 int v = value;
                 if (v < 0) v = 0;
                 if (v > 4) v = 4;
-                m_nVBlanks = v;
+                if (v != m_nVBlanks)
+                {
+                    int old = m_nVBlanks;
+                    m_nVBlanks = v;
+                    GPUWaterfallLogger.Log("VISUAL-STATE",
+                        "VerticalBlanks " + old + " -> " + v + Environment.NewLine + Environment.StackTrace);
+                }
             }
         }
 
@@ -10053,6 +10066,8 @@ namespace Thetis
                         updateWaterfallAgcCache(rx, true, rx == 1 ? _RX1waterfallPreviousMinValue : _RX2waterfallPreviousMinValue);
                     }
                 }
+
+                GPUWaterfallLogger.SetVisualWaterfallLayout(rx, nVerticalShift + 20, H - 20);
 
                 // Presentation priority is strict: full GPU Waterfall -> optional
                 // legacy mesh -> classic D2D fallback. This prevents two waterfall
