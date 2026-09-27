@@ -6,6 +6,7 @@ on:
       - feature/sdr-vst3-sq4kou-hw
       - feature/sdr-vst3-full-gpu-waterfall-ff62
       - fix/sdr-vst3-overlay-shutdown-20260927
+      - fix/renderer-final-audit-20260927
   pull_request:
     branches:
       - feature/sdr-vst3-full-gpu-waterfall-ff62
@@ -115,13 +116,19 @@ jobs:
           }
 
           $logger = Get-Content "Project Files/Source/Console/GPUWaterfallLogger.cs" -Raw
-          if (-not $logger.Contains("VisualProbeIntervalMs = 750") -or
-              -not $logger.Contains("QueueUrgentVisualProbe") -or
+          if (-not $logger.Contains("VisualProbeIntervalMs = 1500") -or
+              -not $logger.Contains("renderer-busy-skip") -or
+              -not $logger.Contains("watchdog snapshot suppressed") -or
               -not $logger.Contains("if (!foreground)")) {
-            throw "Low-impact foreground-only visual diagnostics contract is missing"
+            throw "Non-interfering visual diagnostics contract is missing"
           }
 
-          Write-Host "PASS: reference Pan3D restored; exact GPU FFT isolated to worker; shared-context experimental paths gated; renderer lock bounded/tracked; visual diagnostics low-impact"
+          if (-not $display.Contains("Preserve the visible waterfall history while the radio is powered down") -or
+              -not $display.Contains("if (console == null || !console.PowerOn)")) {
+            throw "Power OFF waterfall-history freeze contract is missing"
+          }
+
+          Write-Host "PASS: reference Pan3D unchanged; exact GPU FFT isolated; shared-context experimental paths gated; renderer lock bounded/tracked; diagnostics non-interfering; power transitions preserve visible waterfall history"
 
       - name: Verify SQ4KOU native and exact GPU waterfall exports
         shell: pwsh

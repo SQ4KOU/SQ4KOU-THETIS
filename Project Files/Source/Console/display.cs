@@ -8821,6 +8821,12 @@ namespace Thetis
                 addRow = true;
             }
 
+            // Preserve the visible waterfall history while the radio is powered down.
+            // With no fresh DSP data, scrolling the D2D bitmap repeats/clears stale rows
+            // and produces a near-100% visual jump on the following POWER ON transition.
+            if (console == null || !console.PowerOn)
+                addRow = false;
+
             // undo the rendertarget transform that is used to move linedraws to middle of pixel grid
             Matrix3x2 originalTransform = _d2dRenderTarget.Transform;
             _d2dRenderTarget.Transform = Matrix3x2.Identity;

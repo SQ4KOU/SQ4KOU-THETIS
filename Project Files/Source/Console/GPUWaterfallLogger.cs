@@ -85,7 +85,7 @@ internal static class GPUWaterfallLogger
     private static extern IntPtr GetAncestor(IntPtr hWnd, uint gaFlags);
 
     private const uint GA_ROOT = 2;
-    private const int VisualProbeIntervalMs = 750;
+    private const int VisualProbeIntervalMs = 1500;
     private const int VisualStatsIntervalMs = 1000;
     private const int VisualSnapshotMinIntervalMs = 1500;
 
@@ -434,6 +434,16 @@ internal static class GPUWaterfallLogger
             return;
         }
 
+        // Desktop capture is diagnostic only.  CopyFromScreen synchronizes GDI/DWM
+        // with the compositor, so never run it while a renderer frame is active.
+        // This keeps diagnostics observational instead of becoming part of a stall.
+        if (Volatile.Read(ref _frameInProgress) != 0)
+        {
+            LogRateLimited("VISUAL-PROBE", "renderer-busy-skip", 5000,
+                "desktop capture skipped while renderer frame is in progress");
+            return;
+        }
+
         POINT pt = new POINT();
         if (!ClientToScreen(request.Hwnd, ref pt)) return;
 
@@ -636,7 +646,10 @@ internal static class GPUWaterfallLogger
                 {
                     Interlocked.Exchange(ref _lastWatchdogFrameSeq, seq);
                     WriteBatch($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} [WATCHDOG] STALL frame={seq} elapsed={ms:F0}ms thread={_frameThreadId} stage={_frameStage}{Environment.NewLine}");
-                    QueueUrgentVisualProbe("watchdog_" + _frameStage);
+                    // Do not force CopyFromScreen while the renderer is already stalled:
+                    // the GDI/DWM synchronization can extend the stall we are measuring.
+                    LogRateLimited("VISUAL-PROBE", "watchdog-no-capture", 5000,
+                        "watchdog snapshot suppressed to avoid GDI/DWM synchronization during a renderer stall");
                 }
             }
             else
