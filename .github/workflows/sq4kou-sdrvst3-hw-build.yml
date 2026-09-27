@@ -5,6 +5,7 @@ on:
     branches:
       - feature/sdr-vst3-sq4kou-hw
       - feature/sdr-vst3-full-gpu-waterfall-ff62
+      - fix/sdr-vst3-overlay-shutdown-20260927
   workflow_dispatch:
 
 permissions:
@@ -30,6 +31,28 @@ jobs:
 
       - name: Build
         run: msbuild "Project Files/Source/Thetis_VS2026.sln" -p:Configuration=Release -p:Platform=x64 -m -nologo
+
+      - name: Verify SDR-VST3 3D parity and overlay gate
+        shell: pwsh
+        run: |
+          $pan3d = git hash-object -- "Project Files/Source/Console/Display.Pan3DMesh.cs"
+          if ($pan3d -ne "4ac1445c302537d3f61ea8f877527767921eaec5") {
+            throw "Display.Pan3DMesh.cs is not the SDR-VST3 reference blob: $pan3d"
+          }
+          $form3d = git hash-object -- "Project Files/Source/Console/frm3DPanadapter.cs"
+          if ($form3d -ne "b79852f27d3882c5b6008d8dd1e0af9099ff13fc") {
+            throw "frm3DPanadapter.cs is not the SDR-VST3 reference blob: $form3d"
+          }
+
+          $overlay = Get-Content "Project Files/Source/Console/Display.OverlayMesh.cs" -Raw
+          $gate = "return GpuOverlayEnabled && m_eRenderPath == DXRenderPath.Hardware && _device != null && _bDX2Setup;"
+          if (-not $overlay.Contains($gate)) {
+            throw "SDR-VST3 GPU overlay hardware gate is not present"
+          }
+          if ($overlay -match "ExperimentalSharedBackbufferMeshesEnabled\s*&&\s*GpuOverlayEnabled") {
+            throw "GPU overlay is still blocked by the experimental shared-backbuffer gate"
+          }
+          Write-Host "PASS: Pan3D core/form parity and functional GPU overlay gate verified"
 
       - name: Verify SQ4KOU native and exact GPU waterfall exports
         shell: pwsh
