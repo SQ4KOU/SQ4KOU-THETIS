@@ -4693,6 +4693,22 @@ namespace Thetis
         private static bool _valid_fps_profile = false;
         private static double _last_valid_check = double.MinValue;
         private static int _dx_fail_retry = 0;
+
+        private static string GetPan3DPrepassBlockReason()
+        {
+            if (!GpuMeshEnabled) return "GpuMeshDisabled";
+            if (m_eRenderPath != DXRenderPath.Hardware) return "RenderPathNotHardware";
+            if (_device == null) return "DeviceNull";
+            if (!_bDX2Setup) return "DX2NotSetup";
+            if (!_pan3DEnabled) return "Pan3DDisabled";
+            if (_3dHistoryBuffer == null) return "HistoryNull";
+            if (_3dHistoryCount < 3) return "HistoryWarmup";
+            if (!_meshParams.Valid) return "MeshParamsInvalid";
+            if (_paused_display) return "DisplayPaused";
+            if (localMox(1)) return "MOX";
+            return null;
+        }
+
         public static void RenderDX2D()
         {
             GPUWaterfallLogger.FrameEnter("WAIT_DX_LOCK");
@@ -4717,6 +4733,7 @@ namespace Thetis
 
                     ObserveRendererPowerState();
                     ObserveVisualStateTransitions();
+                    GPUWaterfallLogger.CausalFrameStart(console != null && console.PowerOn);
 
                     m_dElapsedFrameStart = _high_perf_timer.ElapsedMsec;
                     calcFps();
@@ -4750,7 +4767,14 @@ namespace Thetis
                     _bGpuBackdropDone = false;
                     GpuMesh3DOwnerRX = 0;
                     GPUWaterfallLogger.FrameStage("GPU_3D");
+                    string pan3DBlockReason = GetPan3DPrepassBlockReason();
+                    bool pan3DRequestedThisFrame = pan3DBlockReason == null;
                     _b3DMeshDrewFrame = RenderGpuMesh3D();
+                    GPUWaterfallLogger.CausalPan3D(
+                        pan3DRequestedThisFrame,
+                        _b3DMeshDrewFrame,
+                        _b3DMeshDrewFrame ? "drawn" :
+                            (pan3DBlockReason ?? "InternalOrResourceFailure"));
                     // Stability contract: GPU FFT stays on the dedicated native
                     // device, while visible waterfall history/presentation stays in
                     // the normal D2D bitmap path.  Do not render a waterfall mesh into
@@ -4785,6 +4809,7 @@ namespace Thetis
                                              m_eRenderPath == DXRenderPath.Hardware;
                     if (!_b3DMeshDrewFrame && !pan3DOwnsBackdrop && !_bWfMeshDrewFrame)
                     {
+                        GPUWaterfallLogger.CausalBackdrop("FULL_CLEAR");
                         //always clear without using alpha
                         _d2dRenderTarget.Clear(m_cDX2_display_background_clear_colour);
 
@@ -4819,6 +4844,12 @@ namespace Thetis
                         }
 
                         _d2dRenderTarget.FillRectangle(rectDest, m_bDX2_display_background_brush);
+                    }
+                    else
+                    {
+                        GPUWaterfallLogger.CausalBackdrop(
+                            _b3DMeshDrewFrame ? "PAN3D_FRAME" :
+                            (pan3DOwnsBackdrop ? "RETAIN_PREVIOUS_PAN3D" : "WF_MESH_FRAME"));
                     }
 
                     // LINEAR BRUSH BUILDING
@@ -5177,6 +5208,7 @@ namespace Thetis
                     PresentFlags pf = m_nVBlanks == 0 ? _NoVSYNCpresentFlag : PresentFlags.None;
                     GPUWaterfallLogger.FrameStage("PRESENT");
                     Result r = _swapChain1.Present((uint)m_nVBlanks, pf);
+                    GPUWaterfallLogger.CausalPresent(r.Code, !r.Failure);
                     if (r.Failure)
                         GPUWaterfallLogger.LogRateLimited("PRESENT", r.Code.ToString(), 1000,
                             "result=" + r + " code=" + r.Code + " retry=" + _dx_fail_retry +
@@ -5191,17 +5223,9 @@ namespace Thetis
                             " wfMesh=" + _bWfMeshDrewFrame +
                             " specMesh=" + SpecMeshWasUsedThisFrame);
 
-                        // Output-side probe: sample the client area actually visible to
-                        // the operator after Present, not only internal renderer state.
-                        try
-                        {
-                            if (displayTarget != null && displayTarget.IsHandleCreated)
-                                GPUWaterfallLogger.QueueVisualProbe(displayTarget.Handle, displayTargetWidth, displayTargetHeight);
-                        }
-                        catch
-                        {
-                            // Diagnostics must never destabilise the renderer.
-                        }
+                        // Desktop CopyFromScreen probing is intentionally disabled.
+                        // The causal logger records the actual renderer decisions per frame
+                        // without synchronising GDI/DWM with the GPU.
                     }
 
                     if (r.Failure && !(
@@ -8807,6 +8831,11 @@ namespace Thetis
         unsafe static private bool DrawWaterfallDX2D(int nVerticalShift, int W, int H, int rx, bool bottom)
         {
             bool addRow;
+            bool causalDataReadyAtEntry = rx == 1 ? waterfall_data_ready : waterfall_data_ready_bottom;
+            bool causalTick = false;
+            int causalExactState = -9;
+            string causalPresentPath = "none";
+            bool causalPresented = false;
 
             // this add row block prevents rows from being added if the centre frequency changes
             // for a duration 20% greater than fft fill time to allow buckets to aproach expected levels
@@ -9012,6 +9041,7 @@ namespace Thetis
                     }
                 }
 
+                causalTick = bRXdraw;
                 if (bRXdraw)
                 {
                     float[] data;
@@ -9035,6 +9065,7 @@ namespace Thetis
                     if (ExactNativeGPURequested)
                     {
                         int exactState = TryGetExactGpuWaterfallDataRow(rx, nDecimatedWidth, dataCopy, nDecimatedWidth, out float[] exactRow);
+                        causalExactState = exactState;
                         if (exactState == 1 && exactRow != null && exactRow.Length >= nDecimatedWidth)
                         {
                             Array.Copy(exactRow, data, nDecimatedWidth);
@@ -9042,6 +9073,7 @@ namespace Thetis
                         }
                     }
 
+                    if (!ExactNativeGPURequested) causalExactState = -2;
                     ApplyWaterfallProThresholds(rx, local_mox, ref low_threshold, ref high_threshold);
 
                     GPUWaterfallPipeline managedGpuPipeline = null;
@@ -10258,6 +10290,8 @@ namespace Thetis
                     GPUWaterfallLogger.LogRateLimited("WF-PRESENT", "managed-rx" + rx, 1000,
                         "RX" + rx + " path=managedGPU shift=" + nVerticalShift +
                         " size=" + W + "x" + (H - 20));
+                    causalPresentPath = "managedGPU";
+                    causalPresented = true;
                     DrawManagedGPUWaterfall(rx, nVerticalShift,
                         rx == 1 ? m_fRX1WaterfallOpacity : m_fRX2WaterfallOpacity);
                 }
@@ -10266,6 +10300,8 @@ namespace Thetis
                     GPUWaterfallLogger.LogRateLimited("WF-PRESENT", "classic-rx" + rx, 1000,
                         "RX" + rx + " path=classicD2D shift=" + nVerticalShift +
                         " size=" + W + "x" + (H - 20));
+                    causalPresentPath = "classicD2D";
+                    causalPresented = true;
                     if (rx == 1)
                     {
                         _d2dRenderTarget.DrawBitmap(_waterfall_bmp_dx2d, new RectangleF(0, nVerticalShift + 20, _waterfall_bmp_dx2d.Size.Width, _waterfall_bmp_dx2d.Size.Height), m_fRX1WaterfallOpacity, BitmapInterpolationMode.NearestNeighbor, null);
@@ -10275,6 +10311,26 @@ namespace Thetis
                         _d2dRenderTarget.DrawBitmap(_waterfall_bmp2_dx2d, new RectangleF(0, nVerticalShift + 20, _waterfall_bmp2_dx2d.Size.Width, _waterfall_bmp2_dx2d.Size.Height), m_fRX2WaterfallOpacity, BitmapInterpolationMode.NearestNeighbor, null);
                     }
                 }
+
+                GPUWaterfallLogger.CausalWaterfall(
+                    rx,
+                    causalDataReadyAtEntry,
+                    addRow,
+                    causalTick,
+                    causalExactState,
+                    causalPresentPath,
+                    causalPresented);
+            }
+            else
+            {
+                GPUWaterfallLogger.CausalWaterfall(
+                    rx,
+                    causalDataReadyAtEntry,
+                    addRow,
+                    false,
+                    -3,
+                    "powerOff",
+                    false);
             }
 
             // return the transform to what it was

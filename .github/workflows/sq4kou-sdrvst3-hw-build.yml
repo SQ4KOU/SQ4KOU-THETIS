@@ -9,6 +9,7 @@ on:
       - fix/renderer-final-audit-20260927
       - fix/power-resume-no-reset-20260927
       - fix/render-continuity-no-full-clear-20260927
+      - fix/causal-render-logger-20260927
   pull_request:
     branches:
       - feature/sdr-vst3-full-gpu-waterfall-ff62
@@ -118,11 +119,14 @@ jobs:
           }
 
           $logger = Get-Content "Project Files/Source/Console/GPUWaterfallLogger.cs" -Raw
-          if (-not $logger.Contains("VisualProbeIntervalMs = 1500") -or
-              -not $logger.Contains("renderer-busy-skip") -or
-              -not $logger.Contains("watchdog snapshot suppressed") -or
-              -not $logger.Contains("if (!foreground)")) {
-            throw "Non-interfering visual diagnostics contract is missing"
+          if (-not $logger.Contains("FRAME-CAUSE") -or
+              -not $logger.Contains("CausalPan3D") -or
+              -not $logger.Contains("CausalWaterfall") -or
+              -not $logger.Contains("CausalPresent")) {
+            throw "Causal per-frame renderer logger contract is missing"
+          }
+          if ($display.Contains("QueueVisualProbe(displayTarget.Handle")) {
+            throw "Desktop CopyFromScreen probe is still active in the Present path"
           }
 
           if (-not $display.Contains("Preserve the visible waterfall history while the radio is powered down") -or

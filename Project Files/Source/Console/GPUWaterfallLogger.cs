@@ -21,7 +21,7 @@ internal static class GPUWaterfallLogger
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
         "OpenHPSDR", "Thetis-x64", "renderer_diagnostics.log");
 
-    private const long MaxSizeBytes = 8L * 1024L * 1024L;
+    private const long MaxSizeBytes = 32L * 1024L * 1024L;
     private const int MaxQueuedLines = 16384;
 
     private static readonly ConcurrentQueue<WorkItem> _queue = new ConcurrentQueue<WorkItem>();
@@ -44,6 +44,24 @@ internal static class GPUWaterfallLogger
     private static long _lastNoFrameReportTicks;
     private static long _lastStatsTicks;
     private static volatile bool _watchdogArmed;
+
+    // Causal per-frame trace. This records renderer decisions, not screenshots.
+    // It is intentionally allocation-light and is emitted once for every completed frame.
+    private static bool _causeActive;
+    private static bool _causePower;
+    private static bool _causePanRequested;
+    private static bool _causePanDrew;
+    private static string _causePanReason = "unset";
+    private static string _causeBackdrop = "unset";
+    private static bool _causeWfSeen;
+    private static bool _causeWfAddRow;
+    private static bool _causeWfTick;
+    private static bool _causeWfPresented;
+    private static int _causeWfExactState = -9;
+    private static bool _causeWfDataReady;
+    private static string _causeWfPath = "none";
+    private static bool _causePresentOk;
+    private static int _causePresentCode;
 
     // Output-side diagnostics.  Internal "Draw/Present OK" does not prove that the
     // operator actually received the expected pixels.  A low-rate worker samples the
@@ -151,6 +169,80 @@ internal static class GPUWaterfallLogger
         }
     }
 
+
+    public static void CausalFrameStart(bool power)
+    {
+        _causeActive = true;
+        _causePower = power;
+        _causePanRequested = false;
+        _causePanDrew = false;
+        _causePanReason = "not-evaluated";
+        _causeBackdrop = "none";
+        _causeWfSeen = false;
+        _causeWfAddRow = false;
+        _causeWfTick = false;
+        _causeWfPresented = false;
+        _causeWfExactState = -9;
+        _causeWfDataReady = false;
+        _causeWfPath = "none";
+        _causePresentOk = false;
+        _causePresentCode = 0;
+    }
+
+    public static void CausalPan3D(bool requested, bool drew, string reason)
+    {
+        _causePanRequested = requested;
+        _causePanDrew = drew;
+        _causePanReason = string.IsNullOrEmpty(reason) ? (drew ? "drawn" : "unknown") : reason;
+    }
+
+    public static void CausalBackdrop(string action)
+    {
+        _causeBackdrop = string.IsNullOrEmpty(action) ? "none" : action;
+    }
+
+    public static void CausalWaterfall(int rx, bool dataReady, bool addRow, bool tick,
+        int exactState, string path, bool presented)
+    {
+        if (rx != 1) return;
+        _causeWfSeen = true;
+        _causeWfDataReady = dataReady;
+        _causeWfAddRow = addRow;
+        _causeWfTick = tick;
+        _causeWfExactState = exactState;
+        _causeWfPath = string.IsNullOrEmpty(path) ? "none" : path;
+        _causeWfPresented = presented;
+    }
+
+    public static void CausalPresent(int code, bool ok)
+    {
+        _causePresentCode = code;
+        _causePresentOk = ok;
+    }
+
+    private static void EmitCausalFrame(string endReason)
+    {
+        if (!_causeActive) return;
+        _causeActive = false;
+        Log("FRAME-CAUSE",
+            "seq=" + Interlocked.Read(ref _frameSeq) +
+            " end=" + endReason +
+            " power=" + _causePower +
+            " panReq=" + _causePanRequested +
+            " panDrew=" + _causePanDrew +
+            " panReason=" + _causePanReason +
+            " backdrop=" + _causeBackdrop +
+            " wfSeen=" + _causeWfSeen +
+            " wfDataReady=" + _causeWfDataReady +
+            " wfAddRow=" + _causeWfAddRow +
+            " wfTick=" + _causeWfTick +
+            " wfExact=" + _causeWfExactState +
+            " wfPath=" + _causeWfPath +
+            " wfPresented=" + _causeWfPresented +
+            " presentOk=" + _causePresentOk +
+            " presentCode=" + _causePresentCode);
+    }
+
     public static void FrameEnter(string stage)
     {
         try
@@ -188,6 +280,7 @@ internal static class GPUWaterfallLogger
             long now = Stopwatch.GetTimestamp();
             long start = Interlocked.Read(ref _frameStartTicks);
             double ms = start > 0 ? (now - start) * 1000.0 / Stopwatch.Frequency : 0.0;
+            EmitCausalFrame(reason);
             _frameStage = "idle";
             Volatile.Write(ref _frameInProgress, 0);
             Interlocked.Exchange(ref _lastFrameEndTicks, now);
