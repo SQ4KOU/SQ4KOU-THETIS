@@ -104,7 +104,7 @@ jobs:
           if (-not $display.Contains("POWER ON: suppressing full DX restart; renderer retained")) {
             throw "Power-on DX restart suppression is missing"
           }
-          if (-not $display.Contains("FrameStage(\"D2D_DRAW\")")) {
+          if (-not $display.Contains('FrameStage("D2D_DRAW")')) {
             throw "D2D BeginDraw vs draw-stage diagnostics are not separated"
           }
           if (-not $display.Contains("managedGPU=") -or
