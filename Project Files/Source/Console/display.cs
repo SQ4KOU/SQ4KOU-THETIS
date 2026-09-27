@@ -3966,17 +3966,22 @@ namespace Thetis
             // if not, then we need to use old bitplit swapeffect
             SwapEffect swapEffect;
 
-            // SQ4KOU stability path:
-            // The visible frame is composed by Direct2D (bandscope GPU output is
-            // blitted into D2D and the waterfall is also presented by D2D). Using
-            // FlipDiscard here adds flip-model backbuffer ownership/rebind semantics
-            // without giving this renderer a useful benefit, and it is the common
-            // point where both panes can disappear together. Use the proven blt
-            // model: one stable backbuffer identity owned by D2D.
-            _bUseLegacyBuffers = true;
+            // Match the original SDR-VST3 presentation contract used by
+            // Display.Pan3DMesh.cs: when Factory4 is available, the 3D bandscope
+            // renders directly into a flip-model swapchain backbuffer.  Do not force
+            // the legacy single-buffer Discard path here; doing so changes the
+            // ownership semantics underneath the otherwise-original 3D renderer.
+            IDXGIFactory4 factory4 = _factory1.QueryInterfaceOrNull<IDXGIFactory4>();
             bool bFlipPresent = false;
-            swapEffect = SwapEffect.Discard;
-            _nBufferCount = 1;
+            if (factory4 != null)
+            {
+                if (!_bUseLegacyBuffers) bFlipPresent = true;
+                factory4.Dispose();
+                factory4 = null;
+            }
+
+            swapEffect = bFlipPresent ? SwapEffect.FlipDiscard : SwapEffect.Discard;
+            _nBufferCount = bFlipPresent ? 2 : 1;
 
             ModeDescription md = new ModeDescription((uint)displayTarget.Width, (uint)displayTarget.Height,
                                                        new Rational((uint)console.DisplayFPS, 1u), Format.B8G8R8A8_UNorm);
@@ -3994,6 +3999,10 @@ namespace Thetis
                 BufferUsage = Usage.RenderTargetOutput,// | Usage.BackBuffer,  // dont need usage.backbuffer as it is implied
                 Flags = SwapChainFlags.None,
             };
+
+            GPUWaterfallLogger.Log("DX-SWAPCHAIN",
+                "effect=" + swapEffect + " buffers=" + _nBufferCount +
+                " legacy=" + _bUseLegacyBuffers + " flip=" + bFlipPresent);
 
             _factory1.MakeWindowAssociation(displayTarget.Handle, WindowAssociationFlags.IgnoreAll);
 
