@@ -66,6 +66,29 @@ namespace Thetis
         private static Format _wfNativeOutputFormat = Format.Unknown;
         private static int _wfNativeOutputWidth;
 
+        private struct PendingNativeWaterfallRow
+        {
+            public bool Valid;
+            public int Rx;
+            public float[] Data;
+            public int Width;
+            public int SourceWidth;
+            public int Decimation;
+            public int PaneRows;
+            public bool AddRow;
+            public int ShiftPixels;
+            public bool ClearExisting;
+            public ColorScheme Scheme;
+            public float LowThreshold;
+            public float HighThreshold;
+            public float LinCor;
+            public bool IsRx2;
+            public bool IsMox;
+        }
+
+        private static readonly PendingNativeWaterfallRow[] _pendingNativeWaterfall =
+            new PendingNativeWaterfallRow[2];
+
         private static byte[] _wfComputeLutPixels;       // 1024*4 scratch
 
         // --- spectrum normalisation compute ---
@@ -134,6 +157,98 @@ namespace Thetis
         /// </summary>
         private static bool NativeWaterfallComputeArmed =>
             WfMeshArmed && _device != null && _bDX2Setup;
+
+        private static void QueueNativeWaterfallRow(
+            int rx,
+            float[] waterfallData,
+            int width,
+            int sourceWidth,
+            int decimation,
+            int paneRows,
+            bool addRow,
+            int shiftPixels,
+            bool clearExisting,
+            ColorScheme scheme,
+            float lowThreshold,
+            float highThreshold,
+            float linCor,
+            bool isRx2,
+            bool isMox)
+        {
+            if (!NativeWaterfallComputeArmed || waterfallData == null ||
+                sourceWidth <= 0 || width <= 0 || paneRows <= 0)
+                return;
+
+            int slot = rx == 2 ? 1 : 0;
+            ref PendingNativeWaterfallRow p = ref _pendingNativeWaterfall[slot];
+
+            if (p.Data == null || p.Data.Length < sourceWidth)
+                p.Data = new float[Math.Max(sourceWidth, 2048)];
+
+            Array.Copy(waterfallData, p.Data, sourceWidth);
+            p.Rx = rx;
+            p.Width = width;
+            p.SourceWidth = sourceWidth;
+            p.Decimation = Math.Max(1, decimation);
+            p.PaneRows = paneRows;
+            p.AddRow = addRow;
+            p.ShiftPixels = shiftPixels;
+            p.ClearExisting = clearExisting;
+            p.Scheme = scheme;
+            p.LowThreshold = lowThreshold;
+            p.HighThreshold = highThreshold;
+            p.LinCor = linCor;
+            p.IsRx2 = isRx2;
+            p.IsMox = isMox;
+            p.Valid = true;
+
+            GPUWaterfallLogger.LogRateLimited("WF-NATIVE-QUEUE", "rx" + rx, 1000,
+                "RX" + rx + " source=" + sourceWidth + " width=" + width +
+                " addRow=" + addRow + " clear=" + clearExisting);
+        }
+
+        /// <summary>
+        /// Runs only in RenderDX2D's pre-BeginDraw phase.  This guarantees that
+        /// Vortice D3D11 compute/history updates never execute while Direct2D owns
+        /// the same immediate context.
+        /// </summary>
+        private static bool ProcessPendingNativeWaterfallRows()
+        {
+            if (!NativeWaterfallComputeArmed)
+            {
+                for (int i = 0; i < _pendingNativeWaterfall.Length; i++)
+                    _pendingNativeWaterfall[i].Valid = false;
+                return false;
+            }
+
+            bool didGpuWork = false;
+
+            for (int slot = 0; slot < _pendingNativeWaterfall.Length; slot++)
+            {
+                ref PendingNativeWaterfallRow p = ref _pendingNativeWaterfall[slot];
+                if (!p.Valid) continue;
+
+                // Consume exactly once.  A failure leaves the classic D2D bitmap as
+                // the live fallback and the next D2D frame queues a fresh row.
+                p.Valid = false;
+
+                bool ok = TryDispatchNativeWaterfall(
+                    p.Rx, p.Data, p.Width, p.SourceWidth, p.Decimation,
+                    p.PaneRows, p.AddRow, p.ShiftPixels, p.ClearExisting,
+                    p.Scheme, p.LowThreshold, p.HighThreshold, p.LinCor,
+                    p.IsRx2, p.IsMox);
+
+                didGpuWork = true;
+
+                if (!ok)
+                {
+                    GPUWaterfallLogger.LogRateLimited("WF-NATIVE-FAIL", "queue-rx" + p.Rx, 1000,
+                        "RX" + p.Rx + " queued prepass dispatch declined");
+                }
+            }
+
+            return didGpuWork;
+        }
 
         #endregion
 
@@ -279,6 +394,8 @@ namespace Thetis
             _wfNativeOutputTex?.Dispose(); _wfNativeOutputTex = null;
             _wfNativeOutputFormat = Format.Unknown;
             _wfNativeOutputWidth = 0;
+            for (int i = 0; i < _pendingNativeWaterfall.Length; i++)
+                _pendingNativeWaterfall[i].Valid = false;
             _wfComputeShadersBuilt = false;
             _wfComputeLutVersion = -1;
 
