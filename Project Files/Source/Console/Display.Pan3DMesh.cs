@@ -850,6 +850,13 @@ namespace Thetis
             catch (Exception e)
             {
                 Common.MeshDiagLog("GPU mesh render failed - falling back to D2D lines : " + e.Message);
+                try
+                {
+                    ReleasePan3DBackbufferForD2D(_device?.ImmediateContext, "PAN3D_FAIL_TO_D2D");
+                }
+                catch
+                {
+                }
                 ReleaseGpuMeshDeviceObjects();
                 ReleaseGpuMeshFrameState();
                 return false;
