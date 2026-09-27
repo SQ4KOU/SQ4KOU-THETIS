@@ -3652,7 +3652,6 @@ namespace Thetis
         public static void ShutdownDX2D()
         {
             GPUWaterfallLogger.Log("DX", "ShutdownDX2D requested setup=" + _bDX2Setup + " path=" + RenderPathString());
-            GPUWaterfallLogger.RendererStopped();
 
             bool shutdownLockTaken = false;
             try
@@ -3664,6 +3663,7 @@ namespace Thetis
                     return;
                 }
                 shutdownLockTaken = true;
+                GPUWaterfallLogger.RendererStopped();
 
                 lock (_objDX2Lock)
                 {
