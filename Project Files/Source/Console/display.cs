@@ -6360,6 +6360,14 @@ namespace Thetis
                 // touched, mirroring the D2D strokes it replaces. Any failure leaves the
                 // D2D peak strokes in the column loop untouched (GPU fallback 1).
                 bool bOverlayMesh = false;
+                GPUWaterfallLogger.LogRateLimited("OVL-STATE", "rx" + rx, 1000,
+                    "rx=" + rx +
+                    " enabled=" + GpuOverlayEnabled +
+                    " peakHold=" + bSpectralPeakHold +
+                    " peaks=" + (spectralPeaks == null ? "null" : spectralPeaks.Length.ToString()) +
+                    " draw3D=" + draw3DHistory +
+                    " specFillMesh=" + bSpecFillMesh +
+                    " panFill=" + pan_fill);
                 if (bSpectralPeakHold && spectralPeaks != null &&
                     (draw3DHistory || bSpecFillMesh || !pan_fill))
                 {
