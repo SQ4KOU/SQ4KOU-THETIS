@@ -126,7 +126,7 @@ namespace Thetis
                 {
                     using (Graphics g = Graphics.FromImage(bmp))
                     {
-                        g.Clear(Color.Transparent);
+                        g.Clear(System.Drawing.Color.Transparent);
                         g.DrawImage(image, new Rectangle(0, 0, bmp.Width, bmp.Height));
                     }
 
