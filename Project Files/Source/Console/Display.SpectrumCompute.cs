@@ -56,6 +56,16 @@ namespace Thetis
         private static ID3D11SamplerState _wfComputeLutSamp;
         private static ID3D11Query _wfComputeEvent;
 
+        // Native Vortice waterfall: colour conversion output stays on the live
+        // D3D11 device and is copied directly into Display.WaterfallMesh history.
+        // No SharpDX wrapper and no GPU->CPU readback.
+        private static ID3D11ComputeShader _wfNativeCS;
+        private static ID3D11Buffer _wfNativeCB;          // 32 bytes
+        private static ID3D11Texture2D _wfNativeOutputTex;
+        private static ID3D11UnorderedAccessView _wfNativeOutputUAV;
+        private static Format _wfNativeOutputFormat = Format.Unknown;
+        private static int _wfNativeOutputWidth;
+
         private static byte[] _wfComputeLutPixels;       // 1024*4 scratch
 
         // --- spectrum normalisation compute ---
@@ -116,6 +126,15 @@ namespace Thetis
             }
         }
 
+        /// <summary>
+        /// Non-blocking native waterfall compute path. Unlike ComputeArmed above,
+        /// this path never calls GetData/Map(Read) and never waits for the GPU.
+        /// Immediate-context ordering carries the compute result directly into the
+        /// Vortice history ring.
+        /// </summary>
+        private static bool NativeWaterfallComputeArmed =>
+            WfMeshArmed && _gpuComputeEnabled && _device != null && _bDX2Setup;
+
         #endregion
 
         #region GPU compute shader HLSL - waterfall colour conversion
@@ -166,6 +185,49 @@ namespace Thetis
             }
             ";
 
+        private const string WF_NATIVE_HLSL = @"
+            cbuffer WfNativeCB : register(b0)
+            {
+                float CB_Low;
+                float CB_High;
+                float CB_LinLogCor;
+                uint  CB_Scheme;
+                uint  CB_SourceWidth;
+                uint  CB_OutputWidth;
+                uint  CB_Decimation;
+                uint  CB_Pad;
+            };
+
+            Texture2D<float4> WfLut : register(t0);
+            SamplerState WfLutSamp : register(s0);
+            Texture2D<float> Input : register(t1);
+            RWTexture2D<float4> Output : register(u0);
+
+            [numthreads(64, 1, 1)]
+            void cs_native(uint3 tid : SV_DispatchThreadID)
+            {
+                uint x = tid.x;
+                if (x >= CB_OutputWidth || CB_SourceWidth == 0) return;
+
+                uint dec = max(CB_Decimation, 1u);
+                uint src = min(x / dec, CB_SourceWidth - 1u);
+                float dBm = Input.Load(int3(src, 0, 0));
+
+                float t;
+                if (dBm <= CB_Low)
+                    t = 0.0;
+                else if (dBm >= CB_High)
+                    t = 1.0;
+                else
+                    t = (dBm - CB_Low + CB_LinLogCor) / max(CB_High - CB_Low, 0.001);
+
+                t = saturate(t);
+                float u = (t * 1023.0 + 0.5) / 1024.0;
+                float4 col = WfLut.SampleLevel(WfLutSamp, float2(u, 0.5), 0);
+                Output[int2(x, 0)] = float4(col.rgb, 1.0);
+            }
+            ";
+
         #endregion
 
         #region GPU compute shader HLSL - spectrum normalisation
@@ -211,6 +273,12 @@ namespace Thetis
             _wfComputeLutSRV?.Dispose(); _wfComputeLutSRV = null;
             _wfComputeLutSamp?.Dispose(); _wfComputeLutSamp = null;
             _wfComputeEvent?.Dispose(); _wfComputeEvent = null;
+            _wfNativeCS?.Dispose(); _wfNativeCS = null;
+            _wfNativeCB?.Dispose(); _wfNativeCB = null;
+            _wfNativeOutputUAV?.Dispose(); _wfNativeOutputUAV = null;
+            _wfNativeOutputTex?.Dispose(); _wfNativeOutputTex = null;
+            _wfNativeOutputFormat = Format.Unknown;
+            _wfNativeOutputWidth = 0;
             _wfComputeShadersBuilt = false;
             _wfComputeLutVersion = -1;
 
@@ -283,6 +351,69 @@ namespace Thetis
             {
                 Common.MeshDiagLog("GPU compute waterfall: pipeline build failed - " + e.Message);
                 ReleaseComputeObjects();
+                return false;
+            }
+        }
+
+        private static bool BuildNativeWaterfallComputePipeline(ID3D11Device device)
+        {
+            if (_wfNativeCS != null && _wfNativeCB != null) return true;
+            try
+            {
+                if (!BuildWaterfallComputePipeline(device)) return false;
+                byte[] csBytes = Vortice.D3DCompiler.Compiler.Compile(
+                    WF_NATIVE_HLSL, "cs_native", "wf_native_vortice.hlsl", "cs_5_0",
+                    Vortice.D3DCompiler.ShaderFlags.None,
+                    Vortice.D3DCompiler.EffectFlags.None).ToArray();
+                _wfNativeCS = device.CreateComputeShader(csBytes);
+                _wfNativeCB = device.CreateBuffer(new BufferDescription(
+                    32, BindFlags.ConstantBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write));
+                return true;
+            }
+            catch (Exception e)
+            {
+                GPUWaterfallLogger.Log("WF-NATIVE-FAIL", "pipeline build failed: " + e);
+                _wfNativeCS?.Dispose(); _wfNativeCS = null;
+                _wfNativeCB?.Dispose(); _wfNativeCB = null;
+                return false;
+            }
+        }
+
+        private static bool EnsureNativeWaterfallOutput(ID3D11Device device, int width, Format format)
+        {
+            if (_wfNativeOutputTex != null && _wfNativeOutputUAV != null &&
+                _wfNativeOutputWidth == width && _wfNativeOutputFormat == format)
+                return true;
+
+            _wfNativeOutputUAV?.Dispose(); _wfNativeOutputUAV = null;
+            _wfNativeOutputTex?.Dispose(); _wfNativeOutputTex = null;
+            _wfNativeOutputWidth = 0;
+            _wfNativeOutputFormat = Format.Unknown;
+
+            try
+            {
+                _wfNativeOutputTex = device.CreateTexture2D(new Texture2DDescription
+                {
+                    Width = (uint)width,
+                    Height = 1,
+                    MipLevels = 1,
+                    ArraySize = 1,
+                    Format = format,
+                    SampleDescription = new SampleDescription(1, 0),
+                    Usage = ResourceUsage.Default,
+                    BindFlags = BindFlags.UnorderedAccess,
+                });
+                _wfNativeOutputUAV = device.CreateUnorderedAccessView(_wfNativeOutputTex);
+                _wfNativeOutputWidth = width;
+                _wfNativeOutputFormat = format;
+                return true;
+            }
+            catch (Exception e)
+            {
+                GPUWaterfallLogger.Log("WF-NATIVE-FAIL",
+                    "output texture " + width + " " + format + " failed: " + e);
+                _wfNativeOutputUAV?.Dispose(); _wfNativeOutputUAV = null;
+                _wfNativeOutputTex?.Dispose(); _wfNativeOutputTex = null;
                 return false;
             }
         }
@@ -463,6 +594,26 @@ namespace Thetis
         {
             byte[] px = _wfComputeLutPixels;
 
+            if (scheme == ColorScheme.Console || scheme == ColorScheme.Thermal ||
+                scheme == ColorScheme.DeepBlue || scheme == ColorScheme.Enhanced256 ||
+                scheme == ColorScheme.Grayscale256)
+            {
+                WaterfallPalette palette = GetGPUWaterfallPalette(scheme);
+                if (palette != null)
+                {
+                    for (int i = 0; i < WfLutSize; i++)
+                    {
+                        palette.Sample(i / (float)(WfLutSize - 1), out float r, out float g, out float b);
+                        int o = i * 4;
+                        px[o + 0] = (byte)Math.Max(0, Math.Min(255, (int)(b + 0.5f)));
+                        px[o + 1] = (byte)Math.Max(0, Math.Min(255, (int)(g + 0.5f)));
+                        px[o + 2] = (byte)Math.Max(0, Math.Min(255, (int)(r + 0.5f)));
+                        px[o + 3] = 255;
+                    }
+                    return;
+                }
+            }
+
             if (scheme == ColorScheme.Custom)
             {
                 Color[] cols;
@@ -630,6 +781,145 @@ namespace Thetis
         #endregion
 
         #region GPU compute dispatch - waterfall colour conversion
+
+        private struct WfNativeConstants
+        {
+            public float Low;
+            public float High;
+            public float LinLogCor;
+            public uint Scheme;
+            public uint SourceWidth;
+            public uint OutputWidth;
+            public uint Decimation;
+            public uint Pad;
+        }
+
+        /// <summary>
+        /// Native end-to-end Vortice colour/history path. The source dBm row is
+        /// uploaded once, colour conversion runs in a D3D11 compute shader, and the
+        /// resulting GPU texture is copied directly into the Vortice waterfall ring.
+        /// There is deliberately no event query, readback, SharpDX wrapper or D2D
+        /// bitmap present in this path.
+        /// </summary>
+        private static bool TryDispatchNativeWaterfall(
+            int rx,
+            float[] waterfallData,
+            int W,
+            int nDecimatedWidth,
+            int decimation,
+            int paneRows,
+            bool addRow,
+            int shiftPixels,
+            bool clearExisting,
+            ColorScheme scheme,
+            float lowThreshold,
+            float highThreshold,
+            float linCor,
+            bool isRx2,
+            bool isMox)
+        {
+            if (!NativeWaterfallComputeArmed || _paused_display || waterfallData == null)
+                return false;
+            if (W <= 0 || nDecimatedWidth <= 0 || paneRows <= 0)
+                return false;
+
+            Format format = NativeWaterfallFormat;
+            if (format != Format.B8G8R8A8_UNorm && format != Format.R16G16B16A16_Float)
+                return false;
+
+            try
+            {
+                if (!BuildNativeWaterfallComputePipeline(_device)) return false;
+                if (!EnsureWaterfallComputeBuffers(_device, nDecimatedWidth)) return false;
+                if (!EnsureNativeWaterfallOutput(_device, W, format)) return false;
+
+                ID3D11DeviceContext dc = _device.ImmediateContext;
+
+                int lutHash = ((int)scheme * 73856093) ^
+                    lowThreshold.GetHashCode() ^ highThreshold.GetHashCode() ^
+                    linCor.GetHashCode() ^ (isRx2 ? 0x13579B : 0) ^ (isMox ? 0x2468AC : 0);
+                if (lutHash != _wfComputeLutVersion)
+                {
+                    BuildWaterfallComputeLut(scheme, lowThreshold, highThreshold, linCor, isRx2, isMox);
+                    unsafe
+                    {
+                        MappedSubresource lm = dc.Map((ID3D11Resource)_wfComputeLutUpload, 0,
+                            MapMode.Write, Vortice.Direct3D11.MapFlags.None);
+                        fixed (byte* src = _wfComputeLutPixels)
+                        {
+                            uint bytes = (uint)(WfLutSize * 4);
+                            Buffer.MemoryCopy(src, (void*)lm.DataPointer, bytes, bytes);
+                        }
+                        dc.Unmap((ID3D11Resource)_wfComputeLutUpload, 0);
+                    }
+                    dc.CopySubresourceRegion((ID3D11Resource)_wfComputeLutTex, 0, 0u, 0u, 0u,
+                        (ID3D11Resource)_wfComputeLutUpload, 0, null);
+                    _wfComputeLutVersion = lutHash;
+                }
+
+                unsafe
+                {
+                    MappedSubresource um = dc.Map((ID3D11Resource)_wfComputeInputStaging, 0,
+                        MapMode.Write, Vortice.Direct3D11.MapFlags.None);
+                    fixed (float* src = waterfallData)
+                    {
+                        uint bytes = (uint)(nDecimatedWidth * sizeof(float));
+                        Buffer.MemoryCopy(src, (void*)um.DataPointer, bytes, bytes);
+                    }
+                    dc.Unmap((ID3D11Resource)_wfComputeInputStaging, 0);
+                }
+                dc.CopySubresourceRegion((ID3D11Resource)_wfComputeInputTex, 0, 0u, 0u, 0u,
+                    (ID3D11Resource)_wfComputeInputStaging, 0, null);
+
+                var cb = new WfNativeConstants
+                {
+                    Low = lowThreshold,
+                    High = highThreshold,
+                    LinLogCor = linCor,
+                    Scheme = (uint)scheme,
+                    SourceWidth = (uint)nDecimatedWidth,
+                    OutputWidth = (uint)W,
+                    Decimation = (uint)Math.Max(1, decimation),
+                    Pad = 0,
+                };
+                MappedSubresource cm = dc.Map((ID3D11Resource)_wfNativeCB, 0,
+                    MapMode.WriteDiscard, Vortice.Direct3D11.MapFlags.None);
+                unsafe { Unsafe.Write((void*)cm.DataPointer, cb); }
+                dc.Unmap((ID3D11Resource)_wfNativeCB, 0);
+
+                dc.CSSetShader(_wfNativeCS);
+                dc.CSSetConstantBuffer(0, _wfNativeCB);
+                dc.CSSetShaderResources(0, new[] { _wfComputeLutSRV, _wfComputeInputSRV });
+                dc.CSSetUnorderedAccessViews(0, new[] { _wfNativeOutputUAV }, new[] { 0u });
+                dc.CSSetSamplers(0, new[] { _wfComputeLutSamp });
+                dc.Dispatch((uint)((W + ComputeGroupSize - 1) / ComputeGroupSize), 1, 1);
+
+                // Unbind before the direct texture copy into the history ring.
+                dc.CSSetShader(null);
+                dc.CSSetUnorderedAccessViews(0,
+                    new[] { (ID3D11UnorderedAccessView)null }, new[] { 0u });
+                dc.CSSetShaderResources(0,
+                    new[] { (ID3D11ShaderResourceView)null, (ID3D11ShaderResourceView)null });
+
+                bool owns = WaterfallMeshCommitGpuTexture(
+                    rx, _wfNativeOutputTex, W, paneRows, addRow,
+                    shiftPixels, clearExisting, format);
+
+                if (owns)
+                {
+                    GPUWaterfallLogger.LogRateLimited("WF-NATIVE", "rx" + rx, 1000,
+                        "RX" + rx + " color=VorticeCS history=VorticeD3D11 present=VorticeD3D11" +
+                        " format=" + format + " source=" + nDecimatedWidth +
+                        " width=" + W + " rows=" + paneRows);
+                }
+                return owns;
+            }
+            catch (Exception e)
+            {
+                GPUWaterfallLogger.Log("WF-NATIVE-FAIL", "RX" + rx + " dispatch failed: " + e);
+                return false;
+            }
+        }
 
         /// <summary>
         /// Dispatches the waterfall colour compute shader: takes dBm float values
