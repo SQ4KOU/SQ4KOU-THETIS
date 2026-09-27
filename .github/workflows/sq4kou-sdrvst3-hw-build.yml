@@ -32,7 +32,7 @@ jobs:
       - name: Build
         run: msbuild "Project Files/Source/Thetis_VS2026.sln" -p:Configuration=Release -p:Platform=x64 -m -nologo
 
-      - name: Verify SDR-VST3 3D parity and overlay gate
+      - name: Verify renderer stability contract and SDR-VST3 3D parity
         shell: pwsh
         run: |
           $pan3d = git hash-object -- "Project Files/Source/Console/Display.Pan3DMesh.cs"
@@ -44,15 +44,36 @@ jobs:
             throw "frm3DPanadapter.cs is not the SDR-VST3 reference blob: $form3d"
           }
 
+          $wfMesh = Get-Content "Project Files/Source/Console/Display.WaterfallMesh.cs" -Raw
+          if ($wfMesh -notmatch "ExperimentalSharedBackbufferMeshesEnabled\s*=\s*false") {
+            throw "Shared-backbuffer waterfall mesh is not hard-disabled"
+          }
+
+          $compute = Get-Content "Project Files/Source/Console/Display.SpectrumCompute.cs" -Raw
+          if ($compute -notmatch "private static bool ComputeArmed[\s\S]*?return false;") {
+            throw "Blocking shared-context compute path is not hard-disabled"
+          }
+
           $overlay = Get-Content "Project Files/Source/Console/Display.OverlayMesh.cs" -Raw
-          $gate = "return GpuOverlayEnabled && m_eRenderPath == DXRenderPath.Hardware && _device != null && _bDX2Setup;"
-          if (-not $overlay.Contains($gate)) {
-            throw "SDR-VST3 GPU overlay hardware gate is not present"
+          if ($overlay -notmatch "return ExperimentalSharedBackbufferMeshesEnabled\s*&&\s*GpuOverlayEnabled") {
+            throw "GPU overlay is not routed through the shared-backbuffer stability gate"
           }
-          if ($overlay -match "ExperimentalSharedBackbufferMeshesEnabled\s*&&\s*GpuOverlayEnabled") {
-            throw "GPU overlay is still blocked by the experimental shared-backbuffer gate"
+
+          $display = Get-Content "Project Files/Source/Console/display.cs" -Raw
+          if ($display.Contains("_bWfMeshDrewFrame = RenderGpuWaterfall();")) {
+            throw "Shared-swapchain waterfall presentation is still called from RenderDX2D"
           }
-          Write-Host "PASS: Pan3D core/form parity and functional GPU overlay gate verified"
+          if (-not $display.Contains("_bWfMeshDrewFrame = false;")) {
+            throw "Stable D2D waterfall presentation contract is missing"
+          }
+          if (-not $display.Contains("Monitor.TryEnter(_objDX2Lock, 1500)")) {
+            throw "Shutdown lock timeout guard is missing"
+          }
+          if (-not $display.Contains("POWER ON: suppressing full DX restart; renderer retained")) {
+            throw "Power-on DX restart suppression is missing"
+          }
+
+          Write-Host "PASS: original Pan3D parity retained; shared-context waterfall/compute/overlay isolated; shutdown and power guards present"
 
       - name: Verify SQ4KOU native and exact GPU waterfall exports
         shell: pwsh
