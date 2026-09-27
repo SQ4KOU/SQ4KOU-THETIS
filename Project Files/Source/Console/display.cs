@@ -4569,6 +4569,23 @@ namespace Thetis
             }
         }
 
+        private static void ClearNativeSubpassState(string label)
+        {
+            if (_device == null || _device.ImmediateContext == null) return;
+            try
+            {
+                _device.ImmediateContext.ClearState();
+                GPUWaterfallLogger.LogRateLimited("DX-SUBPASS", label, 2000,
+                    "ClearState " + label);
+            }
+            catch (Exception ex)
+            {
+                GPUWaterfallLogger.Log("DX-SUBPASS-FAIL",
+                    label + " " + ex.GetType().FullName + ": " + ex.Message);
+                throw;
+            }
+        }
+
         private static bool _pa_issue = false;
         private static string _pa_state_details = "";
         public static PAstatusIndicatorState PAStatus
@@ -4679,6 +4696,11 @@ namespace Thetis
                                     "ms; fallback=D2D for current DX session");
                             }
                         }
+
+                        // Pan3D is allowed to bind whatever pipeline state it needs,
+                        // but none of that state is allowed to leak into the compute
+                        // or waterfall pass that follows.
+                        ClearNativeSubpassState("pan3d-to-waterfall-compute");
                     }
 
                     GPUWaterfallLogger.FrameStage("GPU_WATERFALL_COMPUTE");
@@ -4708,6 +4730,9 @@ namespace Thetis
                             }
                         }
                     }
+
+                    if (_bWfNativeUpdatedFrame)
+                        ClearNativeSubpassState("waterfall-compute-to-waterfall-present");
 
                     GPUWaterfallLogger.FrameStage("GPU_WATERFALL_MESH");
                     _bWfMeshDrewFrame = !_nativeWfCircuitOpen && RenderGpuWaterfall();
