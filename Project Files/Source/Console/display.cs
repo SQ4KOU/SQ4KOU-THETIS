@@ -4490,6 +4490,28 @@ namespace Thetis
             }
         }
 
+        // Shared-backbuffer ownership barrier between native Vortice D3D11
+        // prepasses and the main Direct2D frame.  This lives in display.cs so the
+        // original SDR-VST3 Pan3D renderer core remains byte-for-byte unchanged.
+        private static void PrepareNativePassForD2D()
+        {
+            if (_device == null || _device.ImmediateContext == null) return;
+
+            try
+            {
+                _device.ImmediateContext.ClearState();
+                _device.ImmediateContext.Flush();
+                GPUWaterfallLogger.LogRateLimited("DX-HANDOFF", "native-to-d2d", 1000,
+                    "ClearState+Flush before D2D BeginDraw");
+            }
+            catch (Exception ex)
+            {
+                GPUWaterfallLogger.Log("DX-HANDOFF-FAIL",
+                    ex.GetType().FullName + ": " + ex.Message);
+                throw;
+            }
+        }
+
         private static bool _pa_issue = false;
         private static string _pa_state_details = "";
         public static PAstatusIndicatorState PAStatus
@@ -4547,7 +4569,18 @@ namespace Thetis
                     _bGpuBackdropDone = false;
                     GpuMesh3DOwnerRX = 0;
                     GPUWaterfallLogger.FrameStage("GPU_3D");
-                    _b3DMeshDrewFrame = RenderGpuMesh3D();
+                    if (_pan3DNativeWarmupFrames > 0)
+                    {
+                        _pan3DNativeWarmupFrames--;
+                        _b3DMeshDrewFrame = false;
+                        GPUWaterfallLogger.LogRateLimited("PAN3D-WARMUP", "native", 250,
+                            "native mesh deferred; framesLeft=" + _pan3DNativeWarmupFrames +
+                            " hist=" + _3dHistoryCount);
+                    }
+                    else
+                    {
+                        _b3DMeshDrewFrame = RenderGpuMesh3D();
+                    }
                     GPUWaterfallLogger.FrameStage("GPU_WATERFALL_MESH");
                     _bWfMeshDrewFrame = RenderGpuWaterfall();
                     ClearWaterfallPaneCaptures();
