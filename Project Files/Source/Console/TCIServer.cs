@@ -1510,7 +1510,19 @@ namespace Thetis
 		public void PowerChange(bool oldPower, bool newPower)
         {
 			if (m_disconnected) return;
-			sendStartStop(newPower);
+
+            if (!newPower)
+            {
+                sendStop();
+                return;
+            }
+
+            // The TCI socket remains connected while radio POWER is off. On resume,
+            // "start;" alone leaves the client with stale VFO/band/filter/DSP/hardware
+            // state until some unrelated UI change occurs. Reuse the complete
+            // connection snapshot immediately after start, without sending start twice.
+            sendStart();
+            sendInitialRadioState(false);
         }
 		//
 
@@ -2632,7 +2644,7 @@ namespace Thetis
             }
         }
 
-        private void sendInitialRadioState()
+        private void sendInitialRadioState(bool includePowerState = true)
         {
 			bool bSend = m_server != null ? m_server.SendInitialFrequencyStateOnConnect : true;
 			bool bRX2Enabled = consoleThreadSafe.RX2Enabled;
@@ -2814,7 +2826,8 @@ namespace Thetis
 			sendMONEnable(consoleThreadSafe.MON);
             sendMONVolume(linearToDbVolume(consoleThreadSafe.TXAF));
 
-            sendStartStop(consoleThreadSafe.PowerOn);// MW0LGE_22b moved here to replicate sun
+            if (includePowerState)
+                sendStartStop(consoleThreadSafe.PowerOn);// MW0LGE_22b moved here to replicate sun
 
 			Debug.Print("SENT INITIAL STATE");
 		}

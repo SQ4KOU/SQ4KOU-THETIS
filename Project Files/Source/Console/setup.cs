@@ -1945,12 +1945,16 @@ namespace Thetis
             List<string> sortedList = a.Keys.ToList();
             sortedList.Sort();
 
-            //[2.10.3.12]MW0LGE this is bad, because many radios have tabs removed, alex-2 for example, and in those cases
-            //those controls will never be saved to the database, so when we recover, the count will be less than the number of controls as
-            //this is checked before tabs are removed. A complete recovery is then done, which resets everything to default every
-            //single time. TODO !!!!
-            if (a.Count < controls.Count)		// some control values are not in the database
-            {								    // so set all of them to the defaults
+
+            // Only initialise the complete Setup form for a genuinely new/empty
+            // Options table. Comparing database entry count with the live control
+            // count is invalid after upgrades because dynamically added controls
+            // make controls.Count larger and used to reset all saved values.
+            //
+            // Missing keys in an existing database keep their code/designer default
+            // and are added by the next SaveOptions().
+            if (a.Count == 0)
+            {
                 InitGeneralTab(recoveryList);
                 InitAudioTab(recoveryList);
                 InitAdvancedAudioTab(recoveryList);
