@@ -133,7 +133,7 @@ namespace Thetis
         /// Vortice history ring.
         /// </summary>
         private static bool NativeWaterfallComputeArmed =>
-            WfMeshArmed && _gpuComputeEnabled && _device != null && _bDX2Setup;
+            WfMeshArmed && _device != null && _bDX2Setup;
 
         #endregion
 
