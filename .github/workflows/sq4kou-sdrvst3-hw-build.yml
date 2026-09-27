@@ -22,6 +22,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Apply Pan3D stall/background fix
+        shell: pwsh
+        run: .github/scripts/apply-pan3d-stall-bg-fix.ps1
+
       - name: Setup MSBuild
         uses: microsoft/setup-msbuild@v2
 
