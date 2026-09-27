@@ -54,6 +54,16 @@ jobs:
             throw "Blocking shared-context compute path is not hard-disabled"
           }
 
+          $pan2d = Get-Content "Project Files/Source/Console/Display.Pan2DMesh.cs" -Raw
+          if ($pan2d -notmatch "ExperimentalSharedBackbufferMeshesEnabled\s*&&\s*GpuMeshEnabled") {
+            throw "2D spectrum mesh is not routed through the shared-backbuffer stability gate"
+          }
+
+          $gpuWf = Get-Content "Project Files/Source/Console/Display.GPUWaterfall.cs" -Raw
+          if ($gpuWf -notmatch "ManagedGPUFFTRequested\s*=>\s*false") {
+            throw "Managed SharpDX FFT path on the live Vortice device is not hard-disabled"
+          }
+
           $overlay = Get-Content "Project Files/Source/Console/Display.OverlayMesh.cs" -Raw
           if ($overlay -notmatch "return ExperimentalSharedBackbufferMeshesEnabled\s*&&\s*GpuOverlayEnabled") {
             throw "GPU overlay is not routed through the shared-backbuffer stability gate"
@@ -72,8 +82,14 @@ jobs:
           if (-not $display.Contains("POWER ON: suppressing full DX restart; renderer retained")) {
             throw "Power-on DX restart suppression is missing"
           }
+          if (-not $display.Contains("managedGPU=") -or
+              -not $display.Contains("computeArmed=") -or
+              -not $display.Contains("wfMeshArmed=") -or
+              -not $display.Contains("overlayArmed=")) {
+            throw "Renderer diagnostics do not expose actual armed-path state"
+          }
 
-          Write-Host "PASS: original Pan3D parity retained; shared-context waterfall/compute/overlay isolated; shutdown and power guards present"
+          Write-Host "PASS: original Pan3D parity retained; dedicated GPU FFT isolated; shared-context waterfall/compute/2D/overlay paths gated; shutdown and power guards present"
 
       - name: Verify SQ4KOU native and exact GPU waterfall exports
         shell: pwsh
