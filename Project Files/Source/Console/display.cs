@@ -1069,9 +1069,12 @@ namespace Thetis
         }
         private static void OnPowerChangeHander(bool oldPower, bool newPower)
         {
+            // POWER is not a display-mode change. Do not purge spectrum/waterfall
+            // buffers here: it causes a multi-second DX lock hold and visible blanking.
             if (newPower)
             {
-                 PurgeBuffers();
+                FastAttackNoiseFloorRX1 = true;
+                if (_rx2_enabled) FastAttackNoiseFloorRX2 = true;
             }
         }
         private static void OnBandChangeHandler(int rx, Band oldBand, Band newBand)
@@ -3699,17 +3702,17 @@ namespace Thetis
             GPUWaterfallLogger.Log("POWER-DX",
                 "renderer observed power " + oldPower + " -> " + powerOn);
 
-            // The exact GPU worker is process-lifetime and independent of the visible
-            // compositor.  Power transitions only enable/disable its IQ feed and
-            // reset ring credit; no D3D/D2D device teardown is performed here.
+            // POWER transitions only gate IQ input. Keep the exact FFT ring, the
+            // last completed row and calibration intact so POWER ON resumes
+            // immediately instead of refilling the whole FFT window from zero.
             try
             {
-                ResetExactGPUWaterfallSourceForModeChange(
+                SetExactGPUWaterfallSourceEnabled(
                     powerOn && _gpuWaterfallPipelineEnabled && !m_bForceCPURendering);
             }
             catch (Exception ex)
             {
-                GPUWaterfallLogger.Log("WF-WORKER", "power transition reset failed: " + ex.Message);
+                GPUWaterfallLogger.Log("WF-WORKER", "power transition gate failed: " + ex.Message);
             }
 
             // Covers the race where the UI queued RequestDXRestart immediately before

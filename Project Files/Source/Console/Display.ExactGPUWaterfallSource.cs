@@ -163,6 +163,28 @@ namespace Thetis
                 " pipeline=" + _gpuWaterfallPipelineEnabled);
         }
 
+        private static void SetExactGPUWaterfallSourceEnabled(bool enableIQ)
+        {
+            for (int slot = 0; slot < 2; slot++)
+            {
+                Interlocked.Exchange(ref _exactDesiredEnabled[slot], enableIQ ? 1 : 0);
+
+                if (_exactGpuIqInit[slot])
+                {
+                    try { ExactGpuNative.CM_WaterfallIQ_SetEnabled(slot, enableIQ ? 1 : 0); }
+                    catch { }
+                }
+            }
+
+            EnsureExactGPUWorker();
+            _exactWorkerWake.Set();
+
+            GPUWaterfallLogger.Log("WF-SOURCE",
+                "exact source feed " + (enableIQ ? "enabled" : "disabled") +
+                " without reset ring1=" + _exactRingCount[0] +
+                " ring2=" + _exactRingCount[1]);
+        }
+
         private static void ResetExactWorkerSlot(int slot, bool enable)
         {
             _exactRingHead[slot] = 0;
