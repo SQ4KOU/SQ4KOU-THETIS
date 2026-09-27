@@ -54,6 +54,8 @@ internal static class GPUWaterfallLogger
         public int Width;
         public int Height;
         public long FrameSeq;
+        public bool ForceSnapshot;
+        public string Reason;
     }
 
     private sealed class VisualSample
@@ -83,7 +85,7 @@ internal static class GPUWaterfallLogger
     private static extern IntPtr GetAncestor(IntPtr hWnd, uint gaFlags);
 
     private const uint GA_ROOT = 2;
-    private const int VisualProbeIntervalMs = 250;
+    private const int VisualProbeIntervalMs = 750;
     private const int VisualStatsIntervalMs = 1000;
     private const int VisualSnapshotMinIntervalMs = 1500;
 
@@ -91,6 +93,7 @@ internal static class GPUWaterfallLogger
     private static readonly object _visualLayoutLock = new object();
     private static Thread _visualThread;
     private static VisualProbeRequest _pendingVisualProbe;
+    private static VisualProbeRequest _lastVisualProbe;
     private static long _lastVisualQueueTicks;
     private static long _lastVisualStatsTicks;
     private static long _lastVisualSnapshotTicks;
@@ -241,12 +244,39 @@ internal static class GPUWaterfallLogger
             if (old != 0 && now - old < minTicks) return;
             if (Interlocked.CompareExchange(ref _lastVisualQueueTicks, now, old) != old) return;
 
-            Interlocked.Exchange(ref _pendingVisualProbe, new VisualProbeRequest
+            var request = new VisualProbeRequest
             {
                 Hwnd = hwnd,
                 Width = width,
                 Height = height,
-                FrameSeq = Interlocked.Read(ref _frameSeq)
+                FrameSeq = Interlocked.Read(ref _frameSeq),
+                ForceSnapshot = false,
+                Reason = null
+            };
+            Interlocked.Exchange(ref _lastVisualProbe, request);
+            Interlocked.Exchange(ref _pendingVisualProbe, request);
+            _visualWake.Set();
+        }
+        catch
+        {
+        }
+    }
+
+    private static void QueueUrgentVisualProbe(string reason)
+    {
+        try
+        {
+            VisualProbeRequest last = Interlocked.CompareExchange(ref _lastVisualProbe, null, null);
+            if (last == null || last.Hwnd == IntPtr.Zero) return;
+
+            Interlocked.Exchange(ref _pendingVisualProbe, new VisualProbeRequest
+            {
+                Hwnd = last.Hwnd,
+                Width = last.Width,
+                Height = last.Height,
+                FrameSeq = Interlocked.Read(ref _frameSeq),
+                ForceSnapshot = true,
+                Reason = reason
             });
             _visualWake.Set();
         }
@@ -394,11 +424,18 @@ internal static class GPUWaterfallLogger
         if (layoutTicks == 0 || now - layoutTicks > 2 * Stopwatch.Frequency) return;
         if (wfY <= 0 || wfY >= request.Height || wfH <= 8) return;
 
-        POINT pt = new POINT();
-        if (!ClientToScreen(request.Hwnd, ref pt)) return;
-
         IntPtr root = GetAncestor(request.Hwnd, GA_ROOT);
         bool foreground = root != IntPtr.Zero && root == GetForegroundWindow();
+        if (!foreground)
+        {
+            // CopyFromScreen forces compositor/GDI synchronization.  Sampling an
+            // obscured window is both misleading and unnecessary load, so the probe
+            // is dormant unless the actual renderer window is foreground.
+            return;
+        }
+
+        POINT pt = new POINT();
+        if (!ClientToScreen(request.Hwnd, ref pt)) return;
 
         using Bitmap bitmap = new Bitmap(request.Width, request.Height, PixelFormat.Format24bppRgb);
         using (Graphics g = Graphics.FromImage(bitmap))
@@ -462,7 +499,7 @@ internal static class GPUWaterfallLogger
             }
         }
 
-        if (foreground && (bandBlank || wfBlank || bandFrozen || wfFrozen || bandJump || wfJump))
+        if (bandBlank || wfBlank || bandFrozen || wfFrozen || bandJump || wfJump)
         {
             string reason = bandBlank ? "band_blank" :
                             wfBlank ? "waterfall_blank" :
@@ -473,6 +510,14 @@ internal static class GPUWaterfallLogger
                 $"frame={request.FrameSeq} reason={reason} " +
                 $"bandChange={bandChanged:P1} wfChange={wfChanged:P1} " +
                 $"bandMean={band?.Mean:F1} wfMean={waterfall?.Mean:F1}");
+            SaveVisualSnapshot(bitmap, request.FrameSeq, reason);
+        }
+        else if (request.ForceSnapshot)
+        {
+            string reason = string.IsNullOrWhiteSpace(request.Reason) ? "watchdog" : request.Reason;
+            Log("VISUAL-CHANGE",
+                $"frame={request.FrameSeq} reason={reason} forced=True " +
+                $"bandChange={bandChanged:P1} wfChange={wfChanged:P1}");
             SaveVisualSnapshot(bitmap, request.FrameSeq, reason);
         }
 
@@ -591,6 +636,7 @@ internal static class GPUWaterfallLogger
                 {
                     Interlocked.Exchange(ref _lastWatchdogFrameSeq, seq);
                     WriteBatch($"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} [WATCHDOG] STALL frame={seq} elapsed={ms:F0}ms thread={_frameThreadId} stage={_frameStage}{Environment.NewLine}");
+                    QueueUrgentVisualProbe("watchdog_" + _frameStage);
                 }
             }
             else
