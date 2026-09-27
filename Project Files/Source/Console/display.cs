@@ -9851,29 +9851,32 @@ namespace Thetis
                     bool stopWaterfallOnTx = (rx == 1 && m_bStopRX1WaterfallOnTX && local_mox) ||
                                              (rx == 2 && m_bStopRX2WaterfallOnTX && local_mox);
 
-                    // Tier 3 GPU compute shaders: when armed, offload the per-pixel
-                    // colour conversion to a GPU compute shader.  Falls back to the
-                    // CPU colour switch above on any failure (GPU fallback rule 1).
-                    bool bComputeFilledRow = false;
-                    if (!managedGpuOwnsPane && ComputeArmed && (!stopWaterfallOnTx || clearExistingBitmap))
+                    // Native Vortice GPU waterfall.  Colour conversion is dispatched
+                    // on the live Vortice D3D11 device and the GPU output texture is
+                    // copied directly into the Vortice history ring.  No SharpDX
+                    // wrapper, no event-query spin, no GPU->CPU colour readback and no
+                    // D2D bitmap present are used when this succeeds.
+                    if (!managedGpuOwnsPane && NativeWaterfallComputeArmed &&
+                        (!stopWaterfallOnTx || clearExistingBitmap))
                     {
                         float linCor = (cScheme == ColorScheme.LinLog) ? LinLogCor :
                                        (cScheme == ColorScheme.LinRad || cScheme == ColorScheme.LinAuto) ? LinCor : 0f;
-                        bComputeFilledRow = TryDispatchWaterfallCompute(waterfall_data, row, W,
-                            nDecimatedWidth, waterfallDecimation, cScheme, low_threshold, high_threshold,
-                            linCor, rx == 2, local_mox);
+                        bMeshCommit = TryDispatchNativeWaterfall(
+                            rx, waterfall_data, W, nDecimatedWidth, waterfallDecimation,
+                            H - 20, addRow, horizontalShiftPixels, clearExistingBitmap,
+                            cScheme, low_threshold, high_threshold, linCor,
+                            rx == 2, local_mox);
                     }
 
                     int preservedBitmapHeight = (int)waterfallBitmap.Size.Height - (addRow ? 1 : 0);
 
-                    // Tier 3 GPU mesh waterfall: give the GPU ring the line first
-                    // (hold frames are handled internally once it owns the pane; a
-                    // width-change clear is honoured even during TX-stop, matching
-                    // the D2D order). Fall through to the legacy bitmap work when it
-                    // declines or is disarmed.
-                    if (!managedGpuOwnsPane && WfMeshArmed && (!stopWaterfallOnTx || clearExistingBitmap))
+                    // Legacy 8-bit CPU-coloured mesh is now only an emergency fallback.
+                    if (!bMeshCommit && !managedGpuOwnsPane && WfMeshArmed &&
+                        WaterfallEnhancer.Depth == WaterfallEnhancer.ColorDepth.Bit8 &&
+                        (!stopWaterfallOnTx || clearExistingBitmap))
                     {
-                        bMeshCommit = WaterfallMeshCommitLine(rx, row, H - 20, addRow, horizontalShiftPixels, clearExistingBitmap);
+                        bMeshCommit = WaterfallMeshCommitLine(
+                            rx, row, H - 20, addRow, horizontalShiftPixels, clearExistingBitmap);
                     }
 
                     if (!bMeshCommit)
@@ -9988,7 +9991,16 @@ namespace Thetis
                     DrawManagedGPUWaterfall(rx, nVerticalShift,
                         rx == 1 ? m_fRX1WaterfallOpacity : m_fRX2WaterfallOpacity);
                 }
-                else if (!(WfMeshArmed && WfMeshOwnsPane(rx)))
+                else if (WfMeshArmed && WfMeshOwnsPane(rx))
+                {
+                    GPUWaterfallLogger.LogRateLimited("WF-PRESENT", "native-vortice-rx" + rx, 1000,
+                        "RX" + rx + " path=nativeVorticeD3D11 shift=" + nVerticalShift +
+                        " size=" + W + "x" + (H - 20) +
+                        " format=" + NativeWaterfallFormat);
+                    // The pane was already rendered directly into the swapchain
+                    // backbuffer by RenderGpuWaterfall() before BeginDraw.
+                }
+                else
                 {
                     GPUWaterfallLogger.LogRateLimited("WF-PRESENT", "classic-rx" + rx, 1000,
                         "RX" + rx + " path=classicD2D shift=" + nVerticalShift +
