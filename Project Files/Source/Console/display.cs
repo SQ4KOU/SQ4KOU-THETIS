@@ -4567,9 +4567,13 @@ namespace Thetis
                         " gpuEffects=" + _gpuEffectsEnabled +
                         " gpuPipeline=" + _gpuWaterfallPipelineEnabled +
                         " exactGPU=" + ExactNativeGPURequested +
-                        " compute=" + GpuComputeEnabled +
+                        " managedGPU=" + ManagedGPUFFTRequested +
+                        " computeRequested=" + GpuComputeEnabled +
+                        " computeArmed=" + ComputeArmed +
+                        " wfMeshArmed=" + WfMeshArmed +
+                        " overlayArmed=" + OverlayMeshArmed +
                         " pan3D=" + _pan3DEnabled +
-                        " mesh3D=" + GpuMeshEnabled +
+                        " mesh3DRequested=" + GpuMeshEnabled +
                         " fft=" + _gpuWaterfallFFTSize +
                         " overlap=" + _gpuWaterfallOverlapPercent +
                         " autoOverlap=" + _gpuWaterfallAutoOverlap +
@@ -4579,11 +4583,10 @@ namespace Thetis
                     _bNoiseFloorAlreadyCalculatedRX1 = false; // keeps track of noise floor processing, only want to do it once, even if pana + water shown
                     _bNoiseFloorAlreadyCalculatedRX2 = false;
 
-                    // Tier 3 GPU mesh passes (3D surface + waterfall): drawn straight
-                    // into the backbuffer BEFORE the D2D frame begins. When any pass
-                    // succeeds, the D2D clear + background fill below are skipped so
-                    // the GPU content survives; grid, text, traces and all overlays
-                    // still come from D2D on top.
+                    // Preserve the SDR-VST3 3D bandscope mesh exactly as the reference
+                    // implementation.  All SQ4KOU waterfall additions are isolated from
+                    // this shared backbuffer: only the original 3D pre-pass may draw
+                    // before the main D2D BeginDraw.
                     _bGpuBackdropDone = false;
                     GpuMesh3DOwnerRX = 0;
                     GPUWaterfallLogger.FrameStage("GPU_3D");
@@ -8644,9 +8647,11 @@ namespace Thetis
             Matrix3x2 originalTransform = _d2dRenderTarget.Transform;
             _d2dRenderTarget.Transform = Matrix3x2.Identity;
 
-            // Tier 3 GPU mesh waterfall: record this pane's geometry for the next
-            // frame's pre-BeginDraw presentation pass
-            CaptureWaterfallPaneParams(nVerticalShift, W, H, rx);
+            // The shared-backbuffer waterfall mesh is stability-gated off. Keep the
+            // capture hook conditional so dormant experimental code cannot accumulate
+            // presentation state in the stable D2D path.
+            if (WfMeshArmed)
+                CaptureWaterfallPaneParams(nVerticalShift, W, H, rx);
 
             if (waterfall_data == null || waterfall_data.Length < W)
             {
