@@ -3699,6 +3699,19 @@ namespace Thetis
             GPUWaterfallLogger.Log("POWER-DX",
                 "renderer observed power " + oldPower + " -> " + powerOn);
 
+            // The exact GPU worker is process-lifetime and independent of the visible
+            // compositor.  Power transitions only enable/disable its IQ feed and
+            // reset ring credit; no D3D/D2D device teardown is performed here.
+            try
+            {
+                ResetExactGPUWaterfallSourceForModeChange(
+                    powerOn && _gpuWaterfallPipelineEnabled && !m_bForceCPURendering);
+            }
+            catch (Exception ex)
+            {
+                GPUWaterfallLogger.Log("WF-WORKER", "power transition reset failed: " + ex.Message);
+            }
+
             // Covers the race where the UI queued RequestDXRestart immediately before
             // this render tick observed the OFF->ON transition.
             if (powerOn && m_bDXRestartPending)
