@@ -3507,6 +3507,9 @@ namespace Thetis
         // waterfall source is reset separately; the visible compositor is retained.
         private static bool _rendererPowerStateKnown = false;
         private static bool _rendererLastPowerOn = false;
+        private static bool _visualStateKnown = false;
+        private static bool _lastObservedGpuMeshEnabled = false;
+        private static int _lastObservedVBlanks = -1;
         public static DXRenderPath RenderPath
         {
             get { return m_eRenderPath; }
@@ -3589,6 +3592,44 @@ namespace Thetis
                 m_bWarpDowngradeAttempted = false;
                 GPUWaterfallLogger.Log("POWER-DX",
                     "POWER ON: cancelled pending full DX restart; renderer retained");
+            }
+        }
+
+        private static void ObserveVisualStateTransitions()
+        {
+            try
+            {
+                bool mesh = GpuMeshEnabled;
+                int vblanks = m_nVBlanks;
+
+                if (!_visualStateKnown)
+                {
+                    _lastObservedGpuMeshEnabled = mesh;
+                    _lastObservedVBlanks = vblanks;
+                    _visualStateKnown = true;
+                    GPUWaterfallLogger.Log("VISUAL-STATE",
+                        "initial GpuMeshEnabled=" + mesh + " VerticalBlanks=" + vblanks);
+                    return;
+                }
+
+                if (mesh != _lastObservedGpuMeshEnabled)
+                {
+                    bool old = _lastObservedGpuMeshEnabled;
+                    _lastObservedGpuMeshEnabled = mesh;
+                    GPUWaterfallLogger.Log("VISUAL-STATE",
+                        "observed GpuMeshEnabled " + old + " -> " + mesh);
+                }
+
+                if (vblanks != _lastObservedVBlanks)
+                {
+                    int old = _lastObservedVBlanks;
+                    _lastObservedVBlanks = vblanks;
+                    GPUWaterfallLogger.Log("VISUAL-STATE",
+                        "observed VerticalBlanks " + old + " -> " + vblanks);
+                }
+            }
+            catch
+            {
             }
         }
 
@@ -4557,6 +4598,7 @@ namespace Thetis
                     }
 
                     ObserveRendererPowerState();
+                    ObserveVisualStateTransitions();
 
                     m_dElapsedFrameStart = _high_perf_timer.ElapsedMsec;
                     calcFps();
@@ -5025,8 +5067,15 @@ namespace Thetis
 
                         // Output-side probe: sample the client area actually visible to
                         // the operator after Present, not only internal renderer state.
-                        if (displayTarget != null && displayTarget.IsHandleCreated)
-                            GPUWaterfallLogger.QueueVisualProbe(displayTarget.Handle, displayTargetWidth, displayTargetHeight);
+                        try
+                        {
+                            if (displayTarget != null && displayTarget.IsHandleCreated)
+                                GPUWaterfallLogger.QueueVisualProbe(displayTarget.Handle, displayTargetWidth, displayTargetHeight);
+                        }
+                        catch
+                        {
+                            // Diagnostics must never destabilise the renderer.
+                        }
                     }
 
                     if (r.Failure && !(
