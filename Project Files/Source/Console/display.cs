@@ -3502,6 +3502,11 @@ namespace Thetis
         private static bool m_bForceCPURendering = false;
         private static volatile bool m_bDXRestartPending = false;
         private static bool m_bWarpDowngradeAttempted = false;
+        // Renderer-side power tracking prevents a normal radio OFF->ON transition
+        // from tearing down the complete D3D11/D2D device graph.  The exact GPU
+        // waterfall source is reset separately; the visible compositor is retained.
+        private static bool _rendererPowerStateKnown = false;
+        private static bool _rendererLastPowerOn = false;
         public static DXRenderPath RenderPath
         {
             get { return m_eRenderPath; }
@@ -3539,8 +3544,52 @@ namespace Thetis
         {
             GPUWaterfallLogger.Log("STATE", "RequestDXRestart setup=" + _bDX2Setup + " path=" + RenderPathString());
             if (!_bDX2Setup) return;
+
+            // A radio power transition does not change the renderer device, swapchain,
+            // adapter or target size.  Rebuilding the whole DX graph here previously
+            // created WAIT_DX_LOCK stalls and made a later EndDraw hang much harder to
+            // recover from.  Keep the compositor alive; the waterfall IQ/FFT source has
+            // its own reset path in the power handler.
+            if (console != null && _rendererPowerStateKnown &&
+                console.PowerOn && !_rendererLastPowerOn)
+            {
+                GPUWaterfallLogger.Log("POWER-DX",
+                    "POWER ON: suppressing full DX restart; renderer retained");
+                return;
+            }
+
             m_bDXRestartPending = true;
             m_bWarpDowngradeAttempted = false;
+        }
+
+        private static void ObserveRendererPowerState()
+        {
+            if (console == null) return;
+
+            bool powerOn = console.PowerOn;
+            if (!_rendererPowerStateKnown)
+            {
+                _rendererLastPowerOn = powerOn;
+                _rendererPowerStateKnown = true;
+                return;
+            }
+
+            if (powerOn == _rendererLastPowerOn) return;
+
+            bool oldPower = _rendererLastPowerOn;
+            _rendererLastPowerOn = powerOn;
+            GPUWaterfallLogger.Log("POWER-DX",
+                "renderer observed power " + oldPower + " -> " + powerOn);
+
+            // Covers the race where the UI queued RequestDXRestart immediately before
+            // this render tick observed the OFF->ON transition.
+            if (powerOn && m_bDXRestartPending)
+            {
+                m_bDXRestartPending = false;
+                m_bWarpDowngradeAttempted = false;
+                GPUWaterfallLogger.Log("POWER-DX",
+                    "POWER ON: cancelled pending full DX restart; renderer retained");
+            }
         }
 
         private static bool ProcessPendingDXRestartAfterFrame()
@@ -3605,8 +3654,19 @@ namespace Thetis
             GPUWaterfallLogger.Log("DX", "ShutdownDX2D requested setup=" + _bDX2Setup + " path=" + RenderPathString());
             GPUWaterfallLogger.RendererStopped();
 
-            lock (_objDX2Lock)
+            bool shutdownLockTaken = false;
+            try
             {
+                if (!Monitor.TryEnter(_objDX2Lock, 1500))
+                {
+                    GPUWaterfallLogger.Log("DX-SHUTDOWN",
+                        "render lock timeout after 1500ms; teardown skipped so UI shutdown cannot deadlock behind a stuck EndDraw");
+                    return;
+                }
+                shutdownLockTaken = true;
+
+                lock (_objDX2Lock)
+                {
                 if (!_bDX2Setup) return;
 
                 GPUWaterfallLogger.Log("DX-SHUTDOWN", "begin native-owner teardown");
@@ -3703,6 +3763,12 @@ namespace Thetis
                     // teardown.  The next init must create a clean device graph.
                     _bDX2Setup = false;
                 }
+            }
+            }
+            finally
+            {
+                if (shutdownLockTaken)
+                    Monitor.Exit(_objDX2Lock);
             }
         }
 
@@ -4490,6 +4556,8 @@ namespace Thetis
                         return;
                     }
 
+                    ObserveRendererPowerState();
+
                     m_dElapsedFrameStart = _high_perf_timer.ElapsedMsec;
                     calcFps();
                     GPUWaterfallLogger.FrameStats(
@@ -4520,8 +4588,12 @@ namespace Thetis
                     GpuMesh3DOwnerRX = 0;
                     GPUWaterfallLogger.FrameStage("GPU_3D");
                     _b3DMeshDrewFrame = RenderGpuMesh3D();
-                    GPUWaterfallLogger.FrameStage("GPU_WATERFALL_MESH");
-                    _bWfMeshDrewFrame = RenderGpuWaterfall();
+                    // Stability contract: GPU FFT stays on the dedicated native
+                    // device, while visible waterfall history/presentation stays in
+                    // the normal D2D bitmap path.  Do not render a waterfall mesh into
+                    // the shared swapchain immediate context.
+                    GPUWaterfallLogger.FrameStage("GPU_WATERFALL_STABLE_D2D");
+                    _bWfMeshDrewFrame = false;
                     ClearWaterfallPaneCaptures();
 
                     GPUWaterfallLogger.FrameStage("D2D_BEGIN");
