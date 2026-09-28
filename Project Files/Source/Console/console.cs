@@ -2836,39 +2836,19 @@ namespace Thetis
         public List<string> GetStateList()
         {
             string s;
-            //control names to always save, some were being missed if disabled
-            List<string> always_save = new List<string>();
-            always_save.Add(chkVFOLock.Name);
-            always_save.Add(chkVFOBLock.Name);
-            always_save.Add(chkVFOSync.Name);
-            // chkVIS is greyed out whenever chkREPR is unchecked.  Without
-            // this addition, addControlState skips it when disabled and the
-            // value never makes it to the DB, so on next launch the
-            // Setup-side mirror (chkRADAEReporting -> chkVIS) sets it to
-            // whatever chkRADAEReporting last persisted -- typically true
-            // -- regardless of what the user actually wanted.  Forcing
-            // save here lets GetState restore the user's chosen value even
-            // when REPR is off across restarts.
-            always_save.Add(chkVIS.Name);
-
             List<string> a = new List<string>();
 
-            foreach (Control c in this.Controls)
-            {
-                if (c.GetType() == typeof(GroupBoxTS) || c.GetType() == typeof(PanelTS))
-                {
-                    foreach (Control c2 in c.Controls)
-                        addControlState(a, c2, always_save, true, true);
-                }
-                else
-                {
-                    addControlState(a, c, always_save, false, false);
-                }
-            }
+            // SQ4KOU persistence guard: recurse through the complete UI tree and
+            // save persistable values regardless of Enabled/Visible state. Disabled
+            // controls are still user state and must survive a restart.
+            addControlStateRecursive(a, this);
 
-            a.Remove("udRX1StepAttData/" + udRX1StepAttData.Value.ToString());
-            a.Remove("udRX2StepAttData/" + udRX2StepAttData.Value.ToString());
-            a.Remove("udTXStepAttData/" + udTXStepAttData.Value.ToString());
+            // These three values are restored from the per-band attenuator tables.
+            // Remove by key, not by culture-dependent formatted value.
+            a.RemoveAll(entry =>
+                entry.StartsWith("udRX1StepAttData/", StringComparison.Ordinal) ||
+                entry.StartsWith("udRX2StepAttData/", StringComparison.Ordinal) ||
+                entry.StartsWith("udTXStepAttData/", StringComparison.Ordinal));
 
             a.Add("last_radio_protocol/" + Audio.LastRadioProtocol.ToString());
             a.Add("last_radio_hardware/" + Audio.LastRadioHardware.ToString());
@@ -3326,56 +3306,53 @@ namespace Thetis
             return a;
         }
 
-        private void addControlState(List<string> a, Control c, List<string> always_save, bool combo_use_items_count, bool print_not_saving)
+        private void addControlState(List<string> a, Control c)
         {
-            if (!(c.Enabled || always_save.Contains(c.Name)))
-            {
-                if (print_not_saving)
-                    Debug.Print("Not saving : " + c.Name);
+            if (c == null || string.IsNullOrWhiteSpace(c.Name)) return;
+            if (!Common.IsPersistableControl(c)) return;
+
+            // A DropDownList without a selected item has no valid round-trip target.
+            // Do not manufacture an empty persisted value that cannot be restored.
+            if (c is ComboBox combo && combo.DropDownStyle == ComboBoxStyle.DropDownList &&
+                combo.SelectedIndex < 0)
                 return;
-            }
 
-            if (c.GetType() == typeof(CheckBoxTS))
-                a.Add(c.Name + "/" + ((CheckBoxTS)c).Checked.ToString());
-            else if (c.GetType() == typeof(ComboBoxTS))
-            {
-                ComboBoxTS combo = (ComboBoxTS)c;
+            if (!Common.TrySerializePersistedControl(c, out string persistedValue))
+                throw new InvalidOperationException("Unsupported State persistence control " +
+                    c.Name + " (" + c.GetType().FullName + ").");
 
-                if (combo_use_items_count)
-                {
-                    if (combo.Items.Count > 0)
-                        a.Add(c.Name + "/" + combo.Text);
-                }
-                else
-                {
-                    if (combo.SelectedIndex >= 0)
-                        a.Add(c.Name + "/" + combo.Text);
-                }
-            }
-            else if (c.GetType() == typeof(NumericUpDownTS))
-                a.Add(c.Name + "/" + ((NumericUpDownTS)c).Value.ToString());
-            else if (c.GetType() == typeof(RadioButtonTS))
-                a.Add(c.Name + "/" + ((RadioButtonTS)c).Checked.ToString());
-            else if (c.GetType() == typeof(TextBoxTS))
+            a.Add(c.Name + "/" + persistedValue);
+        }
+
+        private void addControlStateRecursive(List<string> a, Control root)
+        {
+            if (root == null) return;
+
+            foreach (Control child in root.Controls)
             {
-                TextBoxTS text_box = (TextBoxTS)c;
-                if (text_box.ReadOnly == false)
-                    a.Add(c.Name + "/" + text_box.Text);
+                addControlState(a, child);
+
+                if (child.Controls.Count > 0)
+                    addControlStateRecursive(a, child);
             }
-            else if (c.GetType() == typeof(TrackBarTS))
-                a.Add(c.Name + "/" + ((TrackBarTS)c).Value.ToString());
-            else if (c.GetType() == typeof(PrettyTrackBar))
-                a.Add(c.Name + "/" + ((PrettyTrackBar)c).Value.ToString());
-#if (DEBUG)
-            else if (c.GetType() == typeof(GroupBox) ||
-                c.GetType() == typeof(CheckBox) ||
-                c.GetType() == typeof(ComboBox) ||
-                c.GetType() == typeof(NumericUpDown) ||
-                c.GetType() == typeof(RadioButton) ||
-                c.GetType() == typeof(TextBox) ||
-                c.GetType() == typeof(TrackBar))
-                Debug.WriteLine(this.Name + " -> " + c.Name + " needs to be converted to a Thread Safe control.");
-#endif
+        }
+
+        private void getStateControlList(Control root, Dictionary<string, Control> controls)
+        {
+            if (root == null) return;
+
+            foreach (Control child in root.Controls)
+            {
+                if (Common.IsPersistableControl(child) && !string.IsNullOrWhiteSpace(child.Name))
+                {
+                    if (controls.ContainsKey(child.Name))
+                        throw new InvalidOperationException("Duplicate State persistence key '" + child.Name + "'.");
+                    controls.Add(child.Name, child);
+                }
+
+                if (child.Controls.Count > 0)
+                    getStateControlList(child, controls);
+            }
         }
 
         public void SaveState()
@@ -3391,6 +3368,9 @@ namespace Thetis
 
             DB.PurgeNotches();
             DB.SaveVars("State", a, true);
+
+            if (!DB.VerifyVars("State", a, out string stateVerifyError))
+                throw new InvalidDataException("State persistence verification failed: " + stateVerifyError);
         }
 
         //        public void SaveState()
@@ -3984,21 +3964,11 @@ namespace Thetis
             Size szConsoleSize = new Size(this.Width, this.Height);            
 
             //[2.10.2.3]MW0LGE change to dictionary as controls will be unique
-            Dictionary<string, Control> ctrls = new Dictionary<string, Control>();
+            Dictionary<string, Control> ctrls = new Dictionary<string, Control>(StringComparer.Ordinal);
 
-            foreach (Control c in this.Controls)
-            {
-                // if control is a groupbox or panel, retrieve all subcontrols
-                if (c.GetType() == typeof(GroupBoxTS) || c.GetType() == typeof(PanelTS))
-                {
-                    foreach (Control c2 in c.Controls)
-                        ctrls.Add(c2.Name, c2);
-                }
-                else
-                {
-                    ctrls.Add(c.Name, c);
-                }
-            }
+            // SQ4KOU persistence guard: use the same complete recursive UI tree
+            // for restore that GetStateList uses for save.
+            getStateControlList(this, ctrls);
 
             List<string> a = DB.GetVars("State");							// Get the saved list of controls
             a.Sort();
@@ -5088,51 +5058,17 @@ namespace Thetis
                         chkRX2Squelch.CheckState = (CheckState)(Enum.Parse(typeof(CheckState), val));
                         break;
 
-                    case var nam when name.StartsWith("chk"):
-                        if (ctrls.ContainsKey(name)) ((CheckBoxTS)ctrls[name]).Checked = bool.Parse(val);
-                        break;
-
-                    case var nam when name.StartsWith("combo"):
-                        if (ctrls.ContainsKey(name)) ((ComboBoxTS)ctrls[name]).Text = val;
-                        break;
-
-                    case var nam when name.StartsWith("ud"):
-                        if (ctrls.ContainsKey(name))
+                    default:
+                        if (ctrls.TryGetValue(name, out Control stateControl))
                         {
-                            NumericUpDownTS c = (NumericUpDownTS)ctrls[name];
-                            decimal dnum = decimal.Parse(val);
-                            if (dnum > c.Maximum) dnum = c.Maximum;
-                            else if (dnum < c.Minimum) dnum = c.Minimum;
-                            c.Value = dnum;
+                            if (!Common.TryRestorePersistedControl(stateControl, val))
+                                throw new InvalidDataException("Could not restore State." + name +
+                                    " from value '" + val + "'.");
+
+                            if (!Common.PersistedControlMatches(stateControl, val, out string actualValue))
+                                throw new InvalidDataException("State restore round-trip mismatch for '" + name +
+                                    "': DB='" + val + "', UI='" + actualValue + "'.");
                         }
-                        break;
-
-                    case var nam when name.StartsWith("rad"):
-                        if (ctrls.ContainsKey(name))
-                        {
-                            RadioButtonTS c = (RadioButtonTS)ctrls[name];
-                            if (!val.ToLower().Equals("true") && !val.ToLower().Equals("false")) val = "True";
-                            c.Checked = bool.Parse(val);
-                        }
-                        break;
-
-                    case var nam when name.StartsWith("txt"):
-                        if (ctrls.ContainsKey(name)) ((TextBoxTS)ctrls[name]).Text = val;
-                        break;
-
-                    case var nam when name.StartsWith("tb"):
-                        if (ctrls.ContainsKey(name))
-                        {
-                            TrackBarTS c = (TrackBarTS)ctrls[name];
-                            int num = int.Parse(val);
-                            if (num > c.Maximum) num = c.Maximum;
-                            if (num < c.Minimum) num = c.Minimum;
-                            c.Value = num;
-                        }
-                        break;
-
-                    case var nam when name.StartsWith("ptb"):
-                        if (ctrls.ContainsKey(name)) ((PrettyTrackBar)ctrls[name]).Value = Int32.Parse(val);
                         break;
                 }
             }

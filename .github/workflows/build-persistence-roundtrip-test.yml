@@ -1,0 +1,121 @@
+name: Build persistence round-trip test
+
+on:
+  push:
+    branches: [restart/sdr-vst3-full-gpu-clean-20260927]
+    paths:
+      - .github/workflows/build-persistence-roundtrip-test.yml
+      - Project Files/Source/Console/common.cs
+      - Project Files/Source/Console/console.cs
+      - Project Files/Source/Console/database.cs
+      - Project Files/Source/Console/setup.cs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-persistence:
+    runs-on: windows-2025
+    timeout-minutes: 90
+    steps:
+      - name: Checkout persistence test branch
+        uses: actions/checkout@v4
+        with:
+          ref: restart/sdr-vst3-full-gpu-clean-20260927
+          fetch-depth: 1
+
+      - name: Enable long paths
+        shell: pwsh
+        run: git config --global core.longpaths true
+
+      - name: Audit persistence guards
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $c='Project Files\Source\Console'
+          $common=Get-Content "$c\common.cs" -Raw
+          $db=Get-Content "$c\database.cs" -Raw
+          $setup=Get-Content "$c\setup.cs" -Raw
+          $console=Get-Content "$c\console.cs" -Raw
+          foreach($t in @(
+            @($common,'TrySerializePersistedControl','shared persistence serializer'),
+            @($common,'PersistedControlMatches','shared restore verifier'),
+            @($db,'VerifyDataSetRoundTrip','database file round-trip verification'),
+            @($db,'VerifyVarsDictionary','database key/value verification'),
+            @($setup,'Setup restore round-trip mismatch','Setup restore verification'),
+            @($console,'State restore round-trip mismatch','State restore verification'),
+            @($console,'addControlStateRecursive','recursive State persistence')
+          )){
+            if($t[0] -notmatch [regex]::Escape($t[1])){throw "Missing required persistence guard: $($t[2])"}
+          }
+          Write-Host 'SQ4KOU_PERSISTENCE_SOURCE_AUDIT=PASS'
+          Write-Host "SOURCE_SHA=$((git rev-parse HEAD).Trim())"
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $targets=Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if(-not $targets){choco install wixtoolset -y --no-progress}
+          $targets=Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if(-not $targets){$targets=Get-ChildItem 'C:\Program Files (x86)\WiX Toolset*\Wix.targets' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1}
+          if(-not $targets){throw 'WiX 3.x Wix.targets not found'}
+          "WIX_TARGETS=$($targets.FullName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore packages
+        shell: pwsh
+        run: nuget restore 'Project Files\Source\Thetis_VS2026.sln' -NonInteractive
+
+      - name: Build Release x64 and MSI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $log=Join-Path $env:RUNNER_TEMP 'sq4kou-persistence-build.log'
+          & msbuild 'Project Files\Source\Thetis_VS2026.sln' /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal 2>&1 | Tee-Object -FilePath $log
+          if($LASTEXITCODE -ne 0){throw "MSBuild failed: $LASTEXITCODE"}
+          $errors=Select-String -Path $log -Pattern ': error ' -ErrorAction SilentlyContinue
+          if($errors){$errors | ForEach-Object {Write-Host $_.Line}; throw 'Build log contains compiler/build errors'}
+          "BUILD_LOG=$log" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host 'SQ4KOU_PERSISTENCE_BUILD=PASS'
+
+      - name: Preserve test MSI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $exe=Get-ChildItem 'Project Files' -Recurse -File -Filter Thetis.exe | Where-Object {$_.FullName -match '\\bin\\x64\\Release|\\bin\\Release'} | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if(-not $exe){throw 'Thetis.exe not found'}
+          $msi=Get-ChildItem 'Project Files\bin\Installers\*.msi' -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if(-not $msi -or $msi.Length -lt 1MB){throw 'Valid MSI not produced'}
+          $final=Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-PERSISTENCE-ROUNDTRIP-TEST-x64.msi'
+          Copy-Item $msi.FullName $final -Force
+          $hash=(Get-FileHash $final -Algorithm SHA256).Hash
+          "FINAL_MSI_PATH=$final" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "MSI_SHA256=$hash" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "FINAL_MSI=$final"
+          Write-Host "MSI_BYTES=$((Get-Item $final).Length)"
+          Write-Host "MSI_SHA256=$hash"
+
+      - name: Upload test MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-PERSISTENCE-ROUNDTRIP-TEST-x64
+          path: ${{ env.FINAL_MSI_PATH }}
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: Upload build log
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-PERSISTENCE-BUILD-LOG
+          path: ${{ env.BUILD_LOG }}
+          if-no-files-found: error
+          compression-level: 6
+
+# trigger PR validation after base workflow installation
