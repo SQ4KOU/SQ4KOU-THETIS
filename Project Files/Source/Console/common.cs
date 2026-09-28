@@ -336,29 +336,36 @@ namespace Thetis
 		}
 		#endregion
 
-		public static void ControlList(Control c, ref List<Control> a)
+		public static bool IsPersistableControl(Control c)
 		{
-			if (c.Controls.Count > 0)
-			{
-				foreach (Control c2 in c.Controls)
-				{
-					ControlList(c2, ref a);
-				}
-			}
+			if (c == null) return false;
+			if (c is TextBox text_box && text_box.ReadOnly) return false;
 
-			// Keep the discovery list and Save/Restore type handling strictly symmetric.
-			// Use "is" rather than exact GetType() so derived/custom controls are included.
-			if (c is CheckBox ||
+			return c is ColorButton ||
+				c is PrettyTrackBar ||
+				c is CheckBox ||
 				c is ComboBox ||
 				c is NumericUpDown ||
 				c is RadioButton ||
 				c is TextBox ||
 				c is TrackBar ||
-				c is TabControl ||
-				c is ColorButton)
+				c is TabControl;
+		}
+
+		public static void ControlList(Control c, ref List<Control> a)
+		{
+			if (c == null) return;
+
+			if (c.Controls.Count > 0)
 			{
-				a.Add(c);
+				foreach (Control c2 in c.Controls)
+					ControlList(c2, ref a);
 			}
+
+			// SQ4KOU persistence guard: discovery and serialization share exactly
+			// the same type predicate so a new derived control cannot be silently lost.
+			if (IsPersistableControl(c))
+				a.Add(c);
 		}
 
 		private static bool TryParsePersistedInt(string value, out int parsed)
@@ -373,12 +380,12 @@ namespace Thetis
 				decimal.TryParse(value, NumberStyles.Number, CultureInfo.CurrentCulture, out parsed);
 		}
 
-		private static void RestoreComboBoxText(ComboBox comboBox, string value)
+		private static bool RestoreComboBoxText(ComboBox comboBox, string value)
 		{
 			if (comboBox.DropDownStyle != ComboBoxStyle.DropDownList)
 			{
 				comboBox.Text = value;
-				return;
+				return string.Equals(comboBox.Text ?? string.Empty, value ?? string.Empty, StringComparison.Ordinal);
 			}
 
 			for (int i = 0; i < comboBox.Items.Count; i++)
@@ -387,57 +394,189 @@ namespace Thetis
 				if (item != null && string.Equals(item.ToString(), value, StringComparison.Ordinal))
 				{
 					comboBox.SelectedIndex = i;
-					return;
+					return true;
 				}
 			}
+
+			return false;
+		}
+
+		public static bool TrySerializePersistedControl(Control control, out string value)
+		{
+			value = null;
+			if (!IsPersistableControl(control)) return false;
+
+			if (control is ColorButton color_button)
+			{
+				Color clr = color_button.Color;
+				value = clr.R.ToString(CultureInfo.InvariantCulture) + "." +
+					clr.G.ToString(CultureInfo.InvariantCulture) + "." +
+					clr.B.ToString(CultureInfo.InvariantCulture) + "." +
+					clr.A.ToString(CultureInfo.InvariantCulture);
+				return true;
+			}
+			if (control is PrettyTrackBar pretty_track_bar)
+			{
+				value = pretty_track_bar.Value.ToString(CultureInfo.InvariantCulture);
+				return true;
+			}
+			if (control is CheckBox check_box)
+			{
+				value = check_box.Checked.ToString(CultureInfo.InvariantCulture);
+				return true;
+			}
+			if (control is ComboBox combo_box)
+			{
+				value = combo_box.Text ?? string.Empty;
+				return true;
+			}
+			if (control is NumericUpDown numeric_up_down)
+			{
+				value = numeric_up_down.Value.ToString(CultureInfo.InvariantCulture);
+				return true;
+			}
+			if (control is RadioButton radio_button)
+			{
+				value = radio_button.Checked.ToString(CultureInfo.InvariantCulture);
+				return true;
+			}
+			if (control is TextBox text_box)
+			{
+				value = text_box.Text ?? string.Empty;
+				return true;
+			}
+			if (control is TrackBar track_bar)
+			{
+				value = track_bar.Value.ToString(CultureInfo.InvariantCulture);
+				return true;
+			}
+			if (control is TabControl tab_control)
+			{
+				value = tab_control.SelectedIndex.ToString(CultureInfo.InvariantCulture);
+				return true;
+			}
+
+			return false;
+		}
+
+		public static bool TryRestorePersistedControl(Control control, string value)
+		{
+			if (!IsPersistableControl(control)) return false;
+
+			if (control is ColorButton color_button)
+			{
+				string[] colors = (value ?? string.Empty).Split('.');
+				int r, g, b, a;
+				if (colors.Length != 4 ||
+					!TryParsePersistedInt(colors[0], out r) ||
+					!TryParsePersistedInt(colors[1], out g) ||
+					!TryParsePersistedInt(colors[2], out b) ||
+					!TryParsePersistedInt(colors[3], out a) ||
+					r < 0 || r > 255 || g < 0 || g > 255 || b < 0 || b > 255 || a < 0 || a > 255)
+					return false;
+				color_button.Color = Color.FromArgb(a, r, g, b);
+				return true;
+			}
+			if (control is PrettyTrackBar pretty_track_bar)
+			{
+				if (!TryParsePersistedInt(value, out int parsed)) return false;
+				pretty_track_bar.Value = parsed;
+				return true;
+			}
+			if (control is CheckBox check_box)
+			{
+				if (!bool.TryParse(value, out bool parsed)) return false;
+				check_box.Checked = parsed;
+				return true;
+			}
+			if (control is ComboBox combo_box)
+				return RestoreComboBoxText(combo_box, value);
+			if (control is NumericUpDown numeric_up_down)
+			{
+				if (!TryParsePersistedDecimal(value, out decimal parsed)) return false;
+				numeric_up_down.Value = Math.Max(numeric_up_down.Minimum, Math.Min(parsed, numeric_up_down.Maximum));
+				return true;
+			}
+			if (control is RadioButton radio_button)
+			{
+				if (!bool.TryParse(value, out bool parsed)) return false;
+				radio_button.Checked = parsed;
+				return true;
+			}
+			if (control is TextBox text_box)
+			{
+				text_box.Text = value ?? string.Empty;
+				return true;
+			}
+			if (control is TrackBar track_bar)
+			{
+				if (!TryParsePersistedInt(value, out int parsed)) return false;
+				track_bar.Value = Math.Max(track_bar.Minimum, Math.Min(parsed, track_bar.Maximum));
+				return true;
+			}
+			if (control is TabControl tab_control)
+			{
+				if (!TryParsePersistedInt(value, out int parsed) || parsed < 0 || parsed >= tab_control.TabPages.Count)
+					return false;
+				tab_control.SelectedIndex = parsed;
+				return true;
+			}
+
+			return false;
+		}
+
+		public static bool PersistedControlMatches(Control control, string persistedValue, out string actualValue)
+		{
+			actualValue = null;
+			if (!TrySerializePersistedControl(control, out actualValue)) return false;
+
+			if (control is NumericUpDown)
+			{
+				return TryParsePersistedDecimal(persistedValue, out decimal expected) &&
+					TryParsePersistedDecimal(actualValue, out decimal actual) && expected == actual;
+			}
+			if (control is PrettyTrackBar || control is TrackBar || control is TabControl)
+			{
+				return TryParsePersistedInt(persistedValue, out int expected) &&
+					TryParsePersistedInt(actualValue, out int actual) && expected == actual;
+			}
+			if (control is CheckBox || control is RadioButton)
+			{
+				return bool.TryParse(persistedValue, out bool expected) &&
+					bool.TryParse(actualValue, out bool actual) && expected == actual;
+			}
+
+			return string.Equals(actualValue ?? string.Empty, persistedValue ?? string.Empty, StringComparison.Ordinal);
+		}
+
+		private static Dictionary<string, Control> BuildPersistenceControlMap(Form form, List<Control> controls)
+		{
+			Dictionary<string, Control> map = new Dictionary<string, Control>(StringComparer.Ordinal);
+			foreach (Control control in controls)
+			{
+				if (string.IsNullOrWhiteSpace(control.Name))
+					throw new InvalidOperationException("Persistence control without a stable Name in form " + form.Name + ": " + control.GetType().FullName);
+				if (map.ContainsKey(control.Name))
+					throw new InvalidOperationException("Duplicate persistence key '" + control.Name + "' in form " + form.Name + ".");
+				map.Add(control.Name, control);
+			}
+			return map;
 		}
 
 		public static void SaveForm(Form form, string tablename)
 		{
 			if (DB.ds == null || form == null) return;
 
-			List<string> control_data = new List<string>();
-			List<Control> temp = new List<Control>();
+			List<Control> controls = new List<Control>();
+			ControlList(form, ref controls);
+			Dictionary<string, Control> map = BuildPersistenceControlMap(form, controls);
+			List<string> control_data = new List<string>(map.Count + 4);
 
-			ControlList(form, ref temp);
-
-			foreach (Control control in temp)
+			foreach (KeyValuePair<string, Control> entry in map)
 			{
-				// Programmatically-created controls without stable names cannot be restored safely.
-				if (string.IsNullOrEmpty(control.Name)) continue;
-
-				switch (control)
-				{
-					case ColorButton color_button:
-						Color clr = color_button.Color;
-						control_data.Add(color_button.Name + "/" +
-							clr.R.ToString(CultureInfo.InvariantCulture) + "." +
-							clr.G.ToString(CultureInfo.InvariantCulture) + "." +
-							clr.B.ToString(CultureInfo.InvariantCulture) + "." +
-							clr.A.ToString(CultureInfo.InvariantCulture));
-						break;
-					case CheckBox check_box:
-						control_data.Add(check_box.Name + "/" + check_box.Checked.ToString(CultureInfo.InvariantCulture));
-						break;
-					case ComboBox combo_box:
-						control_data.Add(combo_box.Name + "/" + (combo_box.Text ?? string.Empty));
-						break;
-					case NumericUpDown numeric_up_down:
-						control_data.Add(numeric_up_down.Name + "/" + numeric_up_down.Value.ToString(CultureInfo.InvariantCulture));
-						break;
-					case RadioButton radio_button:
-						control_data.Add(radio_button.Name + "/" + radio_button.Checked.ToString(CultureInfo.InvariantCulture));
-						break;
-					case TextBox text_box:
-						control_data.Add(text_box.Name + "/" + (text_box.Text ?? string.Empty));
-						break;
-					case TrackBar track_bar:
-						control_data.Add(track_bar.Name + "/" + track_bar.Value.ToString(CultureInfo.InvariantCulture));
-						break;
-					case TabControl tab_control:
-						control_data.Add(tab_control.Name + "/" + tab_control.SelectedIndex.ToString(CultureInfo.InvariantCulture));
-						break;
-				}
+				if (!TrySerializePersistedControl(entry.Value, out string value))
+					throw new InvalidOperationException("Unsupported persistence control " + form.Name + "." + entry.Key + ".");
+				control_data.Add(entry.Key + "/" + value);
 			}
 
 			control_data.Add("Top/" + form.Top.ToString(CultureInfo.InvariantCulture));
@@ -446,21 +585,17 @@ namespace Thetis
 			control_data.Add("Height/" + form.Height.ToString(CultureInfo.InvariantCulture));
 
 			DB.SaveVars(tablename, control_data);
+			if (!DB.VerifyVars(tablename, control_data, out string verify_error))
+				throw new InvalidDataException("Persistence verification failed for " + form.Name + ": " + verify_error);
 		}
 
 		public static void RestoreForm(Form form, string tablename, bool restore_size)
 		{
 			if (DB.ds == null || form == null) return;
 
-			List<Control> temp = new List<Control>();
-			ControlList(form, ref temp);
-
-			Dictionary<string, Control> ctrls = new Dictionary<string, Control>(StringComparer.Ordinal);
-			foreach (Control c in temp)
-			{
-				if (string.IsNullOrEmpty(c.Name) || ctrls.ContainsKey(c.Name)) continue;
-				ctrls.Add(c.Name, c);
-			}
+			List<Control> controls = new List<Control>();
+			ControlList(form, ref controls);
+			Dictionary<string, Control> ctrls = BuildPersistenceControlMap(form, controls);
 
 			List<string> control_data = DB.GetVars(tablename).OfType<string>().ToList();
 			control_data.Sort(StringComparer.Ordinal);
@@ -469,7 +604,6 @@ namespace Thetis
 			{
 				if (string.IsNullOrEmpty(s)) continue;
 
-				// Split at the first separator only. Values are allowed to contain '/'.
 				int separator = s.IndexOf('/');
 				if (separator <= 0) continue;
 
@@ -478,8 +612,8 @@ namespace Thetis
 
 				if (name == "Top" || name == "Left" || name == "Width" || name == "Height")
 				{
-					int parsed_value;
-					if (!TryParsePersistedInt(val, out parsed_value)) continue;
+					if (!TryParsePersistedInt(val, out int parsed_value))
+						throw new InvalidDataException("Invalid persisted window value " + form.Name + "." + name + "='" + val + "'.");
 
 					switch (name)
 					{
@@ -501,72 +635,14 @@ namespace Thetis
 					continue;
 				}
 
-				Control control;
-				if (!ctrls.TryGetValue(name, out control)) continue;
+				if (!ctrls.TryGetValue(name, out Control control))
+					continue; // stale key from an older form version
 
-				try
-				{
-					if (control is ColorButton color_button)
-					{
-						string[] colors = val.Split('.');
-						int r, g, b, a;
-						if (colors.Length == 4 &&
-							TryParsePersistedInt(colors[0], out r) &&
-							TryParsePersistedInt(colors[1], out g) &&
-							TryParsePersistedInt(colors[2], out b) &&
-							TryParsePersistedInt(colors[3], out a) &&
-							r >= 0 && r <= 255 && g >= 0 && g <= 255 &&
-							b >= 0 && b <= 255 && a >= 0 && a <= 255)
-						{
-							color_button.Color = Color.FromArgb(a, r, g, b);
-						}
-					}
-					else if (control is CheckBox check_box)
-					{
-						bool parsed;
-						if (bool.TryParse(val, out parsed)) check_box.Checked = parsed;
-					}
-					else if (control is ComboBox combo_box)
-					{
-						RestoreComboBoxText(combo_box, val);
-					}
-					else if (control is NumericUpDown numeric_up_down)
-					{
-						decimal numeric_value;
-						if (TryParsePersistedDecimal(val, out numeric_value))
-							numeric_up_down.Value = Math.Max(numeric_up_down.Minimum, Math.Min(numeric_value, numeric_up_down.Maximum));
-					}
-					else if (control is RadioButton radio_button)
-					{
-						bool parsed;
-						if (bool.TryParse(val, out parsed)) radio_button.Checked = parsed;
-					}
-					else if (control is TextBox text_box)
-					{
-						text_box.Text = val;
-					}
-					else if (control is TrackBar track_bar)
-					{
-						int track_bar_value;
-						if (TryParsePersistedInt(val, out track_bar_value))
-							track_bar.Value = Math.Max(track_bar.Minimum, Math.Min(track_bar_value, track_bar.Maximum));
-					}
-					else if (control is TabControl tab_control)
-					{
-						int selected_index;
-						if (TryParsePersistedInt(val, out selected_index) &&
-							selected_index >= 0 && selected_index < tab_control.TabPages.Count)
-						{
-							tab_control.SelectedIndex = selected_index;
-						}
-					}
-				}
-				catch (Exception ex)
-				{
-#if DEBUG
-					Debug.WriteLine("RestoreForm skipped invalid value for " + form.Name + "." + name + ": " + ex.Message);
-#endif
-				}
+				if (!TryRestorePersistedControl(control, val))
+					throw new InvalidDataException("Could not restore " + form.Name + "." + name + " from value '" + val + "'.");
+
+				if (!PersistedControlMatches(control, val, out string actual))
+					throw new InvalidDataException("Round-trip mismatch for " + form.Name + "." + name + ": DB='" + val + "', UI='" + actual + "'.");
 			}
 
 			ForceFormOnScreen(form);
