@@ -112,6 +112,110 @@ namespace Thetis
             }
         }
 
+        private static bool VerifyDataSetRoundTrip(DataSet expected, DataSet actual, out string error)
+        {
+            error = string.Empty;
+            if (expected == null || actual == null)
+            {
+                error = "null DataSet";
+                return false;
+            }
+
+            if (!string.Equals(expected.DataSetName, actual.DataSetName, StringComparison.Ordinal))
+            {
+                error = "DataSetName mismatch";
+                return false;
+            }
+
+            if (expected.Tables.Count != actual.Tables.Count)
+            {
+                error = "table count mismatch: expected " + expected.Tables.Count + ", got " + actual.Tables.Count;
+                return false;
+            }
+
+            foreach (DataTable expectedTable in expected.Tables)
+            {
+                if (!actual.Tables.Contains(expectedTable.TableName))
+                {
+                    error = "missing table '" + expectedTable.TableName + "'";
+                    return false;
+                }
+
+                DataTable actualTable = actual.Tables[expectedTable.TableName];
+                if (expectedTable.Columns.Count != actualTable.Columns.Count)
+                {
+                    error = "column count mismatch in '" + expectedTable.TableName + "'";
+                    return false;
+                }
+
+                foreach (DataColumn expectedColumn in expectedTable.Columns)
+                {
+                    if (!actualTable.Columns.Contains(expectedColumn.ColumnName))
+                    {
+                        error = "missing column '" + expectedTable.TableName + "." + expectedColumn.ColumnName + "'";
+                        return false;
+                    }
+
+                    DataColumn actualColumn = actualTable.Columns[expectedColumn.ColumnName];
+                    if (expectedColumn.DataType != actualColumn.DataType)
+                    {
+                        error = "column type mismatch in '" + expectedTable.TableName + "." + expectedColumn.ColumnName + "'";
+                        return false;
+                    }
+                }
+
+                List<DataRow> expectedRows = new List<DataRow>();
+                foreach (DataRow row in expectedTable.Rows)
+                    if (row.RowState != DataRowState.Deleted) expectedRows.Add(row);
+
+                List<DataRow> actualRows = new List<DataRow>();
+                foreach (DataRow row in actualTable.Rows)
+                    if (row.RowState != DataRowState.Deleted) actualRows.Add(row);
+
+                if (expectedRows.Count != actualRows.Count)
+                {
+                    error = "row count mismatch in '" + expectedTable.TableName + "': expected " +
+                        expectedRows.Count + ", got " + actualRows.Count;
+                    return false;
+                }
+
+                for (int rowIndex = 0; rowIndex < expectedRows.Count; rowIndex++)
+                {
+                    DataRow expectedRow = expectedRows[rowIndex];
+                    DataRow actualRow = actualRows[rowIndex];
+
+                    foreach (DataColumn expectedColumn in expectedTable.Columns)
+                    {
+                        object expectedValue = expectedRow[expectedColumn.ColumnName];
+                        object actualValue = actualRow[expectedColumn.ColumnName];
+
+                        bool expectedNull = expectedValue == null || expectedValue == DBNull.Value;
+                        bool actualNull = actualValue == null || actualValue == DBNull.Value;
+                        if (expectedNull || actualNull)
+                        {
+                            if (expectedNull != actualNull)
+                            {
+                                error = "null mismatch in '" + expectedTable.TableName + "', row " + rowIndex +
+                                    ", column '" + expectedColumn.ColumnName + "'";
+                                return false;
+                            }
+                            continue;
+                        }
+
+                        if (!object.Equals(expectedValue, actualValue))
+                        {
+                            error = "value mismatch in '" + expectedTable.TableName + "', row " + rowIndex +
+                                ", column '" + expectedColumn.ColumnName + "': expected '" + expectedValue +
+                                "', got '" + actualValue + "'";
+                            return false;
+                        }
+                    }
+                }
+            }
+
+            return true;
+        }
+
         #region Private Member Functions
         // ======================================================
         // Private Member Functions
@@ -9929,6 +10033,8 @@ namespace Thetis
 
                     DataSet firstWriteVerify = new DataSet("Data");
                     firstWriteVerify.ReadXml(fn);
+                    if (!VerifyDataSetRoundTrip(dsIN, firstWriteVerify, out string firstWriteError))
+                        throw new InvalidDataException("Fresh database round-trip verification failed: " + firstWriteError);
 
                     if (!File.Exists(lastGood))
                         File.Copy(fn, lastGood, false);
@@ -9947,9 +10053,11 @@ namespace Thetis
                     fs.Flush(true);
                 }
 
-                // An unreadable temporary XML must never replace the live database.
+                // An unreadable or non-equivalent temporary XML must never replace the live database.
                 DataSet verify = new DataSet("Data");
                 verify.ReadXml(temp);
+                if (!VerifyDataSetRoundTrip(dsIN, verify, out string tempVerifyError))
+                    throw new InvalidDataException("Database temp round-trip verification failed: " + tempVerifyError);
 
                 if (primaryFile && _loaded_from_lastgood)
                 {
@@ -9960,6 +10068,11 @@ namespace Thetis
                 {
                     File.Replace(temp, fn, lastGood, true);
                 }
+
+                DataSet finalVerify = new DataSet("Data");
+                finalVerify.ReadXml(fn);
+                if (!VerifyDataSetRoundTrip(dsIN, finalVerify, out string finalVerifyError))
+                    throw new InvalidDataException("Final database round-trip verification failed: " + finalVerifyError);
 
                 if (primaryFile) _loaded_from_lastgood = false;
                 DBMan.DBWritten();
@@ -10473,6 +10586,76 @@ namespace Thetis
             }
 
             return list;
+        }
+
+        public static bool VerifyVarsDictionary(string tableName, IDictionary<string, string> expected, out string error)
+        {
+            error = string.Empty;
+            if (expected == null)
+            {
+                error = "expected dictionary is null";
+                return false;
+            }
+            if (ds == null || !ds.Tables.Contains(tableName))
+            {
+                error = "table '" + tableName + "' is missing";
+                return false;
+            }
+
+            Dictionary<string, string> actual;
+            try
+            {
+                actual = GetVarsDictionary(tableName);
+            }
+            catch (Exception ex)
+            {
+                error = "could not read table '" + tableName + "': " + ex.Message;
+                return false;
+            }
+
+            foreach (KeyValuePair<string, string> kvp in expected)
+            {
+                if (!actual.TryGetValue(kvp.Key, out string actualValue))
+                {
+                    error = "missing key '" + kvp.Key + "'";
+                    return false;
+                }
+
+                if (!string.Equals(actualValue ?? string.Empty, kvp.Value ?? string.Empty, StringComparison.Ordinal))
+                {
+                    error = "value mismatch for '" + kvp.Key + "': expected '" + kvp.Value +
+                        "', got '" + actualValue + "'";
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        public static bool VerifyVars(string tableName, List<string> expectedList, out string error)
+        {
+            error = string.Empty;
+            Dictionary<string, string> expected = new Dictionary<string, string>(StringComparer.Ordinal);
+
+            if (expectedList != null)
+            {
+                foreach (string entry in expectedList)
+                {
+                    if (string.IsNullOrEmpty(entry)) continue;
+                    int separator = entry.IndexOf('/');
+                    if (separator <= 0)
+                    {
+                        error = "invalid persistence entry '" + entry + "'";
+                        return false;
+                    }
+
+                    string key = entry.Substring(0, separator);
+                    string value = entry.Substring(separator + 1);
+                    expected[key] = value; // SaveVars also applies later duplicate keys last.
+                }
+            }
+
+            return VerifyVarsDictionary(tableName, expected, out error);
         }
 
         #region code store of old ImportAndMergeDatabase
