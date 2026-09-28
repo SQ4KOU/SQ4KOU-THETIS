@@ -10005,9 +10005,9 @@ namespace Thetis
             }
         }
 
-        public static void WriteDB()
+        public static bool WriteDB()
         {
-            WriteDB(_file_name, ds);
+            return WriteDB(_file_name, ds);
         }
 
         //-W2PA Write the database to a specific file
