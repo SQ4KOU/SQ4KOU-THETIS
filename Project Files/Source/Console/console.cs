@@ -5071,12 +5071,6 @@ namespace Thetis
                         }
                         break;
                 }
-                        break;
-
-                    case var nam when name.StartsWith("ptb"):
-                        if (ctrls.ContainsKey(name)) ((PrettyTrackBar)ctrls[name]).Value = Int32.Parse(val);
-                        break;
-                }
             }
 
             //[2.10.1.12]MW0LGE - apply CTUN state, and done above CentreFrequency assignment below
