@@ -117,3 +117,5 @@ jobs:
           path: ${{ env.BUILD_LOG }}
           if-no-files-found: error
           compression-level: 6
+
+# trigger PR validation after base workflow installation
