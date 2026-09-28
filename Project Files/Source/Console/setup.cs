@@ -1437,32 +1437,60 @@ namespace Thetis
                 comboAudioOutput3.Items.Add(p);
         }
 
+        private static bool IsTransientSetupControl(Control c)
+        {
+            if (c == null) return true;
+
+            // These hidden RADE bypasses are diagnostic switches by design and must boot OFF.
+            switch (c.Name)
+            {
+                case "chkRadaeBypassEncoder":
+                case "chkRadaeBypassEncoderCore":
+                case "chkRadaeBypassRmatch":
+                case "chkRadaeBypassMicDsp":
+                case "chkRadaeBypassAll":
+                    return true;
+            }
+
+            // Read-only text fields and default-gradient preview widgets are display/status,
+            // not user settings.
+            if (c is TextBox text_box && text_box.ReadOnly) return true;
+            if (c is ucGradientDefault) return true;
+
+            return false;
+        }
+
         private void getControlList(Control c, ref Dictionary<string, Control> a)
         {
             // we dont want to recurse into user controls
             if (c.Controls.Count > 0 && !(
-                c.GetType() == typeof(ucLGPicker) ||
-                c.GetType() == typeof(ucGradientDefault) ||
-                c.GetType() == typeof(ucOCLedStrip) ||
-                c.GetType() == typeof(ucOtherButtonsOptionsGrid) ||
-                c.GetType() == typeof(ucSignalSelect) ||
-                c.GetType() == typeof(ucUnderOverFlowWarningViewer) ||
-                c.GetType() == typeof(ucTunestepOptionsGrid)
+                c is ucLGPicker ||
+                c is ucGradientDefault ||
+                c is ucOCLedStrip ||
+                c is ucOtherButtonsOptionsGrid ||
+                c is ucSignalSelect ||
+                c is ucUnderOverFlowWarningViewer ||
+                c is ucTunestepOptionsGrid
                 ))
             {
                 foreach (Control c2 in c.Controls)
                     getControlList(c2, ref a);
             }
 
-            Type t = c.GetType();
-            if (t == typeof(CheckBoxTS) || t == typeof(CheckBox) ||
-                t == typeof(ComboBoxTS) || t == typeof(ComboBox) ||
-                t == typeof(NumericUpDownTS) || t == typeof(NumericUpDown) ||
-                t == typeof(RadioButtonTS) || t == typeof(RadioButton) ||
-                t == typeof(TextBoxTS) || t == typeof(TextBox) ||
-                t == typeof(TrackBarTS) || t == typeof(TrackBar) ||
-                t == typeof(ColorButton) || t == typeof(ucLGPicker) || t == typeof(ucGradientDefault))
+            if (c is CheckBox ||
+                c is ComboBox ||
+                c is NumericUpDown ||
+                c is RadioButton ||
+                c is TextBox ||
+                c is TrackBar ||
+                c is ColorButton ||
+                c is ucLGPicker ||
+                c is ucGradientDefault)
             {
+                if (string.IsNullOrWhiteSpace(c.Name))
+                    throw new InvalidOperationException("Setup persistence control without a stable Name: " + c.GetType().FullName);
+                if (a.ContainsKey(c.Name))
+                    throw new InvalidOperationException("Duplicate Setup persistence key '" + c.Name + "'.");
                 a.Add(c.Name, c);
             }
         }
@@ -1746,35 +1774,22 @@ namespace Thetis
             {
                 Control c = controls[sKey];
 
-                if (c.GetType() == typeof(CheckBoxTS))
-                    a.Add(c.Name, ((CheckBoxTS)c).Checked.ToString());
-                else if (c.GetType() == typeof(ComboBoxTS))
+                if (IsTransientSetupControl(c))
+                    continue;
+
+                if (Common.TrySerializePersistedControl(c, out string persistedValue))
                 {
-                    a.Add(c.Name, ((ComboBoxTS)c).Text);
+                    a.Add(c.Name, persistedValue);
                 }
-                else if (c.GetType() == typeof(NumericUpDownTS))
-                    a.Add(c.Name, ((NumericUpDownTS)c).Value.ToString());
-                else if (c.GetType() == typeof(RadioButtonTS))
-                    a.Add(c.Name, ((RadioButtonTS)c).Checked.ToString());
-                else if (c.GetType() == typeof(TextBoxTS))
-                    a.Add(c.Name, ((TextBoxTS)c).Text);
-                else if (c.GetType() == typeof(TrackBarTS))
-                    a.Add(c.Name, ((TrackBarTS)c).Value.ToString());
-                else if (c.GetType() == typeof(ColorButton))
+                else if (c is ucLGPicker)
                 {
-                    Color clr = ((ColorButton)c).Color;
-                    a.Add(c.Name, clr.R + "." + clr.G + "." + clr.B + "." + clr.A);
+                    // The four gradient pickers are persisted explicitly below as text.
                 }
-#if(DEBUG)
-                else if (c.GetType() == typeof(GroupBox) ||
-                    c.GetType() == typeof(CheckBox) ||
-                    c.GetType() == typeof(ComboBox) ||
-                    c.GetType() == typeof(NumericUpDown) ||
-                    c.GetType() == typeof(RadioButton) ||
-                    c.GetType() == typeof(TextBox) ||
-                    c.GetType() == typeof(TrackBar))
-                    Debug.WriteLine(this.Name + " -> " + c.Name + " needs to be converted to a Thread Safe control.");
-#endif
+                else
+                {
+                    throw new InvalidOperationException("Unsupported Setup persistence control " +
+                        c.Name + " (" + c.GetType().FullName + ").");
+                }
             }
 
             // add this manually because the usbbcd combo box will need this to recover previously selected
@@ -1827,8 +1842,17 @@ namespace Thetis
             removeOutdatedOptions();
 
             DB.SaveVarsDictionary("Options", ref a, true);
+            if (!DB.VerifyVarsDictionary("Options", a, out string optionsVerifyError))
+            {
+                _savingOptions = false;
+                throw new InvalidDataException("Setup Options persistence verification failed: " + optionsVerifyError);
+            }
 
-            DB.WriteDB();
+            if (!DB.WriteDB())
+            {
+                _savingOptions = false;
+                throw new InvalidDataException("Setup Options database write failed.");
+            }
 
             _savingOptions = false;
         }
@@ -2019,6 +2043,8 @@ namespace Thetis
                 }
             }
 
+            HashSet<string> directRestoredKeys = new HashSet<string>(StringComparer.Ordinal);
+
             foreach (string sKey in sortedList)
             {
                 string name = sKey;
@@ -2030,69 +2056,13 @@ namespace Thetis
                     {
                         Control cc = controls[name];
 
-                        if (cc.GetType() == typeof(CheckBoxTS))          // the control is a CheckBoxTS
+                        if (IsTransientSetupControl(cc))
                         {
-                            CheckBoxTS c = (CheckBoxTS)cc;
-                            c.Checked = bool.Parse(val);
+                            // Deliberately not persistent.
                         }
-                        else if (cc.GetType() == typeof(ComboBoxTS))     // the control is a ComboBoxTS
+                        else if (Common.TryRestorePersistedControl(cc, val))
                         {
-                            ComboBoxTS c = (ComboBoxTS)cc;
-                            if (c.Items.Count > 0 && c.Items[0].GetType() == typeof(string))
-                            {
-                                c.Text = val;
-                            }
-                            else
-                            {
-                                foreach (object o in c.Items)
-                                {
-                                    if (o.ToString() == val)
-                                        c.Text = val;   // restore value
-                                }
-                            }
-                        }
-                        else if (cc.GetType() == typeof(NumericUpDownTS))    // the control is a NumericUpDownTS
-                        {
-                            NumericUpDownTS c = (NumericUpDownTS)cc;
-                            decimal num = decimal.Parse(val);
-
-                            if (num > c.Maximum) num = c.Maximum;       // check endpoints
-                            else if (num < c.Minimum) num = c.Minimum;
-                            c.Value = num;          // restore value
-                        }
-                        else if (cc.GetType() == typeof(RadioButtonTS))  // the control is a RadioButtonTS
-                        {
-                            RadioButtonTS c = (RadioButtonTS)cc;
-                            c.Checked = bool.Parse(val);    // restore value
-                        }
-                        else if (cc.GetType() == typeof(TextBoxTS))      // the control is a TextBox
-                        {
-                            TextBoxTS c = (TextBoxTS)cc;
-                            c.Text = val;   // restore value
-                        }
-                        else if (cc.GetType() == typeof(TrackBarTS))     // the control is a TrackBar (slider)
-                        {
-                            TrackBarTS c = (TrackBarTS)cc;
-                            int value = Int32.Parse(val);
-                            if (value < c.Minimum) value = c.Minimum;
-                            if (value > c.Maximum) value = c.Maximum;
-                            c.Value = value;
-                        }
-                        else if (cc.GetType() == typeof(ColorButton))
-                        {
-                            string[] colors = val.Split('.');
-                            if (colors.Length == 4)
-                            {
-                                int R, G, B, A;
-                                R = Int32.Parse(colors[0]);
-                                G = Int32.Parse(colors[1]);
-                                B = Int32.Parse(colors[2]);
-                                A = Int32.Parse(colors[3]);
-
-                                ColorButton c = (ColorButton)cc;
-                                c.Color = Color.FromArgb(A, R, G, B);
-                                c.Automatic = "";
-                            }
+                            directRestoredKeys.Add(name);
                         }
                         else if (name == "lgLinearGradientRX1")
                         {
@@ -2111,6 +2081,11 @@ namespace Thetis
                         {
                             lgLinearGradientTX_waterfall.Text = val;
                             lgLinearGradientTX_waterfall.ApplyGlobalAlpha(255);
+                        }
+                        else if (!(cc is ucGradientDefault))
+                        {
+                            throw new InvalidDataException("Unsupported Setup restore control " +
+                                name + " (" + cc.GetType().FullName + ").");
                         }
                     }
                     else if (name == "UsbBCDSerialNumber") // [2.10.3.5]MW0LGE recover this as the usbbcd combo box will not have any entries at this point
@@ -2141,6 +2116,17 @@ namespace Thetis
                     {
                         Debug.WriteLine("Control not found: " + name);
                     }
+                }
+            }
+
+            foreach (string restoredKey in directRestoredKeys)
+            {
+                Control restoredControl = controls[restoredKey];
+                string expectedValue = a[restoredKey];
+                if (!Common.PersistedControlMatches(restoredControl, expectedValue, out string actualValue))
+                {
+                    throw new InvalidDataException("Setup restore round-trip mismatch for '" + restoredKey +
+                        "': DB='" + expectedValue + "', UI='" + actualValue + "'.");
                 }
             }
 
