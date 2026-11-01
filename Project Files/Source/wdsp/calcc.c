@@ -48,6 +48,8 @@ typedef struct _calcc
 	double hw_scale;
 	double rx_scale;
 	int ps_pin_start;
+	int ps_requested_buckets;
+	int ps_requested_spi;
 	double ps_outlier_sigma;
 	int ps_stabilize;
 	double ps_ema_alpha;
@@ -333,6 +335,7 @@ typedef struct _psCollection
 {
 	psSample* smps;
 	int nsamps;
+	int n_bucks;
 	int tpb    [SAMPLE_NBUCKS];
 	double bbtm[SAMPLE_NBUCKS + 1];
 	int bidx   [SAMPLE_NBUCKS];
@@ -372,10 +375,32 @@ static PSCOLLECTION build_collection()
 		collect->bfull[i] = 0;
 		n += collect->tpb[i];
 	}
+	collect->n_bucks = SAMPLE_NBUCKS;
 	collect->nsamps = n;
 	collect->smps = (psSample*)malloc0(n * sizeof(psSample));
 	collect->nfull = 0;
 	return collect;
+}
+
+static void reconfigure_collection(PSCOLLECTION collect, int buckets, int spi)
+{
+	if (!((buckets == 16 && spi == 256) ||
+	      (buckets == 8 && spi == 512) ||
+	      (buckets == 4 && spi == 1024))) return;
+	collect->n_bucks = buckets;
+	collect->nfull = 0;
+	collect->nsamps = 4096;
+	collect->bbtm[0] = SAMPLE_MIN_X;
+	for (int i = 0; i < buckets; i++)
+	{
+		collect->tpb[i] = spi;
+		collect->bidx[i] = i * spi;
+		collect->nidx[i] = 0;
+		collect->cpb[i] = 0;
+		collect->bfull[i] = 0;
+		if (i > 0) collect->bbtm[i] = (double)i / (double)buckets;
+	}
+	collect->bbtm[buckets] = 1.0;
 }
 
 static void teardown_collection(PSCOLLECTION collect)
@@ -409,11 +434,11 @@ static void putSample(double* tx, double* rx, double hw_scale, PSCOLLECTION Coll
 	double env_rx = sqrt(rx[0] * rx[0] + rx[1] * rx[1]);
 	if (env_tx < 1.0e-30 || env_rx < 1.0e-30) return;
 	double norm_tx = env_tx * hw_scale;
-	int buck = find_range_index(Collect->bbtm, SAMPLE_NBUCKS + 1, norm_tx);
+	int buck = find_range_index(Collect->bbtm, Collect->n_bucks + 1, norm_tx);
 	if (buck < 0) return;
-	if (buck >= SAMPLE_NBUCKS)
+	if (buck >= Collect->n_bucks)
 	{
-		if (SAMPLE_ACCEPT_OVERRANGE)  buck = SAMPLE_NBUCKS - 1;
+		if (SAMPLE_ACCEPT_OVERRANGE)  buck = Collect->n_bucks - 1;
 		else return;
 	}
 	int index_to_fill = Collect->bidx[buck] + Collect->nidx[buck];
@@ -433,11 +458,11 @@ static void putSample(double* tx, double* rx, double hw_scale, PSCOLLECTION Coll
 static int sampleCheckAndUpdate(PSCOLLECTION Collect)
 {
 	int rval = 0;
-	if (Collect->nfull == SAMPLE_NBUCKS)
+	if (Collect->nfull == Collect->n_bucks)
 	{
 		rval = 1;
 		Collect->nfull = 0;
-		for (int i = 0; i < SAMPLE_NBUCKS; i++)
+		for (int i = 0; i < Collect->n_bucks; i++)
 		{
 			Collect->nidx[i] = 0;
 			Collect->cpb[i] = 0;
@@ -450,7 +475,7 @@ static int sampleCheckAndUpdate(PSCOLLECTION Collect)
 static void sampleCollectClear(PSCOLLECTION Collect)
 {
 	Collect->nfull = 0;
-	for (int i = 0; i < SAMPLE_NBUCKS; i++)
+	for (int i = 0; i < Collect->n_bucks; i++)
 	{
 		Collect->nidx[i] = 0;
 		Collect->cpb[i] = 0;
@@ -907,6 +932,8 @@ static void size_calcc (CALCC a)
 	a->disp.ya_cor = (double *) malloc0 (DISP_PTS * sizeof (double));
 
 		a->ps_pin_start = PS_NF_PIN_START;
+	a->ps_requested_buckets = 16;
+	a->ps_requested_spi = 256;
 	a->ps_outlier_sigma = PS_NF_OUTLIER_SIGMA;
 	a->ps_stabilize = 1;
 	a->ps_ema_alpha = PS_NS_EMA_ALPHA;
@@ -1911,6 +1938,8 @@ void pscc (int channel, int size, double* tx, double* rx)
 				InterlockedExchange (&a->ctrl.current_state, LRESET);
 				if (!a->ctrl.calcinprogress)
 				{
+					if (a->ps_colct->n_bucks != a->ps_requested_buckets)
+						reconfigure_collection(a->ps_colct, a->ps_requested_buckets, a->ps_requested_spi);
 					ns_free(a->m_spline); a->m_spline = NULL;
 					ns_free(a->c_spline); a->c_spline = NULL;
 					ns_free(a->s_spline); a->s_spline = NULL;
@@ -2000,7 +2029,7 @@ void pscc (int channel, int size, double* tx, double* rx)
 				else if (full)
 					a->ctrl.state = MOXCHECK;
 				else if (top_bucket_useful_frac(&a->m_calavg,
-					a->ps_colct->bbtm[SAMPLE_NBUCKS - 1]) < DEADLOCK_MIN_FRAC)
+					a->ps_colct->bbtm[a->ps_colct->n_bucks - 1]) < DEADLOCK_MIN_FRAC)
 				{
 					a->ctrl.state = LRESET;
 					a->info[6] |= 2;
@@ -2041,7 +2070,7 @@ void pscc (int channel, int size, double* tx, double* rx)
 					else if (a->scOK)
 					{
 						if (top_bucket_useful_frac(&a->m_calavg,
-							a->ps_colct->bbtm[SAMPLE_NBUCKS - 1]) < DEADLOCK_MIN_FRAC)
+							a->ps_colct->bbtm[a->ps_colct->n_bucks - 1]) < DEADLOCK_MIN_FRAC)
 						{
 							a->ctrl.state = LRESET;
 							a->info[6] |= 2;
@@ -2138,6 +2167,23 @@ void SetPSOutlierSigma(int channel, double sigma)
 	if (sigma < 0.0 || sigma > 20.0) return;
 	EnterCriticalSection(&txa[channel].calcc.cs_update);
 	a->ps_outlier_sigma = sigma;
+	LeaveCriticalSection(&txa[channel].calcc.cs_update);
+}
+
+PORT
+void SetPSIntsAndSpi(int channel, int buckets, int spi)
+{
+	if (!((buckets == 16 && spi == 256) ||
+	      (buckets == 8 && spi == 512) ||
+	      (buckets == 4 && spi == 1024))) return;
+	CALCC a = txa[channel].calcc.p;
+	EnterCriticalSection(&txa[channel].calcc.cs_update);
+	if (a->ps_requested_buckets != buckets || a->ps_requested_spi != spi)
+	{
+		a->ps_requested_buckets = buckets;
+		a->ps_requested_spi = spi;
+		a->ctrl.reset = 1;
+	}
 	LeaveCriticalSection(&txa[channel].calcc.cs_update);
 }
 
@@ -2583,7 +2629,7 @@ void print_OriginalAndFitSamples (CALCC a)
 		fprintf(f, "rx_scale = %12.4e\n", a->rx_scale);
 		fprintf(f, "\n buck      env_tx          env_rx                 ");
 		fprintf(f, "x              ym             yc            ys\n");
-		for (int i = 0, k = 0; i < SAMPLE_NBUCKS; i++)
+		for (int i = 0, k = 0; i < a->ps_colct->n_bucks; i++)
 		{
 			for (int j = 0; j < a->ps_colct->tpb[i]; j++)
 			{
