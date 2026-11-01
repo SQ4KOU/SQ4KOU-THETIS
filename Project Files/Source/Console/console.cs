@@ -8522,6 +8522,14 @@ namespace Thetis
                         DDCEnable += DDC3;
                         Rate[3] = rx2_rate;
                     }
+                    // RP P1 firmware exports exactly four EP6 I/Q streams (data0..data3).
+                    // PS reference/feedback therefore occupy DDC2+DDC3, not DDC3+DDC4.
+                    // Preserve existing 5-DDC RX behavior outside PS transmission.
+                    if (p1 && rpP1TxIn2Off && puresignal_enabled)
+                    {
+                        P1_rxcount = 4;
+                        nddc = 4;
+                    }
                     break;
                 case HPSDRModel.HERMES:
                 case HPSDRModel.ANAN_G2E: //N1GP G2E added
@@ -8940,6 +8948,17 @@ namespace Thetis
                         }
                         break;
                 }
+            }
+
+            // RP Protocol 1 provides four EP6 I/Q streams, with the PS pair
+            // delivered as DDC2/DDC3. OrionMKII's DDC3/DDC4 mapping is invalid
+            // for RP's four-stream ARM firmware.
+            if (NetworkIO.CurrentRadioProtocol == RadioProtocol.USB &&
+                HardwareSpecific.Model == HPSDRModel.REDPITAYA &&
+                MOX && psform.PSEnabled)
+            {
+                psrx = 2;
+                pstx = 3;
             }
 
             if (diversityForm != null && Diversity2)
