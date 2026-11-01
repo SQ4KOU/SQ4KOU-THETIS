@@ -73,6 +73,19 @@ namespace Thetis
             console = c;    // MW0LGE moved above restore, so that we actaully have console when control events fire because of restore form
             
             Common.RestoreForm(this, "PureSignal", false); // will also restore txtPSpeak //MW0LGE_21k9rc5
+            // WDSP 2.10 internally owns NURBS parameters not available in the public API.
+            comboPSTint.SelectedIndex = 0;
+            chkPSStbl.Enabled = false;
+            udPSEMAAlpha.Enabled = false;
+            udPSPinAlpha.Enabled = false;
+            chkPSPin.Enabled = false;
+            chkPSEQ.Enabled = false;
+            comboPSTint.Enabled = false;
+            chkPSOutlierEnable.Enabled = false;
+            udPSOutlierSigma.Enabled = false;
+            chkPSDCB.Enabled = false;
+            udPSDCBCap.Enabled = false;
+            btnPSResetEngine.Enabled = false;
 
             _advancedON = chkAdvancedViewHidden.Checked; //MW0LGE_[2.9.0.6]
 
@@ -757,16 +770,13 @@ namespace Thetis
 
                         _autoAttenuateState = eAAState.SetNewValues;//1;
 
-                        double ddB;
-                        if (puresignal.IsFeedbackLevelOK)
-                        {
-                            ddB = 20.0 * Math.Log10((double)puresignal.FeedbackLevel / (double)puresignal.TargetFeedbackLevel);
-                            if (Double.IsNaN(ddB)) ddB = 31.1;
-                            if (ddB < -100.0) ddB = -100.0;
-                            if (ddB > +100.0) ddB = +100.0;
-                        }
-                        else
-                            ddB = 31.1;
+                        // Don't use zero/invalid feedback to command the attenuator.
+                        int fb = puresignal.FeedbackLevel;
+                        if (fb <= 0) { _autoAttenuateState = eAAState.Monitor; break; }
+                        double ddB = 20.0 * Math.Log10((double)fb / puresignal.TargetFeedbackLevel);
+                        if (Double.IsNaN(ddB) || Double.IsInfinity(ddB)) { _autoAttenuateState = eAAState.Monitor; break; }
+                        if (ddB < -31.0) ddB = -31.0;
+                        if (ddB > 31.0) ddB = 31.0;
 
                         //_deltadB = Convert.ToInt32(ddB);
                         _deltadB = (int)Math.Round(ddB, MidpointRounding.AwayFromZero); //[2.10.3.12]MW0LGE use rounding, to fix Banker's rounding issue
@@ -783,10 +793,7 @@ namespace Thetis
                     _autoAttenuateState = eAAState.RestoreOperation;//2;
                     int newAtten;
                     int oldAtten = console.SetupForm.ATTOnTX;
-                    if ((oldAtten + _deltadB) > 0)
-                        newAtten = oldAtten + _deltadB;
-                    else
-                        newAtten = 0;
+                    newAtten = Math.Max(0, Math.Min(31, oldAtten + _deltadB));
                     if (oldAtten/*console.SetupForm.ATTOnTX*/ != newAtten)
                     {
                         console.SetupForm.ATTOnTX = newAtten;
@@ -868,82 +875,46 @@ namespace Thetis
 
         private void chkPSStbl_CheckedChanged(object sender, EventArgs e)
         {
-            // Yurij_eu2av: SetPSStabilize toggles CurveEMA smoothing in WDSP 2.00.
-            if (chkPSStbl.Checked)
-                puresignal.SetPSStabilize(_txachannel, 1);
-            else
-                puresignal.SetPSStabilize(_txachannel, 0);
+            // Native WDSP 2.10 manages this setting internally.
         }
 
         private void udPSEMAAlpha_ValueChanged(object sender, EventArgs e)
         {
-            puresignal.SetPSEMAAlpha(_txachannel, (double)udPSEMAAlpha.Value);
+            // Native WDSP 2.10 manages this setting internally.
         }
 
         private void udPSPinAlpha_ValueChanged(object sender, EventArgs e)
         {
-            puresignal.SetPSPinAlpha(_txachannel, (double)udPSPinAlpha.Value);
+            // Native WDSP 2.10 manages this setting internally.
         }
 
         private void chkPSPin_CheckedChanged(object sender, EventArgs e)
         {
-            // Yurij_eu2av: Toggle COS/SIN start-point pin (WDSP 2.00 NURBS fit).
-            puresignal.SetPSPinMode(_txachannel, chkPSPin.Checked ? 1 : 0);
+            // Native WDSP 2.10 manages this setting internally.
         }
 
         private void chkPSEQ_CheckedChanged(object sender, EventArgs e)
         {
-            puresignal.SetPSEQEnable(_txachannel, chkPSEQ.Checked ? 1 : 0);
+            // Native WDSP 2.10 manages this setting internally.
         }
 
         private void comboPSTint_SelectedIndexChanged(object sender, EventArgs e)
         {
-            // Yurij_eu2av: WDSP 2.00 variable bucket configuration mapped to legacy TINT items.
-            switch (comboPSTint.SelectedIndex)
-            {
-                case 0:
-                    puresignal.SetPSIntsAndSpi(_txachannel, 16, 256);
-                    _ints = 16;
-                    _spi = 256;
-                    btnPSSave.Enabled = btnPSRestore.Enabled = true;
-                    break;
-                case 1:
-                    puresignal.SetPSIntsAndSpi(_txachannel, 8, 512);
-                    _ints = 8;
-                    _spi = 512;
-                    btnPSSave.Enabled = btnPSRestore.Enabled = false;
-                    break;
-                case 2:
-                    puresignal.SetPSIntsAndSpi(_txachannel, 4, 1024);
-                    _ints = 4;
-                    _spi = 1024;
-                    btnPSSave.Enabled = btnPSRestore.Enabled = false;
-                    break;
-                default:
-                    puresignal.SetPSIntsAndSpi(_txachannel, 16, 256);
-                    _ints = 16;
-                    _spi = 256;
-                    btnPSSave.Enabled = btnPSRestore.Enabled = true;
-                    break;
-            }
+            _ints = 16;
+            _spi = 256; // fixed native PS3 4096-sample collection
+            btnPSSave.Enabled = btnPSRestore.Enabled = true;
         }
 
         private void udPSOutlierSigma_ValueChanged(object sender, EventArgs e)
         {
             if (_psFormReady && console != null && console.SetupForm != null)
                 console.SetupForm.PSOutlierSigma = (double)udPSOutlierSigma.Value;
-            if (chkPSOutlierEnable.Checked)
-                puresignal.SetPSOutlierSigma(_txachannel, (double)udPSOutlierSigma.Value);
         }
 
         private void chkPSOutlierEnable_CheckedChanged(object sender, EventArgs e)
         {
             if (_psFormReady && console != null && console.SetupForm != null)
                 console.SetupForm.PSOutlierEnable = chkPSOutlierEnable.Checked;
-            if (chkPSOutlierEnable.Checked)
-                puresignal.SetPSOutlierSigma(_txachannel, (double)udPSOutlierSigma.Value);
-            else
-                puresignal.SetPSOutlierSigma(_txachannel, 0.0);
         }
 
         private void udPSTargetFeedback_ValueChanged(object sender, EventArgs e)
@@ -955,12 +926,12 @@ namespace Thetis
 
         private void chkPSDCB_CheckedChanged(object sender, EventArgs e)
         {
-            puresignal.SetPSDCBEnable(_txachannel, chkPSDCB.Checked ? 1 : 0);
+            // Native WDSP 2.10 manages this setting internally.
         }
 
         private void udPSDCBCap_ValueChanged(object sender, EventArgs e)
         {
-            puresignal.SetPSDCBCap(_txachannel, (double)udPSDCBCap.Value);
+            // Native WDSP 2.10 manages this setting internally.
         }
 
         private void btnPSResetEngine_Click(object sender, EventArgs e)
@@ -983,7 +954,6 @@ namespace Thetis
             chkPSDCB.Checked = false;
             udPSDCBCap.Value = 0.25m;
 
-            puresignal.ResetPSAdvancedParams(_txachannel);
         }
 
         private bool _advancedON = false; //MW0LGE_[2.9.0.7]
@@ -1147,38 +1117,7 @@ namespace Thetis
         [DllImport("wdsp.dll", EntryPoint = "SetPSFeedbackRate", CallingConvention = CallingConvention.Cdecl)]
         public static extern void SetPSFeedbackRate(int channel, int rate);
 
-        // Yurij_eu2av: PureSignal 3.0 (WDSP 2.00) advanced property functions
-        [DllImport("wdsp.dll", EntryPoint = "SetPSStabilize", CallingConvention = CallingConvention.Cdecl)]
-        public static extern void SetPSStabilize(int channel, int stbl);
-
-        [DllImport("wdsp.dll", EntryPoint = "SetPSEMAAlpha", CallingConvention = CallingConvention.Cdecl)]
-        public static extern void SetPSEMAAlpha(int channel, double alpha);
-
-        [DllImport("wdsp.dll", EntryPoint = "SetPSPinAlpha", CallingConvention = CallingConvention.Cdecl)]
-        public static extern void SetPSPinAlpha(int channel, double alpha);
-
-        [DllImport("wdsp.dll", EntryPoint = "SetPSPinMode", CallingConvention = CallingConvention.Cdecl)]
-        public static extern void SetPSPinMode(int channel, int pin);
-
-        [DllImport("wdsp.dll", EntryPoint = "SetPSIntsAndSpi", CallingConvention = CallingConvention.Cdecl)]
-        public static extern void SetPSIntsAndSpi(int channel, int ints, int spi);
-
-        [DllImport("wdsp.dll", EntryPoint = "SetPSDCBEnable", CallingConvention = CallingConvention.Cdecl)]
-        public static extern void SetPSDCBEnable(int channel, int enable);
-
-        [DllImport("wdsp.dll", EntryPoint = "SetPSDCBCap", CallingConvention = CallingConvention.Cdecl)]
-        public static extern void SetPSDCBCap(int channel, double cap);
-
-        [DllImport("wdsp.dll", EntryPoint = "SetPSEQEnable", CallingConvention = CallingConvention.Cdecl)]
-        public static extern void SetPSEQEnable(int channel, int enable);
-
-        [DllImport("wdsp.dll", EntryPoint = "SetPSOutlierSigma", CallingConvention = CallingConvention.Cdecl)]
-        public static extern void SetPSOutlierSigma(int channel, double sigma);
-
-        [DllImport("wdsp.dll", EntryPoint = "ResetPSAdvancedParams", CallingConvention = CallingConvention.Cdecl)]
-        public static extern void ResetPSAdvancedParams(int channel);
-
-        #endregion
+                #endregion
 
         #region public methods
         private static int[] _info = new int[16];
@@ -1246,7 +1185,7 @@ namespace Thetis
             // Yurij_eu2av: recalibrate if feedback is too high relative to target,
             // or too low while we still have attenuation headroom.
             return (FeedbackLevel > (int)(_targetFeedbackLevel * 1.5) ||
-                    (FeedbackLevel < (int)(_targetFeedbackLevel * 0.7) && nCurrentATTonTX > 0));
+                    (FeedbackLevel > 0 && FeedbackLevel < (int)(_targetFeedbackLevel * 0.7) && nCurrentATTonTX > 0));
         }
         public static bool IsFeedbackLevelOK {
             get { return FeedbackLevel <= 256; }
