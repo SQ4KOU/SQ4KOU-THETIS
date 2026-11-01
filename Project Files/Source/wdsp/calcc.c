@@ -47,6 +47,8 @@ typedef struct _calcc
 	volatile int scOK;
 	double hw_scale;
 	double rx_scale;
+	int ps_pin_start;
+	double ps_outlier_sigma;
 
 	PSCOLLECTION ps_colct;
 
@@ -898,6 +900,9 @@ static void size_calcc (CALCC a)
 	a->disp.xa_cor = (double *) malloc0 (DISP_PTS * sizeof (double));
 	a->disp.ya_cor = (double *) malloc0 (DISP_PTS * sizeof (double));
 
+		a->ps_pin_start = PS_NF_PIN_START;
+	a->ps_outlier_sigma = PS_NF_OUTLIER_SIGMA;
+
 	a->m_dcb = build_dcb(a->nsamps);
 	a->c_dcb = build_dcb(a->nsamps);
 	a->s_dcb = build_dcb(a->nsamps);
@@ -1250,7 +1255,7 @@ static void calc (CALCC a)
 	a->m_config->pre_filter_x_min    = PS_NF_MAG_PREFILT_XMIN;
 	a->m_config->pre_filter_y_max    = PS_NF_MAG_PREFILT_YMAX;
 	a->m_config->uniform_knots       = PS_NF_UNIFORM_KNOTS;
-	a->m_config->pin_start           = PS_NF_PIN_START;
+	a->m_config->pin_start           = a->ps_pin_start;
 	a->m_config->start_pt            = (NF_Point2){ PS_NF_PIN_START_X, a->m_y_pin_try };
 	a->m_config->pin_end             = PS_NF_MAG_PIN_END;
 	a->m_config->end_pt              = (NF_Point2){ PS_NF_MAG_END_X, PS_NF_MAG_END_Y };
@@ -1260,7 +1265,7 @@ static void calc (CALCC a)
 	a->m_config->x_weight_x0         = PS_NF_XWEIGHT_X0;
 	a->m_config->x_weight_min        = PS_NF_XWEIGHT_MIN;
 	a->m_config->outlier_iters       = PS_NF_OUTLIER_ITERS;
-	a->m_config->outlier_sigma       = PS_NF_OUTLIER_SIGMA;
+	a->m_config->outlier_sigma       = a->ps_outlier_sigma;
 	a->m_config->outlier_min_fraction= PS_NF_OUTLIER_MIN_FRAC;
 	a->m_config->cv_fraction         = PS_NF_CV_FRACTION;
 	a->m_config->cv_overfit_ratio    = PS_NF_CV_OVERFIT_RATIO;
@@ -1332,13 +1337,13 @@ static void calc (CALCC a)
 	a->c_config->pre_filter_x_min    = PS_NF_PHS_PREFILT_XMIN;
 	a->c_config->pre_filter_y_max    = PS_NF_PHS_PREFILT_YMAX;
 	a->c_config->uniform_knots       = PS_NF_UNIFORM_KNOTS;
-	a->c_config->pin_start           = PS_NF_PIN_START;
+	a->c_config->pin_start           = a->ps_pin_start;
 	a->c_config->start_pt            = (NF_Point2){ PS_NF_PIN_START_X, a->c_y_pin_try };
 	a->c_config->pin_end             = PS_NF_PHS_PIN_END;
 	a->c_config->x_weight_x0         = PS_NF_XWEIGHT_X0;
 	a->c_config->x_weight_min        = PS_NF_XWEIGHT_MIN;
 	a->c_config->outlier_iters       = PS_NF_OUTLIER_ITERS;
-	a->c_config->outlier_sigma       = PS_NF_OUTLIER_SIGMA;
+	a->c_config->outlier_sigma       = a->ps_outlier_sigma;
 	a->c_config->outlier_min_fraction= PS_NF_OUTLIER_MIN_FRAC;
 	a->c_config->cv_fraction         = PS_NF_CV_FRACTION;
 	a->c_config->cv_overfit_ratio    = PS_NF_CV_OVERFIT_RATIO;
@@ -1410,13 +1415,13 @@ static void calc (CALCC a)
 	a->s_config->pre_filter_x_min    = PS_NF_PHS_PREFILT_XMIN;
 	a->s_config->pre_filter_y_max    = PS_NF_PHS_PREFILT_YMAX;
 	a->s_config->uniform_knots       = PS_NF_UNIFORM_KNOTS;
-	a->s_config->pin_start           = PS_NF_PIN_START;
+	a->s_config->pin_start           = a->ps_pin_start;
 	a->s_config->start_pt            = (NF_Point2){ PS_NF_PIN_START_X, a->s_y_pin_try };
 	a->s_config->pin_end             = PS_NF_PHS_PIN_END;
 	a->s_config->x_weight_x0         = PS_NF_XWEIGHT_X0;
 	a->s_config->x_weight_min        = PS_NF_XWEIGHT_MIN;
 	a->s_config->outlier_iters       = PS_NF_OUTLIER_ITERS;
-	a->s_config->outlier_sigma       = PS_NF_OUTLIER_SIGMA;
+	a->s_config->outlier_sigma       = a->ps_outlier_sigma;
 	a->s_config->outlier_min_fraction= PS_NF_OUTLIER_MIN_FRAC;
 	a->s_config->cv_fraction         = PS_NF_CV_FRACTION;
 	a->s_config->cv_overfit_ratio    = PS_NF_CV_OVERFIT_RATIO;
@@ -2102,6 +2107,26 @@ void PSRestoreCorr (int channel, char* filename)
 	a->ctrl.turnon = 1;
 	ReleaseSemaphore(a->SemsPSCorr[2], 1, 0);
 	LeaveCriticalSection (&txa[channel].calcc.cs_update);
+}
+
+// Native PS3 controls; configuration is consumed at the next calibration.
+PORT
+void SetPSPinMode(int channel, int enabled)
+{
+	CALCC a = txa[channel].calcc.p;
+	EnterCriticalSection(&txa[channel].calcc.cs_update);
+	a->ps_pin_start = enabled ? 1 : 0;
+	LeaveCriticalSection(&txa[channel].calcc.cs_update);
+}
+
+PORT
+void SetPSOutlierSigma(int channel, double sigma)
+{
+	CALCC a = txa[channel].calcc.p;
+	if (sigma < 0.0 || sigma > 20.0) return;
+	EnterCriticalSection(&txa[channel].calcc.cs_update);
+	a->ps_outlier_sigma = sigma;
+	LeaveCriticalSection(&txa[channel].calcc.cs_update);
 }
 
 PORT
