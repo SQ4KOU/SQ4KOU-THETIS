@@ -37,6 +37,30 @@ jobs:
         run: |
           msbuild "Project Files/Source/Thetis_VS2026.sln" -t:Restore -p:Configuration=Release -p:Platform=x64 -m -nologo -verbosity:normal
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Generate ignored activation secret and allow test POWER only in CI workspace
+        shell: pwsh
+        run: |
+          # 3Z9AM intentionally omits ActivationSecret.cs from git.
+          # CI generates a compile-only placeholder and makes this MSI a TEST build.
+          $secretFile = "Project Files/Source/Console/ActivationSecret.cs"
+          @'
+          namespace Thetis
+          {
+              internal static partial class ActivationCode
+              {
+                  private static readonly byte[] Secret = new byte[32];
+              }
+          }
+          '@ | Set-Content -Path $secretFile -Encoding utf8
+          $file = "Project Files/Source/Console/Console.Activation.cs"
+          $src = Get-Content $file -Raw
+          $marker = 'private bool ensureActivated()'
+          if (-not $src.Contains($marker)) { throw "Missing expected activation method" }
+          $regex = [regex]'(private bool ensureActivated\(\)\s*\{)'
+          $patched = $regex.Replace($src, '$1' + "`r`n            _activated = true; return true; // SQ4KOU CI TEST BUILD ONLY", 1)
+          if ($patched -eq $src) { throw "Test activation patch not applied" }
+          Set-Content -Path $file -Value $patched -Encoding utf8 -NoNewline
+          Write-Host "CI_TEST_ONLY: generated ignored ActivationSecret.cs; activation gate disabled for test MSI, repository source untouched."
       - name: Build Release x64 (including native WDSP)
         shell: pwsh
         run: |
