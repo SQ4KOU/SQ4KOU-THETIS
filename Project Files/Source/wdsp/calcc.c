@@ -3,7 +3,6 @@
 This file is part of a program that implements a Software-Defined Radio.
 
 Copyright (C) 2013, 2014, 2016, 2019, 2023 Warren Pratt, NR0V
-Portions Copyright (C) 2026 Daniel Poznanski, 3Z9AM - changes in this fork (see its git history).
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -797,8 +796,6 @@ void pscc (int channel, int size, double* tx, double* rx)
 				a->info[14] = 0;
 				a->ctrl.env_maxtx = 0.0;
 				a->ctrl.bs_count = 0;
-				a->ctrl.fb_sum = 0.0;
-				a->ctrl.fb_n = a->info[9] = a->info[10] = 0;
 				if (a->ctrl.turnon)
 					a->ctrl.state = LTURNON;
 				else if (a->ctrl.automode || a->ctrl.mancal)
@@ -840,8 +837,6 @@ void pscc (int channel, int size, double* tx, double* rx)
 				}
 				a->ctrl.full_ints = 0;
 				a->ctrl.waitcount = 0;
-				a->ctrl.fb_sum = 0.0;
-				a->ctrl.fb_n = a->info[9] = a->info[10] = 0;
 				
 				if (a->ctrl.reset)
 					a->ctrl.state = LRESET;
@@ -892,20 +887,7 @@ void pscc (int channel, int size, double* tx, double* rx)
 						if (a->ctrl.cpi[n] != a->spi)
 							if (++a->ctrl.cpi[n] == a->spi) a->ctrl.full_ints++;
 						++a->ctrl.count;
-						// fast feedback estimate from the top 2 of 16 envelope intervals: info[4] is
-						// 256 * rx/tx at the envelope peak, so the auto-attenuator need not wait for all intervals
-						if (env >= 0.875)
-						{
-							double rxe = sqrt(rx[2 * i + 0] * rx[2 * i + 0] + rx[2 * i + 1] * rx[2 * i + 1]);
-							a->ctrl.fb_sum += rxe * a->hw_scale / env;
-							a->ctrl.fb_n++;
-						}
 					}
-				}
-				if (a->ctrl.fb_n > 0)
-				{
-					a->info[9] = (int)(256.0 * a->ctrl.fb_sum / a->ctrl.fb_n);
-					a->info[10] = a->ctrl.fb_n;
 				}
 				GetTXAiqcDogCount (channel, &a->info[13]);
 				if (a->ctrl.reset)
@@ -1281,8 +1263,6 @@ void ForceShutDown (CALCC a, IQC b, int timeout)
 	a->info[14] = 0;
 	a->ctrl.env_maxtx = 0.0;
 	a->ctrl.bs_count = 0;
-	a->ctrl.fb_sum = 0.0;
-	a->ctrl.fb_n = a->info[9] = a->info[10] = 0;
 }
 
 PORT

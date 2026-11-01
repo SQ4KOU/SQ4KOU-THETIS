@@ -6,7 +6,6 @@ This code/file can be found on GitHub : https://github.com/ramdor/Thetis
 
 Copyright (C) 2000-2025 Original authors
 Copyright (C) 2020-2026 Richard Samphire MW0LGE
-Portions Copyright (C) 2026 Daniel Poznanski, 3Z9AM - changes in this fork (see its git history).
 
 This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
@@ -208,6 +207,7 @@ namespace Thetis
         private void PSLoop()
         {
             _bPSRunning = true;
+            int nCount = 0;
 
             while (_bPSRunning)
             {
@@ -219,12 +219,20 @@ namespace Thetis
                 if (run)
                 {
                     timer1code();
-                    timer2code();   // auto-attenuate every 10 ms (was every 100 ms unless Quick Attenuate)
+                    if (nCount == 0)
+                        timer2code();
+
+                    nCount++;
+                    if (m_bQuckAttenuate || nCount == 10)
+                        nCount = 0;
 
                     sleepDuration = 10;
                 }
                 else
+                {
+                    nCount = 0;
                     sleepDuration = 100;
+                }
 
                 Thread.Sleep(sleepDuration);
             }
@@ -742,22 +750,17 @@ namespace Thetis
             switch (_autoAttenuateState)
             {
                 case eAAState.Monitor:// 0: // monitor
-                    // a finished calibration, or (SSB: the top envelope intervals fill long before all 16 do)
-                    // the fast estimate from the envelope peaks once it has enough samples
-                    bool fullCal = puresignal.CalibrationAttemptsChanged;
-                    bool fastFb = !fullCal && puresignal.FastFeedbackCount >= puresignal.FastFeedbackMinSamples;
-                    int fb = fullCal ? puresignal.FeedbackLevel : puresignal.FastFeedbackLevel;
-                    if (_autoattenuate && (fullCal || fastFb)
-                        && puresignal.NeedToRecalibrate(fb, console.SetupForm.ATTOnTX))
+                    if (_autoattenuate && puresignal.CalibrationAttemptsChanged
+                        && puresignal.NeedToRecalibrate(console.SetupForm.ATTOnTX))
                     {
                         if (!console.ATTOnTX) AutoAttenuate = true; //MW0LGE
 
                         _autoAttenuateState = eAAState.SetNewValues;//1;
 
                         double ddB;
-                        if (fb <= 256)
+                        if (puresignal.IsFeedbackLevelOK)
                         {
-                            ddB = 20.0 * Math.Log10((double)fb / (double)puresignal.TargetFeedbackLevel);
+                            ddB = 20.0 * Math.Log10((double)puresignal.FeedbackLevel / (double)puresignal.TargetFeedbackLevel);
                             if (Double.IsNaN(ddB)) ddB = 31.1;
                             if (ddB < -100.0) ddB = -100.0;
                             if (ddB > +100.0) ddB = +100.0;
@@ -773,7 +776,7 @@ namespace Thetis
 
                         // everything off and reset
                         puresignal.SetPSControl(_txachannel, 1, 0, 0, 0);
-                        LogAutoAttenuate($"MONITOR {(fullCal ? "FB" : "FASTFB")}={fb} ATT={console.SetupForm.ATTOnTX} ddB={ddB:F2} delta={_deltadB} OK={puresignal.IsFeedbackLevelOKRange} {PSInfoBits()}");
+                        LogAutoAttenuate($"MONITOR FB={puresignal.FeedbackLevel} ATT={console.SetupForm.ATTOnTX} ddB={ddB:F2} delta={_deltadB} OK={puresignal.IsFeedbackLevelOKRange} {PSInfoBits()}");
                     }
                     break;
                 case eAAState.SetNewValues:// 1: // set new values
@@ -790,7 +793,7 @@ namespace Thetis
                         LogAutoAttenuate($"SETATT  old={oldAtten} new={newAtten} delta={_deltadB} FB={puresignal.FeedbackLevel} {PSInfoBits()}");
 
                         // give some additional time for the network msg to get to the radio before switching back on MW0LGE_21k9d5
-                        Thread.Sleep(100);
+                        if (m_bQuckAttenuate) Thread.Sleep(100);
                     }
                     else
                     {
@@ -992,9 +995,9 @@ namespace Thetis
         private void setAdvancedView()
         {
             if (_advancedON)
-                console.psform.ClientSize = new System.Drawing.Size(620, 70);
+                console.psform.ClientSize = new System.Drawing.Size(560, 60);
             else
-                console.psform.ClientSize = new System.Drawing.Size(620, 340);
+                console.psform.ClientSize = new System.Drawing.Size(560, 300);
 
             chkAdvancedViewHidden.Checked = _advancedON;
         }
@@ -1239,20 +1242,12 @@ namespace Thetis
         public static bool Correcting {
             get { return FeedbackLevel > 90; }
         }
-        public static bool NeedToRecalibrate(int fb, int nCurrentATTonTX) {
+        public static bool NeedToRecalibrate(int nCurrentATTonTX) {
             // Yurij_eu2av: recalibrate if feedback is too high relative to target,
             // or too low while we still have attenuation headroom.
-            return (fb > (int)(_targetFeedbackLevel * 1.5) ||
-                    (fb < (int)(_targetFeedbackLevel * 0.7) && nCurrentATTonTX > 0));
+            return (FeedbackLevel > (int)(_targetFeedbackLevel * 1.5) ||
+                    (FeedbackLevel < (int)(_targetFeedbackLevel * 0.7) && nCurrentATTonTX > 0));
         }
-        // fast feedback estimate from the envelope peaks (calcc.c LCOLLECT, info[9] level, info[10] samples)
-        public static int FastFeedbackLevel {
-            get { return _info[9]; }
-        }
-        public static int FastFeedbackCount {
-            get { return _info[10]; }
-        }
-        public const int FastFeedbackMinSamples = 512;
         public static bool IsFeedbackLevelOK {
             get { return FeedbackLevel <= 256; }
         }

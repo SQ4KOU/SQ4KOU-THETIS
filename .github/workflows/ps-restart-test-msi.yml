@@ -1,0 +1,73 @@
+name: SDR-VST3 PureSignal Restart Test MSI
+on:
+  push:
+    branches:
+      - import/3z9am-sdr-vst3-main-20261101
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout PureSignal test source
+        uses: actions/checkout@v4
+      - name: Source SHA256 and pinned Git commit
+        shell: pwsh
+        run: |
+          git rev-parse HEAD
+          $paths = @(
+            "Project Files/Source/Console/PSForm.cs",
+            "Project Files/Source/wdsp/calcc.c",
+            "Project Files/Source/wdsp/calcc.h"
+          )
+          foreach ($p in $paths) {
+            if (-not (Test-Path $p)) { throw "Missing PS source $p" }
+            $hash = (Get-FileHash $p -Algorithm SHA256).Hash
+            Write-Host "PS_SOURCE_SHA256 $hash $p"
+          }
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Restore NuGet
+        shell: pwsh
+        run: |
+          msbuild "Project Files/Source/Thetis_VS2026.sln" -t:Restore -p:Configuration=Release -p:Platform=x64 -m -nologo -verbosity:normal
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build Release x64 (including native WDSP)
+        shell: pwsh
+        run: |
+          msbuild "Project Files/Source/Thetis_VS2026.sln" -p:Configuration=Release -p:Platform=x64 -m -nologo -verbosity:normal
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify freshly built WDSP DLL
+        shell: pwsh
+        run: |
+          $dll = "Project Files/bin/x64/Release/wdsp.dll"
+          if (-not (Test-Path $dll)) { throw "WDSP DLL not found after build" }
+          Write-Host "WDSP_SHA256 $((Get-FileHash $dll -Algorithm SHA256).Hash) $dll"
+      - name: Build MSI using existing WiX installer
+        shell: pwsh
+        run: |
+          $wixTargets = "C:/Program Files (x86)/MSBuild/Microsoft/WiX/v3.x/Wix.targets"
+          msbuild "Project Files/Source/Thetis-Installer/Thetis-Installer.wixproj" -p:Configuration=Release -p:Platform=x64 "-p:WixTargetsPath=$wixTargets" -m -nologo -verbosity:normal
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify MSI and SHA256
+        id: msi
+        shell: pwsh
+        run: |
+          $msi = Get-ChildItem "Project Files/bin/Installers/SDR-VST3-v*.msi" -File | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $msi) { throw "MSI not found" }
+          Write-Host "MSI_FILE $($msi.FullName)"
+          Write-Host "MSI_SIZE_BYTES $($msi.Length)"
+          Write-Host "MSI_SHA256 $((Get-FileHash $msi.FullName -Algorithm SHA256).Hash)"
+          "path=$($msi.FullName)" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+      - name: Upload PS test MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: SDR-VST3-PS-Restart-MSI
+          path: ${{ steps.msi.outputs.path }}
+          if-no-files-found: error
+          retention-days: 14
