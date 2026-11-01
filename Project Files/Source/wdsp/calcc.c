@@ -1264,7 +1264,7 @@ static void calc (CALCC a)
 	a->m_config->pin_end_flat2       = a->m_fold_prev;        
 	a->m_config->x_weight_x0         = PS_NF_XWEIGHT_X0;
 	a->m_config->x_weight_min        = PS_NF_XWEIGHT_MIN;
-	a->m_config->outlier_iters       = PS_NF_OUTLIER_ITERS;
+	a->m_config->outlier_iters       = a->ps_outlier_sigma > 0.0 ? PS_NF_OUTLIER_ITERS : 0;
 	a->m_config->outlier_sigma       = a->ps_outlier_sigma;
 	a->m_config->outlier_min_fraction= PS_NF_OUTLIER_MIN_FRAC;
 	a->m_config->cv_fraction         = PS_NF_CV_FRACTION;
@@ -1342,7 +1342,7 @@ static void calc (CALCC a)
 	a->c_config->pin_end             = PS_NF_PHS_PIN_END;
 	a->c_config->x_weight_x0         = PS_NF_XWEIGHT_X0;
 	a->c_config->x_weight_min        = PS_NF_XWEIGHT_MIN;
-	a->c_config->outlier_iters       = PS_NF_OUTLIER_ITERS;
+	a->c_config->outlier_iters       = a->ps_outlier_sigma > 0.0 ? PS_NF_OUTLIER_ITERS : 0;
 	a->c_config->outlier_sigma       = a->ps_outlier_sigma;
 	a->c_config->outlier_min_fraction= PS_NF_OUTLIER_MIN_FRAC;
 	a->c_config->cv_fraction         = PS_NF_CV_FRACTION;
@@ -1420,7 +1420,7 @@ static void calc (CALCC a)
 	a->s_config->pin_end             = PS_NF_PHS_PIN_END;
 	a->s_config->x_weight_x0         = PS_NF_XWEIGHT_X0;
 	a->s_config->x_weight_min        = PS_NF_XWEIGHT_MIN;
-	a->s_config->outlier_iters       = PS_NF_OUTLIER_ITERS;
+	a->s_config->outlier_iters       = a->ps_outlier_sigma > 0.0 ? PS_NF_OUTLIER_ITERS : 0;
 	a->s_config->outlier_sigma       = a->ps_outlier_sigma;
 	a->s_config->outlier_min_fraction= PS_NF_OUTLIER_MIN_FRAC;
 	a->s_config->cv_fraction         = PS_NF_CV_FRACTION;
