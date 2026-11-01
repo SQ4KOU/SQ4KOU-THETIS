@@ -946,7 +946,11 @@ namespace Thetis
             comboPSTint.SelectedIndex = 0;
             udPSOutlierSigma.Value = (decimal)console.SetupForm.PSOutlierSigma;
             chkPSOutlierEnable.Checked = console.SetupForm.PSOutlierEnable;
-            udPSTargetFeedback.Value = console.SetupForm.PSTargetFeedbackLevel;
+            int defaultTarget = console.SetupForm.PSTargetFeedbackLevel;
+            if (defaultTarget < (int)udPSTargetFeedback.Minimum ||
+                defaultTarget > (int)udPSTargetFeedback.Maximum)
+                defaultTarget = HardwareSpecific.PSTargetFeedbackLevel;
+            udPSTargetFeedback.Value = defaultTarget;
             chkPSDCB.Checked = false;
             udPSDCBCap.Value = 0.25m;
 
