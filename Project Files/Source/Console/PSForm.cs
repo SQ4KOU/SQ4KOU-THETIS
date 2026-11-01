@@ -73,8 +73,7 @@ namespace Thetis
             console = c;    // MW0LGE moved above restore, so that we actaully have console when control events fire because of restore form
             
             Common.RestoreForm(this, "PureSignal", false); // will also restore txtPSpeak //MW0LGE_21k9rc5
-            // WDSP 2.10 internally owns NURBS parameters not available in the public API.
-            comboPSTint.SelectedIndex = 0;
+            // Keep the restored TINT selection; ForcePS synchronizes it with WDSP.
 
             _advancedON = chkAdvancedViewHidden.Checked; //MW0LGE_[2.9.0.6]
 
@@ -951,6 +950,19 @@ namespace Thetis
             chkPSDCB.Checked = false;
             udPSDCBCap.Value = 0.25m;
 
+            // Reapply even when a control already has the default value.
+            // WinForms does not raise Changed events for unchanged values.
+            chkPSStbl_CheckedChanged(this, EventArgs.Empty);
+            udPSEMAAlpha_ValueChanged(this, EventArgs.Empty);
+            udPSPinAlpha_ValueChanged(this, EventArgs.Empty);
+            chkPSPin_CheckedChanged(this, EventArgs.Empty);
+            chkPSEQ_CheckedChanged(this, EventArgs.Empty);
+            comboPSTint_SelectedIndexChanged(this, EventArgs.Empty);
+            chkPSOutlierEnable_CheckedChanged(this, EventArgs.Empty);
+            udPSOutlierSigma_ValueChanged(this, EventArgs.Empty);
+            udPSTargetFeedback_ValueChanged(this, EventArgs.Empty);
+            chkPSDCB_CheckedChanged(this, EventArgs.Empty);
+            udPSDCBCap_ValueChanged(this, EventArgs.Empty);
         }
 
         private bool _advancedON = false; //MW0LGE_[2.9.0.7]
@@ -1017,7 +1029,12 @@ namespace Thetis
             chkPSPin_CheckedChanged(this, e);
             chkPSEQ_CheckedChanged(this, e);
             comboPSTint_SelectedIndexChanged(this, e);
-            udPSTargetFeedback.Value = console.SetupForm.PSTargetFeedbackLevel;
+            // Persisted values outside the control range cannot be used as a target.
+            int targetFeedback = console.SetupForm.PSTargetFeedbackLevel;
+            if (targetFeedback < (int)udPSTargetFeedback.Minimum ||
+                targetFeedback > (int)udPSTargetFeedback.Maximum)
+                targetFeedback = HardwareSpecific.PSTargetFeedbackLevel;
+            udPSTargetFeedback.Value = targetFeedback;
             udPSTargetFeedback_ValueChanged(this, e);
             udPSOutlierSigma.Value = (decimal)console.SetupForm.PSOutlierSigma;
             chkPSOutlierEnable.Checked = console.SetupForm.PSOutlierEnable;
