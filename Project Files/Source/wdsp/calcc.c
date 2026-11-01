@@ -49,6 +49,12 @@ typedef struct _calcc
 	double rx_scale;
 	int ps_pin_start;
 	double ps_outlier_sigma;
+	int ps_stabilize;
+	double ps_ema_alpha;
+	double ps_pin_alpha;
+	int ps_eq_enable;
+	int ps_dcb_enable;
+	double ps_dcb_cap;
 
 	PSCOLLECTION ps_colct;
 
@@ -902,6 +908,12 @@ static void size_calcc (CALCC a)
 
 		a->ps_pin_start = PS_NF_PIN_START;
 	a->ps_outlier_sigma = PS_NF_OUTLIER_SIGMA;
+	a->ps_stabilize = 1;
+	a->ps_ema_alpha = PS_NS_EMA_ALPHA;
+	a->ps_pin_alpha = EXTP0_PIN_ALPHA;
+	a->ps_eq_enable = EQ_ENABLE;
+	a->ps_dcb_enable = DCB_ENABLED;
+	a->ps_dcb_cap = DCB_CAP;
 
 	a->m_dcb = build_dcb(a->nsamps);
 	a->c_dcb = build_dcb(a->nsamps);
@@ -915,9 +927,9 @@ static void size_calcc (CALCC a)
 	a->c_anchor_valid = 0;
 	a->s_anchor_valid = 0;
 
-	curve_ema_init2(&a->m_calavg, PS_NS_EMA_ALPHA, PS_NS_EMA_ALPHA_LO, PS_NS_EMA_X_BND,  0.1, 2.0);
-	curve_ema_init2(&a->c_calavg, PS_NS_EMA_ALPHA, PS_NS_EMA_ALPHA_LO, PS_NS_EMA_X_BND, -1.1, 1.1);
-	curve_ema_init2(&a->s_calavg, PS_NS_EMA_ALPHA, PS_NS_EMA_ALPHA_LO, PS_NS_EMA_X_BND, -1.1, 1.1);
+	curve_ema_init2(&a->m_calavg, (a->ps_stabilize ? a->ps_ema_alpha : 1.0), (a->ps_stabilize ? a->ps_ema_alpha : 1.0), PS_NS_EMA_X_BND,  0.1, 2.0);
+	curve_ema_init2(&a->c_calavg, (a->ps_stabilize ? a->ps_ema_alpha : 1.0), (a->ps_stabilize ? a->ps_ema_alpha : 1.0), PS_NS_EMA_X_BND, -1.1, 1.1);
+	curve_ema_init2(&a->s_calavg, (a->ps_stabilize ? a->ps_ema_alpha : 1.0), (a->ps_stabilize ? a->ps_ema_alpha : 1.0), PS_NS_EMA_X_BND, -1.1, 1.1);
 
 	a->m_fold_prev      = 0;
 	a->m_ctrl_n         = 0;
@@ -1178,23 +1190,23 @@ static void calc (CALCC a)
 			        + b->smps[i].tx.Q * b->smps[i].rx.I) / norm;
 	}
 
-	if (DCB_ENABLED)
+	if (a->ps_dcb_enable)
 	{
 		for (int i = 0; i < a->nsamps; i++)
 			a->dcb_phasor_mag[i] = sqrt(a->yc[i]*a->yc[i] + a->ys[i]*a->ys[i]);
 
 		double m_anc = detect_clean_boundary(a->m_dcb, a->x, a->ym, NULL, a->nsamps,
-		                   0.0, DCB_CAP + 0.05, DCB_NBINS,
+		                   0.0, a->ps_dcb_cap + 0.05, DCB_NBINS,
 		                   DCB_THRESH, DCB_CONFIRM,
-		                   DCB_FLOOR, DCB_CAP, DCB_MIN_PER_BIN);
+		                   DCB_FLOOR, a->ps_dcb_cap, DCB_MIN_PER_BIN);
 		double c_anc = detect_clean_boundary(a->c_dcb, a->x, a->yc, a->dcb_phasor_mag, a->nsamps,
-		                   0.0, DCB_CAP + 0.05, DCB_NBINS,
+		                   0.0, a->ps_dcb_cap + 0.05, DCB_NBINS,
 						   DCB_THRESH, DCB_CONFIRM,
-						   DCB_FLOOR, DCB_CAP, DCB_MIN_PER_BIN);
+						   DCB_FLOOR, a->ps_dcb_cap, DCB_MIN_PER_BIN);
 		double s_anc = detect_clean_boundary(a->s_dcb, a->x, a->ys, a->dcb_phasor_mag, a->nsamps,
-		                   0.0, DCB_CAP + 0.05, DCB_NBINS,
+		                   0.0, a->ps_dcb_cap + 0.05, DCB_NBINS,
 						   DCB_THRESH, DCB_CONFIRM,
-						   DCB_FLOOR, DCB_CAP, DCB_MIN_PER_BIN);
+						   DCB_FLOOR, a->ps_dcb_cap, DCB_MIN_PER_BIN);
 
 		if (!a->m_anchor_valid) { a->m_anchor_ema = m_anc; a->m_anchor_valid = 1; }
 		else a->m_anchor_ema = DCB_ALPHA * m_anc + (1.0 - DCB_ALPHA) * a->m_anchor_ema;
@@ -1211,7 +1223,7 @@ static void calc (CALCC a)
 	}
 
 	int eq_used = 0;
-	if (EQ_ENABLE)
+	if (a->ps_eq_enable)
 	{
 		a->eq_n = equalize_density(a);
 		if (a->eq_n >= EQ_MIN_PTS) eq_used = 1;
@@ -1239,7 +1251,7 @@ static void calc (CALCC a)
 				eff_alpha = EXTP0_PIN_WARMUP_ALPHA;
 			else
 				eff_alpha = (pin_res.confidence == EXTRAP_CONFIDENT)
-					? EXTP0_PIN_ALPHA : EXTP0_PIN_ALPHA * 0.5;
+					? a->ps_pin_alpha : a->ps_pin_alpha * 0.5;
 			a->m_y_pin_try = eff_alpha * y_pin_raw
 				+ (1.0 - eff_alpha) * a->m_y_pin_ema;
 			if (a->m_pin_cycle <= EXTP0_PIN_WARMUP_CYCLES) a->m_pin_cycle++;
@@ -1321,7 +1333,7 @@ static void calc (CALCC a)
 				eff_alpha = EXTP0_PIN_WARMUP_ALPHA;
 			else
 				eff_alpha = (pin_res.confidence == EXTRAP_CONFIDENT)
-					? EXTP0_PIN_ALPHA : EXTP0_PIN_ALPHA * 0.5;
+					? a->ps_pin_alpha : a->ps_pin_alpha * 0.5;
 			a->c_y_pin_try = eff_alpha * y_pin_raw
 				+ (1.0 - eff_alpha) * a->c_y_pin_ema;
 			if (a->c_pin_cycle <= EXTP0_PIN_WARMUP_CYCLES) a->c_pin_cycle++;
@@ -1399,7 +1411,7 @@ static void calc (CALCC a)
 				eff_alpha = EXTP0_PIN_WARMUP_ALPHA;
 			else
 				eff_alpha = (pin_res.confidence == EXTRAP_CONFIDENT)
-					? EXTP0_PIN_ALPHA : EXTP0_PIN_ALPHA * 0.5;
+					? a->ps_pin_alpha : a->ps_pin_alpha * 0.5;
 			a->s_y_pin_try = eff_alpha * y_pin_raw
 				+ (1.0 - eff_alpha) * a->s_y_pin_ema;
 			if (a->s_pin_cycle <= EXTP0_PIN_WARMUP_CYCLES) a->s_pin_cycle++;
@@ -1907,9 +1919,9 @@ void pscc (int channel, int size, double* tx, double* rx)
 					nf_curve_free(a->s_nurb); a->s_nurb = NULL;
 				}
 				a->m_prev_y = 1.0; a->c_prev_y = 1.0; a->s_prev_y = 0.0;
-				curve_ema_init2(&a->m_calavg, PS_NS_EMA_ALPHA, PS_NS_EMA_ALPHA_LO, PS_NS_EMA_X_BND,  0.1, 2.0);
-				curve_ema_init2(&a->c_calavg, PS_NS_EMA_ALPHA, PS_NS_EMA_ALPHA_LO, PS_NS_EMA_X_BND, -1.1, 1.1);
-				curve_ema_init2(&a->s_calavg, PS_NS_EMA_ALPHA, PS_NS_EMA_ALPHA_LO, PS_NS_EMA_X_BND, -1.1, 1.1);
+				curve_ema_init2(&a->m_calavg, (a->ps_stabilize ? a->ps_ema_alpha : 1.0), (a->ps_stabilize ? a->ps_ema_alpha : 1.0), PS_NS_EMA_X_BND,  0.1, 2.0);
+				curve_ema_init2(&a->c_calavg, (a->ps_stabilize ? a->ps_ema_alpha : 1.0), (a->ps_stabilize ? a->ps_ema_alpha : 1.0), PS_NS_EMA_X_BND, -1.1, 1.1);
+				curve_ema_init2(&a->s_calavg, (a->ps_stabilize ? a->ps_ema_alpha : 1.0), (a->ps_stabilize ? a->ps_ema_alpha : 1.0), PS_NS_EMA_X_BND, -1.1, 1.1);
 				a->m_fold_prev      = 0;
 				a->m_ctrl_ema_valid = 0;
 				a->c_ctrl_ema_valid = 0;
@@ -2126,6 +2138,73 @@ void SetPSOutlierSigma(int channel, double sigma)
 	if (sigma < 0.0 || sigma > 20.0) return;
 	EnterCriticalSection(&txa[channel].calcc.cs_update);
 	a->ps_outlier_sigma = sigma;
+	LeaveCriticalSection(&txa[channel].calcc.cs_update);
+}
+
+PORT
+void SetPSStabilize(int channel, int enabled)
+{
+	CALCC a = txa[channel].calcc.p;
+	EnterCriticalSection(&txa[channel].calcc.cs_update);
+	a->ps_stabilize = enabled ? 1 : 0;
+	double alpha = a->ps_stabilize ? a->ps_ema_alpha : 1.0;
+	a->m_calavg.alpha = a->m_calavg.alpha_lo = alpha;
+	a->c_calavg.alpha = a->c_calavg.alpha_lo = alpha;
+	a->s_calavg.alpha = a->s_calavg.alpha_lo = alpha;
+	LeaveCriticalSection(&txa[channel].calcc.cs_update);
+}
+
+PORT
+void SetPSEMAAlpha(int channel, double alpha)
+{
+	if (!(alpha > 0.0 && alpha <= 1.0)) return;
+	CALCC a = txa[channel].calcc.p;
+	EnterCriticalSection(&txa[channel].calcc.cs_update);
+	a->ps_ema_alpha = alpha;
+	if (a->ps_stabilize)
+	{
+		a->m_calavg.alpha = a->m_calavg.alpha_lo = alpha;
+		a->c_calavg.alpha = a->c_calavg.alpha_lo = alpha;
+		a->s_calavg.alpha = a->s_calavg.alpha_lo = alpha;
+	}
+	LeaveCriticalSection(&txa[channel].calcc.cs_update);
+}
+
+PORT
+void SetPSPinAlpha(int channel, double alpha)
+{
+	if (!(alpha > 0.0 && alpha <= 1.0)) return;
+	CALCC a = txa[channel].calcc.p;
+	EnterCriticalSection(&txa[channel].calcc.cs_update);
+	a->ps_pin_alpha = alpha;
+	LeaveCriticalSection(&txa[channel].calcc.cs_update);
+}
+
+PORT
+void SetPSEQEnable(int channel, int enabled)
+{
+	CALCC a = txa[channel].calcc.p;
+	EnterCriticalSection(&txa[channel].calcc.cs_update);
+	a->ps_eq_enable = enabled ? 1 : 0;
+	LeaveCriticalSection(&txa[channel].calcc.cs_update);
+}
+
+PORT
+void SetPSDCBEnable(int channel, int enabled)
+{
+	CALCC a = txa[channel].calcc.p;
+	EnterCriticalSection(&txa[channel].calcc.cs_update);
+	a->ps_dcb_enable = enabled ? 1 : 0;
+	LeaveCriticalSection(&txa[channel].calcc.cs_update);
+}
+
+PORT
+void SetPSDCBCap(int channel, double cap)
+{
+	if (!(cap > DCB_FLOOR && cap <= 1.0)) return;
+	CALCC a = txa[channel].calcc.p;
+	EnterCriticalSection(&txa[channel].calcc.cs_update);
+	a->ps_dcb_cap = cap;
 	LeaveCriticalSection(&txa[channel].calcc.cs_update);
 }
 
