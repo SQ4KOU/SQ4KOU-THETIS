@@ -75,14 +75,7 @@ namespace Thetis
             Common.RestoreForm(this, "PureSignal", false); // will also restore txtPSpeak //MW0LGE_21k9rc5
             // WDSP 2.10 internally owns NURBS parameters not available in the public API.
             comboPSTint.SelectedIndex = 0;
-            chkPSStbl.Enabled = false;
-            udPSEMAAlpha.Enabled = false;
-            udPSPinAlpha.Enabled = false;
-            chkPSEQ.Enabled = false;
             comboPSTint.Enabled = false;
-            chkPSDCB.Enabled = false;
-            udPSDCBCap.Enabled = false;
-            btnPSResetEngine.Enabled = false;
 
             _advancedON = chkAdvancedViewHidden.Checked; //MW0LGE_[2.9.0.6]
 
@@ -872,17 +865,17 @@ namespace Thetis
 
         private void chkPSStbl_CheckedChanged(object sender, EventArgs e)
         {
-            // Native WDSP 2.10 manages this setting internally.
+            puresignal.SetPSStabilize(_txachannel, chkPSStbl.Checked ? 1 : 0);
         }
 
         private void udPSEMAAlpha_ValueChanged(object sender, EventArgs e)
         {
-            // Native WDSP 2.10 manages this setting internally.
+            puresignal.SetPSEMAAlpha(_txachannel, (double)udPSEMAAlpha.Value);
         }
 
         private void udPSPinAlpha_ValueChanged(object sender, EventArgs e)
         {
-            // Native WDSP 2.10 manages this setting internally.
+            puresignal.SetPSPinAlpha(_txachannel, (double)udPSPinAlpha.Value);
         }
 
         private void chkPSPin_CheckedChanged(object sender, EventArgs e)
@@ -892,7 +885,7 @@ namespace Thetis
 
         private void chkPSEQ_CheckedChanged(object sender, EventArgs e)
         {
-            // Native WDSP 2.10 manages this setting internally.
+            puresignal.SetPSEQEnable(_txachannel, chkPSEQ.Checked ? 1 : 0);
         }
 
         private void comboPSTint_SelectedIndexChanged(object sender, EventArgs e)
@@ -926,12 +919,12 @@ namespace Thetis
 
         private void chkPSDCB_CheckedChanged(object sender, EventArgs e)
         {
-            // Native WDSP 2.10 manages this setting internally.
+            puresignal.SetPSDCBEnable(_txachannel, chkPSDCB.Checked ? 1 : 0);
         }
 
         private void udPSDCBCap_ValueChanged(object sender, EventArgs e)
         {
-            // Native WDSP 2.10 manages this setting internally.
+            puresignal.SetPSDCBCap(_txachannel, (double)udPSDCBCap.Value);
         }
 
         private void btnPSResetEngine_Click(object sender, EventArgs e)
@@ -1113,6 +1106,24 @@ namespace Thetis
 
         [DllImport("wdsp.dll", EntryPoint = "GetPSDisp", CallingConvention = CallingConvention.Cdecl)]
         public static extern void GetPSDisp(int channel, IntPtr x, IntPtr ym, IntPtr yc, IntPtr ys, IntPtr xm_cor, IntPtr ym_cor, IntPtr xa_cor, IntPtr ya_cor, IntPtr nsamps_out, IntPtr cpts_out, IntPtr phs_ref_deg_out);
+
+        [DllImport("wdsp.dll", EntryPoint = "SetPSStabilize", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetPSStabilize(int channel, int enabled);
+
+        [DllImport("wdsp.dll", EntryPoint = "SetPSEMAAlpha", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetPSEMAAlpha(int channel, double alpha);
+
+        [DllImport("wdsp.dll", EntryPoint = "SetPSPinAlpha", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetPSPinAlpha(int channel, double alpha);
+
+        [DllImport("wdsp.dll", EntryPoint = "SetPSEQEnable", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetPSEQEnable(int channel, int enabled);
+
+        [DllImport("wdsp.dll", EntryPoint = "SetPSDCBEnable", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetPSDCBEnable(int channel, int enabled);
+
+        [DllImport("wdsp.dll", EntryPoint = "SetPSDCBCap", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetPSDCBCap(int channel, double cap);
 
         [DllImport("wdsp.dll", EntryPoint = "SetPSPinMode", CallingConvention = CallingConvention.Cdecl)]
         public static extern void SetPSPinMode(int channel, int enabled);
