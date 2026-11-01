@@ -82,7 +82,7 @@ jobs:
         id: msi
         shell: pwsh
         run: |
-          $msi = Get-ChildItem "Project Files/bin/Installers/SDR-VST3-v*.msi" -File | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          $msi = Get-ChildItem "Project Files/bin/Installers/SDR-VST3-ANAN-v*.msi" -File | Sort-Object LastWriteTime -Descending | Select-Object -First 1
           if (-not $msi) { throw "MSI not found" }
           Write-Host "MSI_FILE $($msi.FullName)"
           Write-Host "MSI_SIZE_BYTES $($msi.Length)"
