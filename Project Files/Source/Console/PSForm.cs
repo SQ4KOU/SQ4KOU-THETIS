@@ -203,6 +203,7 @@ namespace Thetis
         {
             _power = newPower;
         }
+        private bool _psInfoDisplayInitialized = false;
         private volatile bool _bPSRunning = false;
         private volatile bool _ps_closing = false;
         private void PSLoop()
@@ -560,8 +561,10 @@ namespace Thetis
 
             puresignal.GetInfo(_txachannel);
 
-            if (puresignal.HasInfoChanged)
+            // Initial all-zero WDSP info is a valid state; render it once.
+            if (!_psInfoDisplayInitialized || puresignal.HasInfoChanged)
             {
+                _psInfoDisplayInitialized = true;
                 lblPSInfo0.Text = puresignal.Info[0].ToString();
                 lblPSInfo1.Text = puresignal.Info[1].ToString();
                 lblPSInfo2.Text = puresignal.Info[2].ToString();
