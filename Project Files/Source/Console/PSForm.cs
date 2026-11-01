@@ -78,11 +78,8 @@ namespace Thetis
             chkPSStbl.Enabled = false;
             udPSEMAAlpha.Enabled = false;
             udPSPinAlpha.Enabled = false;
-            chkPSPin.Enabled = false;
             chkPSEQ.Enabled = false;
             comboPSTint.Enabled = false;
-            chkPSOutlierEnable.Enabled = false;
-            udPSOutlierSigma.Enabled = false;
             chkPSDCB.Enabled = false;
             udPSDCBCap.Enabled = false;
             btnPSResetEngine.Enabled = false;
@@ -890,7 +887,7 @@ namespace Thetis
 
         private void chkPSPin_CheckedChanged(object sender, EventArgs e)
         {
-            // Native WDSP 2.10 manages this setting internally.
+            puresignal.SetPSPinMode(_txachannel, chkPSPin.Checked ? 1 : 0);
         }
 
         private void chkPSEQ_CheckedChanged(object sender, EventArgs e)
@@ -909,12 +906,15 @@ namespace Thetis
         {
             if (_psFormReady && console != null && console.SetupForm != null)
                 console.SetupForm.PSOutlierSigma = (double)udPSOutlierSigma.Value;
+            if (chkPSOutlierEnable.Checked)
+                puresignal.SetPSOutlierSigma(_txachannel, (double)udPSOutlierSigma.Value);
         }
 
         private void chkPSOutlierEnable_CheckedChanged(object sender, EventArgs e)
         {
             if (_psFormReady && console != null && console.SetupForm != null)
                 console.SetupForm.PSOutlierEnable = chkPSOutlierEnable.Checked;
+            puresignal.SetPSOutlierSigma(_txachannel, chkPSOutlierEnable.Checked ? (double)udPSOutlierSigma.Value : 0.0);
         }
 
         private void udPSTargetFeedback_ValueChanged(object sender, EventArgs e)
@@ -1113,6 +1113,12 @@ namespace Thetis
 
         [DllImport("wdsp.dll", EntryPoint = "GetPSDisp", CallingConvention = CallingConvention.Cdecl)]
         public static extern void GetPSDisp(int channel, IntPtr x, IntPtr ym, IntPtr yc, IntPtr ys, IntPtr xm_cor, IntPtr ym_cor, IntPtr xa_cor, IntPtr ya_cor, IntPtr nsamps_out, IntPtr cpts_out, IntPtr phs_ref_deg_out);
+
+        [DllImport("wdsp.dll", EntryPoint = "SetPSPinMode", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetPSPinMode(int channel, int enabled);
+
+        [DllImport("wdsp.dll", EntryPoint = "SetPSOutlierSigma", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetPSOutlierSigma(int channel, double sigma);
 
         [DllImport("wdsp.dll", EntryPoint = "SetPSFeedbackRate", CallingConvention = CallingConvention.Cdecl)]
         public static extern void SetPSFeedbackRate(int channel, int rate);
