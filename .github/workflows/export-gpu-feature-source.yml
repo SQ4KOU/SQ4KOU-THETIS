@@ -1,0 +1,32 @@
+name: Export GPU Feature Source
+on:
+  push:
+    branches: [feature/eu2av-gpu-waterfall-sq4kou]
+    paths: [.github/workflows/export-gpu-feature-source.yml]
+  workflow_dispatch:
+jobs:
+  export:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/eu2av-gpu-waterfall-sq4kou
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-GPU-FEATURE-SOURCE-SNAPSHOT
+          path: |
+            Project Files/Source/Console/setup.cs
+            Project Files/Source/Console/Setup.GPUWaterfall.cs
+            Project Files/Source/Console/Display.GPUWaterfall.cs
+            Project Files/Source/Console/Display.GPUWaterfallStatus.cs
+            Project Files/Source/Console/GPUWaterfallNative.cs
+            Project Files/Source/Console/GPUDetectorNative.cs
+            Project Files/Source/Console/WaterfallEnhancer.cs
+            Project Files/Source/Console/Thetis.csproj
+            Project Files/Source/ChannelMaster/gpu_waterfall.cpp
+            Project Files/Source/ChannelMaster/gpu_waterfall.h
+            Project Files/Source/ChannelMaster/gpu_detector.cpp
+            Project Files/Source/ChannelMaster/gpu_detector.h
+            .github/scripts/apply-gpu-waterfall-sq4kou.ps1
+            .github/workflows/build-gpu-waterfall-sq4kou.yml
+          if-no-files-found: warn

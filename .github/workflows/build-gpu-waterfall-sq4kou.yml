@@ -1,0 +1,14 @@
+name: Legacy GPU Waterfall V3 - DISABLED
+
+on:
+  workflow_dispatch:
+
+jobs:
+  disabled:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Legacy workflow intentionally disabled
+        run: |
+          echo "GPU Waterfall V3 is obsolete for feature/eu2av-gpu-waterfall-sq4kou."
+          echo "Use .github/workflows/materialize-eu2av-managed-gpu.yml only."
+          exit 1

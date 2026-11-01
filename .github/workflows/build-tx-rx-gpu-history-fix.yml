@@ -1,0 +1,165 @@
+name: Build TX-RX GPU history fix
+
+on:
+  push:
+    branches: [test/tx-rx-gpu-history-fix-20260911]
+    paths:
+      - .github/workflows/build-tx-rx-gpu-history-fix.yml
+      - .github/scripts/fix-tx-rx-gpu-history.ps1
+      - Project Files/Source/Console/Display.GPUWaterfall.cs
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-msi:
+    runs-on: windows-2025
+    timeout-minutes: 90
+    steps:
+      - name: Checkout exact branch state
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+
+      - name: Enable long paths
+        shell: pwsh
+        run: git config --global core.longpaths true
+
+      - name: Verify ancestry
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          git merge-base --is-ancestor 47221621b2f59564bb7ca6721ba5f2efe5ca3532 HEAD
+          if($LASTEXITCODE -ne 0){throw 'Not descended from frozen PASS'}
+
+      - name: Apply history preservation fix
+        shell: pwsh
+        run: .github/scripts/fix-tx-rx-gpu-history.ps1
+
+      - name: Commit source fix if needed
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- 'Project Files/Source/Console/Display.GPUWaterfall.cs'
+          git diff --cached --quiet
+          if($LASTEXITCODE -ne 0){
+            git commit -m 'Preserve GPU waterfall history across TX-RX'
+            git push origin HEAD:test/tx-rx-gpu-history-fix-20260911
+          }
+          $sha=(git rev-parse HEAD).Trim()
+          "SOURCE_SHA=$sha" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "SOURCE_SHA=$sha"
+
+      - name: Verify exact source scope from PASS
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $base='47221621b2f59564bb7ca6721ba5f2efe5ca3532'
+          $changed=@(git diff --name-only $base HEAD -- 'Project Files/Source')
+          $expected=@(
+            'Project Files/Source/ChannelMaster/cmaster.c',
+            'Project Files/Source/Console/Display.GPUWaterfall.cs',
+            'Project Files/Source/Console/display.cs'
+          )
+          if($changed.Count -ne 3){throw ('Unexpected source delta count: '+$changed.Count)}
+          foreach($p in $expected){if($p -notin $changed){throw "Missing expected source delta: $p"}}
+          foreach($p in $changed){if($p -notin $expected){throw "Unexpected source delta: $p"}}
+          Write-Host ('SOURCE_DELTA=' + ($changed -join ';'))
+
+      - name: Verify runtime-failure fix statically
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $gpu=Get-Content 'Project Files\Source\Console\Display.GPUWaterfall.cs' -Raw
+          if($gpu -match 'index < 0 \|\| index > 1 \|\| localMox \|\| !ManagedGPUFFTRequested'){throw 'MOX still disables GPU renderer'}
+          if($gpu -match '_gpuFirstFillDone\[num2\] = false;\s*_gpuRendererHasData\[num2\] = false;\s*_gpuLastIQSource'){throw 'RX/TX transition still clears renderer history'}
+          if($gpu -match 'gPUWaterfallPipeline\.ResamplingMode = _gpuWaterfallResamplingMode;\s*\}\s*ResetGPUWaterfallState\(rx\);\s*\}\s*if \(gPUWaterfallPipeline == null'){throw 'Rate rebind still performs full waterfall reset'}
+          foreach($token in @(
+            'Preserve WaterfallGPURenderer history across RX<->TX',
+            'bool gpuTxSource = localMox(rx) && !DisplayDuplex;',
+            'int stream = gpuSourceStream;',
+            'ColorScheme.Enhanced256',
+            'ColorScheme.Grayscale256',
+            'B8G8R8A8_UNorm',
+            'R16G16B16A16_Float'
+          )){if(-not $gpu.Contains($token)){throw "Missing required GPU token: $token"}}
+          Write-Host 'TX_RX_GPU_HISTORY_STATIC_AUDIT=PASS'
+
+      - name: Exact recovered Final palette parity
+        shell: pwsh
+        run: .github/scripts/test-final-palettes.ps1
+
+      - name: Diversity lifecycle regression guard
+        shell: powershell
+        run: .github/scripts/test-diversity-visibility.ps1
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $targets=Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if(-not $targets){choco install wixtoolset -y --no-progress}
+          $targets=Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if(-not $targets){$targets=Get-ChildItem 'C:\Program Files (x86)\WiX Toolset*\Wix.targets' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1}
+          if(-not $targets){throw 'WiX 3.x Wix.targets not found'}
+          "WIX_TARGETS=$($targets.FullName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore packages
+        shell: pwsh
+        run: nuget restore 'Project Files\Source\Thetis_VS2026.sln' -NonInteractive
+
+      - name: Build Release x64 and MSI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $log=Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-TX-RX-GPU-HISTORY-FIX-BUILD.log'
+          & msbuild 'Project Files\Source\Thetis_VS2026.sln' /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal 2>&1 | Tee-Object -FilePath $log
+          if($LASTEXITCODE -ne 0){throw "MSBuild failed: $LASTEXITCODE"}
+          if(Select-String -Path $log -Pattern ': error ' -ErrorAction SilentlyContinue){throw 'Build log contains errors'}
+          "BUILD_LOG=$log" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Validate built GPU shaders and package MSI
+        shell: powershell
+        run: |
+          $ErrorActionPreference='Stop'
+          $expected=@('Thetis.waterfall_postproc.bin','Thetis.waterfall_row_cs.bin','Thetis.waterfall_fft_bitreverse_cs.bin','Thetis.waterfall_fft_stage_ab_cs.bin','Thetis.waterfall_fft_stage_ba_cs.bin','Thetis.waterfall_fft_magnitude_cs.bin','Thetis.waterfall_resolve_cs.bin')
+          $built=Get-ChildItem 'Project Files\bin' -Recurse -Filter Thetis.exe | Where-Object {$_.FullName -match '\\x64\\Release\\'} | Sort-Object Length -Descending | Select-Object -First 1
+          if(-not $built){throw 'Built Thetis.exe not found'}
+          $asm=[System.Reflection.Assembly]::ReflectionOnlyLoadFrom($built.FullName)
+          $resources=@($asm.GetManifestResourceNames())
+          $missing=@($expected | Where-Object {$_ -notin $resources})
+          if($missing.Count){throw ('Missing GPU shaders: '+($missing -join ', '))}
+          $msi=Get-ChildItem 'Project Files\bin\Installers\*.msi' | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if(-not $msi -or $msi.Length -lt 1MB){throw 'Valid MSI not produced'}
+          $final=Join-Path $env:RUNNER_TEMP 'SQ4KOU-THETIS-TX-RX-GPU-HISTORY-FIX-TEST-x64.msi'
+          Copy-Item $msi.FullName $final -Force
+          $hash=(Get-FileHash $final -Algorithm SHA256).Hash
+          "FINAL_MSI_PATH=$final" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "MSI_SHA256=$hash" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "MSI_SHA256=$hash"
+
+      - name: Upload MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-TX-RX-GPU-HISTORY-FIX-TEST-x64
+          path: ${{ env.FINAL_MSI_PATH }}
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: Upload build log
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-TX-RX-GPU-HISTORY-FIX-BUILD-LOG
+          path: ${{ env.BUILD_LOG }}
+          if-no-files-found: error
+          compression-level: 6

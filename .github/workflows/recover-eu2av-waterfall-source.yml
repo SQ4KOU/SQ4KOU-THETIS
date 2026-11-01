@@ -1,0 +1,125 @@
+name: Recover EU2AV Waterfall Source
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/eu2av-gpu-waterfall-sq4kou]
+    paths: [.github/workflows/recover-eu2av-waterfall-source.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  recover:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - name: Download Thetis 2.10.3.16 Extended Final
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $pkg = Join-Path $env:RUNNER_TEMP 'Thetis-Extended-Final.7z'
+          Invoke-WebRequest -Uri 'https://eu2av.net/download/file.php?id=2070' -OutFile $pkg -UseBasicParsing
+          if ((Get-Item $pkg).Length -lt 10MB) { throw 'Downloaded package is unexpectedly small' }
+          $unpack = Join-Path $env:RUNNER_TEMP 'eu2av'
+          New-Item -ItemType Directory -Force -Path $unpack | Out-Null
+          & 7z x $pkg "-o$unpack" -y | Out-Null
+          $msi = Get-ChildItem $unpack -Recurse -Filter *.msi | Select-Object -First 1
+          if (-not $msi) { throw 'MSI not found in EU2AV archive' }
+          "EU2AV_MSI=$($msi.FullName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Administrative extract MSI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $dest = Join-Path $env:RUNNER_TEMP 'eu2av-installed'
+          New-Item -ItemType Directory -Force -Path $dest | Out-Null
+          $p = Start-Process msiexec.exe -ArgumentList @('/a', "`"$env:EU2AV_MSI`"", '/qn', "TARGETDIR=`"$dest`"") -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "msiexec failed: $($p.ExitCode)" }
+          $exe = Get-ChildItem $dest -Recurse -Filter Thetis.exe | Sort-Object Length -Descending | Select-Object -First 1
+          if (-not $exe) { throw 'Thetis.exe not found' }
+          "EU2AV_EXE=$($exe.FullName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "EU2AV_ROOT=$dest" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Install ILSpy command line
+        shell: pwsh
+        run: |
+          dotnet tool install --global ilspycmd --version 11.0.0.9375
+          "$env:USERPROFILE\.dotnet\tools" | Out-File $env:GITHUB_PATH -Encoding utf8 -Append
+
+      - name: Inventory exact EU2AV assembly and native GPU binaries
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path recovered\native | Out-Null
+          New-Item -ItemType Directory -Force -Path recovered\types | Out-Null
+          Get-FileHash "$env:EU2AV_EXE" -Algorithm SHA256 | Format-List | Out-File recovered\THETIS_EXE_SHA256.txt
+          [Diagnostics.FileVersionInfo]::GetVersionInfo("$env:EU2AV_EXE") | Format-List * | Out-File recovered\THETIS_EXE_VERSION.txt
+          ilspycmd --disable-updatecheck -l c "$env:EU2AV_EXE" | Out-File recovered\TYPE_LIST.txt -Encoding utf8
+          Get-ChildItem "$env:EU2AV_ROOT" -Recurse -File | Where-Object { $_.Name -match 'ChannelMaster|wdsp|waterfall|gpu|d3d|dxgi' } | ForEach-Object {
+            Copy-Item $_.FullName (Join-Path recovered\native $_.Name) -Force
+            Get-FileHash $_.FullName -Algorithm SHA256 | Format-List Path,Hash | Out-File recovered\NATIVE_SHA256.txt -Append
+          }
+
+      - name: Decompile raw GPU and Waterfall types only from EU2AV EXE
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $raw = Get-Content recovered\TYPE_LIST.txt
+          $all = New-Object System.Collections.Generic.List[string]
+          foreach ($line in $raw) {
+            if ($line -match '^Class\s+(.+)$') {
+              $t = $Matches[1].Trim()
+              if ($t -match '(?i)(GPU|Waterfall|NoiseFloor)') { $all.Add($t) }
+            }
+          }
+          @('Thetis.Setup','Thetis.Display') | ForEach-Object { if (-not $all.Contains($_)) { $all.Add($_) } }
+          $types = $all | Sort-Object -Unique
+          $types | Out-File recovered\RECOVERED_TYPE_NAMES.txt -Encoding utf8
+          foreach ($t in $types) {
+            Write-Host "DECOMPILE $t"
+            try { ilspycmd --disable-updatecheck -t $t -o recovered\types "$env:EU2AV_EXE" }
+            catch { Write-Warning "Could not decompile $t : $_" }
+          }
+
+      - name: Decompile complete EU2AV managed project for cross-reference
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          New-Item -ItemType Directory -Force -Path recovered\project | Out-Null
+          ilspycmd --disable-updatecheck -p -o recovered\project "$env:EU2AV_EXE"
+
+      - name: Extract exact Waterfall references from raw Display and Setup
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $sources = Get-ChildItem recovered\types -Recurse -Filter *.cs
+          foreach ($src in $sources) {
+            $text = Get-Content $src.FullName -Raw
+            if ($text -match '(?i)(GPUWaterfall|WaterfallEnhancer|NoiseFloor)') {
+              Copy-Item $src.FullName (Join-Path recovered ("RAW_" + $src.Name)) -Force
+            }
+          }
+          $display = Get-ChildItem recovered\types -Recurse -Filter '*Display*.cs' | Sort-Object Length -Descending | Select-Object -First 1
+          $setup = Get-ChildItem recovered\types -Recurse -Filter '*Setup*.cs' | Sort-Object Length -Descending | Select-Object -First 1
+          foreach ($pair in @(@('DISPLAY',$display),@('SETUP',$setup))) {
+            if (-not $pair[1]) { continue }
+            $lines = Get-Content $pair[1].FullName
+            $hits = New-Object System.Collections.Generic.List[string]
+            for ($i=0; $i -lt $lines.Count; $i++) {
+              if ($lines[$i] -match '(?i)(GPUWaterfall|WaterfallEnhancer|NoiseFloor|CM_GPU|GPUDetector)') {
+                $a=[Math]::Max(0,$i-12); $b=[Math]::Min($lines.Count-1,$i+55)
+                $hits.Add("// ===== $($pair[0]) line $($i+1) =====")
+                for($j=$a;$j -le $b;$j++) { $hits.Add($lines[$j]) }
+              }
+            }
+            $hits | Out-File ("recovered\EU2AV_" + $pair[0] + "_GPU_WATERFALL_CONTEXT.cs") -Encoding utf8
+          }
+
+      - name: Upload untouched recovered source
+        uses: actions/upload-artifact@v4
+        with:
+          name: EU2AV-2.10.3.16-RAW-GPU-WATERFALL-DECOMPILATION
+          path: recovered/**/*
+          if-no-files-found: error
+          compression-level: 6

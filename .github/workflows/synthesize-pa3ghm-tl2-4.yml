@@ -1,0 +1,212 @@
+name: Synthesize PA3GHM TL2-4
+
+on:
+  push:
+    branches:
+      - synthesis/pa3ghm-tl2-4-full
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  synthesize:
+    if: ${{ !contains(github.event.head_commit.message || '', '[pa3ghm-synth]') }}
+    runs-on: windows-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout synthesis branch
+        uses: actions/checkout@v4
+        with:
+          ref: synthesis/pa3ghm-tl2-4-full
+          fetch-depth: 1
+          filter: blob:none
+
+      - name: Enable long paths and identity
+        shell: pwsh
+        run: |
+          git config --global core.longpaths true
+          git config user.name "SQ4KOU synthesis automation"
+          git config user.email "actions@users.noreply.github.com"
+
+      - name: Fetch exact upstream references
+        shell: pwsh
+        run: |
+          git remote remove ramdor 2>$null
+          git remote remove pa3ghm 2>$null
+          git remote add ramdor https://github.com/ramdor/Thetis.git
+          git remote add pa3ghm https://github.com/cjenschede/Thetis.git
+          git fetch --force --depth=1 ramdor refs/tags/v2.10.3.15:refs/remotes/ramdor/v2.10.3.15
+          git fetch --force --depth=1 pa3ghm refs/tags/TL2-4:refs/remotes/pa3ghm/TL2-4
+          Write-Host "ramdor base: $(git rev-parse refs/remotes/ramdor/v2.10.3.15)"
+          Write-Host "PA3GHM TL2-4: $(git rev-parse refs/remotes/pa3ghm/TL2-4)"
+
+      - name: Audit exact TL2-4 delta
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path .synthesis | Out-Null
+          git diff --name-status refs/remotes/ramdor/v2.10.3.15 refs/remotes/pa3ghm/TL2-4 | Tee-Object -FilePath .synthesis/PA3GHM_TL2_4_FILES.txt
+          git diff --stat refs/remotes/ramdor/v2.10.3.15 refs/remotes/pa3ghm/TL2-4 | Tee-Object -FilePath .synthesis/PA3GHM_TL2_4_STAT.txt
+
+      - name: Semantic union merge of TL2 runtime
+        shell: pwsh
+        run: |
+          $baseRef = 'refs/remotes/ramdor/v2.10.3.15'
+          $theirRef = 'refs/remotes/pa3ghm/TL2-4'
+          $paths = @(
+            'Project Files/Source/Console/TCIServer.cs',
+            'Project Files/Source/Console/console.cs',
+            'Project Files/Source/Console/DiversityForm.cs',
+            'Project Files/Source/Console/cmaster.cs',
+            'Project Files/Source/Console/setup.cs',
+            'Project Files/Source/Console/setup.designer.cs'
+          )
+          $n = 0
+          foreach ($path in $paths) {
+            $n++
+            $base = ".synthesis/base_$n.cs"
+            $theirs = ".synthesis/theirs_$n.cs"
+            & git show "${baseRef}:$path" | Set-Content -LiteralPath $base -Encoding utf8NoBOM
+            if ($LASTEXITCODE -ne 0) { throw "Cannot materialize ramdor base for $path" }
+            & git show "${theirRef}:$path" | Set-Content -LiteralPath $theirs -Encoding utf8NoBOM
+            if ($LASTEXITCODE -ne 0) { throw "Cannot materialize PA3GHM TL2-4 for $path" }
+            & git merge-file --union -L SQ4KOU -L RAMDOR_2_10_3_15 -L PA3GHM_TL2_4 -- "$path" $base $theirs
+            $mergeExit = $LASTEXITCODE
+            Write-Host "merge-file $path => $mergeExit"
+          }
+          git status --short | Tee-Object -FilePath .synthesis/POST_MERGE_STATUS.txt
+
+      - name: Static synthesis gates
+        shell: pwsh
+        run: |
+          function Require-Text([string]$Path, [string]$Text) {
+            if (-not (Select-String -LiteralPath $Path -SimpleMatch $Text -Quiet)) {
+              throw "SYNTHESIS GATE FAILED: '$Text' missing in $Path"
+            }
+          }
+          $tci = 'Project Files/Source/Console/TCIServer.cs'
+          $con = 'Project Files/Source/Console/console.cs'
+          $cm = 'Project Files/Source/Console/cmaster.cs'
+          $div = 'Project Files/Source/Console/DiversityForm.cs'
+          $setup = 'Project Files/Source/Console/setup.cs'
+          $designer = 'Project Files/Source/Console/setup.designer.cs'
+
+          # PA3GHM TL2-4 surface
+          Require-Text $tci 'tci_caps_ex'
+          Require-Text $tci 'rx_filter_preset_ex'
+          Require-Text $tci 'diversity_enable_ex'
+          Require-Text $tci 'diversity_smartnull_ex'
+          Require-Text $tci 'diversity_ultranull_ex'
+          Require-Text $tci 'ddc_sample_rate_ex'
+          Require-Text $tci 'auto_recenter_owner_ex'
+          Require-Text $tci 's9_frequency_ex'
+          Require-Text $tci 'rx_only_ex'
+          Require-Text $tci 'BroadcastFilterBand'
+          Require-Text $con 'ThetisLinkExtensionsEnabled'
+          Require-Text $div 'DiversityGainMulti'
+          Require-Text $setup 'chkThetisLinkExtensions_CheckedChanged'
+          Require-Text $designer 'chkThetisLinkExtensions'
+
+          # SQ4KOU functions that must survive the synthesis
+          Require-Text $tci 'sq4kou_cmd07_ex'
+          Require-Text $tci 'sq4kou_radio_hw_ex'
+          Require-Text $tci 'sq4kou_rx_antenna_selected_ex'
+          Require-Text $tci 'sq4kou_tx_antenna_selected_ex'
+          Require-Text $con 'SQ4KOUStartP1SoftwareCWX'
+          Require-Text $cm 'ApplyDiversityP1TxGate'
+
+          $bad = Select-String -Path $tci,$con,$cm,$div,$setup,$designer -Pattern '^<<<<<<<|^=======|^>>>>>>>'
+          if ($bad) { $bad | ForEach-Object { Write-Host $_ }; throw 'Unresolved merge markers remain' }
+          Write-Host 'Static synthesis gates: PASS'
+
+      - name: Record provenance
+        shell: pwsh
+        run: |
+          @'
+          # PA3GHM TL2-4 full synthesis provenance
+
+          Target branch: synthesis/pa3ghm-tl2-4-full
+          Base: SQ4KOU branch sq4kou
+          PA3GHM functional source: cjenschede/Thetis tag TL2-4 (7c97c803)
+          PA3GHM upstream reference: ramdor/Thetis tag v2.10.3.15 (3759d096)
+
+          Runtime files integrated:
+          - TCIServer.cs
+          - console.cs
+          - DiversityForm.cs
+          - cmaster.cs
+          - setup.cs
+          - setup.designer.cs
+
+          Intentionally excluded:
+          - PA3GHM title/About branding
+          - ReleaseNotes/README/NOTICE/ATTRIBUTION packaging changes
+          - VS project toolset substitutions (v145 -> v143)
+
+          Mandatory retained SQ4KOU functions:
+          - Protocol-1 software CWX IQ bridge
+          - Protocol-1 Diversity TX gate
+          - WideBand/PAN/ZOOM and P1 changes outside the TL2 file set
+          - GPS/CMD07 telemetry
+          - hardware snapshot telemetry and antenna TCI
+          - SQ4KOU database safety/compatibility changes
+          '@ | Set-Content .synthesis/PA3GHM_TL2_4_SYNTHESIS.md -Encoding utf8
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) { choco install wixtoolset -y --no-progress }
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) {
+            $targets = Get-ChildItem "C:\Program Files (x86)\WiX Toolset*\Wix.targets" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1
+          }
+          if (-not $targets) { throw "WiX 3.x Wix.targets not found" }
+          "WIX_TARGETS=$($targets.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore packages
+        shell: pwsh
+        run: nuget restore "Project Files\Source\Thetis_VS2026.sln" -NonInteractive
+
+      - name: Build Release x64 and MSI
+        shell: pwsh
+        run: |
+          msbuild "Project Files\Source\Thetis_VS2026.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal
+
+      - name: Verify MSI
+        shell: pwsh
+        run: |
+          $msi = Get-ChildItem "Project Files\bin\Installers\*.msi" -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $msi) { throw 'MSI was not produced' }
+          if ($msi.Length -lt 1MB) { throw "MSI unexpectedly small: $($msi.Length)" }
+          Write-Host "Verified MSI $($msi.Name) $([math]::Round($msi.Length/1MB,2)) MB"
+
+      - name: Commit synthesized source
+        shell: pwsh
+        run: |
+          git add -- 'Project Files/Source/Console/TCIServer.cs' 'Project Files/Source/Console/console.cs' 'Project Files/Source/Console/DiversityForm.cs' 'Project Files/Source/Console/cmaster.cs' 'Project Files/Source/Console/setup.cs' 'Project Files/Source/Console/setup.designer.cs' '.synthesis/PA3GHM_TL2_4_SYNTHESIS.md' '.synthesis/PA3GHM_TL2_4_FILES.txt' '.synthesis/PA3GHM_TL2_4_STAT.txt'
+          if (-not (git diff --cached --quiet)) {
+            git commit -m '[pa3ghm-synth] Integrate full PA3GHM TL2-4 runtime into SQ4KOU'
+            git push origin HEAD:synthesis/pa3ghm-tl2-4-full
+          } else {
+            Write-Host 'No source changes to commit.'
+          }
+
+      - name: Upload synthesis diagnostics and MSI
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: PA3GHM-TL2-4-SYNTHESIS
+          path: |
+            .synthesis/**
+            Project Files/bin/Installers/*.msi
+          if-no-files-found: warn
+          compression-level: 0
+          include-hidden-files: true

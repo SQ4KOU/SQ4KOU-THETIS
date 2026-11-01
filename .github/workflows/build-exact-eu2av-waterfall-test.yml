@@ -1,0 +1,90 @@
+name: Build Exact EU2AV Waterfall Test
+
+on:
+  push:
+    branches: [feature/eu2av-gpu-waterfall-sq4kou]
+    paths: [.github/workflows/build-exact-eu2av-waterfall-test.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-msi:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/eu2av-gpu-waterfall-sq4kou
+          fetch-depth: 1
+
+      - name: Apply existing GPU backend integration
+        shell: pwsh
+        run: |
+          git config --global core.longpaths true
+          .\.github\scripts\apply-gpu-waterfall-sq4kou.ps1
+
+      - name: Recover exact EU2AV 2.10.3.16 source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $pkg = Join-Path $env:RUNNER_TEMP 'Thetis-Extended-Final.7z'
+          Invoke-WebRequest -Uri 'https://eu2av.net/download/file.php?id=2070' -OutFile $pkg -UseBasicParsing
+          if ((Get-Item $pkg).Length -lt 10MB) { throw 'EU2AV package is unexpectedly small' }
+          $unpack = Join-Path $env:RUNNER_TEMP 'eu2av'; New-Item -ItemType Directory -Force -Path $unpack | Out-Null
+          & 7z x $pkg "-o$unpack" -y | Out-Null
+          $msi = Get-ChildItem $unpack -Recurse -Filter *.msi | Select-Object -First 1
+          if (-not $msi) { throw 'EU2AV MSI not found' }
+          $installed = Join-Path $env:RUNNER_TEMP 'eu2av-installed'; New-Item -ItemType Directory -Force -Path $installed | Out-Null
+          $p = Start-Process msiexec.exe -ArgumentList @('/a', "`"$($msi.FullName)`"", '/qn', "TARGETDIR=`"$installed`"") -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "MSI extraction failed: $($p.ExitCode)" }
+          $exe = Get-ChildItem $installed -Recurse -Filter Thetis.exe | Sort-Object Length -Descending | Select-Object -First 1
+          dotnet tool install --global ilspycmd --version 11.0.0.9375
+          $env:PATH = "$env:USERPROFILE\.dotnet\tools;$env:PATH"
+          $rec = Join-Path $env:RUNNER_TEMP 'recovered'; New-Item -ItemType Directory -Force -Path $rec | Out-Null
+          ilspycmd --disable-updatecheck -t Thetis.Setup -o $rec $exe.FullName
+          ilspycmd --disable-updatecheck -t Thetis.WaterfallEnhancer -o $rec $exe.FullName
+          ilspycmd --disable-updatecheck -t Thetis.NoiseFloorPro -o $rec $exe.FullName
+          "RECOVERED=$rec" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Install exact recovered Waterfall tab
+        shell: pwsh
+        run: |
+          $b64 = 'H4sIABwTn2oC/9VcW3PbOLJ+16/AequWYizTkmxnYitOyvFlktrY8fqSObWxj4oiIYljEmSRlBWPk/++3QBIgiRIyTn7clIpSwQa3Y3uRuPDhZrGYUAiO5373oR4QRTGKbmEx478HiY9EtNOJw7DlBzyKstZul2zE1NHFnTDxKLs0YtD9s24Oj3+8vX06vTEuDc7TsiS0Kdj14uBlvPYJsZlHP5JnZSceT5NDCy5DhexQ/nXY9HE6DjBi5rNbcaof24nKY2NTselUzL1mDtOnyLaZXZAzYMOgX9TbA1cfS9Ju9AHK5754aRrvDLIJkE6+DBeWU5imCZv4E0JAwV4O8EC/8W2l1BytWCpF9DTOA7jrnFFnfCRxtQlKFS0ChfMPSAZb8ExpukiZiSwv3c51x55oE+Hvh1MXJtEBySyktROuyZ8jBPvL2jVSaBJNE5iNHnRLeMaiw3TiqkNRfR72qXMCV2PzQ6NRTrderOVeDOjRygqmBwa3oyFMTVMYR+gj20nHQc0nYeuaiQICDQ8tZwwiEDFbmzcsbvkVff9QRR7j3ZKf3gMDM1s/0e0mPie8yOKwxS8Q13z2//esftXdxPsNLCgiWNnLsASA/jcdSWRiQ/I+e7ZEMYJQDCItxJqx868m3e85Iyg3RHnvEOFA4jHQJPMOdxoVZ+AxWPsc2Dxb11UdcBrJmAjCjW5JhY6oGs8g11zasHEpVE6B9K+iLQwJh4XbbMZ7XI+PeJTpnTKLDriqDK+efd5BfQZ6g4JSDyQIjYPpXL4j/o5xU+j4FcotKVSS45SVdC13EKJz0IZ3skDb3MglNKZ/JY5fpiAdUUwqebtiKIxPuHI+8aZGJ+Yl/4BkRRPbd+/sSdGjxddhMD8zA/DGMY7JIM0Dv0E6m4jF4gvzj6Hy4/ebH7K7IlP3WsYKNToCY6C5PfL209sGn62J9SHdkdR5D9B2TX1ITy9kOW8cuFXlLk0/tfC9r306VNKg6TM8Qujl7ZP05Qeh8EkrDOQtbKpcf3EHJBYVHsR+IhRqXPG/HgRx5SlQHljxzOaYkuuJHVLGq1Q+COMxLK+/0T/xB9oan/1Em/iSSaTlN3QBOWNj2HEPkCRg/3BgkzwJ2D8HXPprNCTE12cnYcubaAzFi53zCUkk6+2v6DlGvRXvUoynz8cLdIQScbHc+o8UFdtnNWdg4U8VmXONTv6/fg6gClivroTf5ydUExSYdzUEVDn32EYHLl2lHqPtKaSwuwmZPTcjho5cRqKs6jtt6qWTiB+rud2DLwciHaMWl7Gox8mtKJY9EIbBu29nz+oAXl2dlM3dhYLKtU1zD6rzao2+gNyY7hsjhOVtohTfWhUeZ/bM0gQC5e2h6La5AukfB+c1BB6KimGWka+2jifbeb8FSYvM84VTewgglQwa9L+C1PpT6dTzFmPVOqV0XXuZU7FdIozMzOsP0OPdaszusknIYaTkJqETaW5/AYQIvJhguoaJ14C356suldvENUgLEgWfjqC6W81bReSk5k1eLHYksORW2Ol2R4sVsncjapX5b2M6Yu7V4SDrn/lWrMlmNbsXU3cC1i+uG/F2MZ+uSGARGo2DX+LD89Gxcu8pn5opytZtSp8TSmZRYuxy2cDwASWH874UIES2/MTS6gCmDHdORkMYIEhHmD+jxYpJXlDORgshNRTj/pcXmwYRg6qJF4mgHAu7Rkl4zTK1R7VqH6Pw0X0Ifx+c02WUwBA/LlONglDn4zjGm7h8z+4r70FLKBAgUv43kIaKZimmS0uVDyH4PojZP4TPMdA9+2ejEF9hQM4CwzD6DKj2Lsnz2RDLvbIcO/1Ro9s3MxpHNh+9nhCafQBvJk9nzLIfw5gTPn8Abz58MfcSwUF+fnr+h35flm/wfC/r6BCgd+vI4ghWBuUKfHps8c+hzP57cp25TecofDr8SJJw0DbX456IXj8iX9xBvFzTaNRXsnRqwguBdON9I15VY3/xSKgsefcRifhkgFpAfwa2FQrdQwkPmzgkNXWdOGTtOxOgSLbRJXRpFZehaQutGLDHH3qudVrqwwKTKrloFSvMICKW7WskAAXC826SEirbb1GHQbbSoNlkFjPqK2SL+L0CmQAuqi8ARz08MGOob7A163jJSP62iBeAeTNYuoUeg4oZKWpoMNNhmgqx5VvUfdhkaYhhn6x9Csqr58SyHyWgGuJdRbGQWLdwIo+JmOYHHFlvUj4c6vZ9KuRlnhfQb+SNQ/hFWOhsoxpslZ1qTNqc0WNuM0qdUC8Hu8qbQPLAu+0pbuGFuvqXQK766nf0KRBgFzVrNuFjPwFvlfWdCu1qS62VjaQS8D1LJMRrzPoNXh81EFMuYztKKJxFWJub5Prf+3+88stSWGQHxD6HdaAYpuTvCMSUcO3nC9Z8jBT9kSncRio/ADopF5Chtagb+1Yg9fk9HuKg9AlZx6zfYtchOTRS2BEciYMUNNCIOlaBx9DzyW4s6f2jCt3+6lr5uTPpW3I6uZg1xxVdzC7KpImfwP0toDPf/yDzOJI9vkEVKDxKYOZnGYUZm27s3HXsavn1CN9RZuf3DORHaeejRjSWCTgL5ldR3dMfbROYnuJ3qwUl3LwCNfzfJke4caz8MQde75j3Kp8t51k8hzfThLhalEPZLjzKtcim7g7gM9Z5OQF2eqIF/B+3DH4b3S66pkNnrEg79JyjJ+NWMsYwKo4c5DK9Ejl8AEXRX8ntwkl6ZzKqCxCrhh4AhPHePzk04AyxOywtMKYlOHWWU7LBx+1xr9yCFLtao1prafLaUMnS/FDYOTYfhIqnXX58hEWIGqnWKVTJSb/jQ6VGNY6w/SdqTIp5Ui2AJBQZYTJqBqwHTGeZbhSaEcaNomeyUebsR78DQLQpEf4WiiwWfHtox3HXtKD+SFNoXGPiNkMxl6bjPJuzjO5pPbDx9B3jzClYnmPHIF3YFF+GS5p3MsJ+OMK5pXNlGdyBqiuRyRGgcY8L6xr4Azja01bSiiddkPL9a5ICwrjTjnFqr06tiNbnBF8po/Uh67wz/74+PJ2/AUWzT1RMBh/sBPPGYt5MpGlw7FYjY4BOwNGS6TZNGtwsa0gdk6o27hUr6oz9vnHYbXCqmjZyFAs6DmmvcDj3UOysWAPDBDGxso2UwogOOanVhvN1KJnczs5oY+eQ3H6AN/1eNGHheenn1huNCwTFpMGG1Wd0mCHzDkzmsLfU5aAXifSmDA7Zod2wlwj8lN1RImx7BsEBzfHao7ScGvwPJPm+uwl6RqMM+u2cea2/Vgx7Rq8q95YR0bZV+sJKbdZR0rJ++sJKQdMiwyOta7oFIw675rANh9vONPAnARerEtqHLKcXZW+AbFxRJZJM6X2o5ICgBFpGcatPbj1w7dxgHLe1RAAmrrHZGHZKZmtSvzS+Kn0/FwDkoqOSuq9sHFRYf1OU747Q2MkqeJZbkGWkqmvbXx8PlYKx8BLDjVuJx0zXe+B+TvS1whG11XpefS0uqcyIYz01uVOV0JMFbqyo7hpAXEM0L2/Wp/qVDTSerZJHzWUtN7LZXo00boPOnTN86D1KbmAlcaX+DSI0qduztk0S1LqLnpPNk74eYMo3pblG+SgFt3lDjh26sxXGqg0nsojR+Envr0EwGRnNqe3w6OvOULCsxI7/T8gmtISR8powTH63SKEM+GyR86p6y0CQJnebN6c8Bp4jJf68sOGBhbfiG4SUkblJ9lREseRYzaVh3MtVJaErY0S+BEZ8hK778Bt0AewDwVyMx1K9vexZDk9mjliixpdAuPM2sVyu7QNfjKBmtdYnsoN2iM/mtuS7maO0w3gZljW0C/TaUKR/9bOdAVgymTIazFX/zPoaQqHilRZWJVbFP+l7IHLUjnkZRtRKE6jZDEkbZmtZIvVp0jiOBNPkSA20yuKNyWpW91AkgdKOfEz2RpY/R7/Wzq7KU3hMFBhHjjizn4LU0JPMnhH1rgZMGrDHi1XknIYIkFHTgeLd75p/BNvg0F9pQK6+MjPW1swScOYyouLgVpSoWHMFao0D8qVKrWNQHHyVdNGjEtFej5QV0oTozE7CtNwzs7IFN75wOXcyVsymMLsAH8OSFcUvSO7+1iGfw8EmbmOFlkGqKuRH8MpehT5IlNkr49S8a+iyv6+xZURn+urU2zUqlmoFgmlJKVGQDV7ZUr2rf4e6iM+FUX7Qs/+umrygXNUS1Q1Feu5TFGzXrlO2OhFD1eLHraJHq4fsUfVOaBJckagkavMH7lvuANKXtnhZTv9F/jkpjwl1HSrTBmKapWawh4I4P4mxCMdzAuXMX38ClnF/da/LxZQ5ZqBUvNzpU0ztQEoUjZL54168wlWozUvb7dm35Kxv/fCGK9OqFqHV4kqTq/xeFG46aBEqxIFXZMeJVCSWW1ryO3GPxTLidLhS+Lw3xrEUdVYg0oUbfWYZf30UEAanaXy2op9VCC0niygLeOkmrw6kipk1up+Qe7Ro+352LgqWd1B/fiSPZmGvTAN24zk/Xt1/6GZMy7m8/aALcrbd1IAvx2pSvlc37zL3rOobPEg5GwDhMiaOOKlmB7Xhu9X0yto0LaFI5tgZiE/fmQcYGwM8BHdWD0HJ2/56lxu+JRfP+DIlYTVg9t800Flp5zV4ileoS6mNHPF1gt2cB5G2Y3Tc3xNiQO8bnb3UOG3DVMNQPBNTJEN+zCBxz5ydpzTuf29C4uTJtZaq7zi4EMKadguQI3fSlmm1F88jfL6d1qjZ9S6urqsMF+Q4NJjK7+PiTy2SVs32jYdKMx5CmstG+nQSxo7uKzZhoUomKUeCRkbDt1MhStSlyg4htsrk+zv1TlyPx1Nkm7rGu2bDPB7sIrkaAol+kN9TK/J7lAf9Y92TIDE9fkp/jorOhEIskl2hp3xyIfrJoH4zDowesFezt/Jke/NWHaBYGI7D7CaIi6d2gs/TcjSA5Aijm75qaVI2onVcSN+g1i7EVQ9Le5gtnejFQeaJieLqZUsJt3Y0O4ZLGvrz+77A1zI/+AQzOR3iNdsKUAbNHDbJWM+0A7xQ3LnbuoktrQYvN55s/srQkvX6lGueINuHemlprujIhq3t7Mj1dUKyT0llW/pXva3/ta+db851dljVdvXVn/6Kzap3td/mVmqrYejwix4FEz4OfBqtUR8NU1l60doM4d1I1Vj50oCfrGfau3f7JWd5RbX6vO5st+T86bHujs9CaVNFKgl2VNJBibkpNw1JIrDiMbpE96pwFskDPfJERPNIB06PkzqxJ6CrqQIcqsT2LOxzZx5iEnW0AIzfRQYncDjfeKveBZszA5kYah6l78via8JIOW3wDu4V0vwY4VJBqtNMqyYhKMpLu8g8O4h3aMYyMHqzrrbkODF1S1hPX6akV3/Svg7HmCkNCQBP0FAmsT7LhM+38/PiPkuvdWZ8bQfZBkf36JYFqk+iowO7sPMVud6TlYYCt2yzF1YzlF9eUNkUNwRGeZ3Q7ayyyE78lYI2vSXuSGbGufd4uLJXibE7MDaEqPLMIpDGMBDwwOUUWFBdrfARIG4aJX9W3LosrP35rc9AB99a/fNm+E+wEYnTLqRN4Rvqcnh42B3MHwjK4aA316RvBrb9QeD11n1Tql6VBY4AZc8KGVc3x2ur+hUUfWMd9pw83pVB3Vd2h1yvfZ0fenrO7K+pv9/LLt7oMyvegX3fgP+QsPfdvZf61XcHe4M23Qcvu7v/rKSe83uh4yHIY4v0XuMzA60r31flBMKoEXIIjL15q/f10Y78O3h2Ug9CwDWLcYt7gyayjgG2h0+bdXI9ipkeyNDyzsoTfmwqDVJUEEBg1xClXhYJx5yOaUsPGvIwsfilxQIXlZ1+NGofDN7O+G/YrGlXMbFH4WwOo4GYYsTUsDUMC/+aXTwNwOc1bm2mAvRu28zVT4xx4e+HG5o73hukO13PAoUd0IgOPpA0LLA2Zv/ZIcmIvirqvznAIz6cbuDr9FX7sX19DcRe/Vbjr2VJ9L3HY9BxPNrppjiOvju3xS7J9QSczwekDUbjV+zxfuzwlBy3cnbFKYqxGzim7qxuHyLRMJ3eXgKC/UyS20WLU0IBDXAHG2AAZJjadc4VSbutgvgIuZQCGYnjDmEATRJyWTh+S6+z/gf8XCFJhpGAAA='
+          [IO.File]::WriteAllBytes('exact_patch.py.gz',[Convert]::FromBase64String($b64))
+          python -c "import gzip; open('exact_patch.py','wb').write(gzip.open('exact_patch.py.gz','rb').read())"
+          python exact_patch.py
+
+      - uses: NuGet/setup-nuget@v2
+      - uses: microsoft/setup-msbuild@v2
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) { choco install wixtoolset -y --no-progress }
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) { $targets = Get-ChildItem "C:\Program Files (x86)\WiX Toolset*\Wix.targets" -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 }
+          if (-not $targets) { throw 'WiX 3.x Wix.targets not found' }
+          "WIX_TARGETS=$($targets.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore and build Release x64 MSI
+        shell: pwsh
+        run: |
+          nuget restore "Project Files\Source\Thetis_VS2026.sln" -NonInteractive
+          msbuild "Project Files\Source\Thetis_VS2026.sln" /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal
+
+      - name: Verify and name MSI
+        shell: pwsh
+        run: |
+          $msi = Get-ChildItem "Project Files\bin\Installers\*.msi" -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $msi -or $msi.Length -lt 1MB) { throw 'Valid MSI was not produced' }
+          Copy-Item $msi.FullName (Join-Path $msi.DirectoryName 'SQ4KOU-THETIS-GPU-WATERFALL-EXACT-EU2AV-SETUP-TEST-x64.msi') -Force
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-GPU-WATERFALL-EXACT-EU2AV-SETUP-TEST-MSI
+          path: Project Files/bin/Installers/SQ4KOU-THETIS-GPU-WATERFALL-EXACT-EU2AV-SETUP-TEST-x64.msi
+          if-no-files-found: error
+          compression-level: 0

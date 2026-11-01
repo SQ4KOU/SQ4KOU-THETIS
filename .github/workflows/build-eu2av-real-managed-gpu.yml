@@ -1,0 +1,192 @@
+name: Build EU2AV Real Managed GPU Waterfall
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/eu2av-gpu-waterfall-sq4kou]
+    paths: [.github/workflows/build-eu2av-real-managed-gpu.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  build-real-managed-gpu:
+    runs-on: windows-2025
+    timeout-minutes: 90
+    steps:
+      - name: Checkout feature branch
+        uses: actions/checkout@v4
+        with:
+          ref: feature/eu2av-gpu-waterfall-sq4kou
+          fetch-depth: 0
+
+      - name: Enable long paths
+        shell: pwsh
+        run: git config --global core.longpaths true
+
+      - name: Apply reviewed managed GPU integration
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          # The parent workflow commit contains the reviewed patch.  Reuse that exact
+          # patch, but apply the project-file edits idempotently because FFTParams and
+          # WaterfallRowParams were materialized in later source-of-truth commits.
+          $old = (git show HEAD^:.github/workflows/build-eu2av-real-managed-gpu.yml | Out-String)
+          $line = ($old -split "`n" | Where-Object { $_ -match '\$b64\s*=' } | Select-Object -First 1)
+          if (-not $line -or $line -notmatch '\$b64\s*=\s*''([^'']+)''') { throw 'Reviewed integration payload not found in parent workflow' }
+          $b64 = $Matches[1]
+          [IO.File]::WriteAllBytes('managed-gpu.patch',[Convert]::FromBase64String($b64))
+
+          $exclude = '--exclude=Project Files/Source/Console/Thetis.csproj'
+          git apply --check $exclude -- 'managed-gpu.patch'
+          if ($LASTEXITCODE -ne 0) { throw 'Reviewed integration patch no longer matches non-project source files' }
+          git apply --whitespace=nowarn $exclude -- 'managed-gpu.patch'
+          if ($LASTEXITCODE -ne 0) { throw 'Reviewed managed GPU source integration failed' }
+
+          $projPath = 'Project Files\Source\Console\Thetis.csproj'
+          $proj = Get-Content $projPath -Raw
+          $proj = [regex]::Replace($proj, '(?m)^\s*<Compile Include="GPUWaterfallEnums\.cs"\s*/>\s*\r?\n', '')
+
+          $compileItems = @(
+            'GPUWaterfallPipeline.cs',
+            'WaterfallGPURenderer.cs',
+            'GPUWaterfallLogger.cs',
+            'SharedWaterfallState.cs',
+            'GPUWaterfallWindowType.cs',
+            'GPUWaterfallMagnitudeMode.cs',
+            'GPUWaterfallResamplingMode.cs',
+            'FFTParams.cs',
+            'WaterfallRowParams.cs'
+          )
+          $compileMarker = '    <Compile Include="NoiseFloorPro.cs" />'
+          if (-not $proj.Contains($compileMarker)) { throw 'Thetis.csproj compile insertion marker not found' }
+          foreach ($f in $compileItems) {
+            $item = '    <Compile Include="' + $f + '" />'
+            if (-not $proj.Contains($item)) { $proj = $proj.Replace($compileMarker, $item + "`r`n" + $compileMarker) }
+          }
+
+          $shaderItems = @(
+            'waterfall_fft_bitreverse_cs.bin',
+            'waterfall_fft_stage_ab_cs.bin',
+            'waterfall_fft_stage_ba_cs.bin',
+            'waterfall_fft_magnitude_cs.bin',
+            'waterfall_row_cs.bin',
+            'waterfall_postproc.bin',
+            'waterfall_resolve_cs.bin'
+          )
+          $contentMarker = '    <Compile Include="DiversityForm.cs">'
+          if (-not $proj.Contains($contentMarker)) { throw 'Thetis.csproj content insertion marker not found' }
+          foreach ($f in $shaderItems) {
+            $needle = '<Content Include="' + $f + '">'
+            if (-not $proj.Contains($needle)) {
+              $item = '    <Content Include="' + $f + '"><CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory></Content>'
+              $proj = $proj.Replace($contentMarker, $item + "`r`n" + $contentMarker)
+            }
+          }
+          Set-Content $projPath $proj -Encoding UTF8
+
+      - name: Static architecture guards
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $console = 'Project Files\Source\Console'
+          $gpu = Get-Content "$console\Display.GPUWaterfall.cs" -Raw
+          $display = Get-Content "$console\display.cs" -Raw
+          $native = Get-Content "$console\GPUWaterfallNative.cs" -Raw
+          $compat = Get-Content "$console\Display.EU2AVWaterfallCompat.cs" -Raw
+          $proj = Get-Content "$console\Thetis.csproj" -Raw
+          if ($gpu -notmatch 'GPUWaterfallPipeline' -or $gpu -notmatch 'WaterfallGPURenderer' -or $gpu -notmatch 'MagSpectrumView') { throw 'Recovered managed EU2AV pipeline/renderer is not active' }
+          if ($gpu -match 'CM_GPUWaterfall_Process' -or $native -match 'CM_GPUWaterfall_Process') { throw 'Obsolete native GPU FFT path is still active in C#' }
+          if ($display -match 'TryUpdateGPUWaterfallRow') { throw 'Obsolete V3 waterfall row injection remains active' }
+          if ($compat -match 'public static bool GPUWaterfallPipelineEnabled') { throw 'Duplicate compatibility GPU pipeline property remains active' }
+          if ($proj -match 'Compile Include="GPUWaterfallEnums.cs"') { throw 'Obsolete duplicate GPU enums are still compiled' }
+          foreach ($f in @('GPUWaterfallPipeline.cs','WaterfallGPURenderer.cs','GPUWaterfallLogger.cs','SharedWaterfallState.cs','GPUWaterfallWindowType.cs','GPUWaterfallMagnitudeMode.cs','GPUWaterfallResamplingMode.cs','FFTParams.cs','WaterfallRowParams.cs')) {
+            if ($proj -notmatch [regex]::Escape('Compile Include="' + $f + '"')) { throw "Missing compile item: $f" }
+          }
+          foreach ($f in @('waterfall_fft_bitreverse_cs.bin','waterfall_fft_stage_ab_cs.bin','waterfall_fft_stage_ba_cs.bin','waterfall_fft_magnitude_cs.bin','waterfall_row_cs.bin','waterfall_postproc.bin','waterfall_resolve_cs.bin')) {
+            if ($proj -notmatch [regex]::Escape('Content Include="' + $f + '"')) { throw "Missing shader content item: $f" }
+            if (-not (Test-Path "$console\$f")) { throw "Missing recovered shader source: $f" }
+          }
+          Write-Host 'Architecture guards: PASS'
+
+      - name: Create local source commit
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- 'Project Files/Source/Console/Display.EU2AVWaterfallCompat.cs' 'Project Files/Source/Console/GPUWaterfallNative.cs' 'Project Files/Source/Console/Setup.GPUWaterfall.cs' 'Project Files/Source/Console/display.cs' 'Project Files/Source/Console/Thetis.csproj'
+          if (git diff --cached --quiet) { throw 'Managed GPU integration produced no source changes' }
+          git commit -m 'Integrate recovered EU2AV 2.10.3.16 managed GPU waterfall'
+          if ($LASTEXITCODE -ne 0) { throw 'Source commit failed' }
+          $sha=(git rev-parse HEAD).Trim()
+          "SOURCE_SHA=$sha" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "SOURCE_SHA=$sha"
+
+      - name: Setup NuGet
+        uses: NuGet/setup-nuget@v2
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Ensure WiX Toolset 3.x
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) { choco install wixtoolset -y --no-progress }
+          $targets = Get-ChildItem "${env:ProgramFiles(x86)}\MSBuild\Microsoft\WiX\v3.x\Wix.targets" -ErrorAction SilentlyContinue
+          if (-not $targets) { $targets = Get-ChildItem 'C:\Program Files (x86)\WiX Toolset*\Wix.targets' -Recurse -ErrorAction SilentlyContinue | Select-Object -First 1 }
+          if (-not $targets) { throw 'WiX 3.x Wix.targets not found' }
+          "WIX_TARGETS=$($targets.FullName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - name: Restore NuGet packages
+        shell: pwsh
+        run: nuget restore 'Project Files\Source\Thetis_VS2026.sln' -NonInteractive
+
+      - name: Build Release x64 and MSI
+        shell: pwsh
+        run: |
+          msbuild 'Project Files\Source\Thetis_VS2026.sln' /m /t:Rebuild /p:Configuration=Release /p:Platform=x64 /p:PlatformToolset=v145 /p:WixTargetsPath="$env:WIX_TARGETS" /v:minimal
+          if ($LASTEXITCODE -ne 0) { throw "MSBuild failed: $LASTEXITCODE" }
+
+      - name: Verify managed shader deployment and MSI
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach($f in @('waterfall_fft_bitreverse_cs.bin','waterfall_fft_stage_ab_cs.bin','waterfall_fft_stage_ba_cs.bin','waterfall_fft_magnitude_cs.bin','waterfall_row_cs.bin','waterfall_postproc.bin','waterfall_resolve_cs.bin')) {
+            $found=Get-ChildItem 'Project Files' -Recurse -File -Filter $f | Where-Object { $_.FullName -match '\\bin\\' } | Select-Object -First 1
+            if(-not $found) { throw "Built shader not found in output tree: $f" }
+            Write-Host "Shader OK: $($found.FullName) $($found.Length) bytes"
+          }
+          $msi=Get-ChildItem 'Project Files\bin\Installers\*.msi' -ErrorAction Stop | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if(-not $msi -or $msi.Length -lt 1MB) { throw 'Valid MSI not produced' }
+          $hash=(Get-FileHash $msi.FullName -Algorithm SHA256).Hash
+          "MSI_PATH=$($msi.FullName)" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          "MSI_SHA256=$hash" | Out-File $env:GITHUB_ENV -Encoding utf8 -Append
+          Write-Host "MSI=$($msi.FullName)"
+          Write-Host "MSI_BYTES=$($msi.Length)"
+          Write-Host "MSI_SHA256=$hash"
+
+      - name: Push verified source commit
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          git fetch origin feature/eu2av-gpu-waterfall-sq4kou
+          if($LASTEXITCODE -ne 0){throw 'git fetch failed'}
+          git rebase origin/feature/eu2av-gpu-waterfall-sq4kou
+          if($LASTEXITCODE -ne 0){throw 'git rebase failed'}
+          git push origin HEAD:feature/eu2av-gpu-waterfall-sq4kou
+          if($LASTEXITCODE -ne 0){throw 'git push failed'}
+          $remote=(git ls-remote origin refs/heads/feature/eu2av-gpu-waterfall-sq4kou).Split("`t")[0].Trim()
+          $local=(git rev-parse HEAD).Trim()
+          if($remote -ne $local){throw "Remote SHA mismatch local=$local remote=$remote"}
+          Write-Host "VERIFIED_SOURCE_SHA=$local"
+
+      - name: Upload verified MSI
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-THETIS-EU2AV-REAL-MANAGED-GPU-MSI
+          path: Project Files/bin/Installers/*.msi
+          if-no-files-found: error
+          compression-level: 0

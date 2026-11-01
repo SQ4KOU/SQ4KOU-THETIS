@@ -1,0 +1,38 @@
+name: Export Current GPU Integration Source
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [feature/eu2av-gpu-waterfall-sq4kou]
+    paths: [.github/workflows/export-current-gpu-source.yml]
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feature/eu2av-gpu-waterfall-sq4kou
+          fetch-depth: 1
+      - name: Pack source snapshot
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $paths=@(
+            'Project Files\Source\Console',
+            'Project Files\Source\ChannelMaster',
+            '.github\recovered\eu2av-2.10.3.16'
+          )
+          Compress-Archive -Path $paths -DestinationPath current-gpu-source.zip -CompressionLevel Fastest
+          (git rev-parse HEAD).Trim() | Set-Content CURRENT_HEAD.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: CURRENT-GPU-INTEGRATION-SOURCE
+          path: |
+            current-gpu-source.zip
+            CURRENT_HEAD.txt
+          if-no-files-found: error
+          compression-level: 0

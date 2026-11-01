@@ -1,0 +1,33 @@
+name: One-time import of 3Z9AM SDR-VST3 main
+on:
+  push:
+    branches:
+      - import/3z9am-sdr-vst3-main-20261101
+permissions:
+  contents: write
+jobs:
+  import_snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Transfer source snapshot while retaining current workflow files
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EXPECTED_SOURCE: c488f010487cac386bea4e75791ec1eaf90e7166
+          TARGET_BRANCH: import/3z9am-sdr-vst3-main-20261101
+        run: |
+          set -euo pipefail
+          git clone --progress --no-checkout --depth=1 --single-branch --branch main https://github.com/3Z9AM/SDR-VST3_3Z9AM.git upstream
+          test "$(git -C upstream rev-parse HEAD)" = "$EXPECTED_SOURCE"
+          SOURCE_TREE="$(git -C upstream rev-parse HEAD^{tree})"
+          git -C upstream remote add dest https://github.com/SQ4KOU/SQ4KOU-THETIS.git
+          git -C upstream fetch --no-tags --depth=1 --filter=blob:none dest "refs/heads/$TARGET_BRANCH"
+          TARGET_WORKFLOW_TREE="$(git -C upstream rev-parse FETCH_HEAD:.github/workflows)"
+          git -C upstream read-tree HEAD
+          git -C upstream rm -r -q --cached -- .github/workflows
+          git -C upstream ls-tree -r FETCH_HEAD -- .github/workflows | git -C upstream update-index --index-info
+          TREE_SHA="$(git -C upstream write-tree)"
+          test "$(git -C upstream rev-parse "$TREE_SHA":.github/workflows)" = "$TARGET_WORKFLOW_TREE"
+          NEW_COMMIT="$(printf 'Import 3Z9AM SDR-VST3 snapshot excluding workflow updates\n\nSource: %s\nSource tree: %s\n' "$EXPECTED_SOURCE" "$SOURCE_TREE" | git -C upstream -c user.name='SQ4KOU Import' -c user.email='import@users.noreply.github.com' commit-tree "$TREE_SHA")"
+          echo "UPSTREAM=$EXPECTED_SOURCE SOURCE_TREE=$SOURCE_TREE IMPORT_TREE=$TREE_SHA IMPORT_COMMIT=$NEW_COMMIT"
+          git -C upstream push --progress --force-with-lease="refs/heads/$TARGET_BRANCH:$GITHUB_SHA" "https://x-access-token:${GH_TOKEN}@github.com/SQ4KOU/SQ4KOU-THETIS.git" "$NEW_COMMIT:refs/heads/$TARGET_BRANCH"
+          echo "SOURCE_WITH_WORKFLOWS_UNCHANGED_PUSH_OK"

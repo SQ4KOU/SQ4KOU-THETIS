@@ -1,0 +1,52 @@
+name: Audit Recovered Waterfall Wiring
+
+on:
+  push:
+    branches:
+      - feature/eu2av-gpu-waterfall-sq4kou
+    paths:
+      - .github/workflows/audit-recovered-waterfall-wiring.yml
+  workflow_dispatch:
+
+jobs:
+  audit:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Extract exact EU2AV waterfall wiring
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $f = '.github/recovered/eu2av-2.10.3.16/Display.EU2AV.2.10.3.16.cs.txt'
+          if (!(Test-Path $f)) { throw "Missing recovered Display source: $f" }
+          $patterns = @(
+            'GPUWaterfallPipelineEnabled',
+            'GPUEffectsEnabled',
+            'AutoHighEnabledRX1',
+            'AutoHighMarginDb',
+            'WaterfallAgcSmoothing',
+            'NFMode',
+            'NFLowPct',
+            'NFHighPct',
+            'TemporalEnabled',
+            'TemporalStrength',
+            'ZoomAdaptiveEnabled',
+            'DrawWaterfallDX2D',
+            'WaterfallGPURenderer',
+            'GPUWaterfallPipeline'
+          )
+          $lines = Get-Content $f
+          foreach ($p in $patterns) {
+            Write-Host "===== PATTERN: $p ====="
+            $hits = Select-String -Path $f -Pattern $p -SimpleMatch
+            if (!$hits) { Write-Host 'NO MATCH'; continue }
+            foreach ($h in $hits) {
+              $n = $h.LineNumber
+              $a = [Math]::Max(1, $n - 8)
+              $b = [Math]::Min($lines.Count, $n + 12)
+              Write-Host "--- lines $a..$b (hit $n) ---"
+              for ($i=$a; $i -le $b; $i++) { Write-Host (("{0,6}: {1}" -f $i, $lines[$i-1])) }
+            }
+          }
