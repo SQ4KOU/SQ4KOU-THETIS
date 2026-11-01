@@ -75,7 +75,6 @@ namespace Thetis
             Common.RestoreForm(this, "PureSignal", false); // will also restore txtPSpeak //MW0LGE_21k9rc5
             // WDSP 2.10 internally owns NURBS parameters not available in the public API.
             comboPSTint.SelectedIndex = 0;
-            comboPSTint.Enabled = false;
 
             _advancedON = chkAdvancedViewHidden.Checked; //MW0LGE_[2.9.0.6]
 
@@ -890,9 +889,14 @@ namespace Thetis
 
         private void comboPSTint_SelectedIndexChanged(object sender, EventArgs e)
         {
-            _ints = 16;
-            _spi = 256; // fixed native PS3 4096-sample collection
-            btnPSSave.Enabled = btnPSRestore.Enabled = true;
+            switch (comboPSTint.SelectedIndex)
+            {
+                case 1: _ints = 8; _spi = 512; break;
+                case 2: _ints = 4; _spi = 1024; break;
+                default: _ints = 16; _spi = 256; break;
+            }
+            puresignal.SetPSIntsAndSpi(_txachannel, _ints, _spi);
+            btnPSRestore.Enabled = (_ints == 16);
         }
 
         private void udPSOutlierSigma_ValueChanged(object sender, EventArgs e)
@@ -1106,6 +1110,9 @@ namespace Thetis
 
         [DllImport("wdsp.dll", EntryPoint = "GetPSDisp", CallingConvention = CallingConvention.Cdecl)]
         public static extern void GetPSDisp(int channel, IntPtr x, IntPtr ym, IntPtr yc, IntPtr ys, IntPtr xm_cor, IntPtr ym_cor, IntPtr xa_cor, IntPtr ya_cor, IntPtr nsamps_out, IntPtr cpts_out, IntPtr phs_ref_deg_out);
+
+        [DllImport("wdsp.dll", EntryPoint = "SetPSIntsAndSpi", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void SetPSIntsAndSpi(int channel, int buckets, int spi);
 
         [DllImport("wdsp.dll", EntryPoint = "SetPSStabilize", CallingConvention = CallingConvention.Cdecl)]
         public static extern void SetPSStabilize(int channel, int enabled);
