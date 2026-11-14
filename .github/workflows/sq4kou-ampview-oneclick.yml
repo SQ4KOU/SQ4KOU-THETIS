@@ -1,0 +1,166 @@
+name: SQ4KOU AmpView WDSP coefficient fix
+on:
+  push:
+    branches: [import/3z9am-v6.0.7.25]
+    paths: [.github/workflows/sq4kou-ampview-oneclick.yml]
+permissions:
+  contents: write
+jobs:
+  build-test:
+    runs-on: windows-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Restore legacy WDSP coefficient interpolation in AmpView only
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          p=Path("Project Files/Source/Console/AmpView.cs")
+          raw=p.read_bytes()
+          nl=b"\r\n" if b"\r\n" in raw else b"\n"
+          start=b"            // WDSP 2.10: GetPSDisp returns ready curves"
+          end=b"            k = ints * spi - 1;"
+          if raw.count(start)!=1 or raw.count(end)!=1: raise RuntimeError("Unknown AmpView version")
+          a=raw.index(start)
+          b=raw.index(end,a)
+          correct="""            // calcc.c supplies cubic coefficient arrays cm/cc/cs, NOT 512 rendered points.
+                      // Reconstruct as in original WDSP AmpView; do not change WDSP.
+                      t[0] = 0.0;
+                      for (int j = 1; j <= ints; j++) t[j] = (double)j / ints;
+                      int last = 4 * (ints - 1);
+                      double lastDx = t[ints] - t[ints - 1];
+                      double refC = ym_cor[last] + lastDx * (ym_cor[last + 1] + lastDx * (ym_cor[last + 2] + lastDx * ym_cor[last + 3]));
+                      double refS = xa_cor[last] + lastDx * (xa_cor[last + 1] + lastDx * (xa_cor[last + 2] + lastDx * xa_cor[last + 3]));
+                      double corrPhsBase = 180.0 / Math.PI * Math.Atan2(refS, refC);
+                      int nLastGoodPoint = -1;
+                      for (int i = 1; i <= np; i++)
+                      {
+                          qx = (double)i / np;
+                          int segment = Math.Min((int)(qx * ints), ints - 1);
+                          int offset = 4 * segment;
+                          double dx = qx - t[segment];
+                          qym = xm_cor[offset] + dx * (xm_cor[offset + 1] + dx * (xm_cor[offset + 2] + dx * xm_cor[offset + 3]));
+                          double qyc = ym_cor[offset] + dx * (ym_cor[offset + 1] + dx * (ym_cor[offset + 2] + dx * ym_cor[offset + 3]));
+                          double qys = xa_cor[offset] + dx * (xa_cor[offset + 1] + dx * (xa_cor[offset + 2] + dx * xa_cor[offset + 3]));
+                          double mag = showgain ? qym : qym * qx;
+                          if (!double.IsFinite(mag) || Math.Abs(mag) > 1000.0) mag = 0.0;
+                          chart1.Series["MagCorr"].Points[i].SetValueXY(qx, mag);
+                          phs = 180.0 / Math.PI * Math.Atan2(qys, qyc) - corrPhsBase;
+                          if (double.IsFinite(phs) && phs > -180.0 && phs < 180.0)
+                          {
+                              chart1.Series["PhsCorr"].Points[i - 1].SetValueXY(qx, phs);
+                              nLastGoodPoint = i - 1;
+                          }
+                          else if (nLastGoodPoint >= 0)
+                          {
+                              DataPoint dp = chart1.Series["PhsCorr"].Points[nLastGoodPoint];
+                              chart1.Series["PhsCorr"].Points[i - 1].SetValueXY(dp.XValue, dp.YValues[0]);
+                          }
+                          else chart1.Series["PhsCorr"].Points[i - 1].SetValueXY(0.0, 0.0);
+                      }
+          """.encode("utf-8").replace(b"\n",nl)
+          raw=raw[:a]+correct+raw[b:]
+          old=b"            phs_base = 180.0 / Math.PI * Math.Atan2(yc[k], ys[k]);"
+          if raw.count(old)!=1: raise RuntimeError("Original scatter phase line missing")
+          raw=raw.replace(old,b"            phs_base = 180.0 / Math.PI * Math.Atan2(ys[k], yc[k]);",1)
+          old_scatter="""                    if (!showgain)
+                                  chart1.Series["MagAmp"].Points[i].SetValueXY(ym[i] * x[i], x[i]);
+                              else
+                                  chart1.Series["MagAmp"].Points[i].SetValueXY(ym[i] * x[i], 1.0 / ym[i]);
+                              phs = 180.0 / Math.PI * Math.Atan2(yc[i], ys[i]) - phs_base;
+                              chart1.Series["PhsAmp"].Points[i].SetValueXY(x[i], phs);""".encode("utf-8").replace(b"\n",nl)
+          new_scatter="""                    double ampX = ym[i] * x[i];
+                              double ampY = showgain ? (ym[i] == 0.0 ? 0.0 : 1.0 / ym[i]) : x[i];
+                              if (!double.IsFinite(ampX) || Math.Abs(ampX) > 1000.0) ampX = 0.0;
+                              if (!double.IsFinite(ampY) || Math.Abs(ampY) > 1000.0) ampY = 0.0;
+                              chart1.Series["MagAmp"].Points[i].SetValueXY(ampX, ampY);
+                              phs = 180.0 / Math.PI * Math.Atan2(ys[i], yc[i]) - phs_base;
+                              if (!double.IsFinite(phs)) phs = 0.0;
+                              chart1.Series["PhsAmp"].Points[i].SetValueXY(x[i], phs);""".encode("utf-8").replace(b"\n",nl)
+          if raw.count(old_scatter)!=1: raise RuntimeError("Original scatter block mismatch")
+          raw=raw.replace(old_scatter,new_scatter,1)
+          p.write_bytes(raw)
+          print("[PASS] CALCC cubic curves and phase restored; only AmpView.cs modified")
+          
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw 'Source edit failed' }
+          git diff --check
+          if ($LASTEXITCODE -ne 0) { throw 'Diff check failed' }
+          $changed = @(git diff --name-only)
+          if ($changed.Count -ne 1 -or $changed[0] -ne 'Project Files/Source/Console/AmpView.cs') { throw 'Unexpected source files changed' }
+          git diff --stat
+      - uses: microsoft/setup-msbuild@v2
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Restore Release x64
+        shell: pwsh
+        run: |
+          msbuild 'Project Files/Source/Thetis_VS2026.sln' -t:Restore -p:Configuration=Release -p:Platform=x64 -m -nologo -v:minimal
+          if ($LASTEXITCODE -ne 0) { throw 'Restore failed' }
+      - name: Build Release x64 with live errors
+        shell: pwsh
+        run: |
+          msbuild 'Project Files/Source/Thetis_VS2026.sln' -p:Configuration=Release -p:Platform=x64 -m -nologo -v:minimal
+          if ($LASTEXITCODE -ne 0) { throw 'Build failed' }
+      - name: Verify EXE, WDSP and native ABI source
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path audit | Out-Null
+          foreach ($name in @('Thetis.exe','Thetis.dll','wdsp.dll')) {
+            $path='Project Files/bin/x64/Release/' + $name
+            if (-not (Test-Path $path)) { throw 'Missing binary ' + $name }
+            ('[PASS] ' + $name + ' SHA256=' + (Get-FileHash $path -Algorithm SHA256).Hash) | Tee-Object -FilePath audit/result.txt -Append
+          }
+          $native = Get-Content 'Project Files/Source/wdsp/calcc.c' -Raw
+          if (-not $native.Contains('memcpy (xm_cor, a->disp.cm') -or -not $native.Contains('memcpy (ym_cor, a->disp.cc') -or -not $native.Contains('memcpy (xa_cor, a->disp.cs')) { throw 'GetPSDisp ABI unexpected' }
+          '[PASS] Native GetPSDisp curve buffer format matches GUI interpreter' | Tee-Object -FilePath audit/result.txt -Append
+      - name: Build test MSI
+        shell: pwsh
+        run: |
+          $wix='C:/Program Files (x86)/MSBuild/Microsoft/WiX/v3.x/Wix.targets'
+          msbuild 'Project Files/Source/Thetis-Installer/Thetis-Installer.wixproj' -p:Configuration=Release -p:Platform=x64 "-p:WixTargetsPath=$wix" -m -nologo -v:minimal
+          if ($LASTEXITCODE -ne 0) { throw 'MSI build failed' }
+          $msi='Project Files/bin/Installers/SDR-VST3.msi'
+          if (-not (Test-Path $msi)) { throw 'Missing MSI' }
+          ('[PASS] MSI SHA256=' + (Get-FileHash $msi -Algorithm SHA256).Hash) | Tee-Object -FilePath audit/result.txt -Append
+      - name: Verify MSI installs exact compiled EXE
+        shell: pwsh
+        run: |
+          $msi=(Resolve-Path 'Project Files/bin/Installers/SDR-VST3.msi').Path
+          $log=(Join-Path (Resolve-Path audit).Path 'install.log')
+          $args1='/i "' + $msi + '" /qn /norestart /L*v "' + $log + '"'
+          $p=Start-Process msiexec.exe -ArgumentList $args1 -PassThru -Wait
+          if ($p.ExitCode -ne 0) { throw "MSI install failed code $($p.ExitCode)" }
+          $exe='C:\Program Files\OpenHPSDR\SDR-VST3\Thetis.exe'
+          if (-not (Test-Path $exe)) { throw 'Installed EXE missing' }
+          $actual=(Get-FileHash $exe -Algorithm SHA256).Hash
+          $expected=(Get-FileHash 'Project Files/bin/x64/Release/Thetis.exe' -Algorithm SHA256).Hash
+          if ($actual -ne $expected) { throw 'Installed EXE SHA256 mismatch' }
+          ('[PASS] Installed EXE SHA256=' + $actual) | Tee-Object -FilePath audit/result.txt -Append
+      - name: Upload test MSI and report
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-AmpView-CALCC-FIX-MSI
+          path: |
+            Project Files/bin/Installers/SDR-VST3.msi
+            audit/result.txt
+          if-no-files-found: error
+          retention-days: 14
+      - name: Publish source only after verified build and remove one-shot workflow
+        shell: pwsh
+        run: |
+          git config user.name 'SQ4KOU AmpView CI'
+          git config user.email 'noreply@users.noreply.github.com'
+          git add -- 'Project Files/Source/Console/AmpView.cs'
+          git rm -f -- '.github/workflows/sq4kou-ampview-oneclick.yml'
+          git diff --cached --check
+          if ($LASTEXITCODE -ne 0) { throw 'Final diff failed' }
+          git commit -m 'fix(AmpView): decode CALCC cubic coefficients and reject invalid chart values'
+          if ($LASTEXITCODE -ne 0) { throw 'Source commit failed' }
+          git push origin 'HEAD:refs/heads/import/3z9am-v6.0.7.25'
+          if ($LASTEXITCODE -ne 0) { throw 'Git push failed' }
+          '[PASS] Verified AmpView source published'
