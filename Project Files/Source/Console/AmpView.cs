@@ -180,51 +180,56 @@ namespace Thetis
                 chart1.Series["Ref"].Points[1].SetValueXY(1.0, 1.0);
             }
             chart1.Series["MagCorr"].Points[0].SetValueXY(0.0, 0.0);
-            // WDSP 2.10: GetPSDisp returns ready curves (np == DISP_PTS points), phase already referenced to 0 at x=1
+            // calcc.c supplies cubic coefficient arrays cm/cc/cs, NOT 512 rendered points.
+            // Reconstruct as in original WDSP AmpView; do not change WDSP.
+            t[0] = 0.0;
+            for (int j = 1; j <= ints; j++) t[j] = (double)j / ints;
+            int last = 4 * (ints - 1);
+            double lastDx = t[ints] - t[ints - 1];
+            double refC = ym_cor[last] + lastDx * (ym_cor[last + 1] + lastDx * (ym_cor[last + 2] + lastDx * ym_cor[last + 3]));
+            double refS = xa_cor[last] + lastDx * (xa_cor[last + 1] + lastDx * (xa_cor[last + 2] + lastDx * xa_cor[last + 3]));
+            double corrPhsBase = 180.0 / Math.PI * Math.Atan2(refS, refC);
             int nLastGoodPoint = -1;
             for (int i = 1; i <= np; i++)
             {
-                qx = xm_cor[i - 1];
-                qym = ym_cor[i - 1];
-                if (!showgain)
-                    chart1.Series["MagCorr"].Points[i].SetValueXY(qx, qym * qx);
-                else
-                    chart1.Series["MagCorr"].Points[i].SetValueXY(qx, qym);
-                qx = xa_cor[i - 1];
-                phs = ya_cor[i - 1];
-                if (phs > -180.0 && phs < +180.0)
+                qx = (double)i / np;
+                int segment = Math.Min((int)(qx * ints), ints - 1);
+                int offset = 4 * segment;
+                double dx = qx - t[segment];
+                qym = xm_cor[offset] + dx * (xm_cor[offset + 1] + dx * (xm_cor[offset + 2] + dx * xm_cor[offset + 3]));
+                double qyc = ym_cor[offset] + dx * (ym_cor[offset + 1] + dx * (ym_cor[offset + 2] + dx * ym_cor[offset + 3]));
+                double qys = xa_cor[offset] + dx * (xa_cor[offset + 1] + dx * (xa_cor[offset + 2] + dx * xa_cor[offset + 3]));
+                double mag = showgain ? qym : qym * qx;
+                if (!double.IsFinite(mag) || Math.Abs(mag) > 1000.0) mag = 0.0;
+                chart1.Series["MagCorr"].Points[i].SetValueXY(qx, mag);
+                phs = 180.0 / Math.PI * Math.Atan2(qys, qyc) - corrPhsBase;
+                if (double.IsFinite(phs) && phs > -180.0 && phs < 180.0)
                 {
-                    chart1.Series["PhsCorr"].Points[i-1].SetValueXY(qx, phs);
-                    nLastGoodPoint = i-1;
+                    chart1.Series["PhsCorr"].Points[i - 1].SetValueXY(qx, phs);
+                    nLastGoodPoint = i - 1;
                 }
-                else
+                else if (nLastGoodPoint >= 0)
                 {
-                    // no data, so need to use last known x/y so that un-used point is 'invisible'
-                    if (nLastGoodPoint != -1)
-                    {
-                        DataPoint dp = chart1.Series["PhsCorr"].Points[nLastGoodPoint];
-                        chart1.Series["PhsCorr"].Points[i - 1].SetValueXY((double)dp.XValue, (double)dp.YValues[0]);
-                    }
-                    else
-                    {
-                        chart1.Series["PhsCorr"].Points[i - 1].SetValueXY(0.0, 0.0);
-                    }
-
+                    DataPoint dp = chart1.Series["PhsCorr"].Points[nLastGoodPoint];
+                    chart1.Series["PhsCorr"].Points[i - 1].SetValueXY(dp.XValue, dp.YValues[0]);
                 }
+                else chart1.Series["PhsCorr"].Points[i - 1].SetValueXY(0.0, 0.0);
             }
             k = ints * spi - 1;
-            phs_base = 180.0 / Math.PI * Math.Atan2(yc[k], ys[k]);
+            phs_base = 180.0 / Math.PI * Math.Atan2(ys[k], yc[k]);
 
             nLastGoodPoint = -1;
             for (int i = 0; i < ints * spi; i++)
             {
                 if (i % skip == 0)
                 {
-                    if (!showgain)
-                        chart1.Series["MagAmp"].Points[i].SetValueXY(ym[i] * x[i], x[i]);
-                    else
-                        chart1.Series["MagAmp"].Points[i].SetValueXY(ym[i] * x[i], 1.0 / ym[i]);
-                    phs = 180.0 / Math.PI * Math.Atan2(yc[i], ys[i]) - phs_base;
+                    double ampX = ym[i] * x[i];
+                    double ampY = showgain ? (ym[i] == 0.0 ? 0.0 : 1.0 / ym[i]) : x[i];
+                    if (!double.IsFinite(ampX) || Math.Abs(ampX) > 1000.0) ampX = 0.0;
+                    if (!double.IsFinite(ampY) || Math.Abs(ampY) > 1000.0) ampY = 0.0;
+                    chart1.Series["MagAmp"].Points[i].SetValueXY(ampX, ampY);
+                    phs = 180.0 / Math.PI * Math.Atan2(ys[i], yc[i]) - phs_base;
+                    if (!double.IsFinite(phs)) phs = 0.0;
                     chart1.Series["PhsAmp"].Points[i].SetValueXY(x[i], phs);
 
                     nLastGoodPoint = i;
