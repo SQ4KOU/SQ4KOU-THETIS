@@ -371,7 +371,6 @@
     <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
       
       <Component Id="fwException" Guid="*" Transitive="yes">
-        <Condition>Privileged</Condition>
         <File Id="ThetisEXE"
               Source="$(var.FilesPath)Thetis.exe"
               KeyPath="yes">
