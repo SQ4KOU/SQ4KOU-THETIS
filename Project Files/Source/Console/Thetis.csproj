@@ -183,7 +183,6 @@
     <Compile Include="Console.NewGUI.cs" />
     <Compile Include="Console.Activation.cs" />
     <Compile Include="ActivationCode.cs" />
-    <Compile Include="ActivationSecret.cs" />
     <Compile Include="ModernColours.cs" />
     <Compile Include="ModernTheme.cs" />
     <Compile Include="Display.ModernUI.cs" />
