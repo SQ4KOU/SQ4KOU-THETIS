@@ -5996,6 +5996,8 @@ namespace Thetis
             // These are needed for managing QSK when band changes also trigger mode changes.
             RX1Band_changing_to = BandByFreq(freq, tx_xvtr_index, current_region);
             qsk_band_changing = true;
+            try
+            {
 
             // Set mode, filter, and frequency according to passed parameters
 
@@ -6087,6 +6089,17 @@ namespace Thetis
                 )
                 SetBandChangeHanders?.Invoke(1, oldBand, RX1Band, oldMode, RX1DSPMode, oldFilter, RX1Filter, oldFreq, VFOAFreq,
                     oldCentreFreq, CentreFrequency, oldCtun, ClickTuneDisplay, oldZoomSlider, ptbDisplayZoom.Value);
+            }
+            catch (Exception ex)
+            {
+                Common.LogException(ex);
+                throw;
+            }
+            finally
+            {
+                qsk_band_changing = false;
+                m_bSetBandRunning = false;
+            }
         }
 
         // ke9ns add 3-arg SetBand convenience overload for the Scanner
@@ -47292,11 +47305,17 @@ namespace Thetis
             if (bse == null) return;
 
             NetworkIO.SendHighPriority(0);
+            try
+            {
             SetBand(bse.Mode.ToString(), bse.Filter.ToString(), bse.Frequency, bse.CTUNEnabled, bse.ZoomSlider, bse.CentreFrequency);
             UpdateWaterfallLevelValues();
             updateDisplayGridLevelValues();
             UpdateDiversityValues();
-            NetworkIO.SendHighPriority(1);            
+            }
+            finally
+            {
+                NetworkIO.SendHighPriority(1);
+            }
         }
 
         private void OnBandChangeHandler(int rx, Band oldBand, Band newBand)
