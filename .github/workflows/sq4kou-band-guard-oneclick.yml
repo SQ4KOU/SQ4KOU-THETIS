@@ -62,7 +62,7 @@ jobs:
           open_anchor = b"            NetworkIO.SendHighPriority(0);"
           segment = exact_once(segment, open_anchor,
              open_anchor + nl + b"            try" + nl + b"            {", "Network priority start")
-          final_anchor = b"            NetworkIO.SendHighPriority(1);"
+          final_anchor = b"            NetworkIO.SendHighPriority(1);            "
           segment = exact_once(segment, final_anchor,
              nl.join([
                 b"            }",
