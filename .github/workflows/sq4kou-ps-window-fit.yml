@@ -1,0 +1,131 @@
+name: SQ4KOU PureSignal window fit fix
+on:
+  push:
+    branches: [import/3z9am-v6.0.7.25]
+    paths: [.github/workflows/sq4kou-ps-window-fit.yml]
+permissions:
+  contents: write
+jobs:
+  build-test:
+    runs-on: windows-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Modify only expanded PSForm size calculation
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          p=Path("Project Files/Source/Console/PSForm.cs")
+          raw=p.read_bytes()
+          nl=b"\r\n" if b"\r\n" in raw else b"\n"
+          old="""        private void setAdvancedView()
+                  {
+                      if (_advancedON)
+                          console.psform.ClientSize = new System.Drawing.Size(620, 70);
+                      else
+                          console.psform.ClientSize = new System.Drawing.Size(620, 340);
+          
+                      chkAdvancedViewHidden.Checked = _advancedON;
+                  }""".encode("utf-8").replace(b"\n",nl)
+          new="""        private void setAdvancedView()
+                  {
+                      if (_advancedON)
+                          console.psform.ClientSize = new System.Drawing.Size(620, 70);
+                      else
+                      {
+                          // Ensure all controls fit after WinForms DPI/font scaling.
+                          int width = 700;
+                          int height = 400;
+                          foreach (System.Windows.Forms.Control control in this.Controls)
+                          {
+                              width = Math.Max(width, control.Right + 40);
+                              height = Math.Max(height, control.Bottom + 48);
+                          }
+                          console.psform.ClientSize = new System.Drawing.Size(width, height);
+                      }
+          
+                      chkAdvancedViewHidden.Checked = _advancedON;
+                  }""".encode("utf-8").replace(b"\n",nl)
+          if raw.count(old)!=1: raise RuntimeError("setAdvancedView original block missing/ambiguous")
+          p.write_bytes(raw.replace(old,new,1))
+          print("[PASS] PureSignal full-view width+height now fit actual scaled control bounds")
+          
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw 'Source patch FAILED' }
+          git diff --check
+          if ($LASTEXITCODE -ne 0) { throw 'Diff check FAILED' }
+          $changed=@(git diff --name-only)
+          if ($changed.Count -ne 1 -or $changed[0] -ne 'Project Files/Source/Console/PSForm.cs') { throw 'Unexpected file changes' }
+          git diff --stat
+      - uses: microsoft/setup-msbuild@v2
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Restore Release x64
+        shell: pwsh
+        run: |
+          msbuild 'Project Files/Source/Thetis_VS2026.sln' -t:Restore -p:Configuration=Release -p:Platform=x64 -m -nologo -v:minimal
+          if ($LASTEXITCODE -ne 0) { throw 'Restore FAILED' }
+      - name: Build Release x64 - errors live
+        shell: pwsh
+        run: |
+          msbuild 'Project Files/Source/Thetis_VS2026.sln' -p:Configuration=Release -p:Platform=x64 -m -nologo -v:minimal
+          if ($LASTEXITCODE -ne 0) { throw 'Solution build FAILED' }
+      - name: Verify unchanged native WDSP and built outputs
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Path audit -Force | Out-Null
+          foreach ($name in @('Thetis.exe','Thetis.dll','wdsp.dll')) {
+            $f='Project Files/bin/x64/Release/' + $name
+            if (-not (Test-Path $f)) { throw ('Missing compiled file '+$name) }
+            ('[PASS] BUILT ' + $name + ' SHA256=' + (Get-FileHash $f -Algorithm SHA256).Hash) | Tee-Object -FilePath audit/result.txt -Append
+          }
+      - name: Build WiX MSI
+        shell: pwsh
+        run: |
+          $wix='C:/Program Files (x86)/MSBuild/Microsoft/WiX/v3.x/Wix.targets'
+          msbuild 'Project Files/Source/Thetis-Installer/Thetis-Installer.wixproj' -p:Configuration=Release -p:Platform=x64 "-p:WixTargetsPath=$wix" -m -nologo -v:minimal
+          if ($LASTEXITCODE -ne 0) { throw 'MSI build FAILED' }
+          $msi='Project Files/bin/Installers/SDR-VST3.msi'
+          if (-not (Test-Path $msi)) { throw 'MSI missing' }
+          ('[PASS] MSI SHA256=' + (Get-FileHash $msi -Algorithm SHA256).Hash) | Tee-Object -FilePath audit/result.txt -Append
+      - name: Install MSI and verify Thetis.exe SHA256 in target folder
+        shell: pwsh
+        run: |
+          $msi=(Resolve-Path 'Project Files/bin/Installers/SDR-VST3.msi').Path
+          $log=(Join-Path (Resolve-Path audit).Path 'install.log')
+          $args1='/i "' + $msi + '" /qn /norestart /L*v "' + $log + '"'
+          $p=Start-Process msiexec.exe -ArgumentList $args1 -PassThru -Wait
+          if ($p.ExitCode -ne 0) { throw "Install FAILED exit=$($p.ExitCode)" }
+          $exe='C:\Program Files\OpenHPSDR\SDR-VST3\Thetis.exe'
+          if (-not (Test-Path $exe)) { throw 'Main EXE not installed' }
+          $actual=(Get-FileHash $exe -Algorithm SHA256).Hash
+          $expected=(Get-FileHash 'Project Files/bin/x64/Release/Thetis.exe' -Algorithm SHA256).Hash
+          if ($actual -ne $expected) { throw 'EXE hash mismatch after install' }
+          ('[PASS] INSTALLED ' + $exe + ' SHA256=' + $actual) | Tee-Object -FilePath audit/result.txt -Append
+      - name: Upload test MSI and SHA report
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-PureSignal-Window-Fit-MSI
+          path: |
+            Project Files/bin/Installers/SDR-VST3.msi
+            audit/result.txt
+          if-no-files-found: error
+          retention-days: 14
+      - name: Publish verified change and remove one-shot workflow
+        shell: pwsh
+        run: |
+          git config user.name 'SQ4KOU PureSignal CI'
+          git config user.email 'noreply@users.noreply.github.com'
+          git add -- 'Project Files/Source/Console/PSForm.cs'
+          git rm -f -- '.github/workflows/sq4kou-ps-window-fit.yml'
+          git diff --cached --check
+          if ($LASTEXITCODE -ne 0) { throw 'Final diff check FAILED' }
+          git commit -m 'fix(PSForm): fit full window width and height to scaled controls'
+          if ($LASTEXITCODE -ne 0) { throw 'Commit FAILED' }
+          git push origin 'HEAD:refs/heads/import/3z9am-v6.0.7.25'
+          if ($LASTEXITCODE -ne 0) { throw 'Git push FAILED' }
+          '[PASS] Verified source published'
