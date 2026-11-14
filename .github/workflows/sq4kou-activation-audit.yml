@@ -1,0 +1,23 @@
+name: SQ4KOU activation reference audit
+on:
+  push:
+    branches: [import/3z9am-v6.0.7.25]
+    paths: [.github/workflows/sq4kou-activation-audit.yml]
+permissions:
+  contents: read
+jobs:
+  references:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Find all activation references
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '=== Activation references (excluding designated files) ==='
+          git grep -nE '(ensureActivated|showActivation|initActivationMenu|loadActivationFeatures|_activated|ActivationCode\.|ActivationSecret)' -- 'Project Files/Source' ':!Project Files/Source/Console/ActivationCode.cs' ':!Project Files/Source/Console/Console.Activation.cs' || true
+          echo '=== Project dependencies ==='
+          git grep -n 'ActivationSecret.cs' -- 'Project Files/Source' || true
+          echo '=== Exact baseline identity ==='
+          git rev-parse HEAD^{tree}
+          echo '=== Done ==='
