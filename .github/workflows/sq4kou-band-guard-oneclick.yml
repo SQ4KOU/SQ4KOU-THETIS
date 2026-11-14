@@ -111,14 +111,14 @@ jobs:
           $wixTargets = "C:/Program Files (x86)/MSBuild/Microsoft/WiX/v3.x/Wix.targets"
           msbuild "Project Files/Source/Thetis-Installer/Thetis-Installer.wixproj" -p:Configuration=Release -p:Platform=x64 "-p:WixTargetsPath=$wixTargets" -m -nologo -v:minimal
           if ($LASTEXITCODE -ne 0) { throw "MSI build failed" }
-          $msi = Get-ChildItem "Project Files/bin/Installers/SDR-VST3-v*.msi" -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          $msi = Get-ChildItem "Project Files/bin/Installers/SDR-VST3.msi" -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
           if (-not $msi) { throw "MSI output not found" }
           Write-Host "[PASS] MSI $($msi.FullName), bytes=$($msi.Length), SHA256=$((Get-FileHash $msi.FullName -Algorithm SHA256).Hash)"
       - name: Upload MSI for hardware testing
         uses: actions/upload-artifact@v4
         with:
           name: SQ4KOU-BandSwitch-Guard-MSI
-          path: Project Files/bin/Installers/SDR-VST3-v*.msi
+          path: Project Files/bin/Installers/SDR-VST3.msi
           if-no-files-found: error
           retention-days: 14
       - name: Publish source only after PASS and remove temporary diagnostics
