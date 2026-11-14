@@ -1,0 +1,145 @@
+name: SQ4KOU MSI main EXE fix
+on:
+  push:
+    branches: [import/3z9am-v6.0.7.25]
+    paths: [.github/workflows/sq4kou-msi-exe-fix.yml]
+permissions:
+  contents: write
+jobs:
+  fix-build-test:
+    runs-on: windows-latest
+    timeout-minutes: 70
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Remove ONLY Privileged condition from main EXE component
+        shell: pwsh
+        run: |
+          @'
+          from pathlib import Path
+          p=Path("Project Files/Source/Thetis-Installer/Product.wxs")
+          raw=p.read_bytes()
+          nl=b"\r\n" if b"\r\n" in raw else b"\n"
+          before=b'      <Component Id="fwException" Guid="*" Transitive="yes">' + nl + b'        <Condition>Privileged</Condition>' + nl + b'        <File Id="ThetisEXE"'
+          after=b'      <Component Id="fwException" Guid="*" Transitive="yes">' + nl + b'        <File Id="ThetisEXE"'
+          if raw.count(before)!=1: raise RuntimeError("Source condition anchor missing or not unique")
+          p.write_bytes(raw.replace(before,after,1))
+          print("[PASS] Main EXE installation no longer depends on Privileged")
+          '@ | python -
+          if ($LASTEXITCODE -ne 0) { throw 'Source change FAILED' }
+          git diff --check
+          if ($LASTEXITCODE -ne 0) { throw 'Diff check FAILED' }
+          git diff -- 'Project Files/Source/Thetis-Installer/Product.wxs'
+      - uses: microsoft/setup-msbuild@v2
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Restore Release x64
+        shell: pwsh
+        run: |
+          msbuild 'Project Files/Source/Thetis_VS2026.sln' -t:Restore -p:Configuration=Release -p:Platform=x64 -m -nologo -v:minimal
+          if ($LASTEXITCODE -ne 0) { throw 'Restore FAILED' }
+      - name: Build Release x64 with live errors
+        shell: pwsh
+        run: |
+          msbuild 'Project Files/Source/Thetis_VS2026.sln' -p:Configuration=Release -p:Platform=x64 -m -nologo -v:minimal
+          if ($LASTEXITCODE -ne 0) { throw 'Build FAILED' }
+      - name: Verify compiled EXE and SHA
+        shell: pwsh
+        run: |
+          New-Item -Path audit -ItemType Directory -Force | Out-Null
+          foreach ($name in @('Thetis.exe','Thetis.dll','wdsp.dll')) {
+            $p = "Project Files/bin/x64/Release/$name"
+            if (-not (Test-Path $p)) { throw "Build output missing: $name" }
+            "[PASS] BUILT $name SHA256=$((Get-FileHash $p -Algorithm SHA256).Hash)" | Tee-Object -FilePath audit/result.txt -Append
+          }
+      - name: Build MSI
+        shell: pwsh
+        run: |
+          $wix='C:/Program Files (x86)/MSBuild/Microsoft/WiX/v3.x/Wix.targets'
+          msbuild 'Project Files/Source/Thetis-Installer/Thetis-Installer.wixproj' -p:Configuration=Release -p:Platform=x64 "-p:WixTargetsPath=$wix" -m -nologo -v:minimal
+          if ($LASTEXITCODE -ne 0) { throw 'MSI Build FAILED' }
+          $msi='Project Files/bin/Installers/SDR-VST3.msi'
+          if (-not (Test-Path $msi)) { throw 'MSI missing' }
+          "[PASS] MSI SHA256=$((Get-FileHash $msi -Algorithm SHA256).Hash)" | Tee-Object -FilePath audit/result.txt -Append
+      - name: Verify MSI File and Component tables and extracted EXE SHA256
+        shell: pwsh
+        run: |
+          $ErrorActionPreference='Stop'
+          $msi=(Resolve-Path 'Project Files/bin/Installers/SDR-VST3.msi').Path
+          $wi=New-Object -ComObject WindowsInstaller.Installer
+          $db=$wi.OpenDatabase($msi,0)
+          $tick=[char]96
+          $view=$db.OpenView("SELECT * FROM " + $tick + "File" + $tick)
+          $view.Execute()
+          $found=$false
+          while ($r=$view.Fetch()) {
+            if ($r.StringData(1) -eq 'ThetisEXE' -and $r.StringData(2) -eq 'fwException') { $found=$true }
+          }
+          $view.Close()
+          if (-not $found) { throw 'ThetisEXE absent from MSI File table' }
+          '[PASS] Thetis.exe present in MSI File table' | Tee-Object -FilePath audit/result.txt -Append
+          $view=$db.OpenView("SELECT * FROM " + $tick + "Component" + $tick)
+          $view.Execute()
+          $found=$false
+          while ($r=$view.Fetch()) {
+            if ($r.StringData(1) -eq 'fwException') {
+              $found=$true
+              if (-not [string]::IsNullOrEmpty($r.StringData(5))) { throw 'Main EXE still has install condition' }
+            }
+          }
+          $view.Close()
+          if (-not $found) { throw 'fwException component missing' }
+          '[PASS] Main EXE install condition is EMPTY' | Tee-Object -FilePath audit/result.txt -Append
+          $admin=(Join-Path (Resolve-Path audit).Path 'extract')
+          New-Item -ItemType Directory -Path $admin -Force | Out-Null
+          $log=(Join-Path (Resolve-Path audit).Path 'extract.log')
+          $args1='/a "' + $msi + '" /qn TARGETDIR="' + $admin + '" /L*v "' + $log + '"'
+          $p=Start-Process msiexec.exe -ArgumentList $args1 -PassThru -Wait
+          if ($p.ExitCode -ne 0) { throw "Admin extract FAIL: $($p.ExitCode)" }
+          $exe=Get-ChildItem -Path $admin -Filter Thetis.exe -Recurse -File | Select-Object -First 1
+          if (-not $exe) { throw 'Thetis.exe missing after MSI extraction' }
+          $built=(Get-FileHash 'Project Files/bin/x64/Release/Thetis.exe' -Algorithm SHA256).Hash
+          $extracted=(Get-FileHash $exe.FullName -Algorithm SHA256).Hash
+          if ($built -ne $extracted) { throw 'EXE hash mismatch after MSI extraction' }
+          "[PASS] Extracted Thetis.exe SHA256=$extracted" | Tee-Object -FilePath audit/result.txt -Append
+      - name: Install on Windows and verify exact EXE destination SHA256
+        shell: pwsh
+        run: |
+          $msi=(Resolve-Path 'Project Files/bin/Installers/SDR-VST3.msi').Path
+          $log=(Join-Path (Resolve-Path audit).Path 'install.log')
+          $args1='/i "' + $msi + '" /qn /norestart /L*v "' + $log + '"'
+          $p=Start-Process msiexec.exe -ArgumentList $args1 -PassThru -Wait
+          "INSTALL_EXIT=$($p.ExitCode)" | Tee-Object -FilePath audit/result.txt -Append
+          if ($p.ExitCode -ne 0) { throw "MSI install failed: $($p.ExitCode)" }
+          $exe='C:\Program Files\OpenHPSDR\SDR-VST3\Thetis.exe'
+          if (-not (Test-Path $exe)) { throw "Installed EXE absent from: $exe" }
+          $built=(Get-FileHash 'Project Files/bin/x64/Release/Thetis.exe' -Algorithm SHA256).Hash
+          $installed=(Get-FileHash $exe -Algorithm SHA256).Hash
+          if ($built -ne $installed) { throw 'Installed EXE hash mismatch' }
+          "[PASS] Installed Thetis.exe: $exe" | Tee-Object -FilePath audit/result.txt -Append
+          "[PASS] Installed EXE SHA256=$installed" | Tee-Object -FilePath audit/result.txt -Append
+      - name: Publish tested MSI and SHA report
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-SDR-VST3-EXE-FIX-MSI
+          path: |
+            Project Files/bin/Installers/SDR-VST3.msi
+            audit/result.txt
+          if-no-files-found: error
+          retention-days: 14
+      - name: Commit ONLY verified source fix and remove this workflow
+        shell: pwsh
+        run: |
+          git config user.name 'SQ4KOU CI'
+          git config user.email 'noreply@users.noreply.github.com'
+          git add -- 'Project Files/Source/Thetis-Installer/Product.wxs'
+          git rm -f -- '.github/workflows/sq4kou-msi-exe-fix.yml'
+          git diff --cached --check
+          if ($LASTEXITCODE -ne 0) { throw 'Commit check FAILED' }
+          git commit -m 'fix(installer): install Thetis.exe unconditionally'
+          if ($LASTEXITCODE -ne 0) { throw 'Commit FAILED' }
+          git push origin 'HEAD:refs/heads/import/3z9am-v6.0.7.25'
+          if ($LASTEXITCODE -ne 0) { throw 'Push FAILED' }
+          '[PASS] Verified source published; temporary workflow removed'
