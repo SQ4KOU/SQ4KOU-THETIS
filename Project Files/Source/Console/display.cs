@@ -5273,10 +5273,10 @@ namespace Thetis
             else
                 maximums = m_rx2_spectrumPeaks;
 
-            Parallel.For(0, maximums.Length, (i) =>
+            for (int i = 0; i < maximums.Length; i++)
             {
                 maximums[i].max_dBm = float.MinValue;
-            });
+            }
         }
         static public void ResetBlobMaximums(int rx, bool bClear = false)
         {
