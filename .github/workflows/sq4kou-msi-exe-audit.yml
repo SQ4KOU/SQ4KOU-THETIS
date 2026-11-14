@@ -1,0 +1,90 @@
+name: SQ4KOU MSI EXE audit
+on:
+  push:
+    branches: [import/3z9am-v6.0.7.25]
+    paths: [.github/workflows/sq4kou-msi-exe-audit.yml]
+permissions:
+  actions: read
+  contents: read
+jobs:
+  audit:
+    runs-on: windows-latest
+    timeout-minutes: 25
+    steps:
+      - name: Download exact previous MSI, no rebuild
+        uses: actions/download-artifact@v4
+        with:
+          name: SQ4KOU-BandSwitch-Guard-MSI
+          run-id: 43616444855
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: audit/input
+      - name: Inspect MSI File and Component tables, then administrative extraction
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $msi = (Resolve-Path 'audit/input/SDR-VST3.msi').Path
+          $report = 'audit/result.txt'
+          $msiHash = (Get-FileHash $msi -Algorithm SHA256).Hash
+          "MSI_SHA256=$msiHash" | Tee-Object -FilePath $report
+          $wi = New-Object -ComObject WindowsInstaller.Installer
+          $db = $wi.OpenDatabase($msi, 0)
+          $tick = [char]96
+          $v = $db.OpenView("SELECT * FROM ${tick}File${tick}")
+          $v.Execute()
+          $fileFound = $false
+          while ($r = $v.Fetch()) {
+            if ($r.StringData(1) -eq 'ThetisEXE' -or $r.StringData(3) -match '(?i)Thetis.exe') {
+              $fileFound = $true
+              "MSI_FILE_ID=$($r.StringData(1)); COMPONENT=$($r.StringData(2)); NAME=$($r.StringData(3))" | Tee-Object -FilePath $report -Append
+            }
+          }
+          $v.Close()
+          $v2 = $db.OpenView("SELECT * FROM ${tick}Component${tick}")
+          $v2.Execute()
+          while ($r = $v2.Fetch()) {
+            if ($r.StringData(1) -eq 'fwException') {
+              "MSI_COMPONENT=$($r.StringData(1)); DIRECTORY=$($r.StringData(3)); CONDITION=$($r.StringData(5))" | Tee-Object -FilePath $report -Append
+            }
+          }
+          $v2.Close()
+          if (-not $fileFound) { throw 'MSI File table does not contain Thetis.exe' }
+          $admin = Join-Path (Resolve-Path 'audit').Path 'admin'
+          New-Item -ItemType Directory -Force $admin | Out-Null
+          $log = Join-Path (Resolve-Path 'audit').Path 'admin.log'
+          $p = Start-Process -FilePath msiexec.exe -ArgumentList @('/a', "`"$msi`"", '/qn', "TARGETDIR=`"$admin`"", '/L*v', "`"$log`"") -PassThru -Wait
+          "ADMIN_EXTRACT_EXIT=$($p.ExitCode)" | Tee-Object -FilePath $report -Append
+          if ($p.ExitCode -notin @(0,3010)) { throw "Administrative extract failed: $($p.ExitCode)" }
+          $exe = Get-ChildItem -Path $admin -Recurse -Filter Thetis.exe -File | Select-Object -First 1
+          if (-not $exe) { throw 'MSI administrative extraction has no Thetis.exe' }
+          $hash = (Get-FileHash $exe.FullName -Algorithm SHA256).Hash
+          "ADMIN_EXTRACT_EXE=$($exe.FullName)" | Tee-Object -FilePath $report -Append
+          "ADMIN_EXE_SHA256=$hash" | Tee-Object -FilePath $report -Append
+          $expected = '85F36BE19A324780B58084C30B58C09CF0807CC92DB9198B23B76483E9D02936'
+          if ($hash -ne $expected) { throw 'Extracted EXE differs from compiled EXE' }
+          '[PASS] Original MSI contains the correct compiled Thetis.exe' | Tee-Object -FilePath $report -Append
+      - name: Install MSI on clean Windows test runner and report outcome
+        if: success()
+        shell: pwsh
+        run: |
+          $msi = (Resolve-Path 'audit/input/SDR-VST3.msi').Path
+          $log = Join-Path (Resolve-Path 'audit').Path 'install.log'
+          $p = Start-Process -FilePath msiexec.exe -ArgumentList @('/i', "`"$msi`"", '/qn','/norestart','/L*v',"`"$log`"") -PassThru -Wait
+          "INSTALL_EXIT=$($p.ExitCode)" | Tee-Object -FilePath audit/result.txt -Append
+          $folder = 'C:\Program Files\OpenHPSDR\SDR-VST3'
+          $exe = Join-Path $folder 'Thetis.exe'
+          "INSTALLED_EXE_EXISTS=$(Test-Path $exe)" | Tee-Object -FilePath audit/result.txt -Append
+          if (Test-Path $exe) {
+            "INSTALLED_EXE_SHA256=$((Get-FileHash $exe -Algorithm SHA256).Hash)" | Tee-Object -FilePath audit/result.txt -Append
+          } else {
+            $matches = Select-String -Path $log -Pattern 'Privileged|fwException|LaunchCondition|Return value 3|error 1603' -CaseSensitive:$false | Select-Object -Last 40
+            $matches | ForEach-Object { $_.Line } | Tee-Object -FilePath audit/result.txt -Append
+          }
+          if ($p.ExitCode -eq 0 -and -not (Test-Path $exe)) { throw 'INSTALL SUCCEEDED BUT MAIN EXE MISSING' }
+      - name: Upload diagnostic results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: SQ4KOU-MSI-EXE-AUDIT
+          path: audit/result.txt
+          retention-days: 7
+          if-no-files-found: warn
