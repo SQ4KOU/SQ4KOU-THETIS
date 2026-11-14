@@ -994,7 +994,17 @@ namespace Thetis
             if (_advancedON)
                 console.psform.ClientSize = new System.Drawing.Size(620, 70);
             else
-                console.psform.ClientSize = new System.Drawing.Size(620, 340);
+            {
+                // Ensure all controls fit after WinForms DPI/font scaling.
+                int width = 700;
+                int height = 400;
+                foreach (System.Windows.Forms.Control control in this.Controls)
+                {
+                    width = Math.Max(width, control.Right + 40);
+                    height = Math.Max(height, control.Bottom + 48);
+                }
+                console.psform.ClientSize = new System.Drawing.Size(width, height);
+            }
 
             chkAdvancedViewHidden.Checked = _advancedON;
         }
